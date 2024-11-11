@@ -30,7 +30,7 @@ jobs:
           done
 
       - name: Checkout the master branch
-        run: git checkout master
+        run: git checkout origin HEAD:master
 
       - name: Commit changes
         run: |
