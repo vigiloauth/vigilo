@@ -2,54 +2,19 @@ name: Add Copyright Headers
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
-  add-copyright:
+  add_copyright:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - uses: actions/checkout@v3
+      - uses: hashicorp/copywrite@v1
+        env:
+          COPYRIGHT_LICENSE: "Apache 2.0"
         with:
-          go-version: '1.23.3'
-
-      - name: Add copyright headers
-        run: |
-          for file in $(find . -name '*.go'); do
-            if ! head -n 1 "$file" | grep -q "Copyright"; then
-              cat .github/COPYRIGHT.txt "$file" > temp && mv temp "$file"
-            fi
-          done
-
-      - name: Stash changes
-        run: git stash --include-untracked
-
-      - name: Pull latest changes
-        run: git pull origin master --rebase
-
-      - name: Apply stashed changes
-        run: git stash pop
-
-      - name: Configure git
-        run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit changes
-        run: |
-          git add .
-          git commit -m "chore: add copyright headers" || echo "No changes to commit"
-
-      - name: Push changes
-        uses: peter-evans/repository-dispatch@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: create-pull-request
+          command: headers
+          paths: |
+            "**/*.go"
