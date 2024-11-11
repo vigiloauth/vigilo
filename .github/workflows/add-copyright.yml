@@ -29,13 +29,19 @@ jobs:
             fi
           done
 
+      - name: Stash changes
+        run: git stash --include-untracked
+
+      - name: Pull latest changes
+        run: git pull origin master --rebase
+
+      - name: Apply stashed changes
+        run: git stash pop
+
       - name: Configure git
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Pull latest changes
-        run: git pull origin master --rebase
 
       - name: Commit changes
         run: |
@@ -43,7 +49,7 @@ jobs:
           git commit -m "chore: add copyright headers" || echo "No changes to commit"
 
       - name: Push changes
-        uses: ad-m/github-push-action@v0.6.0
+        uses: peter-evans/repository-dispatch@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: master
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: create-pull-request
