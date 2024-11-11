@@ -29,6 +29,9 @@ jobs:
             fi
           done
 
+      - name: Checkout the master branch
+        run: git checkout master
+
       - name: Commit changes
         run: |
           git config --local user.name "github-actions[bot]"
