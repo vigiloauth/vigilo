@@ -1,0 +1,44 @@
+name: Add Copyright Headers
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  add-copyright:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.3'
+
+      - name: Add copyright headers
+        run: |
+          for file in $(find . -name '*.go'); do
+            if ! head -n 1 "$file" | grep -q "Copyright"; then
+              cat .github/COPYRIGHT.txt "$file" > temp && mv temp "$file"
+            fi
+          done
+
+      - name: Commit changes
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: add copyright headers"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push changes
+        run: git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
