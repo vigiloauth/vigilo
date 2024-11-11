@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: hashicorp/copyright@v1
+      - uses: hashicorp/copywrite@v1
         env:
           COPYRIGHT_LICENSE: "Apache 2.0"
         with:
