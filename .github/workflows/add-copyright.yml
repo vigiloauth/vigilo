@@ -29,10 +29,16 @@ jobs:
             fi
           done
 
-      - name: Commit changes
+      - name: Configure git
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Pull latest changes
+        run: git pull origin master --rebase
+
+      - name: Commit changes
+        run: |
           git add .
           git commit -m "chore: add copyright headers" || echo "No changes to commit"
 
