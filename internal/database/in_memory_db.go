@@ -18,9 +18,11 @@ package database
 
 import (
 	"errors"
-	"fmt"
-	"github.com/vigiloauth/vigilo/internal/log"
+	"log/slog"
+	"os"
 )
+
+var logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 type InMemoryDatabase struct {
 	data map[string]interface{}
@@ -35,47 +37,47 @@ func NewInMemoryDatabase() *InMemoryDatabase {
 func (db *InMemoryDatabase) Create(key string, value interface{}) error {
 	if db.recordExists(key) {
 		err := errors.New("record already exists")
-		log.Error(err)
+		logger.Error(err.Error())
 		return err
 	}
 
 	db.data[key] = value
-	log.Info(fmt.Sprintf("Record successfully added: %s", key))
+	logger.Info("Record successfully added.")
 	return nil
 }
 
 func (db *InMemoryDatabase) Read(key string) (interface{}, error) {
 	if !db.recordExists(key) {
 		err := errors.New("record does not exist")
-		log.Error(err)
+		logger.Error(err.Error())
 		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("Record found: %s", key))
+	logger.Info("Record found.")
 	return db.data[key], nil
 }
 
 func (db *InMemoryDatabase) Update(key string, value interface{}) error {
 	if !db.recordExists(key) {
 		err := errors.New("record does not exist")
-		log.Error(err)
+		logger.Error(err.Error())
 		return err
 	}
 
 	db.data[key] = value
-	log.Info(fmt.Sprintf("Updated record: %s", key))
+	logger.Info("Record successfully updated.")
 	return nil
 }
 
 func (db *InMemoryDatabase) Delete(key string) error {
 	if !db.recordExists(key) {
 		err := errors.New("record does not exist")
-		log.Error(err)
+		logger.Error(err.Error())
 		return err
 	}
 
 	delete(db.data, key)
-	log.Info(fmt.Sprintf("Record deleted: %s", key))
+	logger.Info("Record successfully deleted.")
 	return nil
 }
 

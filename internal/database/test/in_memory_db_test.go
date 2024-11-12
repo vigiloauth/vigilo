@@ -47,6 +47,16 @@ func TestRead(t *testing.T) {
 	}
 }
 
+func TestReadForNonExistingRecord(t *testing.T) {
+	db := database.NewInMemoryDatabase()
+	_, err := db.Read("non-existent-key")
+	if err == nil {
+		t.Errorf("Expected error 'record does not exist', got nil")
+	} else if err.Error() != "record does not exist" {
+		t.Errorf("Expected error 'record does not exist', got %v", err)
+	}
+}
+
 func TestUpdate(t *testing.T) {
 	db := database.NewInMemoryDatabase()
 	_ = db.Create("1", "First Record")
