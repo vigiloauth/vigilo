@@ -18,7 +18,6 @@ package database
 
 import (
 	"errors"
-	"log/slog"
 )
 
 type InMemoryDatabase struct {
@@ -33,48 +32,36 @@ func NewInMemoryDatabase() *InMemoryDatabase {
 
 func (db *InMemoryDatabase) Create(key string, value interface{}) error {
 	if db.recordExists(key) {
-		err := errors.New("record already exists")
-		slog.Error(err.Error())
-		return err
+		return errors.New("record already exists")
 	}
 
 	db.data[key] = value
-	slog.Info("Record successfully added.")
 	return nil
 }
 
 func (db *InMemoryDatabase) Read(key string) (interface{}, error) {
 	if !db.recordExists(key) {
-		err := errors.New("record does not exist")
-		slog.Error(err.Error())
-		return nil, err
+		return nil, errors.New("record does not exist")
 	}
 
-	slog.Info("Record found.")
 	return db.data[key], nil
 }
 
 func (db *InMemoryDatabase) Update(key string, value interface{}) error {
 	if !db.recordExists(key) {
-		err := errors.New("record does not exist")
-		slog.Error(err.Error())
-		return err
+		return errors.New("record does not exist")
 	}
 
 	db.data[key] = value
-	slog.Info("Record successfully updated.")
 	return nil
 }
 
 func (db *InMemoryDatabase) Delete(key string) error {
 	if !db.recordExists(key) {
-		err := errors.New("record does not exist")
-		slog.Error(err.Error())
-		return err
+		return errors.New("record does not exist")
 	}
 
 	delete(db.data, key)
-	slog.Info("Record successfully deleted.")
 	return nil
 }
 
