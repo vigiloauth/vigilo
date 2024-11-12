@@ -21,32 +21,28 @@ import (
 	"os"
 )
 
-var (
-	InfoLogger  *log.Logger
-	ErrorLogger *log.Logger
-	DebugLogger *log.Logger
-	WarnLogger  *log.Logger
-)
+var logger *log.Logger
 
 func init() {
-	InfoLogger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
-	ErrorLogger = log.New(os.Stderr, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
-	DebugLogger = log.New(os.Stdout, "DEBUG: ", log.Ldate|log.Ltime|log.Lshortfile)
-	WarnLogger = log.New(os.Stdout, "WARN: ", log.Ldate|log.Ltime|log.Lshortfile)
+	logger = log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lshortfile)
 }
 
 func Info(message string) {
-	InfoLogger.Println(message)
+	logger.SetPrefix("INFO: ")
+	logger.Println(message)
 }
 
 func Error(message error) {
-	ErrorLogger.Println(message)
+	logger.SetPrefix("ERROR: ")
+	logger.Println(message)
 }
 
 func Debug(message string) {
-	DebugLogger.Println(message)
+	logger.SetPrefix("DEBUG: ")
+	logger.Println(message)
 }
 
 func Warn(message string) {
-	WarnLogger.Println(message)
+	logger.SetPrefix("WARN: ")
+	logger.Println(message)
 }
