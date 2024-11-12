@@ -19,10 +19,7 @@ package database
 import (
 	"errors"
 	"log/slog"
-	"os"
 )
-
-var logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 type InMemoryDatabase struct {
 	data map[string]interface{}
@@ -37,47 +34,47 @@ func NewInMemoryDatabase() *InMemoryDatabase {
 func (db *InMemoryDatabase) Create(key string, value interface{}) error {
 	if db.recordExists(key) {
 		err := errors.New("record already exists")
-		logger.Error(err.Error())
+		slog.Error(err.Error())
 		return err
 	}
 
 	db.data[key] = value
-	logger.Info("Record successfully added.")
+	slog.Info("Record successfully added.")
 	return nil
 }
 
 func (db *InMemoryDatabase) Read(key string) (interface{}, error) {
 	if !db.recordExists(key) {
 		err := errors.New("record does not exist")
-		logger.Error(err.Error())
+		slog.Error(err.Error())
 		return nil, err
 	}
 
-	logger.Info("Record found.")
+	slog.Info("Record found.")
 	return db.data[key], nil
 }
 
 func (db *InMemoryDatabase) Update(key string, value interface{}) error {
 	if !db.recordExists(key) {
 		err := errors.New("record does not exist")
-		logger.Error(err.Error())
+		slog.Error(err.Error())
 		return err
 	}
 
 	db.data[key] = value
-	logger.Info("Record successfully updated.")
+	slog.Info("Record successfully updated.")
 	return nil
 }
 
 func (db *InMemoryDatabase) Delete(key string) error {
 	if !db.recordExists(key) {
 		err := errors.New("record does not exist")
-		logger.Error(err.Error())
+		slog.Error(err.Error())
 		return err
 	}
 
 	delete(db.data, key)
-	logger.Info("Record successfully deleted.")
+	slog.Info("Record successfully deleted.")
 	return nil
 }
 
