@@ -39,7 +39,7 @@ func Info(message string) {
 	InfoLogger.Println(message)
 }
 
-func Error(message string) {
+func Error(message error) {
 	ErrorLogger.Println(message)
 }
 
