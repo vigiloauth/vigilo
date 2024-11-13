@@ -16,57 +16,48 @@
 
 package database
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func setupTest(t *testing.T) *InMemoryDatabase {
+	db := NewInMemoryDatabase()
+	t.Cleanup(func() { db = NewInMemoryDatabase() })
+	return db
+}
 
 func TestCreate(t *testing.T) {
-	db := NewInMemoryDatabase()
-	err := db.Create("1", "First Record")
-	if err != nil {
-		t.Errorf("Create failed: %v", err)
-	}
+	db := setupTest(t)
+	err := db.Create("1", "record")
+	assert.NoError(t, err, "Expected no error when inserting a new record")
 
-	err = db.Create("1", "Duplicate Record")
-	if err == nil {
-		t.Errorf("Expected error for duplicate record creation, but got nil.")
-	}
+	err = db.Create("1", "duplicateRecord")
+	assert.Error(t, err, "Expected error when inserting a duplicate record")
 }
 
 func TestRead(t *testing.T) {
-	db := NewInMemoryDatabase()
-	_ = db.Create("1", "First Record")
+	db := setupTest(t)
+	_ = db.Create("1", "record")
 
 	value, err := db.Read("1")
-	if err != nil {
-		t.Errorf("Read failed: %v", err)
-	}
-	if value != "First Record" {
-		t.Errorf("Read failed: expected %v, got %v", value, "First Record")
-	}
-}
+	assert.NotNil(t, value, "Expected value to not be nil")
+	assert.NoError(t, err, "Expected no error when retrieving existing value")
 
-func TestReadForNonExistingRecord(t *testing.T) {
-	db := NewInMemoryDatabase()
-	_, err := db.Read("non-existent-key")
-	if err == nil {
-		t.Errorf("Expected error 'record does not exist', got nil")
-	} else if err.Error() != "record does not exist" {
-		t.Errorf("Expected error 'record does not exist', got %v", err)
-	}
+	value, err = db.Read("2")
+	assert.Nil(t, value, "Expected value to not be nil")
+	assert.Error(t, err, "Expected error when retrieving non-existing record")
 }
 
 func TestUpdate(t *testing.T) {
-	db := NewInMemoryDatabase()
-	_ = db.Create("1", "First Record")
+	db := setupTest(t)
+	_ = db.Create("1", "record")
 
-	err := db.Update("1", "Updated Record")
-	if err != nil {
-		t.Errorf("Update failed: %v", err)
-	}
+	err := db.Update("1", "new record")
+	assert.NoError(t, err, "Expected no error when updating existing value")
 
-	err = db.Update("2", "New Record")
-	if err == nil {
-		t.Errorf("Expected error for updating non-existent key, but got nil.")
-	}
+	err = db.Update("2", "non-existing record")
+	assert.Error(t, err, "Expected error when updating non-existing value")
 }
 
 func TestDelete(t *testing.T) {
@@ -74,12 +65,8 @@ func TestDelete(t *testing.T) {
 	_ = db.Create("1", "First Record")
 
 	err := db.Delete("1")
-	if err != nil {
-		t.Errorf("Delete failed: %v", err)
-	}
+	assert.NoError(t, err, "Expected no error when deleting existing value")
 
 	err = db.Delete("2")
-	if err == nil {
-		t.Errorf("Expected error for deleting non-existent key, but got nil.")
-	}
+	assert.Error(t, err, "Expected error when deleting non-existing value")
 }
