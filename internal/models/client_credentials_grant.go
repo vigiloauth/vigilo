@@ -28,6 +28,6 @@ func NewClientCredentialsGrant(clientID, clientSecret string) *ClientCredentials
 	return &ClientCredentialsGrant{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		ExpiresAt:    time.Now().Add(24 * time.Hour).UTC(),
+		ExpiresAt:    time.Now().Add(30 * time.Minute).UTC(),
 	}
 }
