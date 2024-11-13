@@ -42,7 +42,7 @@ func (db *InMemoryDatabase) Create(key string, value interface{}) error {
 	return nil
 }
 
-func (db *InMemoryDatabase) Read(key string) (interface{}, error) {
+func (db *InMemoryDatabase) Read(key string) (*interface{}, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -51,7 +51,7 @@ func (db *InMemoryDatabase) Read(key string) (interface{}, error) {
 		return nil, fmt.Errorf("read operation failed: no record found with key '%s'", key)
 	}
 
-	return value, nil
+	return &value, nil
 }
 
 func (db *InMemoryDatabase) Update(key string, value interface{}) error {
