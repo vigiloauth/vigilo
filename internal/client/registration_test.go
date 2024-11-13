@@ -17,6 +17,8 @@
 package client
 
 import (
+	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/client/models"
 	"github.com/vigiloauth/vigilo/internal/mocks"
 	"testing"
@@ -26,35 +28,83 @@ func setupTest(t *testing.T) (*mocks.MockDatabase, *Registration) {
 	mockDB := mocks.NewMockDatabase()
 	clientRegistration := NewRegistration(mockDB)
 
-	t.Cleanup(func() { mockDB = mocks.NewMockDatabase() })
+	t.Cleanup(func() {
+		mockDB.Reset()
+	})
 
 	return mockDB, clientRegistration
 }
 
 func TestRegisterClient_ValidData(t *testing.T) {
 	mockDB, clientRegistration := setupTest(t)
-
-	client := models.Client{ID: "client123", Name: "Test Client"}
+	client := createClient()
 
 	err := clientRegistration.RegisterClient(client)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
+	assert.NoError(t, err, "Expected no error when registering a valid client")
 
 	_, err = mockDB.Read(client.ID)
-	if err != nil {
-		t.Fatalf("Expected client to be in the database, but got error: %v", err)
-	}
+	assert.NoError(t, err, "Expected client to be in the database after registration")
 }
 
-func TestRegisterClient_InvalidData(t *testing.T) {
+func TestRegisterClient_InvalidRedirectURIs(t *testing.T) {
 	mockDB, clientRegistration := setupTest(t)
-
-	client := models.Client{ID: "client123", Name: "Test Client"}
-	_ = mockDB.Create(client.ID, client)
+	client := createClient()
+	client.RedirectURIs = append(client.RedirectURIs, "http://invalid-uri.com/callback")
 
 	err := clientRegistration.RegisterClient(client)
-	if err == nil {
-		t.Fatalf("Expected error for already existing client, got none.")
+	assert.Error(t, err, "Expected error for non-HTTPS redirect URI")
+	assert.Contains(t, err.Error(), "scheme must be HTTPS", "Expected specific error message about HTTPS scheme")
+
+	_, err = mockDB.Read(client.ID)
+	assert.Error(t, err, "Expected error when reading client from the database")
+}
+
+func TestRegisterClient_EmptyRedirectURIs(t *testing.T) {
+	mockDB, clientRegistration := setupTest(t)
+	client := createClient()
+	client.RedirectURIs = []string{}
+
+	err := clientRegistration.RegisterClient(client)
+	assert.Error(t, err, "Expected error for empty redirect URIs")
+	assert.Contains(t, err.Error(), "redirect URIs cannot be null", "Expected specific error message about empty redirect URIs")
+
+	_, err = mockDB.Read(client.ID)
+	assert.Error(t, err, "Expected error when reading client from the database")
+}
+
+func TestRegisterClient_MalformedRedirectURI(t *testing.T) {
+	mockDB, clientRegistration := setupTest(t)
+	client := createClient()
+	client.RedirectURIs = append(client.RedirectURIs, "https://example.com/[callback")
+
+	err := clientRegistration.RegisterClient(client)
+	assert.Error(t, err, "Expected error for malformed redirect URI")
+	assert.Contains(t, err.Error(), "malformed URL", "Expected specific error message about malformed URL")
+
+	_, err = mockDB.Read(client.ID)
+	assert.Error(t, err, "Expected error when reading client from the database")
+}
+
+func TestRegisterClient_DatabaseFailure(t *testing.T) {
+	mockDB := mocks.NewMockDatabase()
+	mockDB.CreateFunc = func(key string, value interface{}) error {
+		return fmt.Errorf("database error")
 	}
+
+	clientRegistration := NewRegistration(mockDB)
+
+	client := createClient()
+	err := clientRegistration.RegisterClient(client)
+
+	assert.Error(t, err, "Expected error due to database failure")
+	assert.Contains(t, err.Error(), "client registration failed", "Expected specific database error message")
+}
+
+func createClient() *models.Client {
+	return models.NewClient(
+		"My Client App",
+		[]models.GrantTypeEnum{models.AuthorizationCode},
+		[]string{"https://myclientapp.com/callback"},
+		models.Confidential,
+	)
 }

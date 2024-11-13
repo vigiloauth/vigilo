@@ -20,20 +20,74 @@ import (
 	"fmt"
 	"github.com/vigiloauth/vigilo/internal/client/models"
 	"github.com/vigiloauth/vigilo/internal/database"
+	"github.com/vigiloauth/vigilo/internal/util"
+	"net/url"
 )
 
 type Registration struct {
-	ClientStore database.Database
+	db database.Database
 }
 
-func NewRegistration(clientStore database.Database) *Registration {
-	return &Registration{ClientStore: clientStore}
+func NewRegistration(db database.Database) *Registration {
+	return &Registration{db: db}
 }
 
-func (r *Registration) RegisterClient(client models.Client) error {
-	err := r.ClientStore.Create(client.ID, client)
+func (r *Registration) RegisterClient(client *models.Client) error {
+	client.ID = util.HashSensitiveKey(client.ID)
+
+	if err := validateRedirectURIs(&client.RedirectURIs); err != nil {
+		return fmt.Errorf("invalid redirect URIs for: %v", err)
+	}
+
+	if err := r.db.Create(client.ID, *client); err != nil {
+		return fmt.Errorf("client registration failed: %v", err)
+	}
+
+	return nil
+}
+
+func validateRedirectURIs(redirectURIs *[]string) error {
+	if redirectURIs == nil || len(*redirectURIs) == 0 {
+		return fmt.Errorf("redirect URIs cannot be null")
+	}
+
+	for _, uri := range *redirectURIs {
+		if err := validateRedirectURI(&uri); err != nil {
+			return fmt.Errorf("invalid redirect URI '%s': %v", uri, err)
+		}
+	}
+
+	return nil
+}
+
+func validateRedirectURI(redirectURI *string) error {
+	if err := util.ValidateURLPattern(redirectURI); err != nil {
+		return fmt.Errorf("invalid redirect URI '%s': %v", *redirectURI, err)
+	}
+
+	parsedURL, err := url.Parse(*redirectURI)
 	if err != nil {
-		return fmt.Errorf("client registration failed for client with ID '%s': %v", client.ID, err)
+		return fmt.Errorf("malformed URL: %v", err)
+	}
+
+	if parsedURL.Scheme != "https" {
+		return fmt.Errorf("scheme must be HTTPS")
+	}
+
+	if parsedURL.Host == "" {
+		return fmt.Errorf("host cannot be empty")
+	}
+
+	if parsedURL.Fragment != "" {
+		return fmt.Errorf("fragments are not allowed")
+	}
+
+	if err := util.ValidateAgainstInvalidChars(redirectURI); err != nil {
+		return fmt.Errorf("error validating URL '%s': %v", *redirectURI, err)
+	}
+
+	if err := util.ValidateHost(redirectURI); err != nil {
+		return fmt.Errorf("error validating URL '%s': %v", *redirectURI, err)
 	}
 
 	return nil
