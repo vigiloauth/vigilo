@@ -42,7 +42,7 @@ func (db *InMemoryDatabase) Create(key string, value interface{}) error {
 	return nil
 }
 
-func (db *InMemoryDatabase) Read(key string) (*interface{}, error) {
+func (db *InMemoryDatabase) Read(key string) (interface{}, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
