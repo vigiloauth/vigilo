@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
-package client
+package services
 
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/client/models"
 	"github.com/vigiloauth/vigilo/internal/mocks"
+	"github.com/vigiloauth/vigilo/internal/models"
+	"github.com/vigiloauth/vigilo/pkg/client/types"
 	"testing"
 )
 
-func setupTest(t *testing.T) (*mocks.MockDatabase, *Registration) {
+func setupTest(t *testing.T) (*mocks.MockDatabase, *RegistrationService) {
 	mockDB := mocks.NewMockDatabase()
-	clientRegistration := NewRegistration(mockDB)
-
-	t.Cleanup(func() {
-		mockDB.Reset()
-	})
+	clientRegistration := NewRegistrationService(mockDB)
+	t.Cleanup(func() { mockDB.Reset() })
 
 	return mockDB, clientRegistration
 }
@@ -40,13 +38,13 @@ func TestRegisterClient_ValidData(t *testing.T) {
 	client := createClient()
 
 	err := clientRegistration.RegisterClient(client)
-	assert.NoError(t, err, "Expected no error when registering a valid client")
-
 	_, err = mockDB.Read(client.ID)
+
+	assert.NoError(t, err, "Expected no error when registering a valid client")
 	assert.NoError(t, err, "Expected client to be in the database after registration")
 }
 
-func TestRegisterClient_InvalidRedirectURIs(t *testing.T) {
+func TestRegisterClient_RedirectURIUsingHttp(t *testing.T) {
 	mockDB, clientRegistration := setupTest(t)
 	client := createClient()
 	client.RedirectURIs = append(client.RedirectURIs, "http://invalid-uri.com/callback")
@@ -91,7 +89,7 @@ func TestRegisterClient_DatabaseFailure(t *testing.T) {
 		return fmt.Errorf("database error")
 	}
 
-	clientRegistration := NewRegistration(mockDB)
+	clientRegistration := NewRegistrationService(mockDB)
 
 	client := createClient()
 	err := clientRegistration.RegisterClient(client)
@@ -103,8 +101,8 @@ func TestRegisterClient_DatabaseFailure(t *testing.T) {
 func createClient() *models.Client {
 	return models.NewClient(
 		"My Client App",
-		[]models.GrantTypeEnum{models.AuthorizationCode},
+		[]types.GrantTypeEnum{types.AuthorizationCode},
 		[]string{"https://myclientapp.com/callback"},
-		models.Confidential,
+		types.Confidential,
 	)
 }
