@@ -30,7 +30,7 @@ type AuthorizationCodeGrant struct {
 }
 
 func NewAuthorizationCodeGrant(clientID, redirectURI, state string) *AuthorizationCodeGrant {
-	expiration := time.Now().Add(24 * time.Hour).UTC()
+	expiration := time.Now().Add(5 * time.Minute).UTC()
 	return &AuthorizationCodeGrant{
 		AuthorizationCode: uuid.New().String(),
 		ClientID:          clientID,
