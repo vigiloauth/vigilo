@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package test
+package database
 
-import (
-	"github.com/vigiloauth/vigilo/internal/database"
-	"testing"
-)
+import "testing"
 
 func TestCreate(t *testing.T) {
-	db := database.NewInMemoryDatabase()
+	db := NewInMemoryDatabase()
 	err := db.Create("1", "First Record")
 	if err != nil {
 		t.Errorf("Create failed: %v", err)
@@ -35,7 +32,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	db := database.NewInMemoryDatabase()
+	db := NewInMemoryDatabase()
 	_ = db.Create("1", "First Record")
 
 	value, err := db.Read("1")
@@ -48,7 +45,7 @@ func TestRead(t *testing.T) {
 }
 
 func TestReadForNonExistingRecord(t *testing.T) {
-	db := database.NewInMemoryDatabase()
+	db := NewInMemoryDatabase()
 	_, err := db.Read("non-existent-key")
 	if err == nil {
 		t.Errorf("Expected error 'record does not exist', got nil")
@@ -58,7 +55,7 @@ func TestReadForNonExistingRecord(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	db := database.NewInMemoryDatabase()
+	db := NewInMemoryDatabase()
 	_ = db.Create("1", "First Record")
 
 	err := db.Update("1", "Updated Record")
@@ -73,7 +70,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	db := database.NewInMemoryDatabase()
+	db := NewInMemoryDatabase()
 	_ = db.Create("1", "First Record")
 
 	err := db.Delete("1")

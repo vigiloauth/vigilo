@@ -17,22 +17,25 @@
 package database
 
 import (
-	"errors"
+	"fmt"
+	"sync"
 )
 
 type InMemoryDatabase struct {
 	data map[string]interface{}
+	mu   sync.RWMutex
 }
 
 func NewInMemoryDatabase() *InMemoryDatabase {
-	return &InMemoryDatabase{
-		data: make(map[string]interface{}),
-	}
+	return &InMemoryDatabase{data: make(map[string]interface{})}
 }
 
 func (db *InMemoryDatabase) Create(key string, value interface{}) error {
-	if db.recordExists(key) {
-		return errors.New("record already exists")
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if _, exists := db.data[key]; exists {
+		return fmt.Errorf("create operation failed: record with key '%s' already exists", key)
 	}
 
 	db.data[key] = value
@@ -40,16 +43,23 @@ func (db *InMemoryDatabase) Create(key string, value interface{}) error {
 }
 
 func (db *InMemoryDatabase) Read(key string) (interface{}, error) {
-	if !db.recordExists(key) {
-		return nil, errors.New("record does not exist")
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	value, exists := db.data[key]
+	if !exists {
+		return nil, fmt.Errorf("read operation failed: no record found with key '%s'", key)
 	}
 
-	return db.data[key], nil
+	return value, nil
 }
 
 func (db *InMemoryDatabase) Update(key string, value interface{}) error {
-	if !db.recordExists(key) {
-		return errors.New("record does not exist")
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if _, exists := db.data[key]; !exists {
+		return fmt.Errorf("update operation failed: no record found with key '%s'", key)
 	}
 
 	db.data[key] = value
@@ -57,15 +67,13 @@ func (db *InMemoryDatabase) Update(key string, value interface{}) error {
 }
 
 func (db *InMemoryDatabase) Delete(key string) error {
-	if !db.recordExists(key) {
-		return errors.New("record does not exist")
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	if _, exists := db.data[key]; !exists {
+		return fmt.Errorf("delete operation failed: no record found with key '%s'", key)
 	}
 
 	delete(db.data, key)
 	return nil
-}
-
-func (db *InMemoryDatabase) recordExists(key string) bool {
-	_, exists := db.data[key]
-	return exists
 }
