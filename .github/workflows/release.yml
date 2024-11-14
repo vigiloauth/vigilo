@@ -43,8 +43,30 @@ jobs:
         id: version
         if: github.event_name == 'pull_request'
         run: |
-          # Logic to determine new version based on labels (similar to previous steps)
-          # Output the version as set-output
+          VERSION="${{ steps.get_version.outputs.version }}"
+          MAJOR=$(echo $VERSION | cut -d '.' -f 1 | sed 's/v//')
+          MINOR=$(echo $VERSION | cut -d '.' -f 2)
+          PATCH=$(echo $VERSION | cut -d '.' -f 3)
+
+          PR_NUMBER=$(echo "${GITHUB_REF}" | sed -E 's/refs\/heads\///')
+          LABELS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels")
+          
+          echo "PR Number: $PR_NUMBER"
+          echo "Label: $LABELS"
+
+          if echo "$LABELS" | grep -q '"milestone"'; then
+            MINOR=$((MINOR+1))
+            PATCH=0
+          elif echo "$LABELS" | grep -q '"hotfix"'; then
+            PATCH=$((PATCH+1))
+          elif echo "$LABELS" | grep -q '"feature"'; then
+            PATCH=$((PATCH+1))
+          fi
+
+          VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "Updated version: $VERSION"
+          echo "::set-output name=version::$VERSION"
 
       - name: Write new version to .github/VERSION file
         run: echo "${{ steps.version.outputs.version }}" > .github/VERSION
