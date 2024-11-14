@@ -6,19 +6,17 @@ before:
     - go generate ./...
 
 builds:
-  - goos:
+  - env:
+      - CGO_ENABLED=0
+    goos:
       - linux
       - windows
       - darwin
-    goarch:
-      - amd64
-    env:
-      - CGO_ENABLED=0
 
 archives:
   - format: tar.gz
     name_template: >-
-      {{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
+      {{ .ProjectName }}_{{- title .Os }}_{{- if eq .Arch "amd64" }}x86_64{{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
         format: zip
@@ -29,3 +27,9 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+release:
+  github:
+    owner: vigiloauth
+    name: vigilo
+
