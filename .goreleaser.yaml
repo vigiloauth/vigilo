@@ -1,31 +1,14 @@
-version: 2
-
-before:
-  hooks:
-    - go mod tidy
-    - go generate ./...
-
 builds:
-  - goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - amd64
-    env:
-      - CGO_ENABLED=0
+  - id: vigilo
+    skip: true
 
 archives:
   - format: tar.gz
-    name_template: >-
-      {{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}
-    format_overrides:
-      - goos: windows
-        format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_source.tar.gz"
+    files:
+      - ./pkg/**/*
 
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
+release:
+  github:
+    owner: vigiloauth
+    name: vigilo
