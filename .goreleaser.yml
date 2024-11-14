@@ -1,4 +1,5 @@
 builds:
+  - id: vigilo_build
   - skip: true
   - goos:
       - linux
