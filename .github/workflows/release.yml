@@ -29,6 +29,11 @@ jobs:
         run: |
           go install github.com/goreleaser/goreleaser@latest
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
       - name: Install semantic-release
         run: |
           npm install -g semantic-release @semantic-release/git @semantic-release/changelog
