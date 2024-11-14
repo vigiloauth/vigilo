@@ -83,6 +83,6 @@ jobs:
           git push origin $VERSION
 
       - name: Run GoReleaser
-        run: goreleaser release --config .goreleaser.yaml
+        run: goreleaser release --config .goreleaser.yaml --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
