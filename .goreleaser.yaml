@@ -1,7 +1,9 @@
+version: 2
+
 builds:
-  - id: vigilo_build
   - skip: true
-  - goos:
+  - id: vigilo_build
+    goos:
       - linux
       - darwin
       - windows
