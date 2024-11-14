@@ -46,7 +46,7 @@ jobs:
 
           PR_NUMBER=$(echo "${GITHUB_REF}" | sed -E 's/refs\/heads\///')
           LABELS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/labels")
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels")
           
           echo "PR Number: $PR_NUMBER"
           echo "Label: $LABELS"
