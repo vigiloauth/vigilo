@@ -1,7 +1,9 @@
-name: GoReleaser Library Release
+name: Release
 
 on:
   push:
+    branches:
+      - master
     tags:
       - 'v*'
 
@@ -16,14 +18,27 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.18'
+          go-version: '1.23.3'  # Adjust to your Go version
 
-      - name: Install GoReleaser
+      - name: Set up Git
         run: |
-          curl -sSL https://github.com/goreleaser/goreleaser/releases/download/v1.15.0/goreleaser_1.15.0_Linux_x86_64.tar.gz | tar -xz
-          sudo mv goreleaser /usr/local/bin
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+      - name: Install dependencies
+        run: |
+          go install github.com/goreleaser/goreleaser@latest
+
+      - name: Install semantic-release
+        run: |
+          npm install -g semantic-release @semantic-release/git @semantic-release/changelog
+
+      - name: Run semantic-release
+        run: |
+          npx semantic-release
 
       - name: Run GoReleaser
-        run: ./goreleaser release --rm-dist
+        run: |
+          goreleaser release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
