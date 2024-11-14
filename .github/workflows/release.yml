@@ -29,32 +29,40 @@ jobs:
           curl -sL https://github.com/goreleaser/goreleaser/releases/download/v1.0.0/goreleaser_Linux_x86_64.tar.gz | tar -xzv
           sudo mv goreleaser /usr/local/bin/
 
+      - name: Read current version from .github/VERSION
+        id: get_version
+        run: |
+          VERSION=$(cat .github/VERSION)
+          echo "Current version: $VERSION"
+          echo "::set-output name=version::$VERSION"
+
       - name: Determine version from PR labels
         id: version
         run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          MAJOR=$(echo $VERSION | cut -d '.' -f 1 | sed 's/v//')
+          MINOR=$(echo $VERSION | cut -d '.' -f 2)
+          PATCH=$(echo $VERSION | cut -d '.' -f 3)
+
           PR_NUMBER=$(echo "${GITHUB_REF}" | sed -E 's/refs\/heads\///')
           LABELS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/labels")
-          
-          VERSION="v0.0.1"
-          MAJOR=0
-          MINOR=0
-          PATCH=0
 
           if echo "$LABELS" | grep -q '"milestone"'; then
             MINOR=$((MINOR+1))
             PATCH=0
-            VERSION="v${MAJOR}.${MINOR}.${PATCH}"
           elif echo "$LABELS" | grep -q '"hotfix"'; then
             PATCH=$((PATCH+1))
-            VERSION="v${MAJOR}.${MINOR}.${PATCH}"
           elif echo "$LABELS" | grep -q '"feature"'; then
             PATCH=$((PATCH+1))
-            VERSION="v${MAJOR}.${MINOR}.${PATCH}"
           fi
 
-          echo "Determined version: $VERSION"
+          VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "Updated version: $VERSION"
           echo "::set-output name=version::$VERSION"
+
+      - name: Write new version to .github/VERSION file
+        run: echo "${{ steps.version.outputs.version }}" > .github/VERSION
 
       - name: Run GoReleaser
         run: goreleaser release --rm-dist --config .goreleaser.yml --version ${{ steps.version.outputs.version }}
