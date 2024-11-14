@@ -1,0 +1,20 @@
+project_name: vigilo
+
+builds:
+  - main: ./cmd/vigilo
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+    ldflags: "-s -w"
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+release:
+  github:
+    owner: your-github-username
+    name: your-repository-name
