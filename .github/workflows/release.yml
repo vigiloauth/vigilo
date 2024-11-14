@@ -47,6 +47,9 @@ jobs:
           PR_NUMBER=$(echo "${GITHUB_REF}" | sed -E 's/refs\/heads\///')
           LABELS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/labels")
+          
+          echo "PR Number: $PR_NUMBER"
+          echo "Label: $LABELS"
 
           if echo "$LABELS" | grep -q '"milestone"'; then
             MINOR=$((MINOR+1))
