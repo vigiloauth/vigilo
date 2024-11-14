@@ -1,12 +1,5 @@
 name: Release
-
 on:
-  pull_request:
-    types:
-      - labeled
-      - synchronize
-      - opened
-      - closed
   push:
     branches:
       - master
@@ -14,60 +7,10 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.23.3'
-
-      - name: Install GoReleaser
-        run: |
-          curl -sL https://github.com/goreleaser/goreleaser/releases/download/v1.0.0/goreleaser_Linux_x86_64.tar.gz | tar -xzv
-          sudo mv goreleaser /usr/local/bin/
-
-      - name: Read current version from .github/VERSION
-        id: get_version
-        run: |
-          VERSION=$(cat .github/VERSION)
-          echo "Current version: $VERSION"
-          echo "::set-output name=version::$VERSION"
-
-      - name: Determine version from PR labels
-        id: version
-        run: |
-          VERSION="${{ steps.get_version.outputs.version }}"
-          MAJOR=$(echo $VERSION | cut -d '.' -f 1 | sed 's/v//')
-          MINOR=$(echo $VERSION | cut -d '.' -f 2)
-          PATCH=$(echo $VERSION | cut -d '.' -f 3)
-
-          PR_NUMBER=$(echo "${GITHUB_REF}" | sed -E 's/refs\/heads\///')
-          LABELS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels")
-          
-          echo "PR Number: $PR_NUMBER"
-          echo "Label: $LABELS"
-
-          if echo "$LABELS" | grep -q '"milestone"'; then
-            MINOR=$((MINOR+1))
-            PATCH=0
-          elif echo "$LABELS" | grep -q '"hotfix"'; then
-            PATCH=$((PATCH+1))
-          elif echo "$LABELS" | grep -q '"feature"'; then
-            PATCH=$((PATCH+1))
-          fi
-
-          VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-          echo "Updated version: $VERSION"
-          echo "::set-output name=version::$VERSION"
-
-      - name: Write new version to .github/VERSION file
-        run: echo "${{ steps.version.outputs.version }}" > .github/VERSION
-
-      - name: Run GoReleaser
-        run: goreleaser release --config .goreleaser.yaml --snapshot
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Release
+        uses: codfish/semantic-release-action@v2.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
