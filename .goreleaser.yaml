@@ -1,15 +1,8 @@
 version: 2
 
 builds:
-  - skip: true
-  - id: vigilo_build
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-    ldflags: "-s -w"
+  - id: vigilo
+    skip: true
 
 archives:
   - format: tar.gz
