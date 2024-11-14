@@ -1,6 +1,7 @@
 project_name: vigilo
 
 builds:
+  - ignore: true
   - main: ./cmd/vigilo
     goos:
       - linux
@@ -13,8 +14,10 @@ builds:
 archives:
   - format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - ./**
 
 release:
   github:
-    owner: your-github-username
-    name: your-repository-name
+    owner: vigiloauth
+    name: vigilo
