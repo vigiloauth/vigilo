@@ -18,8 +18,23 @@ package models
 
 import (
 	"github.com/google/uuid"
-	"github.com/vigiloauth/vigilo/pkg/client/types"
 	"time"
+)
+
+type TypeEnum string
+
+const (
+	Public       TypeEnum = "public"
+	Confidential TypeEnum = "confidential"
+)
+
+type GrantTypeEnum string
+
+const (
+	AuthorizationCode GrantTypeEnum = "authorization_code"
+	Implicit          GrantTypeEnum = "implicit"
+	ClientCredentials GrantTypeEnum = "client_credentials"
+	Password          GrantTypeEnum = "password"
 )
 
 type Client struct {
@@ -28,13 +43,13 @@ type Client struct {
 	Name         string
 	CreatedAt    time.Time
 	UpdatedAt    *time.Time
-	GrantTypes   []types.GrantTypeEnum
+	GrantTypes   []GrantTypeEnum
 	RedirectURIs []string
-	ClientType   types.ClientTypeEnum
+	ClientType   TypeEnum
 }
 
-func NewClient(name string, grantTypes []types.GrantTypeEnum, redirectURIs []string, clientType types.ClientTypeEnum) *Client {
-	client := &Client{
+func NewClient(name string, grantTypes []GrantTypeEnum, redirectURIs []string, clientType TypeEnum) *Client {
+	newClient := &Client{
 		ID:           uuid.New().String(),
 		Name:         name,
 		CreatedAt:    time.Now(),
@@ -44,10 +59,10 @@ func NewClient(name string, grantTypes []types.GrantTypeEnum, redirectURIs []str
 		ClientType:   clientType,
 	}
 
-	if clientType == types.Confidential {
+	if clientType == Confidential {
 		secret := uuid.New().String()
-		client.Secret = &secret
+		newClient.Secret = &secret
 	}
 
-	return client
+	return newClient
 }
