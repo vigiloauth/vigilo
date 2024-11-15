@@ -18,7 +18,6 @@ package config
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/vigiloauth/vigilo/internal/database/mysql"
@@ -26,20 +25,15 @@ import (
 	"strings"
 )
 
-var (
-	ErrInvalidConnectionString = errors.New("invalid connection string format")
-	ErrConnectionFailed        = errors.New("failed to establish database connection")
-)
-
 func CreateDatabaseConnection(connectionString string) error {
 	formattedConnectionString, err := formatConnectionString(connectionString)
 	if err != nil {
-		return ErrInvalidConnectionString
+		return fmt.Errorf("invalid connection string format: %w", err)
 	}
 
 	connection, err := sql.Open("mysql", formattedConnectionString)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrConnectionFailed, err)
+		return fmt.Errorf("failed to establish database connection: %w", err)
 	}
 
 	sqlConnection := mysql.NewSQLConnection(connection)
@@ -52,7 +46,10 @@ func CreateDatabaseConnection(connectionString string) error {
 }
 
 func formatConnectionString(connectionString string) (string, error) {
-	u, _ := url.Parse(connectionString)
+	u, err := url.Parse(connectionString)
+	if err != nil {
+		return "", err
+	}
 
 	username := u.User.Username()
 	password, _ := u.User.Password()
@@ -60,9 +57,35 @@ func formatConnectionString(connectionString string) (string, error) {
 	port := u.Port()
 	dbName := strings.TrimPrefix(u.Path, "/")
 
-	if username == "" || password == "" || hostname == "" || port == "" || dbName == "" {
-		return "", ErrInvalidConnectionString
+	if err := checkForMissingFields(username, password, hostname, port, dbName); err != nil {
+		return "", err
 	}
 
 	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, hostname, port, dbName), nil
+}
+
+func checkForMissingFields(username, password, hostname, port, dbName string) error {
+	var missingFields []string
+
+	if username == "" {
+		missingFields = append(missingFields, "username")
+	}
+	if password == "" {
+		missingFields = append(missingFields, "password")
+	}
+	if hostname == "" {
+		missingFields = append(missingFields, "hostname")
+	}
+	if port == "" {
+		missingFields = append(missingFields, "port")
+	}
+	if dbName == "" {
+		missingFields = append(missingFields, "db name")
+	}
+
+	if len(missingFields) > 0 {
+		return fmt.Errorf("missing required field(s): %s", strings.Join(missingFields, ", "))
+	}
+
+	return nil
 }
