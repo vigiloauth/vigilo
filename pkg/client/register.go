@@ -18,10 +18,9 @@ package client
 
 import (
 	"fmt"
-	"github.com/vigiloauth/vigilo/internal/database"
+	"github.com/vigiloauth/vigilo/internal/config"
 	"github.com/vigiloauth/vigilo/internal/models"
 	"github.com/vigiloauth/vigilo/internal/services"
-	"github.com/vigiloauth/vigilo/pkg/client/types"
 )
 
 // RegisterClient registers a new client with the giving configurations and returns a registration response if successful.
@@ -39,13 +38,8 @@ import (
 // Error Handling:
 //   - If the RegisterClient method of the services.RegistrationService encounters any error, the method will return
 //     a detailed error message wrapped with the context of client registration failure.
-func RegisterClient(
-	name string,
-	grantTypes []types.GrantTypeEnum,
-	redirectURIs []string,
-	clientType types.ClientTypeEnum,
-	db database.Database,
-) (*models.RegistrationResponse, error) {
+func RegisterClient(name string, grantTypes []models.GrantTypeEnum, redirectURIs []string, clientType models.TypeEnum) (*models.RegistrationResponse, error) {
+	db := config.GetDatabase()
 	newClient := models.NewClient(name, grantTypes, redirectURIs, clientType)
 	registration := services.NewRegistrationService(db)
 
