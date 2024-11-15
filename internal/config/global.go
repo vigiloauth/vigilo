@@ -43,6 +43,13 @@ func GetInstance() *GlobalConfig {
 	return instance
 }
 
+func GetConnection() interfaces.Connection {
+	instance := GetInstance()
+	instance.Mu.RLock()
+	defer instance.Mu.RUnlock()
+	return instance.Connection
+}
+
 func GetDatabase() interfaces.Database {
 	instance := GetInstance()
 	instance.Mu.RLock()
