@@ -36,6 +36,10 @@ func setupTest(t *testing.T) (*mocks.InMemoryMockDB, *models.Client) {
 func TestRegisterClient_ValidData(t *testing.T) {
 	mockDB, client := setupTest(t)
 	response, err := RegisterClient(client.Name, client.GrantTypes, client.RedirectURIs, client.ClientType)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err)
+	}
+
 	registeredClient, err := mockDB.Read(response.ClientID)
 
 	assert.NotNil(t, registeredClient, "Registered client should not be nil in the database")
@@ -58,6 +62,10 @@ func TestRegisterClient_InvalidData(t *testing.T) {
 func TestRegisterClient_StoresRedirectURIs(t *testing.T) {
 	mockDB, client := setupTest(t)
 	response, err := RegisterClient(client.Name, client.GrantTypes, client.RedirectURIs, client.ClientType)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err)
+	}
+
 	registeredClient, err := mockDB.Read(response.ClientID)
 
 	assert.NoError(t, err, "Expected no error reading client from the database")
