@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package database
+package interfaces
 
 type Database interface {
 	Create(key string, value interface{}) error
