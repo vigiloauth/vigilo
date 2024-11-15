@@ -34,10 +34,6 @@ import (
 //   - When successful, it returns a pointer to a models.RegistrationResponse object containing the hashed ClientID, ClientSecret,
 //     and RedirectURIs.
 //   - On failure, it returns an error that describes what wrong.
-//
-// Error Handling:
-//   - If the RegisterClient method of the services.RegistrationService encounters any error, the method will return
-//     a detailed error message wrapped with the context of client registration failure.
 func RegisterClient(name string, grantTypes []models.GrantTypeEnum, redirectURIs []string, clientType models.TypeEnum) (*models.RegistrationResponse, error) {
 	db := config.GetDatabase()
 	newClient := models.NewClient(name, grantTypes, redirectURIs, clientType)
