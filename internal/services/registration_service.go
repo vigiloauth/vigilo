@@ -18,17 +18,17 @@ package services
 
 import (
 	"fmt"
-	"github.com/vigiloauth/vigilo/internal/database"
+	"github.com/vigiloauth/vigilo/internal/database/interfaces"
 	"github.com/vigiloauth/vigilo/internal/models"
 	"github.com/vigiloauth/vigilo/internal/utils"
 	"net/url"
 )
 
 type RegistrationService struct {
-	db database.Database
+	db interfaces.Database
 }
 
-func NewRegistrationService(db database.Database) *RegistrationService {
+func NewRegistrationService(db interfaces.Database) *RegistrationService {
 	return &RegistrationService{db: db}
 }
 

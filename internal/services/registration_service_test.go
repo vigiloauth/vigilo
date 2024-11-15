@@ -21,12 +21,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/mocks"
 	"github.com/vigiloauth/vigilo/internal/models"
-	"github.com/vigiloauth/vigilo/pkg/client/types"
 	"testing"
 )
 
-func setupTest(t *testing.T) (*mocks.MockDatabase, *RegistrationService) {
-	mockDB := mocks.NewMockDatabase()
+func setupTest(t *testing.T) (*mocks.InMemoryMockDB, *RegistrationService) {
+	mockDB := mocks.NewInMemoryMockDB()
 	clientRegistration := NewRegistrationService(mockDB)
 	t.Cleanup(func() { mockDB.Reset() })
 
@@ -63,6 +62,7 @@ func TestRegisterClient_EmptyRedirectURIs(t *testing.T) {
 	client.RedirectURIs = []string{}
 
 	err := clientRegistration.RegisterClient(client)
+
 	assert.Error(t, err, "Expected error for empty redirect URIs")
 	assert.Contains(t, err.Error(), "redirect URIs cannot be null", "Expected specific error message about empty redirect URIs")
 
@@ -84,7 +84,7 @@ func TestRegisterClient_MalformedRedirectURI(t *testing.T) {
 }
 
 func TestRegisterClient_DatabaseFailure(t *testing.T) {
-	mockDB := mocks.NewMockDatabase()
+	mockDB := mocks.NewInMemoryMockDB()
 	mockDB.CreateFunc = func(key string, value interface{}) error {
 		return fmt.Errorf("database error")
 	}
@@ -101,8 +101,8 @@ func TestRegisterClient_DatabaseFailure(t *testing.T) {
 func createClient() *models.Client {
 	return models.NewClient(
 		"My Client App",
-		[]types.GrantTypeEnum{types.AuthorizationCode},
+		[]models.GrantTypeEnum{models.AuthorizationCode},
 		[]string{"https://myclientapp.com/callback"},
-		types.Confidential,
+		models.Confidential,
 	)
 }
