@@ -18,21 +18,32 @@ package config
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/config"
 	"testing"
 )
 
+func setup() {
+	config.GetInstance()
+	instance := config.GetInstance()
+	instance.Connection = nil
+}
+
 func TestConfigureDatabase_ReturnsNoError(t *testing.T) {
+	setup()
 	connectionString := "mysql://username:password@localhost:8080/my_db"
 	err := ConnectDatabase(connectionString)
 
 	assert.Nil(t, err, "Error should be nil")
 	assert.NoError(t, err, "ConnectDatabase should not return an error")
+	assert.NotNil(t, config.GetConnection(), "Connection should not be nil")
 }
 
 func TestConfigureDatabase_ReturnsError(t *testing.T) {
+	setup()
 	connectionString := "oracle://username@localhost:8080"
 	err := ConnectDatabase(connectionString)
 
 	assert.NotNil(t, err, "ConnectDatabase should return an error")
 	assert.Error(t, err, "ConnectDatabase should return an error")
+	assert.Nil(t, config.GetConnection(), "Connection should be nil")
 }
