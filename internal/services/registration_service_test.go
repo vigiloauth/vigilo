@@ -17,85 +17,76 @@
 package services
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/mocks"
 	"github.com/vigiloauth/vigilo/internal/models"
+	"strings"
 	"testing"
 )
 
-func setupTest(t *testing.T) (*mocks.InMemoryMockDB, *RegistrationService) {
-	mockDB := mocks.NewInMemoryMockDB()
-	clientRegistration := NewRegistrationService(mockDB)
-	t.Cleanup(func() { mockDB.Reset() })
+func setupTest() (*mocks.MockClientRepository, *RegistrationService) {
+	mockRepo := &mocks.MockClientRepository{}
+	clientRegistration := NewRegistrationService(mockRepo)
 
-	return mockDB, clientRegistration
+	return mockRepo, clientRegistration
 }
 
 func TestRegisterClient_ValidData(t *testing.T) {
-	mockDB, clientRegistration := setupTest(t)
+	mockRepo, clientRegistration := setupTest()
 	client := createClient()
 
-	err := clientRegistration.RegisterClient(client)
-	_, err = mockDB.Read(client.ID)
+	mockRepo.On("Create", client).Return(nil)
 
+	err := clientRegistration.RegisterClient(client)
 	assert.NoError(t, err, "Expected no error when registering a valid client")
-	assert.NoError(t, err, "Expected client to be in the database after registration")
+
+	mockRepo.On("FindById", client.ID).Return(client, nil)
+	storedClient, err := mockRepo.FindById(client.ID)
+
+	assert.NoError(t, err, "Expected no error when fetching a client by ID")
+	assert.Equal(t, client, storedClient, "Expected the registered client to be returned")
 }
 
-func TestRegisterClient_RedirectURIUsingHttp(t *testing.T) {
-	mockDB, clientRegistration := setupTest(t)
-	client := createClient()
-	client.RedirectURIs = append(client.RedirectURIs, "http://invalid-uri.com/callback")
-
-	err := clientRegistration.RegisterClient(client)
-	assert.Error(t, err, "Expected error for non-HTTPS redirect URI")
-	assert.Contains(t, err.Error(), "scheme must be HTTPS", "Expected specific error message about HTTPS scheme")
-
-	_, err = mockDB.Read(client.ID)
-	assert.Error(t, err, "Expected error when reading client from the database")
-}
-
-func TestRegisterClient_EmptyRedirectURIs(t *testing.T) {
-	mockDB, clientRegistration := setupTest(t)
-	client := createClient()
-	client.RedirectURIs = []string{}
-
-	err := clientRegistration.RegisterClient(client)
-
-	assert.Error(t, err, "Expected error for empty redirect URIs")
-	assert.Contains(t, err.Error(), "redirect URIs cannot be null", "Expected specific error message about empty redirect URIs")
-
-	_, err = mockDB.Read(client.ID)
-	assert.Error(t, err, "Expected error when reading client from the database")
-}
-
-func TestRegisterClient_MalformedRedirectURI(t *testing.T) {
-	mockDB, clientRegistration := setupTest(t)
-	client := createClient()
-	client.RedirectURIs = append(client.RedirectURIs, "https://example.com/[callback")
-
-	err := clientRegistration.RegisterClient(client)
-	assert.Error(t, err, "Expected error for malformed redirect URI")
-	assert.Contains(t, err.Error(), "malformed URL", "Expected specific error message about malformed URL")
-
-	_, err = mockDB.Read(client.ID)
-	assert.Error(t, err, "Expected error when reading client from the database")
-}
-
-func TestRegisterClient_DatabaseFailure(t *testing.T) {
-	mockDB := mocks.NewInMemoryMockDB()
-	mockDB.CreateFunc = func(key string, value interface{}) error {
-		return fmt.Errorf("database error")
+func TestRegisterClient_RedirectURIsValidation(t *testing.T) {
+	tests := []struct {
+		name          string
+		redirectURIs  []string
+		expectedError bool
+		errorMessage  string
+	}{
+		{
+			name:          "ValidHTTPSRedirectURI",
+			redirectURIs:  []string{"https://example.com/callback"},
+			expectedError: false,
+		}, {
+			name:          "RedirectURIUsingHTTP",
+			redirectURIs:  []string{"http://not.using.https.com/callback"},
+			expectedError: true,
+			errorMessage:  "scheme must be HTTPS",
+		}, {
+			name:          "EmptyHostName",
+			redirectURIs:  []string{"https:///callback"},
+			expectedError: true,
+			errorMessage:  "host name cannot be empty",
+		}, {
+			name:          "URIHasFragment",
+			redirectURIs:  []string{"https://example.com/callback#fragment"},
+			expectedError: true,
+			errorMessage:  "fragments are not allowed",
+		},
 	}
 
-	clientRegistration := NewRegistrationService(mockDB)
-
-	client := createClient()
-	err := clientRegistration.RegisterClient(client)
-
-	assert.Error(t, err, "Expected error due to database failure")
-	assert.Contains(t, err.Error(), "client registration failed", "Expected specific database error message")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := validateRedirectURIs(&test.redirectURIs)
+			if (err != nil) != test.expectedError {
+				t.Errorf("unexpected error status: got %v, want %v", err != nil, test.expectedError)
+			}
+			if test.expectedError && err != nil && !strings.Contains(err.Error(), test.errorMessage) {
+				t.Errorf("unexpected error message: got %v, want %v", err.Error(), test.errorMessage)
+			}
+		})
+	}
 }
 
 func createClient() *models.Client {

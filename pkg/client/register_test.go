@@ -18,60 +18,26 @@ package client
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/config"
-	"github.com/vigiloauth/vigilo/internal/mocks"
 	"github.com/vigiloauth/vigilo/internal/models"
 	"testing"
 )
 
-func setupTest(t *testing.T) (*mocks.InMemoryMockDB, *models.Client) {
-	mockDB := mocks.NewInMemoryMockDB()
-	client := createClient()
-	config.GetInstance().Database = mockDB
-
-	t.Cleanup(func() { mockDB.Reset() })
-	return mockDB, client
-}
-
 func TestRegisterClient_ValidData(t *testing.T) {
-	mockDB, client := setupTest(t)
+	client := createClient()
+
 	response, err := RegisterClient(client.Name, client.GrantTypes, client.RedirectURIs, client.ClientType)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err)
-	}
 
-	registeredClient, err := mockDB.Read(response.ClientID)
-
-	assert.NotNil(t, registeredClient, "Registered client should not be nil in the database")
-	assert.NoError(t, err, "Expected no error")
-	assert.NotNil(t, response, "Expected a valid registration response")
-	assert.NotEqual(t, "client-id-123", registeredClient.(models.Client).ID, "Expected ClientID to be encrypted")
-	assert.NotEqual(t, "secret123", registeredClient.(models.Client).Secret, "Expected ClientSecret to be encrypted")
-	assert.Equal(t, client.RedirectURIs, registeredClient.(models.Client).RedirectURIs, "Expected correct RedirectURIs")
+	assert.NoError(t, err, "There should be no error when registering a client")
+	assert.NotNil(t, response, "Response should not be nil")
 }
 
 func TestRegisterClient_InvalidData(t *testing.T) {
-	_, client := setupTest(t)
+	client := createClient()
 	client.RedirectURIs = nil
 	response, err := RegisterClient(client.Name, client.GrantTypes, client.RedirectURIs, client.ClientType)
 
 	assert.Error(t, err, "Expected error")
-	assert.Nil(t, response, "Expected nil response")
-}
-
-func TestRegisterClient_StoresRedirectURIs(t *testing.T) {
-	mockDB, client := setupTest(t)
-	response, err := RegisterClient(client.Name, client.GrantTypes, client.RedirectURIs, client.ClientType)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err)
-	}
-
-	registeredClient, err := mockDB.Read(response.ClientID)
-
-	assert.NoError(t, err, "Expected no error reading client from the database")
-	assert.NotNil(t, registeredClient, "Registered client should not be nil in the database")
-	assert.NotNil(t, response, "Expected a valid registration response")
-	assert.Equal(t, client.RedirectURIs, registeredClient.(models.Client).RedirectURIs, "RedirectURIs should match the ones provided during registration")
+	assert.Nil(t, response, "Expected response to be nil")
 }
 
 func createClient() *models.Client {

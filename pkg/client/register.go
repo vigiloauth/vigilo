@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/vigiloauth/vigilo/internal/config"
 	"github.com/vigiloauth/vigilo/internal/models"
+	"github.com/vigiloauth/vigilo/internal/repository"
 	"github.com/vigiloauth/vigilo/internal/services"
 )
 
@@ -35,11 +36,11 @@ import (
 //     and RedirectURIs.
 //   - On failure, it returns an error that describes what wrong.
 func RegisterClient(name string, grantTypes []models.GrantTypeEnum, redirectURIs []string, clientType models.TypeEnum) (*models.RegistrationResponse, error) {
-	db := config.GetDatabase()
+	clientRepository := repository.NewClientRepository(config.GetClientDatabase())
 	newClient := models.NewClient(name, grantTypes, redirectURIs, clientType)
-	registration := services.NewRegistrationService(db)
+	registrationService := services.NewRegistrationService(clientRepository)
 
-	if err := registration.RegisterClient(newClient); err != nil {
+	if err := registrationService.RegisterClient(newClient); err != nil {
 		return nil, fmt.Errorf("error registering a new client: %v", err)
 	}
 
