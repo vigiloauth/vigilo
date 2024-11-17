@@ -14,11 +14,32 @@
  * limitations under the License.
  */
 
-package types
+package mysql
 
-type ClientTypeEnum string
-
-const (
-	Public       ClientTypeEnum = "public"
-	Confidential ClientTypeEnum = "confidential"
+import (
+	"database/sql"
 )
+
+type SQLRows struct {
+	rows *sql.Rows
+}
+
+func NewSQLRows(rows *sql.Rows) *SQLRows {
+	return &SQLRows{rows: rows}
+}
+
+func (r *SQLRows) Next() bool {
+	return r.rows.Next()
+}
+
+func (r *SQLRows) Scan(dest ...interface{}) error {
+	return r.rows.Scan(dest...)
+}
+
+func (r *SQLRows) Close() error {
+	return r.rows.Close()
+}
+
+func (r *SQLRows) Err() error {
+	return r.rows.Err()
+}

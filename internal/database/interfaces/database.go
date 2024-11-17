@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package types
+package interfaces
 
-type GrantTypeEnum string
-
-const (
-	AuthorizationCode GrantTypeEnum = "authorization_code"
-	Implicit          GrantTypeEnum = "implicit"
-	ClientCredentials GrantTypeEnum = "client_credentials"
-	Password          GrantTypeEnum = "password"
-)
+type Database interface {
+	Create(key string, value interface{}) error
+	Read(key string) (interface{}, error)
+	Update(key string, value interface{}) error
+	Delete(key string) error
+}

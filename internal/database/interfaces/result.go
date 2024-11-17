@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-package database
+package interfaces
 
-type Database interface {
-	Create(key string, value interface{}) error
-	Read(key string) (interface{}, error)
-	Update(key string, value interface{}) error
-	Delete(key string) error
+type Result interface {
+	LastInsertId() (int64, error)
+	RowsAffected() (int64, error)
 }

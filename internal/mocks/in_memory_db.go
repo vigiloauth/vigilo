@@ -21,7 +21,7 @@ import (
 	"sync"
 )
 
-type MockDatabase struct {
+type InMemoryMockDB struct {
 	mu sync.RWMutex
 
 	CreateFunc func(key string, value interface{}) error
@@ -47,8 +47,8 @@ type MockDatabase struct {
 	data map[string]interface{}
 }
 
-func NewMockDatabase() *MockDatabase {
-	db := &MockDatabase{
+func NewInMemoryMockDB() *InMemoryMockDB {
+	db := &InMemoryMockDB{
 		data: make(map[string]interface{}),
 		CreateCalls: make([]struct {
 			Key   string
@@ -74,7 +74,7 @@ func NewMockDatabase() *MockDatabase {
 	return db
 }
 
-func (db *MockDatabase) defaultCreate(key string, value interface{}) error {
+func (db *InMemoryMockDB) defaultCreate(key string, value interface{}) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -85,7 +85,7 @@ func (db *MockDatabase) defaultCreate(key string, value interface{}) error {
 	return nil
 }
 
-func (db *MockDatabase) defaultRead(key string) (interface{}, error) {
+func (db *InMemoryMockDB) defaultRead(key string) (interface{}, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 
@@ -96,7 +96,7 @@ func (db *MockDatabase) defaultRead(key string) (interface{}, error) {
 	return value, nil
 }
 
-func (db *MockDatabase) defaultUpdate(key string, value interface{}) error {
+func (db *InMemoryMockDB) defaultUpdate(key string, value interface{}) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -107,7 +107,7 @@ func (db *MockDatabase) defaultUpdate(key string, value interface{}) error {
 	return nil
 }
 
-func (db *MockDatabase) defaultDelete(key string) error {
+func (db *InMemoryMockDB) defaultDelete(key string) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
@@ -118,7 +118,7 @@ func (db *MockDatabase) defaultDelete(key string) error {
 	return nil
 }
 
-func (db *MockDatabase) Create(key string, value interface{}) error {
+func (db *InMemoryMockDB) Create(key string, value interface{}) error {
 	db.CreateCalls = append(db.CreateCalls, struct {
 		Key   string
 		Value interface{}
@@ -126,14 +126,14 @@ func (db *MockDatabase) Create(key string, value interface{}) error {
 	return db.CreateFunc(key, value)
 }
 
-func (db *MockDatabase) Read(key string) (interface{}, error) {
+func (db *InMemoryMockDB) Read(key string) (interface{}, error) {
 	db.ReadCalls = append(db.ReadCalls, struct {
 		Key string
 	}{key})
 	return db.ReadFunc(key)
 }
 
-func (db *MockDatabase) Update(key string, value interface{}) error {
+func (db *InMemoryMockDB) Update(key string, value interface{}) error {
 	db.UpdateCalls = append(db.UpdateCalls, struct {
 		Key   string
 		Value interface{}
@@ -141,14 +141,14 @@ func (db *MockDatabase) Update(key string, value interface{}) error {
 	return db.UpdateFunc(key, value)
 }
 
-func (db *MockDatabase) Delete(key string) error {
+func (db *InMemoryMockDB) Delete(key string) error {
 	db.DeleteCalls = append(db.DeleteCalls, struct {
 		Key string
 	}{key})
 	return db.DeleteFunc(key)
 }
 
-func (db *MockDatabase) Reset() {
+func (db *InMemoryMockDB) Reset() {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
