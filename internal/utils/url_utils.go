@@ -31,16 +31,6 @@ func ValidateURLPattern(url *string) error {
 	return nil
 }
 
-func ValidateAgainstInvalidChars(url *string) error {
-	invalidChars := []string{"<", ">", "'", "\"", ";", "%", "\\", "{", "}", "|", "^", "~", "[", "]", "`"}
-	for _, char := range invalidChars {
-		if strings.Contains(*url, char) {
-			return fmt.Errorf("malformed URL: contains invalid character '%s'", char)
-		}
-	}
-	return nil
-}
-
 func ValidateHost(url *string) error {
 	hostParts := strings.Split(*url, ":")
 	if len(hostParts) < 2 {
