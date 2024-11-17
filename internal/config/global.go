@@ -17,15 +17,15 @@
 package config
 
 import (
-	"github.com/vigiloauth/vigilo/internal/database"
+	"github.com/vigiloauth/vigilo/internal/database/client"
 	"github.com/vigiloauth/vigilo/internal/database/interfaces"
 	"sync"
 )
 
 type GlobalConfig struct {
-	Database   interfaces.Database
-	Connection interfaces.Connection
-	Mu         sync.RWMutex
+	ClientDatabase interfaces.ClientDatabase
+	Connection     interfaces.Connection
+	Mu             sync.RWMutex
 }
 
 var (
@@ -36,8 +36,8 @@ var (
 func GetInstance() *GlobalConfig {
 	once.Do(func() {
 		instance = &GlobalConfig{
-			Database:   database.NewInMemoryDatabase(),
-			Connection: nil,
+			ClientDatabase: client.NewInMemoryClientDB(),
+			Connection:     nil,
 		}
 	})
 	return instance
@@ -50,9 +50,9 @@ func GetConnection() interfaces.Connection {
 	return instance.Connection
 }
 
-func GetDatabase() interfaces.Database {
+func GetClientDatabase() interfaces.ClientDatabase {
 	instance := GetInstance()
 	instance.Mu.RLock()
 	defer instance.Mu.RUnlock()
-	return instance.Database
+	return instance.ClientDatabase
 }
