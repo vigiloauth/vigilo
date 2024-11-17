@@ -16,9 +16,11 @@
 
 package interfaces
 
-type Database interface {
-	Create(key string, value interface{}) error
-	Read(key string) (interface{}, error)
-	Update(key string, value interface{}) error
+import "github.com/vigiloauth/vigilo/internal/models"
+
+type ClientDatabase interface {
+	Create(key string, client models.Client) error
+	Read(key string) (*models.Client, error)
+	Update(key string, client models.Client) error
 	Delete(key string) error
 }
