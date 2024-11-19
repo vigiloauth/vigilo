@@ -21,6 +21,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/clients"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/pkg/models"
 	"net/http"
 )
 
@@ -32,18 +33,59 @@ func NewClientHandler(registration *clients.Registration) *ClientHandler {
 	return &ClientHandler{registration: registration}
 }
 
+// HandleClientRegistration handles the HTTP request for client registration.
+//
+// This method expects a `ClientRegistrationRequest` in the request body, validates
+// it, and then attempts to register the client. If successful, it returns a `ClientRegistrationResponse`
+// with the registered client's information. If any errors occur during the request processing or
+// registration, appropriate error responses are returned.
+//
+// Args:
+//   - w (http.ResponseWriter): The response writer used to send the HTTP response.
+//   - r (*http.Request): The incoming HTTP request containing the registration data.
+//
+// Returns:
+//   - None. Writes directly to the response writer.
 func (h *ClientHandler) HandleClientRegistration(w http.ResponseWriter, r *http.Request) {
-	var request clients.Client
+	var request models.ClientRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		utils.WriteError(w, &errors.BadRequestError{Message: "invalid request body"})
 		return
 	}
 
-	response, err := h.registration.Register(request)
-	if err != nil {
-		utils.WriteError(w, &errors.ValidationError{Message: err.Error()})
+	if err := request.Validate(); err != nil {
+		utils.WriteError(w, &errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
+	client := h.createClientFromRequest(request)
+	createdClient, err := h.registration.Register(*client)
+	if err != nil {
+		utils.WriteError(w, &errors.ServerError{Message: err.Error()})
+		return
+	}
+
+	response := h.createClientRegistrationResponse(createdClient)
 	utils.WriteJSON(w, http.StatusCreated, response)
+}
+
+func (h *ClientHandler) createClientFromRequest(request models.ClientRegistrationRequest) *clients.Client {
+	return &clients.Client{
+		Name:         request.Name,
+		RedirectURIs: request.RedirectURIs,
+		Type:         request.ClientType,
+		GrantTypes:   request.GrantTypes,
+		Scopes:       request.Scopes,
+	}
+}
+
+func (h *ClientHandler) createClientRegistrationResponse(client *clients.Client) *models.ClientRegistrationResponse {
+	return &models.ClientRegistrationResponse{
+		ClientID:     client.ID,
+		ClientType:   client.Type,
+		RedirectURIs: client.RedirectURIs,
+		GrantTypes:   client.GrantTypes,
+		Scope:        client.Scopes,
+		CreatedAt:    client.CreatedAt,
+	}
 }
