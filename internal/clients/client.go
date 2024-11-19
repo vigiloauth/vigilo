@@ -35,13 +35,13 @@ const (
 )
 
 type Client struct {
-	Name         string      `json:"name"`
-	ID           string      `json:"id"`
-	Secret       *string     `json:"secret,omitempty"`
-	RedirectURIs []string    `json:"redirect_uris"`
-	Type         ClientType  `json:"type"`
-	GrantTypes   []GrantType `json:"grant_types"`
-	Scopes       *string     `json:"scopes,omitempty"`
-	CreatedAt    time.Time   `json:"created_at"`
-	UpdatedAt    *time.Time  `json:"updated_at,omitempty"`
+	Name         string
+	ID           string
+	Secret       *string
+	RedirectURIs []string
+	Type         ClientType
+	GrantTypes   []GrantType
+	Scopes       *string
+	CreatedAt    time.Time
+	UpdatedAt    *time.Time
 }
