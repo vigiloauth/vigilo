@@ -54,7 +54,6 @@ func WriteError(w http.ResponseWriter, err error) {
 			Error:       "validation_error",
 			Description: e.Error(),
 		}
-
 	default:
 		status = http.StatusInternalServerError
 		response = &ErrorResponse{
