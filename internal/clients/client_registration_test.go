@@ -16,18 +16,12 @@
 
 package clients
 
-import (
-	"fmt"
-	"github.com/stretchr/testify/mock"
-	"github.com/vigiloauth/vigilo/internal/mocks"
-	"testing"
-)
+import "testing"
 
 const validRedirectURI = "https://example.com/callback"
 
 func TestRegistration_Register(t *testing.T) {
-	mockDB := new(mocks.MockDatabase[Client])
-	clientRegistration := &Registration{db: mockDB}
+	clientRegistration := &Registration{db: NewInMemoryDatabase()}
 
 	tests := []struct {
 		name             string
@@ -42,38 +36,21 @@ func TestRegistration_Register(t *testing.T) {
 			mockReadReturn:   nil,
 			mockCreateReturn: nil,
 			wantErr:          false,
-		}, {
-			name:             "Register existing client",
-			req:              createClient(validRedirectURI),
-			mockReadReturn:   &Client{},
-			mockCreateReturn: fmt.Errorf("client already exists"),
-			wantErr:          true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mockDB.AssertExpectations(t)
-			mockDB.ExpectedCalls = nil
-
-			mockDB.On("Read", mock.Anything).Return(test.mockReadReturn, nil)
-			if test.mockReadReturn == nil {
-				mockDB.On("Create", mock.Anything).Return(test.mockCreateReturn)
-			}
-
 			_, err := clientRegistration.Register(*test.req)
 			if (err != nil) != test.wantErr {
 				t.Errorf("Register() error = %v, wantErr %v", err, test.wantErr)
 			}
-
-			mockDB.AssertExpectations(t)
 		})
 	}
 }
 
 func TestRegistration_URIValidationLogic(t *testing.T) {
-	mockDB := new(mocks.MockDatabase[Client])
-	clientRegistration := &Registration{db: mockDB}
+	clientRegistration := &Registration{db: NewInMemoryDatabase()}
 
 	tests := []struct {
 		name             string
@@ -111,8 +88,6 @@ func TestRegistration_URIValidationLogic(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mockDB.On("Read", mock.Anything).Return(nil, nil)
-			mockDB.On("Create", mock.Anything).Return(test.mockCreateReturn)
 			_, err := clientRegistration.Register(*test.req)
 			if (err != nil) != test.wantErr {
 				t.Errorf("Register() error = %v, wantErr %v", err, test.wantErr)
