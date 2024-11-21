@@ -18,16 +18,9 @@ package config
 
 import "sync"
 
-type PKCEEnforcementMode string
-
-const (
-	PKCEDisabled PKCEEnforcementMode = "disabled"
-	PKCEWarn     PKCEEnforcementMode = "warn"
-	PKCERequired PKCEEnforcementMode = "required"
-)
-
 type AuthConfig struct {
 	PKCEEnforcementMode PKCEEnforcementMode
+	GrantTypes          []GrantType
 }
 
 var instance *AuthConfig

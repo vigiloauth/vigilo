@@ -16,20 +16,16 @@
 
 package clients
 
-import "time"
+import (
+	"github.com/vigiloauth/vigilo/pkg/config"
+	"time"
+)
 
 type ApplicationType string
-type GrantType string
 
 const (
 	Confidential ApplicationType = "confidential"
 	Public       ApplicationType = "public"
-
-	AuthorizationCode GrantType = "authorization_code"
-	Implicit          GrantType = "implicit"
-	ClientCredentials GrantType = "client_credentials"
-	Password          GrantType = "password"
-	PKCE              GrantType = "pkce"
 )
 
 type Client struct {
@@ -38,7 +34,7 @@ type Client struct {
 	Secret       *string
 	RedirectURIs []string
 	Type         ApplicationType
-	GrantTypes   []GrantType
+	GrantTypes   []config.GrantType
 	Scopes       *string
 	CreatedAt    time.Time
 	UpdatedAt    *time.Time

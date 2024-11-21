@@ -16,7 +16,10 @@
 
 package clients
 
-import "testing"
+import (
+	"github.com/vigiloauth/vigilo/pkg/config"
+	"testing"
+)
 
 const validRedirectURI = "https://example.com/callback"
 
@@ -101,6 +104,6 @@ func createClient(redirectURI string) *Client {
 		Name:         "test client",
 		RedirectURIs: []string{redirectURI},
 		Type:         Confidential,
-		GrantTypes:   []GrantType{PKCE},
+		GrantTypes:   []config.GrantType{config.AuthorizationCode},
 	}
 }

@@ -18,6 +18,7 @@ package models
 
 import (
 	"github.com/vigiloauth/vigilo/internal/clients"
+	"github.com/vigiloauth/vigilo/pkg/config"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type ClientRegistrationResponse struct {
 	ClientID     string                  `json:"client_id"`
 	ClientType   clients.ApplicationType `json:"application_type"`
 	RedirectURIs []string                `json:"redirect_uris"`
-	GrantTypes   []clients.GrantType
-	Scope        *string   `json:"scope,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	GrantTypes   []config.GrantType      `json:"grant_types"`
+	Scope        *string                 `json:"scope,omitempty"`
+	CreatedAt    time.Time               `json:"created_at"`
 }

@@ -46,7 +46,7 @@ func TestClientRegistration_NilAuthConfig(t *testing.T) {
 				Name:            "Test Client",
 				RedirectURIs:    []string{"https://valid.com/callback"},
 				ApplicationType: clients.Public,
-				GrantTypes:      []clients.GrantType{clients.PKCE},
+				GrantTypes:      []config.GrantType{config.AuthorizationCode},
 			},
 			expectedStatus: http.StatusCreated,
 			expectSuccess:  true,
@@ -57,7 +57,7 @@ func TestClientRegistration_NilAuthConfig(t *testing.T) {
 				Name:            "",
 				RedirectURIs:    []string{"https://valid.com/callback"},
 				ApplicationType: clients.Public,
-				GrantTypes:      []clients.GrantType{clients.PKCE},
+				GrantTypes:      []config.GrantType{config.AuthorizationCode},
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectSuccess:  false,
@@ -69,7 +69,7 @@ func TestClientRegistration_NilAuthConfig(t *testing.T) {
 				Name:            "Test Client",
 				RedirectURIs:    []string{},
 				ApplicationType: clients.Public,
-				GrantTypes:      []clients.GrantType{clients.PKCE},
+				GrantTypes:      []config.GrantType{config.AuthorizationCode},
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectSuccess:  false,
@@ -121,13 +121,16 @@ func TestClientRegistration_NilAuthConfig(t *testing.T) {
 }
 
 func TestClientRegistration_GivenPKCERequired(t *testing.T) {
-	config.GetAuthConfig().PKCEEnforcementMode = config.PKCERequired
+	config.NewAuthConfigBuilder().
+		SetPKCEEnforcementMode(config.PKCERequired).
+		Build()
+
 	vigiloServer := server.NewVigiloServer()
 	requestBody := models.ClientRegistrationRequest{
 		Name:            "Test Client",
 		RedirectURIs:    []string{"https://valid.com/callback"},
 		ApplicationType: clients.Public,
-		GrantTypes:      []clients.GrantType{clients.PKCE},
+		GrantTypes:      []config.GrantType{config.AuthorizationCode},
 	}
 
 	jsonBody, err := json.Marshal(requestBody)
