@@ -21,6 +21,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/clients"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/pkg/config"
 	"github.com/vigiloauth/vigilo/pkg/models"
 	"net/http"
 )
@@ -65,6 +66,10 @@ func (h *ClientHandler) HandleClientRegistration(w http.ResponseWriter, r *http.
 		return
 	}
 
+	if config.GetAuthConfig().PKCEEnforcementMode == config.PKCEWarn {
+		w.Header().Set("Warning", "199 - PKCE not supported")
+	}
+
 	response := h.createClientRegistrationResponse(createdClient)
 	utils.WriteJSON(w, http.StatusCreated, response)
 }
@@ -76,6 +81,7 @@ func (h *ClientHandler) createClientFromRequest(request models.ClientRegistratio
 		Type:         request.ApplicationType,
 		GrantTypes:   request.GrantTypes,
 		Scopes:       request.Scopes,
+		RequirePKCE:  request.RequirePKCE,
 	}
 }
 
