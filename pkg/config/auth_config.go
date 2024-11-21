@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package server
+package config
 
 import "sync"
 
@@ -26,16 +26,16 @@ const (
 	PKCERequired PKCEEnforcementMode = "required"
 )
 
-type Config struct {
+type AuthConfig struct {
 	PKCEEnforcementMode PKCEEnforcementMode
 }
 
-var instance *Config
+var instance *AuthConfig
 var once sync.Once
 
-func GetConfig() *Config {
+func GetAuthConfig() *AuthConfig {
 	once.Do(func() {
-		instance = &Config{
+		instance = &AuthConfig{
 			PKCEEnforcementMode: PKCEWarn,
 		}
 	})
