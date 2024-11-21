@@ -23,6 +23,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/clients"
 	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/pkg/config"
 	"github.com/vigiloauth/vigilo/pkg/models"
 	"github.com/vigiloauth/vigilo/pkg/server"
 	"net/http"
@@ -30,7 +31,7 @@ import (
 	"testing"
 )
 
-func TestClientRegistration(t *testing.T) {
+func TestClientRegistration_NilAuthConfig(t *testing.T) {
 	vigiloServer := server.NewVigiloServer()
 	tests := []struct {
 		name           string
@@ -42,31 +43,33 @@ func TestClientRegistration(t *testing.T) {
 		{
 			name: "Successful Registration",
 			requestBody: models.ClientRegistrationRequest{
-				Name:         "Test Client",
-				RedirectURIs: []string{"https://valid.com/callback"},
-				ClientType:   clients.Public,
-				GrantTypes:   []clients.GrantType{clients.PKCE},
+				Name:            "Test Client",
+				RedirectURIs:    []string{"https://valid.com/callback"},
+				ApplicationType: clients.Public,
+				GrantTypes:      []clients.GrantType{clients.PKCE},
 			},
 			expectedStatus: http.StatusCreated,
 			expectSuccess:  true,
-		}, {
+		},
+		{
 			name: "Invalid Client Name",
 			requestBody: models.ClientRegistrationRequest{
-				Name:         "",
-				RedirectURIs: []string{"https://valid.com/callback"},
-				ClientType:   clients.Public,
-				GrantTypes:   []clients.GrantType{clients.PKCE},
+				Name:            "",
+				RedirectURIs:    []string{"https://valid.com/callback"},
+				ApplicationType: clients.Public,
+				GrantTypes:      []clients.GrantType{clients.PKCE},
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectSuccess:  false,
 			errorMessage:   "name is required",
-		}, {
+		},
+		{
 			name: "Empty Redirect URIs",
 			requestBody: models.ClientRegistrationRequest{
-				Name:         "Test Client",
-				RedirectURIs: []string{},
-				ClientType:   clients.Public,
-				GrantTypes:   []clients.GrantType{clients.PKCE},
+				Name:            "Test Client",
+				RedirectURIs:    []string{},
+				ApplicationType: clients.Public,
+				GrantTypes:      []clients.GrantType{clients.PKCE},
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectSuccess:  false,
@@ -115,4 +118,36 @@ func TestClientRegistration(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestClientRegistration_GivenPKCERequired(t *testing.T) {
+	config.GetAuthConfig().PKCEEnforcementMode = config.PKCERequired
+	vigiloServer := server.NewVigiloServer()
+	requestBody := models.ClientRegistrationRequest{
+		Name:            "Test Client",
+		RedirectURIs:    []string{"https://valid.com/callback"},
+		ApplicationType: clients.Public,
+		GrantTypes:      []clients.GrantType{clients.PKCE},
+	}
+
+	jsonBody, err := json.Marshal(requestBody)
+	assert.NoError(t, err, "Failed to marshal request body")
+	req, err := http.NewRequest(
+		http.MethodPost,
+		constants.ClientRegistrationURL,
+		bytes.NewBuffer(jsonBody),
+	)
+
+	assert.NoError(t, err, "Failed to create request")
+	req.Header.Set("Content-Type", "application/json")
+
+	responseRecorder := httptest.NewRecorder()
+	handler := vigiloServer.Handler()
+	handler.ServeHTTP(responseRecorder, req)
+
+	assert.Equal(t, http.StatusBadRequest, responseRecorder.Code,
+		"Expected status code %d but got %d",
+		http.StatusBadRequest,
+		responseRecorder.Code,
+	)
 }
