@@ -22,11 +22,12 @@ import (
 )
 
 type ClientRegistrationRequest struct {
-	Name         string              `json:"name"`
-	RedirectURIs []string            `json:"redirect_uris"`
-	ClientType   clients.ClientType  `json:"client_type"`
-	GrantTypes   []clients.GrantType `json:"grant_types"`
-	Scopes       *string             `json:"scope,omitempty"`
+	Name            string                  `json:"name"`
+	RedirectURIs    []string                `json:"redirect_uris"`
+	ApplicationType clients.ApplicationType `json:"application_type"`
+	GrantTypes      []clients.GrantType     `json:"grant_types"`
+	Scopes          *string                 `json:"scope,omitempty"`
+	RequirePKCE     bool                    `json:"require_pkce_pkce"`
 }
 
 func (req *ClientRegistrationRequest) Validate() error {

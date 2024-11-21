@@ -16,16 +16,14 @@
 
 package clients
 
-import (
-	"time"
-)
+import "time"
 
-type ClientType string
+type ApplicationType string
 type GrantType string
 
 const (
-	Confidential ClientType = "confidential"
-	Public       ClientType = "public"
+	Confidential ApplicationType = "confidential"
+	Public       ApplicationType = "public"
 
 	AuthorizationCode GrantType = "authorization_code"
 	Implicit          GrantType = "implicit"
@@ -39,9 +37,10 @@ type Client struct {
 	ID           string
 	Secret       *string
 	RedirectURIs []string
-	Type         ClientType
+	Type         ApplicationType
 	GrantTypes   []GrantType
 	Scopes       *string
 	CreatedAt    time.Time
 	UpdatedAt    *time.Time
+	RequirePKCE  bool
 }

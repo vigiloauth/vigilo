@@ -22,9 +22,9 @@ import (
 )
 
 type ClientRegistrationResponse struct {
-	ClientID     string             `json:"client_id"`
-	ClientType   clients.ClientType `json:"client_type"`
-	RedirectURIs []string           `json:"redirect_uris"`
+	ClientID     string                  `json:"client_id"`
+	ClientType   clients.ApplicationType `json:"application_type"`
+	RedirectURIs []string                `json:"redirect_uris"`
 	GrantTypes   []clients.GrantType
 	Scope        *string   `json:"scope,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`

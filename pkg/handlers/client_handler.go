@@ -73,7 +73,7 @@ func (h *ClientHandler) createClientFromRequest(request models.ClientRegistratio
 	return &clients.Client{
 		Name:         request.Name,
 		RedirectURIs: request.RedirectURIs,
-		Type:         request.ClientType,
+		Type:         request.ApplicationType,
 		GrantTypes:   request.GrantTypes,
 		Scopes:       request.Scopes,
 	}
