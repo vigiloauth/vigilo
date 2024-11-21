@@ -19,6 +19,7 @@ package models
 import (
 	"fmt"
 	"github.com/vigiloauth/vigilo/internal/clients"
+	"github.com/vigiloauth/vigilo/pkg/config"
 )
 
 type ClientRegistrationRequest struct {
@@ -39,7 +40,7 @@ func (req *ClientRegistrationRequest) Validate() error {
 		return fmt.Errorf("redirect_uris is required")
 	}
 
-	if req.ClientType == "" {
+	if req.ApplicationType == "" {
 		return fmt.Errorf("client_type is required")
 	}
 
@@ -47,5 +48,28 @@ func (req *ClientRegistrationRequest) Validate() error {
 		return fmt.Errorf("grant_type is required")
 	}
 
+	if err := req.validatePKCESupport(); err != nil {
+		return fmt.Errorf("invalid PKCESupport: %w", err)
+	}
+
 	return nil
+}
+
+func (req *ClientRegistrationRequest) validatePKCESupport() error {
+	switch config.GetAuthConfig().PKCEEnforcementMode {
+	case config.PKCEDisabled:
+		return nil
+	case config.PKCEWarn:
+		if !req.RequirePKCE {
+			fmt.Println("WARNING: Client registered without PKCE support")
+		}
+		return nil
+	case config.PKCERequired:
+		if !req.RequirePKCE {
+			return fmt.Errorf("PKCE is required for client registration")
+		}
+		return nil
+	default:
+		return fmt.Errorf("invalid PKCE enforcement mode")
+	}
 }
