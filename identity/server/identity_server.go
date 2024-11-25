@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/pkg/identity/handlers"
+	"github.com/vigiloauth/vigilo/identity/handlers"
 )
 
 // VigiloIdentityServer represents the identity server responsible for handling HTTP requests related to user management.

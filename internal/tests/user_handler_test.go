@@ -3,8 +3,8 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/users"
-	"github.com/vigiloauth/vigilo/pkg/identity/server"
 	"net/http"
 	"net/http/httptest"
 	"testing"
