@@ -4,6 +4,8 @@ import (
 	"regexp"
 )
 
+const defaultPasswordLength = 8
+
 type UserRegistration struct{}
 
 func NewUserRegistration() *UserRegistration {
@@ -15,7 +17,7 @@ func (r *UserRegistration) RegisterUser(user *User) (*User, error) {
 		return nil, &EmailFormatError{Email: user.Email}
 	}
 
-	if len(user.Password) < 8 {
+	if len(user.Password) < defaultPasswordLength {
 		return nil, &PasswordLengthError{Length: len(user.Password)}
 	}
 
