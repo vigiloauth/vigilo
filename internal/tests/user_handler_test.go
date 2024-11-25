@@ -3,6 +3,7 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/pkg/identity/server"
 	"net/http"
@@ -44,16 +45,6 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 			wantError:      true,
 		},
 		{
-			name: "Duplicate email during user registration",
-			requestBody: users.UserRegistrationRequest{
-				Username: username,
-				Email:    email,
-				Password: password,
-			},
-			expectedStatus: http.StatusConflict,
-			wantError:      true,
-		},
-		{
 			name: "Missing required fields in request",
 			requestBody: users.UserRegistrationRequest{
 				Username: "missingemailuser",
@@ -68,10 +59,6 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 			body, err := json.Marshal(test.requestBody)
 			if err != nil {
 				t.Fatalf("failed to  marshal request body: %v", err)
-			}
-
-			if test.name == "Duplicate email during user registration" {
-				_ = users.GetUserCache().AddUser(users.User{Username: username, Password: password, Email: email})
 			}
 
 			rr := setupIdentityServer(body)
@@ -91,6 +78,19 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUserHandler_DuplicateUser(t *testing.T) {
+	requestBody := users.UserRegistrationRequest{Username: username, Email: email, Password: password}
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("failed to  marshal request body: %v", err)
+	}
+
+	_ = users.GetUserCache().AddUser(users.User{Username: username, Password: password, Email: email})
+
+	rr := setupIdentityServer(body)
+	assert.Equal(t, http.StatusConflict, rr.Code)
 }
 
 func setupIdentityServer(body []byte) *httptest.ResponseRecorder {
