@@ -134,7 +134,7 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 		Password: password,
 	}
 
-	_ = users.GetUserCache().AddUser(users.User{Username: username, Email: email})
+	_ = users.GetInMemoryUserStore().AddUser(users.User{Username: username, Email: email})
 	body, err := json.Marshal(requestBody)
 	if err != nil {
 		t.Fatalf("failed to marshal request body: %v", err)
