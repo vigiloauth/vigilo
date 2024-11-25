@@ -49,6 +49,8 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 			if (err != nil) != test.wantError {
 				t.Errorf("RegisterUser() error = %v, wantError = %v", err, test.wantError)
 				assert.Nil(t, registeredUser)
+			} else if !test.wantError {
+				assert.NotEqual(t, registeredUser.Password, password)
 			}
 		})
 	}

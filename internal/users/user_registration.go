@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/vigiloauth/vigilo/internal/security"
 	"regexp"
 )
 
@@ -19,6 +20,7 @@ func (r *UserRegistration) RegisterUser(user *User) (*User, error) {
 		return nil, &PasswordLengthError{Length: len(user.Password)}
 	}
 
+	user.Password = security.HashPassword(user.Password)
 	if err := GetUserCache().AddUser(*user); err != nil {
 		return nil, err
 	}
