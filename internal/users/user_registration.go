@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/security"
 	"regexp"
 )
@@ -13,11 +14,7 @@ func NewUserRegistration() *UserRegistration {
 
 func (r *UserRegistration) RegisterUser(user *User) (*User, error) {
 	if !isValidEmailFormat(user.Email) {
-		return nil, &EmailFormatError{Email: user.Email}
-	}
-
-	if len(user.Password) < 8 {
-		return nil, &PasswordLengthError{Length: len(user.Password)}
+		return nil, errors.NewEmailFormatError(user.Email)
 	}
 
 	user.Password = security.HashPassword(user.Password)

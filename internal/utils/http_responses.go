@@ -2,7 +2,7 @@ package utils
 
 import (
 	"encoding/json"
-	"github.com/vigiloauth/vigilo/internal/users"
+	"github.com/vigiloauth/vigilo/internal/errors"
 	"net/http"
 )
 
@@ -16,36 +16,35 @@ func WriteError(w http.ResponseWriter, err error) {
 	var status int
 	var response interface{}
 
-	switch e := err.(type) {
-	case *users.EmailFormatError:
-		status = http.StatusUnprocessableEntity
-		response = ErrorResponse{
-			Error:       "invalid_email_format",
-			Description: e.Error(),
-		}
-	case *users.DuplicateUserError:
-		status = http.StatusConflict
-		response = ErrorResponse{
-			Error:       "duplicate_user_error",
-			Description: e.Error(),
-		}
-	case *users.PasswordLengthError:
-		status = http.StatusUnprocessableEntity
-		response = ErrorResponse{
-			Error:       "password_length_error",
-			Description: e.Error(),
-		}
-	case *users.EmptyInputError:
-		status = http.StatusBadRequest
-		response = ErrorResponse{
-			Error:       "empty_input_error",
-			Description: e.Error(),
-		}
-	default:
-		status = http.StatusInternalServerError
-		response = ErrorResponse{
-			Error:       "internal_server_error",
-			Description: e.Error(),
+	if validationError, ok := err.(*errors.InputValidationError); ok {
+		switch validationError.ErrorCode {
+		case errors.ErrCodeEmpty:
+			status = http.StatusBadRequest
+			response = validationError
+		case errors.ErrCodePasswordLength:
+			status = http.StatusBadRequest
+			response = validationError
+		case errors.ErrCodeMissingUppercase:
+			status = http.StatusBadRequest
+			response = validationError
+		case errors.ErrCodeMissingNumber:
+			status = http.StatusBadRequest
+			response = validationError
+		case errors.ErrCodeMissingSymbol:
+			status = http.StatusBadRequest
+			response = validationError
+		case errors.ErrCodeInvalidEmail:
+			status = http.StatusBadRequest
+			response = validationError
+		case errors.ErrCodeDuplicateUser:
+			status = http.StatusConflict
+			response = validationError
+		default:
+			status = http.StatusInternalServerError
+			response = ErrorResponse{
+				Error:       "INTERNAL_SERVER_ERROR",
+				Description: validationError.Error(),
+			}
 		}
 	}
 
