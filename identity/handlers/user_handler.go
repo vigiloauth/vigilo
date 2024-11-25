@@ -7,6 +7,9 @@ import (
 	"net/http"
 )
 
+// UserHandler handles HTTP requests related to user operations.
+// It encapsulates user registration functionality and manages the
+// communication between HTTP layer and business logic.
 type UserHandler struct {
 	userRegistration *users.UserRegistration
 }
@@ -16,8 +19,6 @@ func NewUserHandler() *UserHandler {
 }
 
 // HandleUserRegistration is the HTTP handler for user registration.
-// It processes incoming HTTP requests for user registration, validates the input,
-// registers the user, and sends an appropriate response.
 func (h *UserHandler) HandleUserRegistration(w http.ResponseWriter, r *http.Request) {
 	var request users.UserRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
