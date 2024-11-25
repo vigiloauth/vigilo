@@ -4,24 +4,24 @@ import (
 	"sync"
 )
 
-type UserCache struct {
+type InMemoryUserStore struct {
 	data map[string]User
 	mu   sync.RWMutex
 }
 
-var instance *UserCache
+var instance *InMemoryUserStore
 var once sync.Once
 
-func GetUserCache() *UserCache {
+func GetInMemoryUserStore() *InMemoryUserStore {
 	once.Do(func() {
-		instance = &UserCache{
+		instance = &InMemoryUserStore{
 			data: make(map[string]User),
 		}
 	})
 	return instance
 }
 
-func (c *UserCache) AddUser(user User) error {
+func (c *InMemoryUserStore) AddUser(user User) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -33,7 +33,7 @@ func (c *UserCache) AddUser(user User) error {
 	return nil
 }
 
-func (c *UserCache) GetUser(email string) (User, bool) {
+func (c *InMemoryUserStore) GetUser(email string) (User, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 

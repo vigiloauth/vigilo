@@ -55,7 +55,7 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 }
 
 func prepopulateCacheWithExistingUser() {
-	_ = GetUserCache().AddUser(User{
+	_ = GetInMemoryUserStore().AddUser(User{
 		ID:       "existing-user",
 		Username: username,
 		Email:    duplicateEmail,

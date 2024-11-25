@@ -87,7 +87,7 @@ func TestUserHandler_DuplicateUser(t *testing.T) {
 		t.Fatalf("failed to  marshal request body: %v", err)
 	}
 
-	_ = users.GetUserCache().AddUser(users.User{Username: username, Password: password, Email: email})
+	_ = users.GetInMemoryUserStore().AddUser(users.User{Username: username, Password: password, Email: email})
 
 	rr := setupIdentityServer(body)
 	assert.Equal(t, http.StatusConflict, rr.Code)
