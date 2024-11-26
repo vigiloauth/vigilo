@@ -1,4 +1,4 @@
-package tests
+package integration_tests
 
 import (
 	"bytes"
@@ -105,7 +105,7 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 }
 
 func setupIdentityServer(body []byte) *httptest.ResponseRecorder {
-	vigiloIdentityServer := server.NewVigiloIdentityServer()
+	vigiloIdentityServer := server.NewVigiloIdentityServer("")
 	req := httptest.NewRequest(http.MethodPost, users.UserEndpoints.Registration, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router.ServeHTTP(rr, req)
