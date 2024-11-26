@@ -13,6 +13,14 @@ type UserRegistrationRequest struct {
 	Password string `json:"password"`
 }
 
+func NewUserRegistrationRequest(username, email, password string) *UserRegistrationRequest {
+	return &UserRegistrationRequest{
+		Username: username,
+		Email:    email,
+		Password: password,
+	}
+}
+
 func (req *UserRegistrationRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
