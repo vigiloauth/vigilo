@@ -3,8 +3,14 @@ name: golangci-lint
 on:
   push:
     branches: [ master ]
+    paths:
+      - 'identity/**'
+      - 'internal/**'
   pull_request:
     branches: [ '*' ]
+    paths:
+      - 'identity/**'
+      - 'internal/**'
 
 permissions:
   contents: read
@@ -13,8 +19,13 @@ jobs:
   golangci:
     name: Lint Code
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./identity
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: stable
@@ -26,7 +37,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/golangci-lint
-          key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/*.go', '**/go.mod', '**/go.sum') }}
+          key: ${{ runner.os }}-golangci-lint-${{ hashFiles('identity/**/*.go', 'identity/**/go.mod', 'identity/**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-golangci-lint-
 
@@ -34,4 +45,5 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.60
+          working-directory: ./identity
           args: run --out-format=github-actions --timeout=5m --concurrency=4 --max-issues-per-linter=0
