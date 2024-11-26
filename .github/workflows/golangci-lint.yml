@@ -17,11 +17,16 @@ permissions:
 
 jobs:
   golangci:
+    strategy:
+      matrix:
+        module:
+          - identity
+          - internal
     name: Lint Code
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./identity
+        working-directory: ./${{ matrix.module }}
 
     steps:
       - uses: actions/checkout@v4
@@ -37,13 +42,13 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/golangci-lint
-          key: ${{ runner.os }}-golangci-lint-${{ hashFiles('identity/**/*.go', 'identity/**/go.mod', 'identity/**/go.sum') }}
+          key: ${{ runner.os }}-golangci-lint-${{ matrix.module }}-${{ hashFiles(format('{0}/**/*.go', matrix.module), format('{0}/**/go.mod', matrix.module), format('{0}/**/go.sum', matrix.module) }}
           restore-keys: |
-            ${{ runner.os }}-golangci-lint-
+            ${{ runner.os }}-golangci-lint-${{ matrix.module }}-
 
       - name: Run golangci-lint with GitHub Actions output format
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.60
-          working-directory: ./identity
+          working-directory: ./${{ matrix.module }}
           args: run --out-format=github-actions --timeout=5m --concurrency=4 --max-issues-per-linter=0
