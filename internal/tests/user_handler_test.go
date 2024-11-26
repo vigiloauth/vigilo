@@ -11,12 +11,6 @@ import (
 	"testing"
 )
 
-const (
-	username string = "username"
-	email    string = "email@email.com"
-	password string = "Pa$sword_123"
-)
-
 func TestUserHandler_HandleUserRegistration(t *testing.T) {
 	config.GetPasswordConfiguration().
 		SetRequireUppercase(true).
@@ -99,7 +93,6 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 	user := users.NewUser(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
 	_ = users.GetInMemoryUserStore().AddUser(*user)
 
-	_ = users.GetInMemoryUserStore().AddUser(users.User{Username: username, Password: password, Email: email})
 	body, err := json.Marshal(requestBody)
 	if err != nil {
 		t.Fatalf("failed to marshal request body: %v", err)
