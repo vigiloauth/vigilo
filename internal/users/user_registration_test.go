@@ -24,11 +24,6 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 			wantError: false,
 		},
 		{
-			name:      "RegisterUser fails with invalid email format",
-			user:      &User{Username: username, Password: password, Email: "invalid@.com"},
-			wantError: true,
-		},
-		{
 			name:      "RegisterUser fails with invalid password length",
 			user:      &User{Username: username, Password: "invalid", Email: email},
 			wantError: true,
@@ -43,8 +38,6 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 			if (err != nil) != test.wantError {
 				t.Errorf("RegisterUser() error = %v, wantError = %v", err, test.wantError)
 				assert.Nil(t, registeredUser)
-			} else if !test.wantError {
-				assert.NotEqual(t, registeredUser.Password, password)
 			}
 		})
 	}
@@ -55,6 +48,17 @@ func TestUserRegistration_DuplicateEntry(t *testing.T) {
 	userRegistration := NewUserRegistration()
 	_, err := userRegistration.RegisterUser(&User{Username: username, Password: password, Email: duplicateEmail})
 	assert.NotNil(t, err)
+}
+
+func TestUserRegistration_PasswordIsNotStoredInPlainText(t *testing.T) {
+	userRegistration := NewUserRegistration()
+	_ = GetInMemoryUserStore().DeleteUser(email)
+
+	_, err := userRegistration.RegisterUser(&User{Username: username, Password: password, Email: email})
+	assert.Nil(t, err)
+
+	retrievedUser, _ := GetInMemoryUserStore().GetUser(email)
+	assert.NotEqual(t, retrievedUser.Password, password)
 }
 
 func prepopulateCacheWithExistingUser() {

@@ -41,3 +41,10 @@ func (c *InMemoryUserStore) GetUser(email string) (User, bool) {
 	user, found := c.data[email]
 	return user, found
 }
+
+func (c *InMemoryUserStore) DeleteUser(email string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.data, email)
+	return nil
+}
