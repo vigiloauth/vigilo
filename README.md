@@ -5,7 +5,7 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 
 ### How to Contribute
 1. **Fork the Repository:** Create your own fork of the repository on GitHub.
-2. **clone Your Fork:** Clone your fork locally.
+2. **Clone Your Fork:** Clone your fork locally.
 3. **Create a Branch:** Create a feature or a bug fix branch from master.
 4. **Make Your Changes:** Implement your changes and ensure they align with the project goals.
 5. **Write Tests:** Add or update tests to validate your changes.
