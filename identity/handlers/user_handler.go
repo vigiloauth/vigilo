@@ -33,11 +33,7 @@ func (h *UserHandler) HandleUserRegistration(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	user := &users.User{
-		Username: request.Username,
-		Email:    request.Email,
-		Password: request.Password,
-	}
+	user := users.NewUser(request.Username, request.Email, request.Password)
 
 	createdUser, err := h.userRegistration.RegisterUser(user)
 	if err != nil {
