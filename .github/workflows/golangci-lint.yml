@@ -1,0 +1,37 @@
+name: golangci-lint
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ '*' ]
+
+permissions:
+  contents: read
+
+jobs:
+  golangci:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Set up Go modules
+        run: go mod tidy
+
+      - name: Cache golangci-lint cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/golangci-lint
+          key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/*.go', '**/go.mod', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-golangci-lint-
+
+      - name: Run golangci-lint with GitHub Actions output format
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
+          args: run --out-format=github-actions --timeout=5m --concurrency=4 --max-issues-per-linter=0
