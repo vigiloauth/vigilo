@@ -30,11 +30,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-golangci-lint-
 
-      - name: Run golangci-lint and fail on issues
-        run: golangci-lint run --timeout=5m --max-issues-per-linter=0
-
-      - name: Run golangci-lint and annotate
+      - name: Run golangci-lint with GitHub Actions output format
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.60
-          args: --out-format=github-actions
+          args: run --out-format=github-actions --timeout=5m --concurrency=4 --max-issues-per-linter=0
