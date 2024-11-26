@@ -108,14 +108,14 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 				t.Fatalf("failed to  marshal request body: %v", err)
 			}
 
-			rr := setupIdentityServer(body)
-			if rr.Code != test.expectedStatus {
-				t.Errorf("expected status %v, got %v", test.expectedStatus, rr.Code)
+			responseRecorder := setupIdentityServer(body)
+			if responseRecorder.Code != test.expectedStatus {
+				t.Errorf("expected status %v, got %v", test.expectedStatus, responseRecorder.Code)
 			}
 
 			if test.wantError {
 				var responseBody map[string]interface{}
-				if err := json.Unmarshal(rr.Body.Bytes(), &responseBody); err != nil {
+				if err := json.Unmarshal(responseRecorder.Body.Bytes(), &responseBody); err != nil {
 					t.Fatalf("failed to unmarshal response body: %v", err)
 				}
 
@@ -140,9 +140,9 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 		t.Fatalf("failed to marshal request body: %v", err)
 	}
 
-	rr := setupIdentityServer(body)
-	if rr.Code != http.StatusConflict {
-		t.Errorf("expected status %v, got %v", http.StatusConflict, rr.Code)
+	responseRecorder := setupIdentityServer(body)
+	if responseRecorder.Code != http.StatusConflict {
+		t.Errorf("expected status %v, got %v", http.StatusConflict, responseRecorder.Code)
 	}
 }
 
