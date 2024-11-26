@@ -7,7 +7,6 @@ import (
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sync"
 	"testing"
@@ -67,7 +66,7 @@ func sendRegistrationRequest(client *http.Client, url string, waitGroup *sync.Wa
 
 	defer closeResponseBody(res.Body)
 
-	_, err = ioutil.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("error reading response body: %v", err)
 	}
