@@ -27,7 +27,7 @@ func (c *InMemoryUserStore) AddUser(user User) error {
 	defer c.mu.Unlock()
 
 	if _, ok := c.data[user.Email]; ok {
-		return errors.NewDuplicateUserError("email")
+		return errors.NewDuplicateUserError(UserFieldConstants.Email)
 	}
 
 	c.data[user.Email] = user

@@ -14,8 +14,8 @@ type UserHandler struct {
 	userRegistration *users.UserRegistration
 }
 
-func NewUserHandler() *UserHandler {
-	return &UserHandler{userRegistration: users.NewUserRegistration()}
+func NewUserHandler(userStore users.UserStore) *UserHandler {
+	return &UserHandler{userRegistration: users.NewUserRegistration(userStore)}
 }
 
 // HandleUserRegistration is the HTTP handler for user registration.
@@ -33,11 +33,7 @@ func (h *UserHandler) HandleUserRegistration(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	user := &users.User{
-		Username: request.Username,
-		Email:    request.Email,
-		Password: request.Password,
-	}
+	user := users.NewUser(request.Username, request.Email, request.Password)
 
 	createdUser, err := h.userRegistration.RegisterUser(user)
 	if err != nil {
