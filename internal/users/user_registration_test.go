@@ -5,13 +5,6 @@ import (
 	"testing"
 )
 
-const (
-	username       string = "testUsername"
-	password       string = "testPassword"
-	email          string = "testEmail@gmail.com"
-	duplicateEmail string = "testDuplicate@gmail.com"
-)
-
 func TestUserRegistration_RegisterUser(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -20,19 +13,20 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 	}{
 		{
 			name:      "RegisterUser is successful",
-			user:      &User{Username: username, Password: password, Email: email},
+			user:      NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password),
 			wantError: false,
 		},
 		{
 			name:      "RegisterUser fails with invalid password length",
-			user:      &User{Username: username, Password: "invalid", Email: email},
+			user:      NewUser(TestConstants.Username, TestConstants.Email, TestConstants.InvalidPassword),
 			wantError: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			userRegistration := NewUserRegistration()
+			userStore := GetInMemoryUserStore()
+			userRegistration := NewUserRegistration(userStore)
 			registeredUser, err := userRegistration.RegisterUser(test.user)
 
 			if (err != nil) != test.wantError {
@@ -44,28 +38,25 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 }
 
 func TestUserRegistration_DuplicateEntry(t *testing.T) {
-	prepopulateCacheWithExistingUser()
-	userRegistration := NewUserRegistration()
-	_, err := userRegistration.RegisterUser(&User{Username: username, Password: password, Email: duplicateEmail})
+	userStore := GetInMemoryUserStore()
+	userRegistration := NewUserRegistration(userStore)
+
+	user := NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password)
+	_ = userStore.AddUser(*user)
+
+	_, err := userRegistration.RegisterUser(user)
 	assert.NotNil(t, err)
 }
 
 func TestUserRegistration_PasswordIsNotStoredInPlainText(t *testing.T) {
-	userRegistration := NewUserRegistration()
-	_ = GetInMemoryUserStore().DeleteUser(email)
+	userStore := GetInMemoryUserStore()
+	userRegistration := NewUserRegistration(userStore)
+	_ = userStore.DeleteUser(TestConstants.Email)
 
-	_, err := userRegistration.RegisterUser(&User{Username: username, Password: password, Email: email})
+	user := NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password)
+	_, err := userRegistration.RegisterUser(user)
 	assert.Nil(t, err)
 
-	retrievedUser, _ := GetInMemoryUserStore().GetUser(email)
-	assert.NotEqual(t, retrievedUser.Password, password)
-}
-
-func prepopulateCacheWithExistingUser() {
-	_ = GetInMemoryUserStore().AddUser(User{
-		ID:       "existing-user",
-		Username: username,
-		Email:    duplicateEmail,
-		Password: password,
-	})
+	retrievedUser, _ := GetInMemoryUserStore().GetUser(TestConstants.Email)
+	assert.NotEqual(t, retrievedUser.Password, TestConstants.Password)
 }
