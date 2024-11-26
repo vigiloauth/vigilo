@@ -57,6 +57,7 @@ func TestUserRegistration_DuplicateEntry(t *testing.T) {
 
 func TestUserRegistration_PasswordIsNotStoredInPlainText(t *testing.T) {
 	userRegistration := NewUserRegistration()
+	_ = GetInMemoryUserStore().DeleteUser(email)
 
 	_, err := userRegistration.RegisterUser(&User{Username: username, Password: password, Email: email})
 	assert.Nil(t, err)
