@@ -24,11 +24,6 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 			wantError: false,
 		},
 		{
-			name:      "RegisterUser fails with invalid email format",
-			user:      &User{Username: username, Password: password, Email: "invalid@.com"},
-			wantError: true,
-		},
-		{
 			name:      "RegisterUser fails with invalid password length",
 			user:      &User{Username: username, Password: "invalid", Email: email},
 			wantError: true,

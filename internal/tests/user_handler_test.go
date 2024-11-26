@@ -133,9 +133,9 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 		t.Fatalf("failed to marshal request body: %v", err)
 	}
 
-	rr := setupIdentityServer(body)
-	if rr.Code != http.StatusConflict {
-		t.Errorf("expected status %v, got %v", http.StatusConflict, rr.Code)
+	responseRecorder := setupIdentityServer(body)
+	if responseRecorder.Code != http.StatusConflict {
+		t.Errorf("expected status %v, got %v", http.StatusConflict, responseRecorder.Code)
 	}
 }
 

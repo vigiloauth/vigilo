@@ -6,3 +6,11 @@ type User struct {
 	Email    string
 	Password string
 }
+
+func NewUser(username, email, password string) *User {
+	return &User{
+		Username: username,
+		Email:    email,
+		Password: password,
+	}
+}

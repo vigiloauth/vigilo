@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/vigiloauth/vigilo/internal/errors"
 	"sync"
 )
 
@@ -26,7 +27,7 @@ func (c *InMemoryUserStore) AddUser(user User) error {
 	defer c.mu.Unlock()
 
 	if _, ok := c.data[user.Email]; ok {
-		return &DuplicateUserError{Message: "user already exists with the given email"}
+		return errors.NewDuplicateUserError("email")
 	}
 
 	c.data[user.Email] = user

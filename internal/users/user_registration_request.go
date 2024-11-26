@@ -3,6 +3,7 @@ package users
 import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"regexp"
 	"unicode"
 )
 
@@ -13,103 +14,92 @@ type UserRegistrationRequest struct {
 }
 
 func (req *UserRegistrationRequest) Validate() error {
-	if req.Username == "" || len(req.Username) == 0 {
-		return errors.NewEmptyInputError("username")
-	}
-	if req.Email == "" || len(req.Email) == 0 {
-		return errors.NewEmptyInputError("email")
-	}
-	if err := validatePassword(req.Password); err != nil {
-		return err
-	}
-	return nil
-}
+	errorCollection := errors.NewErrorCollection()
 
-func validatePassword(password string) error {
-	if password == "" || len(password) == 0 {
-		return errors.NewEmptyInputError("password")
+	if req.Username == "" {
+		errorCollection.Add(errors.NewEmptyInputError("username"))
 	}
 
-	if err := validatePasswordLength(password); err != nil {
-		return err
+	if req.Email == "" {
+		errorCollection.Add(errors.NewEmptyInputError("email"))
+	} else if !isValidEmailFormat(req.Email) {
+		errorCollection.Add(errors.NewEmailFormatError(req.Email))
 	}
-	if err := validatePasswordContainsUppercase(password); err != nil {
-		return err
-	}
-	if err := validatePasswordContainsNumber(password); err != nil {
-		return err
-	}
-	if err := validatePasswordContainsSymbol(password); err != nil {
-		return err
+
+	validatePassword(req.Password, errorCollection)
+	if errorCollection.HasErrors() {
+		return errorCollection
 	}
 
 	return nil
 }
 
-func validatePasswordLength(password string) error {
-	minLength := config.GetPasswordConfiguration().GetMinimumLength()
-	if len(password) < minLength {
-		return errors.NewPasswordLengthError(minLength)
+func validatePassword(password string, errorCollection *errors.ErrorCollection) {
+	if password == "" {
+		errorCollection.Add(errors.NewEmptyInputError("password"))
+		return
 	}
-	return nil
+
+	passwordConfig := config.GetPasswordConfiguration()
+	minimumLength := passwordConfig.GetMinimumLength()
+
+	if len(password) < minimumLength {
+		errorCollection.Add(errors.NewPasswordLengthError(minimumLength))
+	}
+
+	if passwordConfig.GetRequireUppercase() && !containsUppercase(password) {
+		errorCollection.Add(&errors.InputValidationError{
+			Field:     "password",
+			ErrorCode: errors.ErrCodeMissingUppercase,
+			Message:   "Password must contain at least one uppercase letter",
+		})
+	}
+
+	if passwordConfig.GetRequireNumber() && !containsNumber(password) {
+		errorCollection.Add(&errors.InputValidationError{
+			Field:     "password",
+			ErrorCode: errors.ErrCodeMissingNumber,
+			Message:   "Password must contain at least one numeric digit",
+		})
+	}
+
+	if passwordConfig.GetRequireSymbol() && !containsSymbol(password) {
+		errorCollection.Add(&errors.InputValidationError{
+			Field:     "password",
+			ErrorCode: errors.ErrCodeMissingSymbol,
+			Message:   "Password must contain at least one symbol",
+		})
+	}
 }
 
-func validatePasswordContainsUppercase(password string) error {
-	if config.GetPasswordConfiguration().GetRequireUppercase() {
-		hasUpper := false
-		for _, c := range password {
-			if unicode.IsUpper(c) {
-				hasUpper = true
-				break
-			}
-		}
-		if !hasUpper {
-			return &errors.InputValidationError{
-				Field:     "password",
-				ErrorCode: errors.ErrCodeMissingUppercase,
-				Message:   "Password must contain at least one uppercase letter",
-			}
+func containsUppercase(password string) bool {
+	for _, c := range password {
+		if unicode.IsUpper(c) {
+			return true
 		}
 	}
-	return nil
+	return false
 }
 
-func validatePasswordContainsNumber(password string) error {
-	if config.GetPasswordConfiguration().GetRequireNumber() {
-		hasNumber := false
-		for _, c := range password {
-			if unicode.IsNumber(c) {
-				hasNumber = true
-				break
-			}
-		}
-		if !hasNumber {
-			return &errors.InputValidationError{
-				Field:     "password",
-				ErrorCode: errors.ErrCodeMissingNumber,
-				Message:   "Password must contain at least one numeric digit",
-			}
+func containsNumber(password string) bool {
+	for _, c := range password {
+		if unicode.IsNumber(c) {
+			return true
 		}
 	}
-	return nil
+	return false
 }
 
-func validatePasswordContainsSymbol(password string) error {
-	if config.GetPasswordConfiguration().GetRequireSymbol() {
-		hasSymbol := false
-		for _, c := range password {
-			if unicode.IsSymbol(c) {
-				hasSymbol = true
-				break
-			}
-		}
-		if !hasSymbol {
-			return &errors.InputValidationError{
-				Field:     "password",
-				ErrorCode: errors.ErrCodeMissingSymbol,
-				Message:   "Password must contain at least one symbol",
-			}
+func containsSymbol(password string) bool {
+	for _, c := range password {
+		if unicode.IsSymbol(c) {
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+func isValidEmailFormat(email string) bool {
+	pattern := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	return pattern.MatchString(email)
 }
