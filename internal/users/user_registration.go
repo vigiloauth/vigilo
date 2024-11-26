@@ -18,7 +18,7 @@ func (r *UserRegistration) RegisterUser(user *User) (*User, error) {
 	}
 
 	user.Password = security.HashPassword(user.Password)
-	if err := GetUserCache().AddUser(*user); err != nil {
+	if err := GetInMemoryUserStore().AddUser(*user); err != nil {
 		return nil, err
 	}
 
