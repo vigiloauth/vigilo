@@ -22,27 +22,21 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 			name:      "RegisterUser is successful",
 			user:      &User{Username: username, Password: password, Email: email},
 			wantError: false,
-		}, {
+		},
+		{
 			name:      "RegisterUser fails with invalid email format",
 			user:      &User{Username: username, Password: password, Email: "invalid@.com"},
 			wantError: true,
-		}, {
+		},
+		{
 			name:      "RegisterUser fails with invalid password length",
 			user:      &User{Username: username, Password: "invalid", Email: email},
-			wantError: true,
-		}, {
-			name:      "RegisterUser fails with duplicate email",
-			user:      &User{Username: username, Password: password, Email: duplicateEmail},
 			wantError: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if test.name == "RegisterUser fails with duplicate email" {
-				prepopulateCacheWithExistingUser()
-			}
-
 			userRegistration := NewUserRegistration()
 			registeredUser, err := userRegistration.RegisterUser(test.user)
 
@@ -56,8 +50,15 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 	}
 }
 
+func TestUserRegistration_DuplicateEntry(t *testing.T) {
+	prepopulateCacheWithExistingUser()
+	userRegistration := NewUserRegistration()
+	_, err := userRegistration.RegisterUser(&User{Username: username, Password: password, Email: duplicateEmail})
+	assert.NotNil(t, err)
+}
+
 func prepopulateCacheWithExistingUser() {
-	_ = GetUserCache().AddUser(User{
+	_ = GetInMemoryUserStore().AddUser(User{
 		ID:       "existing-user",
 		Username: username,
 		Email:    duplicateEmail,

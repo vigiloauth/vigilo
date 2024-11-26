@@ -5,6 +5,8 @@ import (
 	"regexp"
 )
 
+const defaultPasswordLength = 8
+
 type UserRegistration struct{}
 
 func NewUserRegistration() *UserRegistration {
@@ -16,12 +18,12 @@ func (r *UserRegistration) RegisterUser(user *User) (*User, error) {
 		return nil, &EmailFormatError{Email: user.Email}
 	}
 
-	if len(user.Password) < 8 {
+	if len(user.Password) < defaultPasswordLength {
 		return nil, &PasswordLengthError{Length: len(user.Password)}
 	}
 
 	user.Password = security.HashPassword(user.Password)
-	if err := GetUserCache().AddUser(*user); err != nil {
+	if err := GetInMemoryUserStore().AddUser(*user); err != nil {
 		return nil, err
 	}
 
