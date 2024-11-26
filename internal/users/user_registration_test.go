@@ -55,6 +55,16 @@ func TestUserRegistration_DuplicateEntry(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestUserRegistration_PasswordIsNotStoredInPlainText(t *testing.T) {
+	userRegistration := NewUserRegistration()
+
+	_, err := userRegistration.RegisterUser(&User{Username: username, Password: password, Email: email})
+	assert.Nil(t, err)
+
+	retrievedUser, _ := GetInMemoryUserStore().GetUser(email)
+	assert.NotEqual(t, retrievedUser.Password, password)
+}
+
 func prepopulateCacheWithExistingUser() {
 	_ = GetInMemoryUserStore().AddUser(User{
 		ID:       "existing-user",
