@@ -1,0 +1,54 @@
+name: golangci-lint
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'identity/**'
+      - 'internal/**'
+  pull_request:
+    branches: [ '*' ]
+    paths:
+      - 'identity/**'
+      - 'internal/**'
+
+permissions:
+  contents: read
+
+jobs:
+  golangci:
+    strategy:
+      matrix:
+        module:
+          - identity
+          - internal
+    name: Lint Code
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./${{ matrix.module }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Set up Go modules
+        run: go mod tidy
+
+      - name: Cache golangci-lint cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/golangci-lint
+          key: ${{ runner.os }}-golangci-lint-${{ matrix.module }}-${{ hashFiles(format('{0}/**/*.go', matrix.module), format('{0}/**/go.mod', matrix.module), format('{0}/**/go.sum', matrix.module) }}
+          restore-keys: |
+            ${{ runner.os }}-golangci-lint-${{ matrix.module }}-
+
+      - name: Run golangci-lint with GitHub Actions output format
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
+          working-directory: ./${{ matrix.module }}
+          args: run --out-format=github-actions --timeout=5m --concurrency=4 --max-issues-per-linter=0
