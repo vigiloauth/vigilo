@@ -3,7 +3,7 @@ package users
 import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"regexp"
+	"net/mail"
 	"unicode"
 )
 
@@ -108,6 +108,6 @@ func containsSymbol(password string) bool {
 }
 
 func isValidEmailFormat(email string) bool {
-	pattern := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-	return pattern.MatchString(email)
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }
