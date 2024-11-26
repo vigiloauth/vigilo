@@ -16,35 +16,36 @@ func WriteError(w http.ResponseWriter, err error) {
 	var status int
 	var response interface{}
 
-	if validationError, ok := err.(*errors.InputValidationError); ok {
-		switch validationError.ErrorCode {
-		case errors.ErrCodeEmpty:
-			status = http.StatusBadRequest
-			response = validationError
-		case errors.ErrCodePasswordLength:
-			status = http.StatusBadRequest
-			response = validationError
-		case errors.ErrCodeMissingUppercase:
-			status = http.StatusBadRequest
-			response = validationError
-		case errors.ErrCodeMissingNumber:
-			status = http.StatusBadRequest
-			response = validationError
-		case errors.ErrCodeMissingSymbol:
-			status = http.StatusBadRequest
-			response = validationError
-		case errors.ErrCodeInvalidEmail:
-			status = http.StatusBadRequest
-			response = validationError
+	switch e := err.(type) {
+	case *errors.ErrorCollection:
+		status = http.StatusBadRequest
+		response = ErrorResponse{
+			ErrorCode:   errors.ErrCodeValidationError,
+			Description: "One or more validation errors occurred.",
+			Errors:      e.Errors(),
+		}
+	case *errors.InputValidationError:
+		switch e.ErrorCode {
 		case errors.ErrCodeDuplicateUser:
 			status = http.StatusConflict
-			response = validationError
-		default:
-			status = http.StatusInternalServerError
 			response = ErrorResponse{
-				Error:       "INTERNAL_SERVER_ERROR",
-				Description: validationError.Error(),
+				ErrorCode:   errors.ErrCodeDuplicateUser,
+				Description: e.Message,
+				Error:       e.Error(),
 			}
+		default:
+			status = http.StatusBadRequest
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeValidationError,
+				Description: e.Message,
+				Error:       e.Error(),
+			}
+		}
+	default:
+		status = http.StatusInternalServerError
+		response = ErrorResponse{
+			ErrorCode:   errors.ErrCodeInternalServerError,
+			Description: err.Error(),
 		}
 	}
 
@@ -52,6 +53,8 @@ func WriteError(w http.ResponseWriter, err error) {
 }
 
 type ErrorResponse struct {
-	Error       string `json:"error"`
-	Description string `json:"error_description"`
+	ErrorCode   string   `json:"error_code"`
+	Description string   `json:"description"`
+	Error       string   `json:"error,omitempty"`
+	Errors      *[]error `json:"errors,omitempty"`
 }
