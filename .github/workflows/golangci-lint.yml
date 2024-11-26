@@ -42,11 +42,11 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/golangci-lint
-          key: ${{ runner.os }}-golangci-lint-${{ matrix.module }}-${{ hashFiles(format('{0}/**/*.go', matrix.module), format('{0}/**/go.mod', matrix.module), format('{0}/**/go.sum', matrix.module) }}
+          key: ${{ runner.os }}-golangci-lint-${{ matrix.module }}-${{ hashFiles(format('{0}/**/*.go', matrix.module), format('{0}/**/go.mod', matrix.module), format('{0}/**/go.sum', matrix.module)) }}
           restore-keys: |
             ${{ runner.os }}-golangci-lint-${{ matrix.module }}-
 
-      - name: Run golangci-lint with GitHub Actions output format
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.60
