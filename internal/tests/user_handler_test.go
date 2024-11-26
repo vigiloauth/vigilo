@@ -67,14 +67,7 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 			}
 
 			if test.wantError {
-				var responseBody map[string]interface{}
-				if err := json.Unmarshal(rr.Body.Bytes(), &responseBody); err != nil {
-					t.Fatalf("failed to unmarshal response body: %v", err)
-				}
-
-				if responseBody["error"] == nil {
-					t.Errorf("expected error in response, got none")
-				}
+				checkErrorResponse(t, rr.Body.Bytes())
 			}
 		})
 	}
@@ -100,4 +93,15 @@ func setupIdentityServer(body []byte) *httptest.ResponseRecorder {
 	vigiloIdentityServer.Router.ServeHTTP(rr, req)
 
 	return rr
+}
+
+func checkErrorResponse(t *testing.T, responseBody []byte) {
+	var response map[string]interface{}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		t.Fatalf("failed to unmarshal response body: %v", err)
+	}
+
+	if response["error"] == nil {
+		t.Errorf("expected error in response, got none")
+	}
 }
