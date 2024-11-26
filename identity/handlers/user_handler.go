@@ -7,6 +7,9 @@ import (
 	"net/http"
 )
 
+// UserHandler handles HTTP requests related to user operations.
+// It encapsulates user registration functionality and manages the
+// communication between HTTP layer and business logic.
 type UserHandler struct {
 	userRegistration *users.UserRegistration
 }

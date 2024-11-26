@@ -3,7 +3,7 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"net/http"
@@ -14,10 +14,17 @@ import (
 const (
 	username string = "username"
 	email    string = "email@email.com"
-	password string = "password"
+	password string = "Pa$sword_123"
 )
 
 func TestUserHandler_HandleUserRegistration(t *testing.T) {
+	config.GetPasswordConfiguration().
+		SetRequireUppercase(true).
+		SetRequireNumber(true).
+		SetRequireSymbol(true).
+		SetMinimumLength(10).
+		Build()
+
 	tests := []struct {
 		name           string
 		requestBody    users.UserRegistrationRequest
@@ -39,7 +46,7 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 			requestBody: users.UserRegistrationRequest{
 				Username: "",
 				Email:    "invalidemail",
-				Password: "short",
+				Password: password,
 			},
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
@@ -48,6 +55,46 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 			name: "Missing required fields in request",
 			requestBody: users.UserRegistrationRequest{
 				Username: "missingemailuser",
+			},
+			expectedStatus: http.StatusBadRequest,
+			wantError:      true,
+		},
+		{
+			name: "Invalid password length",
+			requestBody: users.UserRegistrationRequest{
+				Username: username,
+				Email:    email,
+				Password: "password",
+			},
+			expectedStatus: http.StatusBadRequest,
+			wantError:      true,
+		},
+		{
+			name: "Password does not contains an uppercase letter",
+			requestBody: users.UserRegistrationRequest{
+				Username: username,
+				Email:    email,
+				Password: "password",
+			},
+			expectedStatus: http.StatusBadRequest,
+			wantError:      true,
+		},
+		{
+			name: "Password does not contain a number",
+			requestBody: users.UserRegistrationRequest{
+				Username: username,
+				Email:    email,
+				Password: "password",
+			},
+			expectedStatus: http.StatusBadRequest,
+			wantError:      true,
+		},
+		{
+			name: "Password does not contain a symbol",
+			requestBody: users.UserRegistrationRequest{
+				Username: username,
+				Email:    email,
+				Password: "password",
 			},
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
@@ -73,22 +120,28 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 	}
 }
 
-func TestUserHandler_DuplicateUser(t *testing.T) {
-	requestBody := users.UserRegistrationRequest{Username: username, Email: email, Password: password}
-	body, err := json.Marshal(requestBody)
-	if err != nil {
-		t.Fatalf("failed to  marshal request body: %v", err)
+func TestUserHandler_DuplicateEmail(t *testing.T) {
+	requestBody := users.UserRegistrationRequest{
+		Username: username,
+		Email:    email,
+		Password: password,
 	}
 
 	_ = users.GetInMemoryUserStore().AddUser(users.User{Username: username, Password: password, Email: email})
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("failed to marshal request body: %v", err)
+	}
 
 	rr := setupIdentityServer(body)
-	assert.Equal(t, http.StatusConflict, rr.Code)
+	if rr.Code != http.StatusConflict {
+		t.Errorf("expected status %v, got %v", http.StatusConflict, rr.Code)
+	}
 }
 
 func setupIdentityServer(body []byte) *httptest.ResponseRecorder {
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
-	req := httptest.NewRequest(http.MethodPost, "/identity/users", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/vigilo/identity/users", bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router.ServeHTTP(rr, req)
 
@@ -101,7 +154,7 @@ func checkErrorResponse(t *testing.T, responseBody []byte) {
 		t.Fatalf("failed to unmarshal response body: %v", err)
 	}
 
-	if response["error"] == nil {
+	if response["error_code"] == nil {
 		t.Errorf("expected error in response, got none")
 	}
 }
