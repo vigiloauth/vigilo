@@ -114,14 +114,7 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 			}
 
 			if test.wantError {
-				var responseBody map[string]interface{}
-				if err := json.Unmarshal(responseRecorder.Body.Bytes(), &responseBody); err != nil {
-					t.Fatalf("failed to unmarshal response body: %v", err)
-				}
-
-				if responseBody["error_code"] == nil {
-					t.Errorf("expected error in response, got none")
-				}
+				checkErrorResponse(t, responseRecorder.Body.Bytes())
 			}
 		})
 	}
@@ -134,7 +127,7 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 		Password: password,
 	}
 
-	_ = users.GetInMemoryUserStore().AddUser(users.User{Username: username, Email: email})
+	_ = users.GetInMemoryUserStore().AddUser(users.User{Username: username, Password: password, Email: email})
 	body, err := json.Marshal(requestBody)
 	if err != nil {
 		t.Fatalf("failed to marshal request body: %v", err)
@@ -153,4 +146,15 @@ func setupIdentityServer(body []byte) *httptest.ResponseRecorder {
 	vigiloIdentityServer.Router.ServeHTTP(rr, req)
 
 	return rr
+}
+
+func checkErrorResponse(t *testing.T, responseBody []byte) {
+	var response map[string]interface{}
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		t.Fatalf("failed to unmarshal response body: %v", err)
+	}
+
+	if response["error_code"] == nil {
+		t.Errorf("expected error in response, got none")
+	}
 }
