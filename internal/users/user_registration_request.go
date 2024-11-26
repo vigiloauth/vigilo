@@ -17,11 +17,11 @@ func (req *UserRegistrationRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
 	if req.Username == "" {
-		errorCollection.Add(errors.NewEmptyInputError("username"))
+		errorCollection.Add(errors.NewEmptyInputError(UserFieldConstants.Username))
 	}
 
 	if req.Email == "" {
-		errorCollection.Add(errors.NewEmptyInputError("email"))
+		errorCollection.Add(errors.NewEmptyInputError(UserFieldConstants.Email))
 	} else if !isValidEmailFormat(req.Email) {
 		errorCollection.Add(errors.NewEmailFormatError(req.Email))
 	}
@@ -36,7 +36,7 @@ func (req *UserRegistrationRequest) Validate() error {
 
 func validatePassword(password string, errorCollection *errors.ErrorCollection) {
 	if password == "" {
-		errorCollection.Add(errors.NewEmptyInputError("password"))
+		errorCollection.Add(errors.NewEmptyInputError(UserFieldConstants.Password))
 		return
 	}
 
@@ -49,7 +49,7 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 
 	if passwordConfig.GetRequireUppercase() && !containsUppercase(password) {
 		errorCollection.Add(&errors.InputValidationError{
-			Field:     "password",
+			Field:     UserFieldConstants.Password,
 			ErrorCode: errors.ErrCodeMissingUppercase,
 			Message:   "Password must contain at least one uppercase letter",
 		})
@@ -57,7 +57,7 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 
 	if passwordConfig.GetRequireNumber() && !containsNumber(password) {
 		errorCollection.Add(&errors.InputValidationError{
-			Field:     "password",
+			Field:     UserFieldConstants.Password,
 			ErrorCode: errors.ErrCodeMissingNumber,
 			Message:   "Password must contain at least one numeric digit",
 		})
@@ -65,7 +65,7 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 
 	if passwordConfig.GetRequireSymbol() && !containsSymbol(password) {
 		errorCollection.Add(&errors.InputValidationError{
-			Field:     "password",
+			Field:     UserFieldConstants.Password,
 			ErrorCode: errors.ErrCodeMissingSymbol,
 			Message:   "Password must contain at least one symbol",
 		})

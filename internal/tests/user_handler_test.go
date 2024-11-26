@@ -32,70 +32,44 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 		wantError      bool
 	}{
 		{
-			name: "Successful User Registration",
-			requestBody: users.UserRegistrationRequest{
-				Username: username,
-				Email:    email,
-				Password: password,
-			},
+			name:           "Successful User Registration",
+			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password),
 			expectedStatus: http.StatusCreated,
 			wantError:      false,
 		},
 		{
-			name: "User Registration fails given invalid request body",
-			requestBody: users.UserRegistrationRequest{
-				Username: "",
-				Email:    "invalidemail",
-				Password: password,
-			},
+			name:           "User Registration fails given invalid request body",
+			requestBody:    *users.NewUserRegistrationRequest("", "invalidemail", users.TestConstants.Password),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
-			name: "Missing required fields in request",
-			requestBody: users.UserRegistrationRequest{
-				Username: "missingemailuser",
-			},
+			name:           "Missing required fields in request",
+			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, "", ""),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
-			name: "Invalid password length",
-			requestBody: users.UserRegistrationRequest{
-				Username: username,
-				Email:    email,
-				Password: "password",
-			},
+			name:           "Invalid password length",
+			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.InvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
-			name: "Password does not contains an uppercase letter",
-			requestBody: users.UserRegistrationRequest{
-				Username: username,
-				Email:    email,
-				Password: "password",
-			},
+			name:           "Password does not contains an uppercase letter",
+			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.InvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
-			name: "Password does not contain a number",
-			requestBody: users.UserRegistrationRequest{
-				Username: username,
-				Email:    email,
-				Password: "password",
-			},
+			name:           "Password does not contain a number",
+			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.InvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
-			name: "Password does not contain a symbol",
-			requestBody: users.UserRegistrationRequest{
-				Username: username,
-				Email:    email,
-				Password: "password",
-			},
+			name:           "Password does not contain a symbol",
+			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.InvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
@@ -121,11 +95,9 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 }
 
 func TestUserHandler_DuplicateEmail(t *testing.T) {
-	requestBody := users.UserRegistrationRequest{
-		Username: username,
-		Email:    email,
-		Password: password,
-	}
+	requestBody := users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
+	user := users.NewUser(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
+	_ = users.GetInMemoryUserStore().AddUser(*user)
 
 	_ = users.GetInMemoryUserStore().AddUser(users.User{Username: username, Password: password, Email: email})
 	body, err := json.Marshal(requestBody)
@@ -141,7 +113,7 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 
 func setupIdentityServer(body []byte) *httptest.ResponseRecorder {
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
-	req := httptest.NewRequest(http.MethodPost, "/vigilo/identity/users", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, users.UserEndpoints.Registration, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router.ServeHTTP(rr, req)
 

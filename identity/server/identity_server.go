@@ -24,5 +24,5 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 
 // setUpRoutes sets up the HTTP routes for the identity server, mapping specific endpoints to handler functions.
 func (s *VigiloIdentityServer) setUpRoutes() {
-	s.Router.Post("/vigilo/identity/users", s.userHandler.HandleUserRegistration)
+	s.Router.Post(users.UserEndpoints.Registration, s.userHandler.HandleUserRegistration)
 }
