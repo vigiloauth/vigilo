@@ -27,5 +27,5 @@ var UserFieldConstants = struct {
 var UserEndpoints = struct {
 	Registration string
 }{
-	Registration: "/vigilo/identity/users",
+	Registration: "/identity/users",
 }
