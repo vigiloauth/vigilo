@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.29.0
-	github.com/vigiloauth/vigilo/identity v0.1.0-alpha.1
+	github.com/vigiloauth/vigilo/identity v0.0.0
 )
 
 require (
@@ -15,7 +15,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-// For local development only
-// replace (
-	// github.com/vigiloauth/vigilo/identity => ./identity
-// )
+ replace (
+	 github.com/vigiloauth/vigilo/identity => ./identity
+ )
