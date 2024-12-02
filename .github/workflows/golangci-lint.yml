@@ -1,13 +1,6 @@
 name: golangci-lint
 
 on:
-  push:
-    branches: [ master ]
-    paths:
-      - 'identity/**'
-      - 'internal/**'
-      - 'go.mod'
-      - 'go.sum'
   pull_request:
     branches: [ '*' ]
     paths:

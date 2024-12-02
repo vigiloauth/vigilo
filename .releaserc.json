@@ -1,0 +1,21 @@
+{
+  "branches": ["master"],
+  "plugins": [
+    ["@semantic-release/commit-analyzer", {
+      "preset": "angular",
+      "releaseRules": [
+        {"type": "breaking", "release": "major"},
+        {"type": "feat", "release": "minor"},
+        {"type": "fix", "release": "patch"},
+
+        {"type": "test", "release":  false},
+        {"type": "refactor", "release": false},
+        {"type": "perf", "release": false},
+        {"type": "docs", "release": false},
+        {"type": "chore", "release": false}
+      ]
+    }],
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/github"
+  ]
+}
