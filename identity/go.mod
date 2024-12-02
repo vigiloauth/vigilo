@@ -1,15 +1,16 @@
 module github.com/vigiloauth/vigilo/identity
 
-go 1.23
-
-require github.com/go-chi/chi/v5 v5.1.0
+go 1.23.3
 
 require (
-	github.com/vigiloauth/vigilo v0.0.0 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
+	github.com/go-chi/chi/v5 v5.1.0
+	github.com/vigiloauth/vigilo v0.1.0-alpha.1
 )
 
-replace (
-	github.com/vigiloauth/vigilo => ../
-	github.com/vigiloauth/vigilo/identity => ./ // This is just a placeholder for local dev.
-)
+require golang.org/x/crypto v0.29.0 // indirect
+
+// For local development only
+// replace (
+// github.com/vigiloauth/vigilo => ../
+// github.com/vigiloauth/vigilo/identity => ./
+// )
