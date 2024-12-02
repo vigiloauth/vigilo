@@ -7,7 +7,13 @@ before:
 
 builds:
   - id: vigilo-identity
-    skip: true
+    main: ./  # Set the main directory for your Go module
+    mod: true # Ensure Go Modules are used
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
 
 changelog:
   sort: asc
@@ -15,3 +21,7 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+files:
+  - src: ./identity/**/*  # Include all files from the identity directory
+    dst: ./identity/      # Ensure this is included in the release
