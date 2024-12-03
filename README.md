@@ -21,12 +21,12 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 [optional footer(s)]
 ```
 #### Commit Types
-- `feat`: Add a new feature.
-- `fix`: Fix a bug.
-- `docs`: Update documentation.
-- `style`: Code formatting or style changes (non-functional).
-- `refactor`: Code restructuring without adding features or fixing bugs.
-- `perf`: Performance improvements.
-- `test`: Add or update tests.
-- `chore`: Miscellaneous tasks like dependency updates or build configurations.
+- `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
+- `feat`: Add a new feature that enhances the functionality of the project.
+- `fix`: Apply a bug fix that resolves an issue without affecting functionality. 
+- `docs`: Update documentation, such as fixing typos or adding new information. 
+- `style`: Changes that don’t affect the code’s behavior, like formatting or code style adjustments. 
+- `refactor`: Refactor code without adding features or fixing bugs. 
+- `test`: Add or modify tests. 
+- `chore`: Miscellaneous changes like updates to build tools or dependencies.
 
