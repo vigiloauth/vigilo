@@ -24,7 +24,6 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 	}
 
 	server.setupRoutes()
-
 	return server
 }
 
