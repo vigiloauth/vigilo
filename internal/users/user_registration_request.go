@@ -100,7 +100,7 @@ func containsNumber(password string) bool {
 
 func containsSymbol(password string) bool {
 	for _, c := range password {
-		if unicode.IsSymbol(c) {
+		if !(unicode.IsLetter(c) || unicode.IsNumber(c)) {
 			return true
 		}
 	}

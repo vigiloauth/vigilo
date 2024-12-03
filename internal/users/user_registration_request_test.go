@@ -6,6 +6,7 @@ import (
 )
 
 func TestUserRegistrationRequest_Validate(t *testing.T) {
+	configurePasswordPolicy()
 	tests := []struct {
 		name      string
 		req       *UserRegistrationRequest
