@@ -12,6 +12,8 @@
 - [License](#6-license)
 
 ## 1. Introduction
+⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
+
 VigiloAuth is designed to simplify the implementation of OAuth 2.0 and OpenID Connect (OIDC) authentication servers. Whether you need a full-fledged **authentication server**, an **identity server**, or both, Vigilo provides compliant endpoints that you can easily integrate into your application without writing complex authentication code.
 
 With VigiloAuth, you can quickly set up secure authentication and identity management solutions for you application, allowing users to authenticate and easily manage their identities. The library comes pre-configured with common authentication flows and identity management endpoints, saving you time and effort while making sure that your system complies with industry standards
