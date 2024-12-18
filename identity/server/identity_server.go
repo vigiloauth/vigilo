@@ -16,7 +16,8 @@ type VigiloIdentityServer struct {
 // Automatically sets up routes.
 func NewVigiloIdentityServer() *VigiloIdentityServer {
 	userStore := users.GetInMemoryUserStore()
-	userHandler := handlers.NewUserHandler(userStore)
+	userRegistration := users.NewUserRegistration(userStore)
+	userHandler := handlers.NewUserHandler(userRegistration)
 
 	server := &VigiloIdentityServer{
 		router:      chi.NewRouter(),

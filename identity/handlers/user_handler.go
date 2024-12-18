@@ -14,8 +14,8 @@ type UserHandler struct {
 	userRegistration *users.UserRegistration
 }
 
-func NewUserHandler(userStore users.UserStore) *UserHandler {
-	return &UserHandler{userRegistration: users.NewUserRegistration(userStore)}
+func NewUserHandler(userRegistration *users.UserRegistration) *UserHandler {
+	return &UserHandler{userRegistration: userRegistration}
 }
 
 // HandleUserRegistration is the HTTP handler for user registration.
