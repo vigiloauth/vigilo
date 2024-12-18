@@ -27,5 +27,5 @@ var UserFieldConstants = struct {
 var UserEndpoints = struct {
 	Registration string
 }{
-	Registration: "/identity/users",
+	Registration: "/users",
 }
