@@ -40,11 +40,13 @@ func (s *VigiloIdentityServer) setupRoutes(useHTTPS bool) {
 	s.router.Post(users.UserEndpoints.Registration, s.userHandler.HandleUserRegistration)
 }
 
-// enforceHTTPS blocks all non-HTTPS requests.
+// enforceHTTPS enforces HTTPS for all requests
 func enforceHTTPS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.TLS == nil {
-			http.Error(w, "HTTPS required", http.StatusForbidden)
+		isSecure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+		if !isSecure {
+			url := "https://" + r.Host + r.URL.String()
+			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 			return
 		}
 		next.ServeHTTP(w, r)
