@@ -43,7 +43,7 @@ Comprehensive documentation is available in the [User Guide](docs/user_guide/REA
 
 ## 4. Getting Started
 To install the library in your application, simply run:
-`go get -u github.com/vigiloauth/vigilo@v1.0.3`
+`go get -u github.com/vigiloauth/vigilo@<latest available version>`
 ```go
 package main
 
