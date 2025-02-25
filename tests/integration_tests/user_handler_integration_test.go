@@ -3,12 +3,13 @@ package integration_tests
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/identity/server"
-	"github.com/vigiloauth/vigilo/internal/users"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/identity/server"
+	"github.com/vigiloauth/vigilo/internal/users"
 )
 
 func TestUserHandler_HandleUserRegistration(t *testing.T) {
@@ -105,7 +106,8 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 }
 
 func setupIdentityServer(body []byte) *httptest.ResponseRecorder {
-	vigiloIdentityServer := server.NewVigiloIdentityServer()
+	serverConfg := config.NewDefaultServerConfig()
+	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfg)
 	req := httptest.NewRequest(http.MethodPost, users.UserEndpoints.Registration, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
