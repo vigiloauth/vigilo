@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
 	"github.com/vigiloauth/vigilo/internal/users"
 )
@@ -10,11 +11,12 @@ import (
 type VigiloIdentityServer struct {
 	router      chi.Router
 	userHandler *handlers.UserHandler
+	config      *config.ServerConfig
 }
 
 // NewVigiloIdentityServer creates and initializes a new instance of IdentityServer.
 // Automatically sets up routes.
-func NewVigiloIdentityServer() *VigiloIdentityServer {
+func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityServer {
 	userStore := users.GetInMemoryUserStore()
 	userRegistration := users.NewUserRegistration(userStore)
 	userHandler := handlers.NewUserHandler(userRegistration)
@@ -22,6 +24,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 	server := &VigiloIdentityServer{
 		router:      chi.NewRouter(),
 		userHandler: userHandler,
+		config:      serverConfig,
 	}
 
 	server.setupRoutes()

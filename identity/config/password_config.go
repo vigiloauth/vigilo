@@ -14,8 +14,9 @@ type PasswordConfiguration struct {
 var instance *PasswordConfiguration
 var once sync.Once
 
-// GetPasswordConfiguration returns the singleton instance of PasswordConfiguration.
-// If the instance doesn't exist, it creates one with default settings.
+// GetPasswordConfiguration returns the singleton instance of PasswordConfiguration with default settings.
+// These defauls include a minimum length password of 8, and optional uppercase, number, and symbol.
+// The return configuration can be modified as needed.
 func GetPasswordConfiguration() *PasswordConfiguration {
 	once.Do(func() {
 		instance = &PasswordConfiguration{

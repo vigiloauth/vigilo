@@ -5,3 +5,4 @@ The **VigiloAuth** Identity Management service is a core component responsible f
 
 ## Docs
 - [User Registration](user_registration.md)
+- [Configuration Guide](../../configuration.md)
