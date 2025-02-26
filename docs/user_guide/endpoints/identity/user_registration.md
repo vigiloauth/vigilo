@@ -21,7 +21,7 @@ POST https://localhost:<port>/<uri>/user
 ```json
 {
     "username": "test",
-    "email": "email@gal.com",
+    "email": "email@vigilo.com",
     "password": "Pas$_w0rds"
 }
 
