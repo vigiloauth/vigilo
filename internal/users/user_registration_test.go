@@ -11,7 +11,7 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 	ResetInMemoryUserStore()
 	userStore := GetInMemoryUserStore()
 	userRegistration := NewUserRegistration(userStore)
-	registeredUser, err := userRegistration.RegisterUser(NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password))
+	registeredUser, err := userRegistration.Register(NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password))
 
 	if err != nil {
 		t.Errorf("RegisterUser() error = %v, wantError = %v", err, false)
@@ -28,7 +28,7 @@ func TestUserRegistration_DuplicateEntry(t *testing.T) {
 	user := NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password)
 	_ = userStore.AddUser(user)
 
-	_, err := userRegistration.RegisterUser(user)
+	_, err := userRegistration.Register(user)
 	assert.NotNil(t, err)
 }
 
@@ -39,7 +39,7 @@ func TestUserRegistration_PasswordIsNotStoredInPlainText(t *testing.T) {
 	_ = userStore.DeleteUser(TestConstants.Email)
 
 	user := NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password)
-	_, err := userRegistration.RegisterUser(user)
+	_, err := userRegistration.Register(user)
 	assert.Nil(t, err)
 
 	retrievedUser, _ := GetInMemoryUserStore().GetUser(TestConstants.Email)

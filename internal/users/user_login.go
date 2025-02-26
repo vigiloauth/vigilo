@@ -2,7 +2,7 @@ package users
 
 import (
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/vigiloauth/vigilo/internal/security"
 )
 
 // UserLogin handles user login operations.
@@ -14,9 +14,9 @@ func NewUserLogin(userStore UserStore) *UserLogin {
 	return &UserLogin{userStore: userStore}
 }
 
-// LoginUser logs in a user and returns a token if successful
-func (l *UserLogin) LoginUser(user *User) (*User, error) {
-	if err := isValidEmailFormat(user.Email); err {
+// Login logs in a user and returns a token if successful
+func (l *UserLogin) Login(user *User) (*User, error) {
+	if !isValidEmailFormat(user.Email) {
 		return nil, errors.NewEmailFormatError(UserFieldConstants.Email)
 	}
 
@@ -25,7 +25,7 @@ func (l *UserLogin) LoginUser(user *User) (*User, error) {
 		return nil, errors.NewUserNotFoundError()
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(retrievedUser.Password), []byte(user.Password)); err != nil {
+	if !security.ComparePasswordHash(user.Password, retrievedUser.Password) {
 		return nil, errors.NewInvalidCredentialsError()
 	}
 

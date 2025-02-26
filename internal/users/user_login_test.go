@@ -15,7 +15,7 @@ func TestUserLogin_Successful(t *testing.T) {
 	_ = userStore.AddUser(user)
 
 	user.Password = TestConstants.Password
-	_, err := userLogin.LoginUser(user)
+	_, err := userLogin.Login(user)
 	if err != nil {
 		t.Errorf("LoginUser() error = %v, want nil", err)
 	}
@@ -44,7 +44,7 @@ func TestUserLogin_Login(t *testing.T) {
 			ResetInMemoryUserStore()
 			userStore := GetInMemoryUserStore()
 			userLogin := NewUserLogin(userStore)
-			_, err := userLogin.LoginUser(test.user)
+			_, err := userLogin.Login(test.user)
 
 			if (err != nil) != test.wantError {
 				t.Errorf("LoginUser() error = %v, wantError = %v", err, test.wantError)

@@ -76,8 +76,8 @@ func initializeHTTPServer(serverConfig *config.ServerConfig, tlsConfig *tls.Conf
 }
 
 func (s *VigiloIdentityServer) setupRoutes() {
-	s.router.Post(users.UserEndpoints.Registration, s.userHandler.HandleUserRegistration)
-	s.router.Post(users.UserEndpoints.Login, s.userHandler.HandleUserLogin)
+	s.router.Post(users.UserEndpoints.Registration, s.userHandler.Register)
+	s.router.Post(users.UserEndpoints.Login, s.userHandler.Login)
 }
 
 // Router returns the pre-configured router instance for integration.

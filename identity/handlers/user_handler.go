@@ -28,10 +28,10 @@ func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.U
 	}
 }
 
-// HandleUserRegistration is the HTTP handler for user registration.
+// Register is the HTTP handler for user registration.
 // It processes incoming HTTP requests for user registration, validates the input,
 // registers the user, and sends an appropriate response including a JWT token.
-func (h *UserHandler) HandleUserRegistration(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request users.UserRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		utils.WriteError(w, err)
@@ -43,52 +43,48 @@ func (h *UserHandler) HandleUserRegistration(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	hashedPassword, err := security.HashPassword(request.Password)
-	if err != nil {
-		utils.WriteError(w, err)
-		return
-	}
-	user := users.NewUser(request.Username, request.Email, hashedPassword)
-	createdUser, err := h.userRegistration.RegisterUser(user)
+	user := users.NewUser(request.Username, request.Email, request.Password)
+	createdUser, err := h.userRegistration.Register(user)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
-	response := users.NewUserRegistrationResponse(createdUser.Username, createdUser.Email)
-	token, err := security.GenerateJWT(createdUser.Email, *h.jwtConfig)
-	if err != nil {
-		utils.WriteError(w, err)
-		return
-	}
-
-	response.JWTToken = token
-	utils.WriteJSON(w, http.StatusCreated, response)
+	h.respondWithToken(w, http.StatusCreated, createdUser)
 }
 
-// HandleUserLogin is the HTTP handler for user login.
+// Login is the HTTP handler for user login.
 // It processes incoming HTTP requests for user login, validates the input,
 // logs in the user, and returns a JWT token if successful.
-func (h *UserHandler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request users.UserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
+	if err := request.Validate(); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
 	user := users.NewUser("", request.Email, request.Password)
-	_, err := h.userLogin.LoginUser(user)
+	_, err := h.userLogin.Login(user)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
+	h.respondWithToken(w, http.StatusOK, user)
+}
+
+func (h *UserHandler) respondWithToken(w http.ResponseWriter, statusCode int, user *users.User) {
 	token, err := security.GenerateJWT(user.Email, *h.jwtConfig)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
-	response := users.NewUserLoginResponse(user.Email, token)
-	utils.WriteJSON(w, http.StatusOK, response)
+	response := users.NewUserLoginResponse(user.Username, user.Email, token)
+	utils.WriteJSON(w, statusCode, response)
 }

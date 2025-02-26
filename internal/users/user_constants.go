@@ -8,7 +8,7 @@ var TestConstants = struct {
 	InvalidPassword string
 }{
 	Username:        "username",
-	Email:           "email@test.com",
+	Email:           "vigilo@vigiloauth.com",
 	Password:        "Pa$s_w0rds",
 	DuplicateEmail:  "duplicate_email@test.com",
 	InvalidPassword: "invalid",
