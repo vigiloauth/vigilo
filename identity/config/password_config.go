@@ -15,7 +15,7 @@ var instance *PasswordConfiguration
 var once sync.Once
 
 // GetPasswordConfiguration returns the singleton instance of PasswordConfiguration with default settings.
-// These defauls include a minimum length password of 8, and optional uppercase, number, and symbol.
+// These defaults include a minimum length password of 8, and optional uppercase, number, and symbol.
 // The return configuration can be modified as needed.
 func GetPasswordConfiguration() *PasswordConfiguration {
 	once.Do(func() {
@@ -64,7 +64,7 @@ func (p *PasswordConfiguration) GetMinimumLength() int {
 }
 
 // SetMinimumLength sets the minimum required password length
-// If the provided length is less than 8, the value will not be updated
+// If the provided length is less than 8, the minimum length will be set to 8
 // to maintain basic security standards
 func (p *PasswordConfiguration) SetMinimumLength(length int) *PasswordConfiguration {
 	if length >= 8 {
