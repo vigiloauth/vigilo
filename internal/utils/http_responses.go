@@ -2,8 +2,9 @@ package utils
 
 import (
 	"encoding/json"
-	"github.com/vigiloauth/vigilo/internal/errors"
 	"net/http"
+
+	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
@@ -33,6 +34,20 @@ func WriteError(w http.ResponseWriter, err error) {
 			status = http.StatusConflict
 			response = ErrorResponse{
 				ErrorCode:   errors.ErrCodeDuplicateUser,
+				Description: e.Message,
+				Error:       e.Error(),
+			}
+		case errors.ErrCodeInvalidCredentials:
+			status = http.StatusUnauthorized
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeInvalidCredentials,
+				Description: e.Message,
+				Error:       e.Error(),
+			}
+		case errors.ErrCodeUserNotFound:
+			status = http.StatusNotFound
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeUserNotFound,
 				Description: e.Message,
 				Error:       e.Error(),
 			}

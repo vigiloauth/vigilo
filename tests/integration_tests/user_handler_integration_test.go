@@ -3,12 +3,14 @@ package integration_tests
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/server"
+	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/users"
 )
 
@@ -77,11 +79,12 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 				t.Fatalf("failed to  marshal request body: %v", err)
 			}
 
-			rr := setupIdentityServer(body)
+			rr := setupIdentityServer(users.UserEndpoints.Registration, body)
 			if rr.Code != test.expectedStatus {
 				t.Errorf("expected status %v, got %v", test.expectedStatus, rr.Code)
 			}
 
+			fmt.Printf("Response: %v\n", rr.Body.String())
 			if test.wantError {
 				checkErrorResponse(t, rr.Body.Bytes())
 			}
@@ -92,23 +95,45 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 func TestUserHandler_DuplicateEmail(t *testing.T) {
 	requestBody := users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
 	user := users.NewUser(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
-	_ = users.GetInMemoryUserStore().AddUser(*user)
+	_ = users.GetInMemoryUserStore().AddUser(user)
 
 	body, err := json.Marshal(requestBody)
 	if err != nil {
 		t.Fatalf("failed to marshal request body: %v", err)
 	}
 
-	responseRecorder := setupIdentityServer(body)
-	if responseRecorder.Code != http.StatusConflict {
-		t.Errorf("expected status %v, got %v", http.StatusConflict, responseRecorder.Code)
+	rr := setupIdentityServer(users.UserEndpoints.Registration, body)
+	if rr.Code != http.StatusConflict {
+		t.Errorf("expected status %v, got %v", http.StatusConflict, rr.Code)
 	}
 }
 
-func setupIdentityServer(body []byte) *httptest.ResponseRecorder {
-	serverConfg := config.NewDefaultServerConfig()
-	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfg)
-	req := httptest.NewRequest(http.MethodPost, users.UserEndpoints.Registration, bytes.NewBuffer(body))
+func TestUserHandler_SuccessfulUserLogin(t *testing.T) {
+	users.ResetInMemoryUserStore()
+	userStore := users.GetInMemoryUserStore()
+	user := users.NewUser(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
+	hashedPassword, _ := security.HashPassword(user.GetPassword())
+	user.SetPassword(hashedPassword)
+	userStore.AddUser(user)
+
+	_ = userStore.AddUser(user)
+	requestBody := users.NewUserLoginRequest(users.TestConstants.Email, users.TestConstants.Password)
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		t.Fatalf("failed to marshal request body: %v", err)
+	}
+
+	rr := setupIdentityServer(users.UserEndpoints.Login, body)
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %v, got %v", http.StatusOK, rr.Code)
+	}
+
+}
+
+func setupIdentityServer(endpoint string, body []byte) *httptest.ResponseRecorder {
+	serverConfig := config.NewDefaultServerConfig()
+	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
+	req := httptest.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 

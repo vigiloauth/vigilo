@@ -50,3 +50,29 @@ func NewEmptyInputError(field string) *InputValidationError {
 		Message:   fmt.Sprintf("%s cannot be empty", field),
 	}
 }
+
+// NewPasswordFormatError creates an error for invalid password format
+func NewPasswordFormatError(missingField, errCode string) *InputValidationError {
+	return &InputValidationError{
+		Field:     "password",
+		ErrorCode: errCode,
+		Message:   fmt.Sprintf("Password must contain at leat one %s", missingField),
+	}
+}
+
+// NewUserNotFoundError creates an error is a user is not found
+func NewUserNotFoundError() *InputValidationError {
+	return &InputValidationError{
+		Field:     "email",
+		ErrorCode: ErrCodeUserNotFound,
+		Message:   "User not found",
+	}
+}
+
+// NewInvalidCredentials creates an error for invalid credentials
+func NewInvalidCredentialsError() *InputValidationError {
+	return &InputValidationError{
+		ErrorCode: ErrCodeInvalidCredentials,
+		Message:   "Invalid credentials",
+	}
+}

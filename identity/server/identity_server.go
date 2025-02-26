@@ -25,7 +25,8 @@ type VigiloIdentityServer struct {
 func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityServer {
 	userStore := users.GetInMemoryUserStore()
 	userRegistration := users.NewUserRegistration(userStore)
-	userHandler := handlers.NewUserHandler(userRegistration)
+	userLogin := users.NewUserLogin(userStore)
+	userHandler := handlers.NewUserHandler(userRegistration, userLogin)
 
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -63,6 +64,7 @@ func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityS
 
 func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Post(users.UserEndpoints.Registration, s.userHandler.HandleUserRegistration)
+	s.router.Post(users.UserEndpoints.Login, s.userHandler.HandleUserLogin)
 }
 
 // Router returns the pre-configured router instance for integration.

@@ -1,8 +1,9 @@
 package users
 
 import (
-	"github.com/vigiloauth/vigilo/internal/errors"
 	"sync"
+
+	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 type InMemoryUserStore struct {
@@ -22,7 +23,14 @@ func GetInMemoryUserStore() *InMemoryUserStore {
 	return instance
 }
 
-func (c *InMemoryUserStore) AddUser(user User) error {
+// ResetInMemoryUserStore resets the in-memory user store for testing purposes.
+func ResetInMemoryUserStore() {
+	instance = &InMemoryUserStore{
+		data: make(map[string]User),
+	}
+}
+
+func (c *InMemoryUserStore) AddUser(user *User) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -30,7 +38,7 @@ func (c *InMemoryUserStore) AddUser(user User) error {
 		return errors.NewDuplicateUserError(UserFieldConstants.Email)
 	}
 
-	c.data[user.Email] = user
+	c.data[user.Email] = *user
 	return nil
 }
 
