@@ -27,7 +27,7 @@ func (r *UserRegistration) RegisterUser(user *User) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	user.SetPassword(hashedPassword)
+	user.Password = hashedPassword
 	if err := r.userStore.AddUser(user); err != nil {
 		return nil, err
 	}

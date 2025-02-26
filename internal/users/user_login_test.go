@@ -14,7 +14,7 @@ func TestUserLogin_Successful(t *testing.T) {
 	user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 
-	user.SetPassword(TestConstants.Password)
+	user.Password = TestConstants.Password
 	_, err := userLogin.LoginUser(user)
 	if err != nil {
 		t.Errorf("LoginUser() error = %v, want nil", err)

@@ -21,29 +21,14 @@ type VigiloIdentityServer struct {
 }
 
 // NewVigiloIdentityServer creates and initializes a new instance of IdentityServer.
-// Automatically sets up routes.
 func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityServer {
-	userStore := users.GetInMemoryUserStore()
-	userRegistration := users.NewUserRegistration(userStore)
-	userLogin := users.NewUserLogin(userStore)
-	userHandler := handlers.NewUserHandler(userRegistration, userLogin)
-
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-		},
+	if serverConfig == nil {
+		serverConfig = config.NewDefaultServerConfig()
 	}
 
-	httpServer := &http.Server{
-		Addr:         fmt.Sprintf("%d", serverConfig.Port),
-		ReadTimeout:  serverConfig.ReadTimeout,
-		WriteTimeout: serverConfig.WriteTimeout,
-		TLSConfig:    tlsConfig,
-	}
+	userHandler := initializeUserHandler(serverConfig)
+	tlsConfig := initializeTLSConfig()
+	httpServer := initializeHTTPServer(serverConfig, tlsConfig)
 
 	server := &VigiloIdentityServer{
 		router:       chi.NewRouter(),
@@ -60,6 +45,34 @@ func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityS
 	}
 
 	return server
+}
+
+func initializeUserHandler(serverConfig *config.ServerConfig) *handlers.UserHandler {
+	userStore := users.GetInMemoryUserStore()
+	userRegistration := users.NewUserRegistration(userStore)
+	userLogin := users.NewUserLogin(userStore)
+	return handlers.NewUserHandler(userRegistration, userLogin, serverConfig.JWTConfig)
+}
+
+func initializeTLSConfig() *tls.Config {
+	return &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		},
+	}
+}
+
+func initializeHTTPServer(serverConfig *config.ServerConfig, tlsConfig *tls.Config) *http.Server {
+	return &http.Server{
+		Addr:         fmt.Sprintf(":%d", serverConfig.Port),
+		ReadTimeout:  serverConfig.ReadTimeout,
+		WriteTimeout: serverConfig.WriteTimeout,
+		TLSConfig:    tlsConfig,
+	}
 }
 
 func (s *VigiloIdentityServer) setupRoutes() {

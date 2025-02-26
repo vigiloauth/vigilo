@@ -19,6 +19,7 @@ type UserRegistrationRequest struct {
 type UserRegistrationResponse struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
+	JWTToken string `json:"jwt_token"`
 }
 
 // UserLoginRequest represents the login request payload
@@ -29,7 +30,8 @@ type UserLoginRequest struct {
 
 // UserLoginResponse represents the login response payload
 type UserLoginResponse struct {
-	Token string `json:"token"`
+	Email    string `json:"email"`
+	JWTToken string `json:"jwt_token"`
 }
 
 // NewUser creates a new user
@@ -66,39 +68,10 @@ func NewUserLoginRequest(email, password string) *UserLoginRequest {
 	}
 }
 
-// NewUserLoginResponse creates a new login response returning a token
-func NewUserLoginResponse() *UserLoginResponse {
-	return &UserLoginResponse{}
-}
-
-func (u *User) GetEmail() string {
-	return u.Email
-}
-
-func (u *User) SetEmail(email string) {
-	u.Email = email
-}
-
-func (u *User) GetID() string {
-	return u.ID
-}
-
-func (u *User) SetID(id string) {
-	u.ID = id
-}
-
-func (u *User) GetPassword() string {
-	return u.Password
-}
-
-func (u *User) SetPassword(password string) {
-	u.Password = password
-}
-
-func (u *User) GetUsername() string {
-	return u.Username
-}
-
-func (u *User) SetUsername(username string) {
-	u.Username = username
+// NewUserLoginResponse creates a new login response
+func NewUserLoginResponse(email, jwtToken string) *UserLoginResponse {
+	return &UserLoginResponse{
+		Email:    email,
+		JWTToken: jwtToken,
+	}
 }

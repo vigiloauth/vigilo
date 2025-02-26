@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -14,19 +16,21 @@ import (
 type UserHandler struct {
 	userRegistration *users.UserRegistration
 	userLogin        *users.UserLogin
+	jwtConfig        *config.JWTConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
-func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin) *UserHandler {
+func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin, jwtConfig *config.JWTConfig) *UserHandler {
 	return &UserHandler{
 		userRegistration: userRegistration,
 		userLogin:        userLogin,
+		jwtConfig:        jwtConfig,
 	}
 }
 
 // HandleUserRegistration is the HTTP handler for user registration.
 // It processes incoming HTTP requests for user registration, validates the input,
-// registers the user, and sends an appropriate response.
+// registers the user, and sends an appropriate response including a JWT token.
 func (h *UserHandler) HandleUserRegistration(w http.ResponseWriter, r *http.Request) {
 	var request users.UserRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -39,7 +43,12 @@ func (h *UserHandler) HandleUserRegistration(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	user := users.NewUser(request.Username, request.Email, request.Password)
+	hashedPassword, err := security.HashPassword(request.Password)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+	user := users.NewUser(request.Username, request.Email, hashedPassword)
 	createdUser, err := h.userRegistration.RegisterUser(user)
 	if err != nil {
 		utils.WriteError(w, err)
@@ -47,6 +56,13 @@ func (h *UserHandler) HandleUserRegistration(w http.ResponseWriter, r *http.Requ
 	}
 
 	response := users.NewUserRegistrationResponse(createdUser.Username, createdUser.Email)
+	token, err := security.GenerateJWT(createdUser.Email, *h.jwtConfig)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	response.JWTToken = token
 	utils.WriteJSON(w, http.StatusCreated, response)
 }
 
@@ -67,7 +83,12 @@ func (h *UserHandler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO - replace this with token goneration
-	response := users.NewUserLoginResponse()
+	token, err := security.GenerateJWT(user.Email, *h.jwtConfig)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	response := users.NewUserLoginResponse(user.Email, token)
 	utils.WriteJSON(w, http.StatusOK, response)
 }

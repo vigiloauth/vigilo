@@ -112,8 +112,8 @@ func TestUserHandler_SuccessfulUserLogin(t *testing.T) {
 	users.ResetInMemoryUserStore()
 	userStore := users.GetInMemoryUserStore()
 	user := users.NewUser(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
-	hashedPassword, _ := security.HashPassword(user.GetPassword())
-	user.SetPassword(hashedPassword)
+	hashedPassword, _ := security.HashPassword(user.Password)
+	user.Password = hashedPassword
 	userStore.AddUser(user)
 
 	_ = userStore.AddUser(user)
@@ -127,7 +127,6 @@ func TestUserHandler_SuccessfulUserLogin(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected status %v, got %v", http.StatusOK, rr.Code)
 	}
-
 }
 
 func setupIdentityServer(endpoint string, body []byte) *httptest.ResponseRecorder {
