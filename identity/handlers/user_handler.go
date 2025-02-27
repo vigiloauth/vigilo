@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -44,13 +43,13 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser(request.Username, request.Email, request.Password)
-	createdUser, err := h.userRegistration.Register(user)
+	response, err := h.userRegistration.Register(user)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
-	h.respondWithToken(w, http.StatusCreated, createdUser)
+	utils.WriteJSON(w, http.StatusCreated, response)
 }
 
 // Login is the HTTP handler for user login.
@@ -69,22 +68,13 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser("", request.Email, request.Password)
-	_, err := h.userLogin.Login(user)
+	loginAttempt := users.NewLoginAttempt(r.RemoteAddr, r.Header.Get("X-Forwarded-For"), "", r.UserAgent())
+
+	response, err := h.userLogin.Login(user, loginAttempt)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
-	h.respondWithToken(w, http.StatusOK, user)
-}
-
-func (h *UserHandler) respondWithToken(w http.ResponseWriter, statusCode int, user *users.User) {
-	token, err := security.GenerateJWT(user.Email, *h.jwtConfig)
-	if err != nil {
-		utils.WriteError(w, err)
-		return
-	}
-
-	response := users.NewUserLoginResponse(user.Username, user.Email, token)
-	utils.WriteJSON(w, statusCode, response)
+	utils.WriteJSON(w, http.StatusOK, response)
 }
