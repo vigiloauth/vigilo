@@ -122,8 +122,8 @@ If no custom JWT configuration is provided, the following default valures are us
 2. `ExpirationTime`: 24 hours
 3. `SigningMethod`: `jwt.SigningMethodHS256`
 
-## 6. Configuring Login Attempts
-To configure login attempts for your application, use the `LoginConfig` struct to set the maximum login attempts a user can have.
+## 6. Configuring Login 
+To configure login details for your application, use the `LoginConfig` struct to set the maximum login attempts a user can have and the artificial delay to normalize response times for login attempts.
 
 ### 6.1 Example Configuration
 ```go
@@ -137,7 +137,8 @@ import (
 
 func main() {
 	maxLoginAttempts := 5
-	loginConfig := config.NewCustomLoginConfig(maxLoginAttempts)
+	artificalDelay := 500 * time.Millisecond
+	loginConfig := config.NewCustomLoginConfig(maxLoginAttempts, artificialDelay)
 	jwtConfig := config.NewCustomJWTConfig("your_jwt_secret", 24 * time.Hour, jwt.SigningMethodHS256)
 	serverConfig := config.NewServerConfig(8443, &certFilePath, &keyFilePath, true, 15*time Second, 15*time.Second, jwtConfig, loginConfig)
 }
@@ -146,6 +147,7 @@ func main() {
 ### 6.2 Default Fields
 If no custom login configuration is provided, the following default values are used:
 1. `MaxFailedAttempts`: 5
+2. `Delay`: 500 * time.Millisecond
 
 ## 7. Handing SSL Certificate Errors in the Frontent
 Frontend applications should handle SSL certificate errors gracefully. Here are some recommended guidelines:

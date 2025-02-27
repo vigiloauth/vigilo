@@ -27,7 +27,10 @@ func NewUserLogin(userStore UserStore, loginAttemptStore *LoginAttemptStore, con
 
 // Login logs in a user and returns a token if successful
 func (l *UserLogin) Login(loginUser *User, loginAttempt *LoginAttempt) (*UserLoginResponse, error) {
+	startTime := time.Now()
+
 	if !isValidEmailFormat(loginUser.Email) {
+		time.Sleep(time.Until(startTime.Add(l.config.LoginConfig.Delay)))
 		return nil, errors.NewEmailFormatError(UserFieldConstants.Email)
 	}
 

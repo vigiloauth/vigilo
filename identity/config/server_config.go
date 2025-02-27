@@ -16,6 +16,7 @@ type JWTConfig struct {
 // LoginConfig holds configuration for user login.
 type LoginConfig struct {
 	MaxFailedAttempts int
+	Delay             time.Duration
 }
 
 // ServerConfig holds configuration for the server.
@@ -78,7 +79,7 @@ func NewDefaultJWTConfig() *JWTConfig {
 }
 
 // NewCustomLoginConfig initializes and returns a LoginConfig instance with the provided settings.
-func NewCustomLoginConfig(maxFailedAttempts int) *LoginConfig {
+func NewCustomLoginConfig(maxFailedAttempts int, delay time.Duration) *LoginConfig {
 	return &LoginConfig{
 		MaxFailedAttempts: maxFailedAttempts,
 	}
@@ -89,5 +90,6 @@ func NewCustomLoginConfig(maxFailedAttempts int) *LoginConfig {
 func NewDefaultLoginConfig() *LoginConfig {
 	return &LoginConfig{
 		MaxFailedAttempts: 5,
+		Delay:             500 * time.Millisecond,
 	}
 }
