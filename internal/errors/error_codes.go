@@ -13,4 +13,5 @@ const (
 	ErrCodeInternalServerError   = "INTERNAL_SERVER_ERROR"
 	ErrCodeUserNotFound          = "USER_NOT_FOUND"
 	ErrCodeInvalidCredentials    = "INVALID_CREDENTIALS"
+	ErrCodeAccountLocked         = "ACCOUNT_LOCKED"
 )

@@ -35,7 +35,7 @@ func TestLogLoginAttempt(t *testing.T) {
 		UserAgent:       utils.TestConstants.UserAgent,
 	}
 
-	store.LogLoginAttempt(attempt)
+	store.SaveLoginAttempt(attempt)
 
 	attempts := store.GetLoginAttempts(userID)
 	assert.Equal(t, 1, len(attempts))
@@ -62,8 +62,8 @@ func TestGetLoginAttempts(t *testing.T) {
 		UserAgent:       "user-agent2",
 	}
 
-	store.LogLoginAttempt(attempt1)
-	store.LogLoginAttempt(attempt2)
+	store.SaveLoginAttempt(attempt1)
+	store.SaveLoginAttempt(attempt2)
 
 	attempts := store.GetLoginAttempts(userID)
 	assert.Equal(t, 2, len(attempts))

@@ -28,7 +28,8 @@ func NewUserLogin(userStore users.UserStore, loginAttemptStore *LoginAttemptStor
 	}
 }
 
-// Login logs in a user and returns a token if successful
+// Login logs in a user and returns a token if successful. Each failed login attempt will be saved and if the attempts
+// exceed the threshold, the account will be locked.
 func (l *UserLogin) Login(loginUser *users.User, loginAttempt *LoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
 
@@ -38,11 +39,22 @@ func (l *UserLogin) Login(loginUser *users.User, loginAttempt *LoginAttempt) (*u
 		return nil, errors.NewInvalidCredentialsError()
 	}
 
+	if retrievedUser.AccountLocked {
+		l.applyArtificialDelay(startTime)
+		return nil, errors.NewAccountLockedError()
+	}
+
 	loginAttempt.UserID = retrievedUser.ID
 	if !security.ComparePasswordHash(loginUser.Password, retrievedUser.Password) {
 		retrievedUser.LastFailedLogin = time.Now()
-		l.loginAttemptStore.LogLoginAttempt(loginAttempt)
+		l.loginAttemptStore.SaveLoginAttempt(loginAttempt)
 		_ = l.userStore.UpdateUser(&retrievedUser)
+
+		loginAttempts := l.loginAttemptStore.GetLoginAttempts(retrievedUser.ID)
+		if len(loginAttempts) >= l.maxFailedAttempts {
+			retrievedUser.AccountLocked = true
+			_ = l.userStore.UpdateUser(&retrievedUser)
+		}
 
 		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()

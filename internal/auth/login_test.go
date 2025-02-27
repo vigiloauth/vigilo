@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
@@ -108,4 +109,27 @@ func TestUserLogin_ArtificialDelay(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.GreaterOrEqual(t, duration, 500*time.Millisecond, "Expected artificial delay of at least 500ms")
+}
+
+func TestUserLogin_AccountLocking(t *testing.T) {
+	userLogin, userStore := setupUserLogin(t)
+	encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
+	_ = userStore.AddUser(user)
+
+	user.Password = utils.TestConstants.InvalidPassword
+	loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
+
+	for range userLogin.maxFailedAttempts {
+		_, err := userLogin.Login(user, loginAttempt)
+		assert.NotNil(t, err)
+	}
+
+	retrievedUser, _ := userStore.GetUser(user.Email)
+	assert.True(t, retrievedUser.AccountLocked, "Expected account to be locked")
+
+	_, err := userLogin.Login(user, loginAttempt)
+	assert.NotNil(t, err, "Expected error on login attempt with locked account")
+	assert.IsType(t, &errors.AuthenticationError{}, err)
+	assert.Equal(t, errors.ErrCodeAccountLocked, err.(*errors.AuthenticationError).ErrorCode)
 }

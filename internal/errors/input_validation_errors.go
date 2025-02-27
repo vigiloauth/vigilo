@@ -68,11 +68,3 @@ func NewUserNotFoundError() *InputValidationError {
 		Message:   "User not found",
 	}
 }
-
-// NewInvalidCredentials creates an error for invalid credentials
-func NewInvalidCredentialsError() *InputValidationError {
-	return &InputValidationError{
-		ErrorCode: ErrCodeInvalidCredentials,
-		Message:   "Invalid credentials",
-	}
-}

@@ -5,26 +5,26 @@ import (
 	"time"
 )
 
-var maxStoredLoginAttempts = 100
+const maxStoredLoginAttempts = 100
 
 type LoginAttempt struct {
-	UserID           string
-	IPAddress        string
-	Timestamp        time.Time
-	RequestMetadata  string
-	Details          string
-	UserAgent        string
-	FailedLoginCount int
+	UserID          string
+	IPAddress       string
+	Timestamp       time.Time
+	RequestMetadata string
+	Details         string
+	UserAgent       string
+	FailedAttempts  int
 }
 
 func NewLoginAttempt(ipAddress, requestMetadata, details, userAgent string) *LoginAttempt {
 	return &LoginAttempt{
-		IPAddress:        ipAddress,
-		Timestamp:        time.Now(),
-		RequestMetadata:  requestMetadata,
-		Details:          details,
-		UserAgent:        userAgent,
-		FailedLoginCount: 0,
+		IPAddress:       ipAddress,
+		Timestamp:       time.Now(),
+		RequestMetadata: requestMetadata,
+		Details:         details,
+		UserAgent:       userAgent,
+		FailedAttempts:  0,
 	}
 }
 
@@ -41,16 +41,13 @@ func NewLoginAttemptStore() *LoginAttemptStore {
 	}
 }
 
-// LogLoginAttempt logs a login attempt
-func (s *LoginAttemptStore) LogLoginAttempt(attempt *LoginAttempt) {
+// SaveLoginAttempt logs a login attempt
+func (s *LoginAttemptStore) SaveLoginAttempt(attempt *LoginAttempt) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	attempt.FailedLoginCount++
 	s.attempts[attempt.UserID] = append(s.attempts[attempt.UserID], attempt)
-	if len(s.attempts[attempt.UserID]) > maxStoredLoginAttempts {
-		s.attempts[attempt.UserID] = s.attempts[attempt.UserID][1:]
-	}
+	s.trimLoginAttempts(attempt.UserID)
 }
 
 // GetLoginAttempts returns all login attempts for a given user
@@ -59,4 +56,10 @@ func (s *LoginAttemptStore) GetLoginAttempts(userID string) []*LoginAttempt {
 	defer s.mu.RUnlock()
 
 	return s.attempts[userID]
+}
+
+func (s *LoginAttemptStore) trimLoginAttempts(userID string) {
+	if len(s.attempts[userID]) > maxStoredLoginAttempts {
+		s.attempts[userID] = s.attempts[userID][1:]
+	}
 }

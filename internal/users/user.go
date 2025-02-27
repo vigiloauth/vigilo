@@ -18,6 +18,7 @@ type User struct {
 	Email           string    `json:"email"`
 	Password        string    `json:"password"`
 	LastFailedLogin time.Time `json:"last_failed_login"`
+	AccountLocked   bool      `json:"account_locked"`
 }
 
 // UserRegistrationRequest represents the registration request payload
@@ -48,9 +49,11 @@ type UserLoginResponse struct {
 // NewUser creates a new user
 func NewUser(username, email, password string) *User {
 	return &User{
-		Username: username,
-		Email:    email,
-		Password: password,
+		Username:        username,
+		Email:           email,
+		Password:        password,
+		LastFailedLogin: time.Time{},
+		AccountLocked:   false,
 	}
 }
 
