@@ -45,17 +45,8 @@ func (l *UserLogin) Login(loginUser *users.User, loginAttempt *LoginAttempt) (*u
 	}
 
 	loginAttempt.UserID = retrievedUser.ID
-	if !security.ComparePasswordHash(loginUser.Password, retrievedUser.Password) {
-		retrievedUser.LastFailedLogin = time.Now()
-		l.loginAttemptStore.SaveLoginAttempt(loginAttempt)
-		_ = l.userStore.UpdateUser(&retrievedUser)
-
-		loginAttempts := l.loginAttemptStore.GetLoginAttempts(retrievedUser.ID)
-		if len(loginAttempts) >= l.maxFailedAttempts {
-			retrievedUser.AccountLocked = true
-			_ = l.userStore.UpdateUser(&retrievedUser)
-		}
-
+	if passwordsAreEqual := security.ComparePasswordHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
+		l.handleFailedLoginAttempt(&retrievedUser, loginAttempt)
 		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()
 	}
@@ -75,4 +66,16 @@ func (l *UserLogin) Login(loginUser *users.User, loginAttempt *LoginAttempt) (*u
 // applyArtificialDelay applies an artificial delay to normalize response times.
 func (l *UserLogin) applyArtificialDelay(startTime time.Time) {
 	time.Sleep(time.Until(startTime.Add(l.artificialDelay)))
+}
+
+func (l *UserLogin) handleFailedLoginAttempt(retrievedUser *users.User, loginAttempt *LoginAttempt) {
+	retrievedUser.LastFailedLogin = time.Now()
+	l.loginAttemptStore.SaveLoginAttempt(loginAttempt)
+	_ = l.userStore.UpdateUser(retrievedUser)
+
+	loginAttempts := l.loginAttemptStore.GetLoginAttempts(retrievedUser.ID)
+	if len(loginAttempts) >= l.maxFailedAttempts {
+		retrievedUser.AccountLocked = true
+		_ = l.userStore.UpdateUser(retrievedUser)
+	}
 }
