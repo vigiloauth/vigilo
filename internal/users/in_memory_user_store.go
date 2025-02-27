@@ -56,3 +56,15 @@ func (c *InMemoryUserStore) DeleteUser(email string) error {
 	delete(c.data, email)
 	return nil
 }
+
+func (c *InMemoryUserStore) UpdateUser(user *User) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if _, ok := c.data[user.Email]; !ok {
+		return errors.NewUserNotFoundError()
+	}
+
+	c.data[user.Email] = *user
+	return nil
+}
