@@ -39,7 +39,6 @@ func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityS
 	}
 
 	server.setupRoutes()
-
 	if serverConfig.ForceHTTPS {
 		server.router.Use(server.httpsRedirectMiddleware)
 	}
@@ -47,10 +46,16 @@ func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityS
 	return server
 }
 
+// Router returns the pre-configured router instance for integration.
+func (s *VigiloIdentityServer) Router() chi.Router {
+	return s.router
+}
+
 func initializeUserHandler(serverConfig *config.ServerConfig) *handlers.UserHandler {
 	userStore := users.GetInMemoryUserStore()
-	userRegistration := users.NewUserRegistration(userStore)
-	userLogin := users.NewUserLogin(userStore)
+	loginAttemptStore := users.NewLoginAttemptStore()
+	userRegistration := users.NewUserRegistration(userStore, serverConfig.JWTConfig)
+	userLogin := users.NewUserLogin(userStore, loginAttemptStore, serverConfig)
 	return handlers.NewUserHandler(userRegistration, userLogin, serverConfig.JWTConfig)
 }
 
@@ -78,11 +83,6 @@ func initializeHTTPServer(serverConfig *config.ServerConfig, tlsConfig *tls.Conf
 func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Post(users.UserEndpoints.Registration, s.userHandler.Register)
 	s.router.Post(users.UserEndpoints.Login, s.userHandler.Login)
-}
-
-// Router returns the pre-configured router instance for integration.
-func (s *VigiloIdentityServer) Router() chi.Router {
-	return s.router
 }
 
 func (s *VigiloIdentityServer) httpsRedirectMiddleware(next http.Handler) http.Handler {
