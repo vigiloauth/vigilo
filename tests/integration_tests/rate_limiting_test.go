@@ -11,6 +11,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/users"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 func setupRateLimitedServer(requestsPerMinute int, requestBody []byte) *httptest.ResponseRecorder {
@@ -18,7 +19,7 @@ func setupRateLimitedServer(requestsPerMinute int, requestBody []byte) *httptest
 	serverConfig.RequestsPerMinute = requestsPerMinute
 	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
 
-	req := httptest.NewRequest(http.MethodPost, users.UserEndpoints.Login, bytes.NewBuffer(requestBody))
+	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Login, bytes.NewBuffer(requestBody))
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 	return rr
@@ -26,7 +27,7 @@ func setupRateLimitedServer(requestsPerMinute int, requestBody []byte) *httptest
 
 func TestRateLimiting(t *testing.T) {
 	users.ResetInMemoryUserStore()
-	user := users.NewUser("", users.TestConstants.Email, users.TestConstants.Password)
+	user := users.NewUser("", utils.TestConstants.Email, utils.TestConstants.Password)
 	requestBody, err := json.Marshal(user)
 
 	userStore := users.GetInMemoryUserStore()

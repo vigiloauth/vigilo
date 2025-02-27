@@ -8,6 +8,7 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 // User represents a user in the system
@@ -91,7 +92,7 @@ func (req *UserRegistrationRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
 	if req.Username == "" {
-		errorCollection.Add(errors.NewEmptyInputError(UserFieldConstants.Username))
+		errorCollection.Add(errors.NewEmptyInputError(utils.UserFieldConstants.Username))
 	}
 
 	validateEmail(req.Email, errorCollection)
@@ -111,7 +112,7 @@ func (req *UserLoginRequest) Validate() error {
 	validateEmail(req.Email, errorCollection)
 
 	if req.Password == "" {
-		errorCollection.Add(errors.NewEmptyInputError(UserFieldConstants.Password))
+		errorCollection.Add(errors.NewEmptyInputError(utils.UserFieldConstants.Password))
 	}
 
 	if errorCollection.HasErrors() {
@@ -124,9 +125,9 @@ func (req *UserLoginRequest) Validate() error {
 // validateEmail validates the email format and adds errors to the ErrorCollection.
 func validateEmail(email string, errorCollection *errors.ErrorCollection) {
 	if email == "" {
-		errorCollection.Add(errors.NewEmptyInputError(UserFieldConstants.Email))
+		errorCollection.Add(errors.NewEmptyInputError(utils.UserFieldConstants.Email))
 	} else if !isValidEmailFormat(email) {
-		errorCollection.Add(errors.NewEmailFormatError(UserFieldConstants.Email))
+		errorCollection.Add(errors.NewEmailFormatError(utils.UserFieldConstants.Email))
 	}
 }
 
@@ -139,7 +140,7 @@ func isValidEmailFormat(email string) bool {
 // validatePassword validates the password and adds errors to the ErrorCollection.
 func validatePassword(password string, errorCollection *errors.ErrorCollection) {
 	if password == "" {
-		errorCollection.Add(errors.NewEmptyInputError(UserFieldConstants.Password))
+		errorCollection.Add(errors.NewEmptyInputError(utils.UserFieldConstants.Password))
 		return
 	}
 

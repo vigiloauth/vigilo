@@ -1,4 +1,4 @@
-package users
+package utils
 
 var TestConstants = struct {
 	Username        string

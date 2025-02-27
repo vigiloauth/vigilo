@@ -1,4 +1,4 @@
-package users
+package auth
 
 import (
 	"time"
@@ -6,18 +6,19 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/security"
+	"github.com/vigiloauth/vigilo/internal/users"
 )
 
 // UserLogin handles user login operations.
 type UserLogin struct {
-	userStore         UserStore
+	userStore         users.UserStore
 	loginAttemptStore *LoginAttemptStore
 	config            *config.ServerConfig
 	maxFailedAttempts int
 	artificialDelay   time.Duration
 }
 
-func NewUserLogin(userStore UserStore, loginAttemptStore *LoginAttemptStore, config *config.ServerConfig) *UserLogin {
+func NewUserLogin(userStore users.UserStore, loginAttemptStore *LoginAttemptStore, config *config.ServerConfig) *UserLogin {
 	return &UserLogin{
 		userStore:         userStore,
 		loginAttemptStore: loginAttemptStore,
@@ -28,13 +29,8 @@ func NewUserLogin(userStore UserStore, loginAttemptStore *LoginAttemptStore, con
 }
 
 // Login logs in a user and returns a token if successful
-func (l *UserLogin) Login(loginUser *User, loginAttempt *LoginAttempt) (*UserLoginResponse, error) {
+func (l *UserLogin) Login(loginUser *users.User, loginAttempt *LoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
-
-	if !isValidEmailFormat(loginUser.Email) {
-		l.applyArtificialDelay(startTime)
-		return nil, errors.NewEmailFormatError(UserFieldConstants.Email)
-	}
 
 	retrievedUser, found := l.userStore.GetUser(loginUser.Email)
 	if !found {
@@ -61,7 +57,7 @@ func (l *UserLogin) Login(loginUser *User, loginAttempt *LoginAttempt) (*UserLog
 	_ = l.userStore.UpdateUser(&retrievedUser)
 
 	l.applyArtificialDelay(startTime)
-	return NewUserLoginResponse(&retrievedUser, token), nil
+	return users.NewUserLoginResponse(&retrievedUser, token), nil
 }
 
 // applyArtificialDelay applies an artificial delay to normalize response times.

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 type InMemoryUserStore struct {
@@ -35,7 +36,7 @@ func (c *InMemoryUserStore) AddUser(user *User) error {
 	defer c.mu.Unlock()
 
 	if _, ok := c.data[user.Email]; ok {
-		return errors.NewDuplicateUserError(UserFieldConstants.Email)
+		return errors.NewDuplicateUserError(utils.UserFieldConstants.Email)
 	}
 
 	c.data[user.Email] = *user

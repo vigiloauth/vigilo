@@ -12,6 +12,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/users"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 func TestUserHandler_HandleUserRegistration(t *testing.T) {
@@ -30,43 +31,43 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 	}{
 		{
 			name:           "Successful User Registration",
-			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password),
+			requestBody:    *users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password),
 			expectedStatus: http.StatusCreated,
 			wantError:      false,
 		},
 		{
 			name:           "User Registration fails given invalid request body",
-			requestBody:    *users.NewUserRegistrationRequest("", "invalidemail", users.TestConstants.Password),
+			requestBody:    *users.NewUserRegistrationRequest("", "invalidemail", utils.TestConstants.Password),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Missing required fields in request",
-			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, "", ""),
+			requestBody:    *users.NewUserRegistrationRequest(utils.TestConstants.Username, "", ""),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Invalid password length",
-			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.InvalidPassword),
+			requestBody:    *users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contains an uppercase letter",
-			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.InvalidPassword),
+			requestBody:    *users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contain a number",
-			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.InvalidPassword),
+			requestBody:    *users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contain a symbol",
-			requestBody:    *users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.InvalidPassword),
+			requestBody:    *users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
@@ -80,7 +81,7 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 				t.Fatalf("failed to  marshal request body: %v", err)
 			}
 
-			rr := setupIdentityServer(users.UserEndpoints.Registration, body)
+			rr := setupIdentityServer(utils.UserEndpoints.Registration, body)
 			if rr.Code != test.expectedStatus {
 				t.Errorf("expected status %v, got %v", test.expectedStatus, rr.Code)
 			}
@@ -94,8 +95,8 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 }
 
 func TestUserHandler_DuplicateEmail(t *testing.T) {
-	requestBody := users.NewUserRegistrationRequest(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
-	user := users.NewUser(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
+	requestBody := users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
+	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
 	_ = users.GetInMemoryUserStore().AddUser(user)
 
 	body, err := json.Marshal(requestBody)
@@ -103,7 +104,7 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 		t.Fatalf("failed to marshal request body: %v", err)
 	}
 
-	rr := setupIdentityServer(users.UserEndpoints.Registration, body)
+	rr := setupIdentityServer(utils.UserEndpoints.Registration, body)
 	if rr.Code != http.StatusConflict {
 		t.Errorf("expected status %v, got %v", http.StatusConflict, rr.Code)
 	}
@@ -112,19 +113,19 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 func TestUserHandler_SuccessfulUserLogin(t *testing.T) {
 	users.ResetInMemoryUserStore()
 	userStore := users.GetInMemoryUserStore()
-	user := users.NewUser(users.TestConstants.Username, users.TestConstants.Email, users.TestConstants.Password)
+	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
 	hashedPassword, _ := security.HashPassword(user.Password)
 	user.Password = hashedPassword
 	userStore.AddUser(user)
 
 	_ = userStore.AddUser(user)
-	requestBody := users.NewUserLoginRequest(users.TestConstants.Email, users.TestConstants.Password)
+	requestBody := users.NewUserLoginRequest(utils.TestConstants.Email, utils.TestConstants.Password)
 	body, err := json.Marshal(requestBody)
 	if err != nil {
 		t.Fatalf("failed to marshal request body: %v", err)
 	}
 
-	rr := setupIdentityServer(users.UserEndpoints.Login, body)
+	rr := setupIdentityServer(utils.UserEndpoints.Login, body)
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected status %v, got %v", http.StatusOK, rr.Code)
 	}

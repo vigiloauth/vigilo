@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/auth"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -14,12 +15,12 @@ import (
 // communication between HTTP layer and business logic.
 type UserHandler struct {
 	userRegistration *users.UserRegistration
-	userLogin        *users.UserLogin
+	userLogin        *auth.UserLogin
 	jwtConfig        *config.JWTConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
-func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin, jwtConfig *config.JWTConfig) *UserHandler {
+func NewUserHandler(userRegistration *users.UserRegistration, userLogin *auth.UserLogin, jwtConfig *config.JWTConfig) *UserHandler {
 	return &UserHandler{
 		userRegistration: userRegistration,
 		userLogin:        userLogin,
@@ -69,7 +70,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser("", request.Email, request.Password)
-	loginAttempt := users.NewLoginAttempt(r.RemoteAddr, r.Header.Get("X-Forwarded-For"), "", r.UserAgent())
+	loginAttempt := auth.NewLoginAttempt(r.RemoteAddr, r.Header.Get("X-Forwarded-For"), "", r.UserAgent())
 
 	response, err := h.userLogin.Login(user, loginAttempt)
 	if err != nil {

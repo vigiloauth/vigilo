@@ -9,7 +9,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
+	"github.com/vigiloauth/vigilo/internal/auth"
 	"github.com/vigiloauth/vigilo/internal/users"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 // VigiloIdentityServer represents the identity library's functionality.
@@ -54,9 +56,9 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 
 func initializeUserHandler(serverConfig *config.ServerConfig) *handlers.UserHandler {
 	userStore := users.GetInMemoryUserStore()
-	loginAttemptStore := users.NewLoginAttemptStore()
+	loginAttemptStore := auth.NewLoginAttemptStore()
 	userRegistration := users.NewUserRegistration(userStore, serverConfig.JWTConfig)
-	userLogin := users.NewUserLogin(userStore, loginAttemptStore, serverConfig)
+	userLogin := auth.NewUserLogin(userStore, loginAttemptStore, serverConfig)
 	return handlers.NewUserHandler(userRegistration, userLogin, serverConfig.JWTConfig)
 }
 
@@ -83,8 +85,8 @@ func initializeHTTPServer(serverConfig *config.ServerConfig, tlsConfig *tls.Conf
 
 func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Use(middleware.Throttle(s.serverConfig.RequestsPerMinute))
-	s.router.Post(users.UserEndpoints.Registration, s.userHandler.Register)
-	s.router.Post(users.UserEndpoints.Login, s.userHandler.Login)
+	s.router.Post(utils.UserEndpoints.Registration, s.userHandler.Register)
+	s.router.Post(utils.UserEndpoints.Login, s.userHandler.Login)
 }
 
 func (s *VigiloIdentityServer) httpsRedirectMiddleware(next http.Handler) http.Handler {

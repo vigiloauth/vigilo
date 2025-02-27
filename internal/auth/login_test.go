@@ -1,4 +1,4 @@
-package users
+package auth
 
 import (
 	"testing"
@@ -7,16 +7,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/security"
+	"github.com/vigiloauth/vigilo/internal/users"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-func setupUserLogin(t *testing.T) (*UserLogin, UserStore) {
-	ResetInMemoryUserStore()
-	userStore := GetInMemoryUserStore()
+func setupUserLogin(t *testing.T) (*UserLogin, users.UserStore) {
+	users.ResetInMemoryUserStore()
+	userStore := users.GetInMemoryUserStore()
 	config := config.NewDefaultServerConfig()
 	userLogin := NewUserLogin(userStore, NewLoginAttemptStore(), config)
 
 	t.Cleanup(func() {
-		ResetInMemoryUserStore()
+		users.ResetInMemoryUserStore()
 	})
 
 	return userLogin, userStore
@@ -24,12 +26,12 @@ func setupUserLogin(t *testing.T) (*UserLogin, UserStore) {
 
 func TestUserLogin_Successful(t *testing.T) {
 	userLogin, userStore := setupUserLogin(t)
-	encryptedPassword, _ := security.HashPassword(TestConstants.Password)
-	user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
+	encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 
-	user.Password = TestConstants.Password
-	loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
+	user.Password = utils.TestConstants.Password
+	loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 	_, err := userLogin.Login(user, loginAttempt)
 	if err != nil {
 		t.Errorf("LoginUser() error = %v, want nil", err)
@@ -39,17 +41,17 @@ func TestUserLogin_Successful(t *testing.T) {
 func TestUserLogin_Login(t *testing.T) {
 	tests := []struct {
 		name      string
-		user      *User
+		user      *users.User
 		wantError bool
 	}{
 		{
 			name:      "Login fails with invalid password",
-			user:      NewUser(TestConstants.Username, TestConstants.Email, TestConstants.InvalidPassword),
+			user:      users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
 			wantError: true,
 		},
 		{
 			name:      "Login fails when user is not found",
-			user:      NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password),
+			user:      users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password),
 			wantError: true,
 		},
 	}
@@ -58,12 +60,12 @@ func TestUserLogin_Login(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			userLogin, userStore := setupUserLogin(t)
 			if tt.name == "Login fails with invalid password" {
-				encryptedPassword, _ := security.HashPassword(TestConstants.Password)
-				user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
+				encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+				user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 				_ = userStore.AddUser(user)
 			}
 
-			loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
+			loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 			_, err := userLogin.Login(tt.user, loginAttempt)
 
 			if (err != nil) != tt.wantError {
@@ -75,12 +77,12 @@ func TestUserLogin_Login(t *testing.T) {
 
 func TestUserLogin_FailedAttempts(t *testing.T) {
 	userLogin, userStore := setupUserLogin(t)
-	encryptedPassword, _ := security.HashPassword(TestConstants.Password)
-	user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
+	encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 
-	user.Password = TestConstants.InvalidPassword
-	loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
+	user.Password = utils.TestConstants.InvalidPassword
+	loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 
 	for range 5 {
 		_, err := userLogin.Login(user, loginAttempt)
@@ -93,12 +95,12 @@ func TestUserLogin_FailedAttempts(t *testing.T) {
 
 func TestUserLogin_ArtificialDelay(t *testing.T) {
 	userLogin, userStore := setupUserLogin(t)
-	encryptedPassword, _ := security.HashPassword(TestConstants.Password)
-	user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
+	encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 
-	user.Password = TestConstants.InvalidPassword
-	loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
+	user.Password = utils.TestConstants.InvalidPassword
+	loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 
 	startTime := time.Now()
 	_, err := userLogin.Login(user, loginAttempt)

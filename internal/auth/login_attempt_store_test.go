@@ -1,17 +1,18 @@
-package users
+package auth
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 func TestNewLoginAttempt(t *testing.T) {
-	ipAddress := TestConstants.IPAddress
-	requestMetadata := TestConstants.RequestMetadata
-	details := TestConstants.Details
-	userAgent := TestConstants.UserAgent
+	ipAddress := utils.TestConstants.IPAddress
+	requestMetadata := utils.TestConstants.RequestMetadata
+	details := utils.TestConstants.Details
+	userAgent := utils.TestConstants.UserAgent
 
 	attempt := NewLoginAttempt(ipAddress, requestMetadata, details, userAgent)
 
@@ -27,11 +28,11 @@ func TestLogLoginAttempt(t *testing.T) {
 	userID := "user1"
 	attempt := &LoginAttempt{
 		UserID:          userID,
-		IPAddress:       TestConstants.IPAddress,
+		IPAddress:       utils.TestConstants.IPAddress,
 		Timestamp:       time.Now(),
-		RequestMetadata: TestConstants.RequestMetadata,
-		Details:         TestConstants.Details,
-		UserAgent:       TestConstants.UserAgent,
+		RequestMetadata: utils.TestConstants.RequestMetadata,
+		Details:         utils.TestConstants.Details,
+		UserAgent:       utils.TestConstants.UserAgent,
 	}
 
 	store.LogLoginAttempt(attempt)
