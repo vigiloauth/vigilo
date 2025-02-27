@@ -28,7 +28,7 @@ func NewUserLogin(userStore UserStore, loginAttemptStore *LoginAttemptStore, con
 // Login logs in a user and returns a token if successful
 func (l *UserLogin) Login(loginUser *User, loginAttempt *LoginAttempt) (*UserLoginResponse, error) {
 	if !isValidEmailFormat(loginUser.Email) {
-		return nil, errors.NewEmailFormatError(UserFieldConstants.Email)
+		return nil, errors.NewInvalidCredentialsError()
 	}
 
 	retrievedUser, found := l.userStore.GetUser(loginUser.Email)
