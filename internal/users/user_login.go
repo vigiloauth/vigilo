@@ -14,6 +14,7 @@ type UserLogin struct {
 	loginAttemptStore *LoginAttemptStore
 	config            *config.ServerConfig
 	maxFailedAttempts int
+	artificialDelay   time.Duration
 }
 
 func NewUserLogin(userStore UserStore, loginAttemptStore *LoginAttemptStore, config *config.ServerConfig) *UserLogin {
@@ -21,7 +22,8 @@ func NewUserLogin(userStore UserStore, loginAttemptStore *LoginAttemptStore, con
 		userStore:         userStore,
 		loginAttemptStore: loginAttemptStore,
 		config:            config,
-		maxFailedAttempts: 5,
+		maxFailedAttempts: config.LoginConfig.MaxFailedAttempts,
+		artificialDelay:   config.LoginConfig.Delay,
 	}
 }
 
@@ -30,12 +32,13 @@ func (l *UserLogin) Login(loginUser *User, loginAttempt *LoginAttempt) (*UserLog
 	startTime := time.Now()
 
 	if !isValidEmailFormat(loginUser.Email) {
-		time.Sleep(time.Until(startTime.Add(l.config.LoginConfig.Delay)))
+		l.applyArtificialDelay(startTime)
 		return nil, errors.NewEmailFormatError(UserFieldConstants.Email)
 	}
 
 	retrievedUser, found := l.userStore.GetUser(loginUser.Email)
 	if !found {
+		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()
 	}
 
@@ -45,6 +48,7 @@ func (l *UserLogin) Login(loginUser *User, loginAttempt *LoginAttempt) (*UserLog
 		l.loginAttemptStore.LogLoginAttempt(loginAttempt)
 		_ = l.userStore.UpdateUser(&retrievedUser)
 
+		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()
 	}
 
@@ -56,5 +60,11 @@ func (l *UserLogin) Login(loginUser *User, loginAttempt *LoginAttempt) (*UserLog
 	retrievedUser.LastFailedLogin = time.Time{}
 	_ = l.userStore.UpdateUser(&retrievedUser)
 
+	l.applyArtificialDelay(startTime)
 	return NewUserLoginResponse(&retrievedUser, token), nil
+}
+
+// applyArtificialDelay applies an artificial delay to normalize response times.
+func (l *UserLogin) applyArtificialDelay(startTime time.Time) {
+	time.Sleep(time.Until(startTime.Add(l.artificialDelay)))
 }

@@ -2,6 +2,7 @@ package users
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
@@ -81,11 +82,28 @@ func TestUserLogin_FailedAttempts(t *testing.T) {
 	user.Password = TestConstants.InvalidPassword
 	loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		_, err := userLogin.Login(user, loginAttempt)
 		assert.NotNil(t, err)
 	}
 
 	attempts := userLogin.loginAttemptStore.GetLoginAttempts(user.ID)
 	assert.Equal(t, 5, len(attempts))
+}
+
+func TestUserLogin_ArtificialDelay(t *testing.T) {
+	userLogin, userStore := setupUserLogin(t)
+	encryptedPassword, _ := security.HashPassword(TestConstants.Password)
+	user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
+	_ = userStore.AddUser(user)
+
+	user.Password = TestConstants.InvalidPassword
+	loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
+
+	startTime := time.Now()
+	_, err := userLogin.Login(user, loginAttempt)
+	duration := time.Since(startTime)
+
+	assert.NotNil(t, err)
+	assert.GreaterOrEqual(t, duration, 500*time.Millisecond, "Expected artificial delay of at least 500ms")
 }
