@@ -54,7 +54,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 // Login is the HTTP handler for user login.
 // It processes incoming HTTP requests for user login, validates the input,
-// logs in the user, and returns a JWT token if successful.
+// logs in the user, and returns a JWT token if successful or a generic error message for failed attempts.
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request users.UserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
