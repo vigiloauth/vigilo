@@ -59,17 +59,12 @@ func main() {
 4. `SetMinimumLength(int)` Sets the minimum password length. The value must be at least 8 characters or more for security purposes.
 
 ## 4. Configuring HTTPS
-To ensure secure transmission, **VigiloAuth** enforces HTTPS and redirects any HTTP requests to HTTPS. This is done by configuring the `VigiloIdentityServer` with the `ForceHTTPS` option.
+To ensure secure communication, it is recommended to configure your server to use HTTPS. This is done by configuring the `VigiloIdentityServer` with the `ForceHTTPS` option.
 
 ### 4.1 Configuring HTTPS
 1. **Obtain a valid SSL/TLS certificate:** You can obtain a certificate from a trusted Certificate Authority (CA) or use a self-sifned certificate for development purposes.
 2. **Configure the server:** Provide the certificate and key file paths in the `ServerConfig`.
 
-By default, the server configuration uses the following settings:
-- **Port:** 8443
-- **ForceHTTPS:** false
-- **ReadTimeout:** 15 seconds
-- **WriteTimeout:** 15 seconds
 
 ```go
 package main
@@ -83,7 +78,8 @@ import (
 func main() {
 	certFilePath := "/path/to/cert.pem"
 	keyFilePath := "/path/to/key.pem"
-    serverConfig := config.NewServerConfig(8443, &certFilePath, &keyFilePath, true, 15*time.Second, 15*time.Second)
+	requestsPerMinute := 100
+    serverConfig := config.NewServerConfig(8443, &certFilePath, &keyFilePath, true, 15*time.Second, 15*time.Second, requestsPerMinute)
 
 	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
 	// Start the server (example)
@@ -92,6 +88,13 @@ func main() {
 ```
 ### 4.2 Default fields
 If no custom Login or JWT configurations are provided, the application will use the default login and JWT configuration.
+
+By default, the server configuration uses the following settings:
+- **Port:** 8443
+- **ForceHTTPS:** false
+- **ReadTimeout:** 15 seconds
+- **WriteTimeout:** 15 seconds
+- **RequestsPerMinute:** 100
 
 ## 5. Configuring JWT
 To configure JWT settings, use the `JWTConfig` struct to set the secret, exipration time, and signing method.

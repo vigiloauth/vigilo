@@ -21,27 +21,29 @@ type LoginConfig struct {
 
 // ServerConfig holds configuration for the server.
 type ServerConfig struct {
-	Port         int
-	CertFilePath *string
-	KeyFilePath  *string
-	ForceHTTPS   bool
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	JWTConfig    *JWTConfig
-	LoginConfig  *LoginConfig
+	Port              int
+	CertFilePath      *string
+	KeyFilePath       *string
+	ForceHTTPS        bool
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
+	JWTConfig         *JWTConfig
+	LoginConfig       *LoginConfig
+	RequestsPerMinute int
 }
 
 // NewServerConfig initializes and returns a ServerConfig instance with the provided settings.
-func NewServerConfig(port int, certFilePath, keyFilePath *string, forceHTTPS bool, readTimeout, writeTimeout time.Duration, jwtConfig *JWTConfig, loginConfig *LoginConfig) *ServerConfig {
+func NewServerConfig(port int, certFilePath, keyFilePath *string, forceHTTPS bool, readTimeout, writeTimeout time.Duration, jwtConfig *JWTConfig, loginConfig *LoginConfig, requestsPerMinute int) *ServerConfig {
 	return &ServerConfig{
-		Port:         port,
-		CertFilePath: certFilePath,
-		KeyFilePath:  keyFilePath,
-		ForceHTTPS:   forceHTTPS,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
-		JWTConfig:    jwtConfig,
-		LoginConfig:  loginConfig,
+		Port:              port,
+		CertFilePath:      certFilePath,
+		KeyFilePath:       keyFilePath,
+		ForceHTTPS:        forceHTTPS,
+		ReadTimeout:       readTimeout,
+		WriteTimeout:      writeTimeout,
+		JWTConfig:         jwtConfig,
+		LoginConfig:       loginConfig,
+		RequestsPerMinute: requestsPerMinute,
 	}
 }
 
@@ -50,12 +52,13 @@ func NewServerConfig(port int, certFilePath, keyFilePath *string, forceHTTPS boo
 // read/write timeouts set to 15 seconds, and a default JWT configuration.
 func NewDefaultServerConfig() *ServerConfig {
 	return &ServerConfig{
-		Port:         8443,
-		ForceHTTPS:   false,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		JWTConfig:    NewDefaultJWTConfig(),
-		LoginConfig:  NewDefaultLoginConfig(),
+		Port:              8443,
+		ForceHTTPS:        false,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		JWTConfig:         NewDefaultJWTConfig(),
+		LoginConfig:       NewDefaultLoginConfig(),
+		RequestsPerMinute: 100,
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
@@ -81,6 +82,7 @@ func initializeHTTPServer(serverConfig *config.ServerConfig, tlsConfig *tls.Conf
 }
 
 func (s *VigiloIdentityServer) setupRoutes() {
+	s.router.Use(middleware.Throttle(s.serverConfig.RequestsPerMinute))
 	s.router.Post(users.UserEndpoints.Registration, s.userHandler.Register)
 	s.router.Post(users.UserEndpoints.Login, s.userHandler.Login)
 }
