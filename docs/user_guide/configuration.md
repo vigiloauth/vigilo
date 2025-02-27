@@ -7,13 +7,17 @@
     - [Explanation of Methods](#31-explanation-of-methods)
 4. [Configuring HTTPS](#4-configuring-https)
     - [Configuring HTTPS](#41-configuring-https)
+	- [Default Fields](#42-default-fields)
 5. [Configuring JWT](#5-configuring-jwt)
     - [Example Configuration](#51-example-configuration)
     - [Explanation of Fields](#52-explanation-of-fields)
     - [Default Fields](#53-default-fields)
-6. [Handling SSL Certificate Errors in the Frontend](#6-handling-ssl-certificate-errors-in-the-frontend)
-7. [Validation and Enforcement](#7-validation-and-enforcement)
-8. [Troubleshooting](#8-troubleshooting)
+6. [Configuring Login Attempts](#6-configuring-login-attempts)
+	- [Example Configuration](#61-example-configuration)
+	- [Default Fields](#62-default-fields)
+7. [Handling SSL Certificate Errors in the Frontend](#7-handling-ssl-certificate-errors-in-the-frontend)
+8. [Validation and Enforcement](#8-validation-and-enforcement)
+9. [Troubleshooting](#9-troubleshooting)
 
 ## 1. Overview
 **VigiloAuth** allows you to customize various settings to meet your application's security requirements. This guide walks you through configuring the password complexity and length requirements using the `PasswordConfiguration` struct, as well as configuring the server to enforce HTTPS for secure communication.
@@ -86,10 +90,8 @@ func main() {
     // http.ListenAndServeTLS(":8443", certFilePath, keyFilePath, vigiloIdentityServer.Router())
 }
 ```
-### 4.2 Handling SSL Certificate Errors in the Frontent
-Frontend applications should handle SSL certificate errors gracefully. Here are some recommended guidelines:
-- **Notify Users:** Display a clear message to users if their connection is not secure.
-- **Fallback Options:** Provide instructions for users to proceed if they trust the connection.
+### 4.2 Default fields
+If no custom Login or JWT configurations are provided, the application will use the default login and JWT configuration.
 
 ## 5. Configuring JWT
 To configure JWT settings, use the `JWTConfig` struct to set the secret, exipration time, and signing method.
@@ -97,8 +99,15 @@ To configure JWT settings, use the `JWTConfig` struct to set the secret, exiprat
 ### 5.1 Example Configuration
 ```go
 package main
+
+import (
+    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/vigiloauth/vigilo/identity/server"
+    "time"
+)
+
 func main() {
-	jwtConfig := NewCustomJWTConfig("your_jwt_secret", 24 * time.Hour, jwt.SigningMethodHS256)
+	jwtConfig := config.NewCustomJWTConfig("your_jwt_secret", 24 * time.Hour, jwt.SigningMethodHS256)
 	serverConfig := config.NewServerConfig(8443, &certFilePath, &keyFilePath, true, 15*time Second, 15*time.Second, jwtConfig)
 }
 ```
@@ -113,15 +122,40 @@ If no custom JWT configuration is provided, the following default valures are us
 2. `ExpirationTime`: 24 hours
 3. `SigningMethod`: `jwt.SigningMethodHS256`
 
-## 6. Handing SSL Certificate Errors in the Frontent
+## 6. Configuring Login Attempts
+To configure login attempts for your application, use the `LoginConfig` struct to set the maximum login attempts a user can have.
+
+### 6.1 Example Configuration
+```go
+package main
+
+import (
+    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/vigiloauth/vigilo/identity/server"
+    "time"
+)
+
+func main() {
+	maxLoginAttempts := 5
+	loginConfig := config.NewCustomLoginConfig(maxLoginAttempts)
+	jwtConfig := config.NewCustomJWTConfig("your_jwt_secret", 24 * time.Hour, jwt.SigningMethodHS256)
+	serverConfig := config.NewServerConfig(8443, &certFilePath, &keyFilePath, true, 15*time Second, 15*time.Second, jwtConfig, loginConfig)
+}
+```
+
+### 6.2 Default Fields
+If no custom login configuration is provided, the following default values are used:
+1. `MaxFailedAttempts`: 5
+
+## 7. Handing SSL Certificate Errors in the Frontent
 Frontend applications should handle SSL certificate errors gracefully. Here are some recommended guidelines:
 - **Notify Users:** Display clear messages to users if their connection is not secure.
 - **Fallback Options:** Provide instructions for users to proceed if they trust the connection.
 
-## 7. Validation and Enforcement
+## 8. Validation and Enforcement
 The configured password policy will automatically validate and enforce the rules during user registration and password updates. If a password does not meet the configured requirements, a detailed error will be returned.
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 **Common Issues**
 - **Password Too Short:** Ensure the `SetMinimumLength` value is at least 8.
 - **Singleton Behavior:** Changes made to the password configuration persist globally for the applications lifecycle.
