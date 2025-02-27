@@ -7,10 +7,21 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 )
 
-func TestUserRegistration_RegisterUser(t *testing.T) {
+func setupUserRegistration(t *testing.T) (*UserRegistration, UserStore) {
 	ResetInMemoryUserStore()
 	userStore := GetInMemoryUserStore()
-	userRegistration := NewUserRegistration(userStore)
+	jwtConfig := config.NewDefaultJWTConfig()
+	userRegistration := NewUserRegistration(userStore, jwtConfig)
+
+	t.Cleanup(func() {
+		ResetInMemoryUserStore()
+	})
+
+	return userRegistration, userStore
+}
+
+func TestUserRegistration_RegisterUser(t *testing.T) {
+	userRegistration, _ := setupUserRegistration(t)
 	registeredUser, err := userRegistration.Register(NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password))
 
 	if err != nil {
@@ -21,9 +32,7 @@ func TestUserRegistration_RegisterUser(t *testing.T) {
 }
 
 func TestUserRegistration_DuplicateEntry(t *testing.T) {
-	ResetInMemoryUserStore()
-	userStore := GetInMemoryUserStore()
-	userRegistration := NewUserRegistration(userStore)
+	userRegistration, userStore := setupUserRegistration(t)
 
 	user := NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password)
 	_ = userStore.AddUser(user)
@@ -33,9 +42,8 @@ func TestUserRegistration_DuplicateEntry(t *testing.T) {
 }
 
 func TestUserRegistration_PasswordIsNotStoredInPlainText(t *testing.T) {
-	ResetInMemoryUserStore()
-	userStore := GetInMemoryUserStore()
-	userRegistration := NewUserRegistration(userStore)
+	userRegistration, userStore := setupUserRegistration(t)
+
 	_ = userStore.DeleteUser(TestConstants.Email)
 
 	user := NewUser(TestConstants.Username, TestConstants.Email, TestConstants.Password)
