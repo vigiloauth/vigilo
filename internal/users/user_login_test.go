@@ -3,19 +3,33 @@ package users
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/security"
 )
 
-func TestUserLogin_Successful(t *testing.T) {
+func setupUserLogin(t *testing.T) (*UserLogin, UserStore) {
 	ResetInMemoryUserStore()
 	userStore := GetInMemoryUserStore()
-	userLogin := NewUserLogin(userStore)
+	config := config.NewDefaultServerConfig()
+	userLogin := NewUserLogin(userStore, NewLoginAttemptStore(), config)
+
+	t.Cleanup(func() {
+		ResetInMemoryUserStore()
+	})
+
+	return userLogin, userStore
+}
+
+func TestUserLogin_Successful(t *testing.T) {
+	userLogin, userStore := setupUserLogin(t)
 	encryptedPassword, _ := security.HashPassword(TestConstants.Password)
 	user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 
 	user.Password = TestConstants.Password
-	_, err := userLogin.Login(user)
+	loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
+	_, err := userLogin.Login(user, loginAttempt)
 	if err != nil {
 		t.Errorf("LoginUser() error = %v, want nil", err)
 	}
@@ -39,16 +53,39 @@ func TestUserLogin_Login(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ResetInMemoryUserStore()
-			userStore := GetInMemoryUserStore()
-			userLogin := NewUserLogin(userStore)
-			_, err := userLogin.Login(test.user)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			userLogin, userStore := setupUserLogin(t)
+			if tt.name == "Login fails with invalid password" {
+				encryptedPassword, _ := security.HashPassword(TestConstants.Password)
+				user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
+				_ = userStore.AddUser(user)
+			}
 
-			if (err != nil) != test.wantError {
-				t.Errorf("LoginUser() error = %v, wantError = %v", err, test.wantError)
+			loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
+			_, err := userLogin.Login(tt.user, loginAttempt)
+
+			if (err != nil) != tt.wantError {
+				t.Errorf("Login() error = %v, wantError = %v", err, tt.wantError)
 			}
 		})
 	}
+}
+
+func TestUserLogin_FailedAttempts(t *testing.T) {
+	userLogin, userStore := setupUserLogin(t)
+	encryptedPassword, _ := security.HashPassword(TestConstants.Password)
+	user := NewUser(TestConstants.Username, TestConstants.Email, encryptedPassword)
+	_ = userStore.AddUser(user)
+
+	user.Password = TestConstants.InvalidPassword
+	loginAttempt := NewLoginAttempt(TestConstants.IPAddress, TestConstants.RequestMetadata, TestConstants.Details, TestConstants.UserAgent)
+
+	for i := 0; i < 5; i++ {
+		_, err := userLogin.Login(user, loginAttempt)
+		assert.NotNil(t, err)
+	}
+
+	attempts := userLogin.loginAttemptStore.GetLoginAttempts(user.ID)
+	assert.Equal(t, 5, len(attempts))
 }
