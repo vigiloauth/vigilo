@@ -13,6 +13,11 @@ type JWTConfig struct {
 	SigningMethod  jwt.SigningMethod
 }
 
+// LoginConfig holds configuration for user login.
+type LoginConfig struct {
+	MaxFailedAttempts int
+}
+
 // ServerConfig holds configuration for the server.
 type ServerConfig struct {
 	Port         int
@@ -22,10 +27,11 @@ type ServerConfig struct {
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	JWTConfig    *JWTConfig
+	LoginConfig  *LoginConfig
 }
 
 // NewServerConfig initializes and returns a ServerConfig instance with the provided settings.
-func NewServerConfig(port int, certFilePath, keyFilePath *string, forceHTTPS bool, readTimeout, writeTimeout time.Duration, jwtConfig *JWTConfig) *ServerConfig {
+func NewServerConfig(port int, certFilePath, keyFilePath *string, forceHTTPS bool, readTimeout, writeTimeout time.Duration, jwtConfig *JWTConfig, loginConfig *LoginConfig) *ServerConfig {
 	return &ServerConfig{
 		Port:         port,
 		CertFilePath: certFilePath,
@@ -34,6 +40,7 @@ func NewServerConfig(port int, certFilePath, keyFilePath *string, forceHTTPS boo
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
 		JWTConfig:    jwtConfig,
+		LoginConfig:  loginConfig,
 	}
 }
 
@@ -47,6 +54,7 @@ func NewDefaultServerConfig() *ServerConfig {
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		JWTConfig:    NewDefaultJWTConfig(),
+		LoginConfig:  NewDefaultLoginConfig(),
 	}
 }
 
@@ -66,5 +74,20 @@ func NewDefaultJWTConfig() *JWTConfig {
 		Secret:         "default_secret_key",
 		ExpirationTime: 15 * time.Minute,
 		SigningMethod:  jwt.SigningMethodHS256,
+	}
+}
+
+// NewCustomLoginConfig initializes and returns a LoginConfig instance with the provided settings.
+func NewCustomLoginConfig(maxFailedAttempts int) *LoginConfig {
+	return &LoginConfig{
+		MaxFailedAttempts: maxFailedAttempts,
+	}
+}
+
+// NewDefaultLoginConfig initializes and returns a LoginConfig instance with the default settings.
+// The default setting is 5 maximum failed login attempts.
+func NewDefaultLoginConfig() *LoginConfig {
+	return &LoginConfig{
+		MaxFailedAttempts: 5,
 	}
 }
