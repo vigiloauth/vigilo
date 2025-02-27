@@ -74,6 +74,7 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			users.ResetInMemoryUserStore()
 			body, err := json.Marshal(test.requestBody)
 			if err != nil {
 				t.Fatalf("failed to  marshal request body: %v", err)
@@ -140,7 +141,7 @@ func setupIdentityServer(endpoint string, body []byte) *httptest.ResponseRecorde
 }
 
 func checkErrorResponse(t *testing.T, responseBody []byte) {
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(responseBody, &response); err != nil {
 		t.Fatalf("failed to unmarshal response body: %v", err)
 	}
