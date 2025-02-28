@@ -53,6 +53,11 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := auth.CreateSession(w, user.Email, h.jwtConfig); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
 	utils.WriteJSON(w, http.StatusCreated, response)
 }
 
