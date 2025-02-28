@@ -35,7 +35,9 @@ var UserFieldConstants = struct {
 var UserEndpoints = struct {
 	Registration string
 	Login        string
+	Logout       string
 }{
 	Registration: "/users",
 	Login:        "/login",
+	Logout:       "/logout",
 }

@@ -3,9 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/auth"
+	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -17,6 +21,7 @@ type UserHandler struct {
 	userRegistration *users.UserRegistration
 	userLogin        *auth.UserLogin
 	jwtConfig        *config.JWTConfig
+	TokenBlacklist   *token.TokenBlacklist
 }
 
 // NewUserHandler creates a new instance of UserHandler.
@@ -25,6 +30,7 @@ func NewUserHandler(userRegistration *users.UserRegistration, userLogin *auth.Us
 		userRegistration: userRegistration,
 		userLogin:        userLogin,
 		jwtConfig:        jwtConfig,
+		TokenBlacklist:   token.GetTokenBlacklist(),
 	}
 }
 
@@ -79,4 +85,24 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		utils.WriteError(w, errors.NewInvalidCredentialsError())
+		return
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	claims, err := token.ParseJWT(tokenString, *h.jwtConfig)
+	if err != nil {
+		utils.WriteError(w, errors.NewInvalidCredentialsError())
+		return
+	}
+
+	expiration := time.Unix(claims.ExpiresAt, 0)
+	h.TokenBlacklist.AddToken(tokenString, expiration)
+
+	w.WriteHeader(http.StatusOK)
 }

@@ -18,8 +18,8 @@ func NewAccountLockedError() *AuthenticationError {
 }
 
 // NewInvalidCredentials creates an error for invalid credentials
-func NewInvalidCredentialsError() *InputValidationError {
-	return &InputValidationError{
+func NewInvalidCredentialsError() *AuthenticationError {
+	return &AuthenticationError{
 		ErrorCode: ErrCodeInvalidCredentials,
 		Message:   "Invalid credentials",
 	}

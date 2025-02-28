@@ -4,12 +4,15 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
 	"github.com/vigiloauth/vigilo/internal/auth"
+	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -85,8 +88,14 @@ func initializeHTTPServer(serverConfig *config.ServerConfig, tlsConfig *tls.Conf
 
 func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Use(middleware.Throttle(s.serverConfig.RequestsPerMinute))
+
 	s.router.Post(utils.UserEndpoints.Registration, s.userHandler.Register)
 	s.router.Post(utils.UserEndpoints.Login, s.userHandler.Login)
+
+	s.router.Group(func(r chi.Router) {
+		r.Use(s.authMiddleware())
+		r.Post(utils.UserEndpoints.Logout, s.userHandler.Logout)
+	})
 }
 
 func (s *VigiloIdentityServer) httpsRedirectMiddleware(next http.Handler) http.Handler {
@@ -106,4 +115,30 @@ func redirectToHttps(w http.ResponseWriter, r *http.Request) {
 		target += "?" + r.URL.RawQuery
 	}
 	http.Redirect(w, r, target, http.StatusPermanentRedirect)
+}
+
+func (s *VigiloIdentityServer) authMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" {
+				utils.WriteError(w, errors.NewInvalidCredentialsError())
+				return
+			}
+
+			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+			if token.GetTokenBlacklist().IsTokenBlacklisted(tokenString) {
+				utils.WriteError(w, errors.NewInvalidCredentialsError())
+				return
+			}
+
+			_, err := token.ParseJWT(tokenString, *s.serverConfig.JWTConfig)
+			if err != nil {
+				utils.WriteError(w, errors.NewInvalidCredentialsError())
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }

@@ -3,6 +3,7 @@ package users
 import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/security"
+	"github.com/vigiloauth/vigilo/internal/token"
 )
 
 // UserRegistration handles user registration operations.
@@ -33,10 +34,10 @@ func (r *UserRegistration) Register(user *User) (*UserRegistrationResponse, erro
 		return nil, err
 	}
 
-	token, err := security.GenerateJWT(user.Email, *r.jwtConfig)
+	jwtToken, err := token.GenerateJWT(user.Email, *r.jwtConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewUserRegistrationResponse(user, token), nil
+	return NewUserRegistrationResponse(user, jwtToken), nil
 }

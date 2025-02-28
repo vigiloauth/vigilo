@@ -6,6 +6,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/security"
+	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
 )
 
@@ -51,7 +52,7 @@ func (l *UserLogin) Login(loginUser *users.User, loginAttempt *LoginAttempt) (*u
 		return nil, errors.NewInvalidCredentialsError()
 	}
 
-	token, err := security.GenerateJWT(retrievedUser.Email, *l.config.JWTConfig)
+	jwtToken, err := token.GenerateJWT(retrievedUser.Email, *l.config.JWTConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +61,7 @@ func (l *UserLogin) Login(loginUser *users.User, loginAttempt *LoginAttempt) (*u
 	_ = l.userStore.UpdateUser(&retrievedUser)
 
 	l.applyArtificialDelay(startTime)
-	return users.NewUserLoginResponse(&retrievedUser, token), nil
+	return users.NewUserLoginResponse(&retrievedUser, jwtToken), nil
 }
 
 // applyArtificialDelay applies an artificial delay to normalize response times.

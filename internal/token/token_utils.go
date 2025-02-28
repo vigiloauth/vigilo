@@ -1,6 +1,7 @@
-package security
+package token
 
 import (
+	"errors"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -23,4 +24,24 @@ func GenerateJWT(email string, jwtConfig config.JWTConfig) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+// ParseJWT parses and validates a JWT token and returns the claims.
+func ParseJWT(tokenString string, jwtConfig config.JWTConfig) (*jwt.StandardClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return []byte(jwtConfig.Secret), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*jwt.StandardClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, errors.New("invalid token")
 }
