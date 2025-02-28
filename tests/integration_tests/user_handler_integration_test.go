@@ -191,7 +191,6 @@ func TestUserHandler_ProtectedRouteWithExpiredToken(t *testing.T) {
 	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
-	// Step 4: Verify that the response status code is 401
 	if rr.Code != http.StatusUnauthorized {
 		t.Errorf("expected status %v, got %v", http.StatusUnauthorized, rr.Code)
 	}
