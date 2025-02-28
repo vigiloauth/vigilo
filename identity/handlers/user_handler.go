@@ -87,6 +87,10 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusOK, response)
 }
 
+// Logout is the HTTP handler for user logout.
+// It processes incoming HTTP requests for user logout, validates the JWT token,
+// adds the token to the blacklist to prevent further use, and sends an appropriate response.
+// If the Authorization header is missing or the token is invalid, it returns an error.
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
