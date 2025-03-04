@@ -20,7 +20,7 @@ func CreateSession(w http.ResponseWriter, email string, jwtConfig *config.JWTCon
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    sessionToken,
-		Expires:  time.Now().Add(jwtConfig.ExpirationTime),
+		Expires:  time.Now().Add(jwtConfig.ExpirationTime()),
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,

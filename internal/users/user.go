@@ -148,21 +148,21 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 	}
 
 	passwordConfig := config.GetPasswordConfiguration()
-	minimumLength := passwordConfig.GetMinimumLength()
+	minimumLength := passwordConfig.MinLength()
 
 	if len(password) < minimumLength {
 		errorCollection.Add(errors.NewPasswordLengthError(minimumLength))
 	}
 
-	if passwordConfig.GetRequireUppercase() && !containsUppercase(password) {
+	if passwordConfig.RequireUppercase() && !containsUppercase(password) {
 		errorCollection.Add(errors.NewPasswordFormatError("uppercase letter", errors.ErrCodeMissingUppercase))
 	}
 
-	if passwordConfig.GetRequireNumber() && !containsNumber(password) {
+	if passwordConfig.RequireNumber() && !containsNumber(password) {
 		errorCollection.Add(errors.NewPasswordFormatError("number", errors.ErrCodeMissingNumber))
 	}
 
-	if passwordConfig.GetRequireSymbol() && !containsSymbol(password) {
+	if passwordConfig.RequireSymbol() && !containsSymbol(password) {
 		errorCollection.Add(errors.NewPasswordFormatError("symbol", errors.ErrCodeMissingSymbol))
 	}
 }

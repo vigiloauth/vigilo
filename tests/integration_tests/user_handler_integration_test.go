@@ -18,7 +18,7 @@ import (
 )
 
 func setupIdentityServer(endpoint string, body []byte) *httptest.ResponseRecorder {
-	serverConfig := config.NewDefaultServerConfig()
+	serverConfig := config.NewServerConfig()
 	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
 	req := httptest.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
@@ -37,12 +37,12 @@ func checkErrorResponse(t *testing.T, responseBody []byte) {
 }
 
 func TestUserHandler_HandleUserRegistration(t *testing.T) {
-	config.GetPasswordConfiguration().
-		SetRequireUppercase(true).
-		SetRequireNumber(true).
-		SetRequireSymbol(true).
-		SetMinimumLength(10).
-		Build()
+	config.GetPasswordConfiguration().ConfigurePasswordPolicy(
+		config.WithUppercase(),
+		config.WithNumber(),
+		config.WithSymbol(),
+		config.WithMinLength(10),
+	)
 
 	tests := []struct {
 		name           string
@@ -164,7 +164,7 @@ func TestUserHandler_Logout(t *testing.T) {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Logout, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
-	serverConfig := config.NewDefaultServerConfig()
+	serverConfig := config.NewServerConfig()
 	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
@@ -187,7 +187,7 @@ func TestUserHandler_ProtectedRouteWithExpiredToken(t *testing.T) {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Logout, nil)
 	req.Header.Set("Authorization", "Bearer "+expiredToken)
-	serverConfig := config.NewDefaultServerConfig()
+	serverConfig := config.NewServerConfig()
 	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
@@ -223,7 +223,7 @@ func simulateLogin(t *testing.T, email, password string) string {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Login, bytes.NewBuffer(loginBody))
 
-	serverConfig := config.NewDefaultServerConfig()
+	serverConfig := config.NewServerConfig()
 	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 

@@ -11,7 +11,7 @@ import (
 )
 
 func TestCreateSession(t *testing.T) {
-	jwtConfig := config.NewDefaultJWTConfig()
+	jwtConfig := config.NewJWTConfig()
 
 	w := httptest.NewRecorder()
 	email := "test@example.com"
@@ -28,7 +28,7 @@ func TestCreateSession(t *testing.T) {
 }
 
 func TestInvalidateSession(t *testing.T) {
-	jwtConfig := config.NewDefaultJWTConfig()
+	jwtConfig := config.NewJWTConfig()
 
 	tokenBlacklist := token.GetTokenBlacklist()
 

@@ -27,7 +27,7 @@ type VigiloIdentityServer struct {
 // NewVigiloIdentityServer creates and initializes a new instance of IdentityServer.
 func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityServer {
 	if serverConfig == nil {
-		serverConfig = config.NewDefaultServerConfig()
+		serverConfig = config.NewServerConfig()
 	}
 
 	userHandler := initializeUserHandler(serverConfig)
@@ -44,7 +44,7 @@ func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityS
 	}
 
 	server.setupRoutes()
-	if serverConfig.ForceHTTPS {
+	if serverConfig.ForceHTTPS() {
 		server.router.Use(server.middleware.RedirectToHTTPS)
 	}
 
@@ -71,10 +71,10 @@ func (s *VigiloIdentityServer) setupRoutes() {
 func initializeUserHandler(serverConfig *config.ServerConfig) *handlers.UserHandler {
 	userStore := users.GetInMemoryUserStore()
 	loginAttemptStore := auth.NewLoginAttemptStore()
-	userRegistration := users.NewUserRegistration(userStore, serverConfig.JWTConfig)
+	userRegistration := users.NewUserRegistration(userStore, serverConfig.JWTConfig())
 	userLogin := auth.NewUserLogin(userStore, loginAttemptStore, serverConfig)
 
-	return handlers.NewUserHandler(userRegistration, userLogin, serverConfig.JWTConfig)
+	return handlers.NewUserHandler(userRegistration, userLogin, serverConfig.JWTConfig())
 }
 
 func initializeTLSConfig() *tls.Config {
@@ -91,9 +91,9 @@ func initializeTLSConfig() *tls.Config {
 
 func initializeHTTPServer(serverConfig *config.ServerConfig, tlsConfig *tls.Config) *http.Server {
 	return &http.Server{
-		Addr:         fmt.Sprintf(":%d", serverConfig.Port),
-		ReadTimeout:  serverConfig.ReadTimeout,
-		WriteTimeout: serverConfig.WriteTimeout,
+		Addr:         fmt.Sprintf(":%d", serverConfig.Port()),
+		ReadTimeout:  serverConfig.ReadTimeout(),
+		WriteTimeout: serverConfig.WriteTimeout(),
 		TLSConfig:    tlsConfig,
 	}
 }

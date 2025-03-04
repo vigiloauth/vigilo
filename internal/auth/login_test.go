@@ -15,7 +15,7 @@ import (
 func setupUserLogin(t *testing.T) (*UserLogin, users.UserStore) {
 	users.ResetInMemoryUserStore()
 	userStore := users.GetInMemoryUserStore()
-	config := config.NewDefaultServerConfig()
+	config := config.NewServerConfig()
 	userLogin := NewUserLogin(userStore, NewLoginAttemptStore(), config)
 
 	t.Cleanup(func() {

@@ -24,8 +24,8 @@ func NewUserLogin(userStore users.UserStore, loginAttemptStore *LoginAttemptStor
 		userStore:         userStore,
 		loginAttemptStore: loginAttemptStore,
 		config:            config,
-		maxFailedAttempts: config.LoginConfig.MaxFailedAttempts,
-		artificialDelay:   config.LoginConfig.Delay,
+		maxFailedAttempts: config.LoginConfig().MaxFailedAttempts(),
+		artificialDelay:   config.LoginConfig().Delay(),
 	}
 }
 
@@ -52,7 +52,7 @@ func (l *UserLogin) Login(loginUser *users.User, loginAttempt *LoginAttempt) (*u
 		return nil, errors.NewInvalidCredentialsError()
 	}
 
-	jwtToken, err := token.GenerateJWT(retrievedUser.Email, *l.config.JWTConfig)
+	jwtToken, err := token.GenerateJWT(retrievedUser.Email, *l.config.JWTConfig())
 	if err != nil {
 		return nil, err
 	}

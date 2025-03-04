@@ -15,8 +15,9 @@ import (
 )
 
 func setupRateLimitedServer(requestsPerMinute int, requestBody []byte) *httptest.ResponseRecorder {
-	serverConfig := config.NewDefaultServerConfig()
-	serverConfig.RequestsPerMinute = requestsPerMinute
+	serverConfig := config.NewServerConfig(
+		config.WithMaxRequestsPerMinute(requestsPerMinute),
+	)
 	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
 
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Login, bytes.NewBuffer(requestBody))

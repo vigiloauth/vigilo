@@ -1,98 +1,134 @@
 package config
 
-import (
-	"time"
+import "time"
 
-	"github.com/golang-jwt/jwt"
+type ServerConfig struct {
+	port              int
+	certFilePath      string
+	keyFilePath       string
+	forceHTTPS        bool
+	readTimeout       time.Duration
+	writeTimeout      time.Duration
+	jwtConfig         *JWTConfig
+	loginConfig       *LoginConfig
+	requestsPerMinute int
+}
+
+type ServerConfigOptions func(*ServerConfig)
+
+const (
+	defaultPort              int           = 8443
+	defaultHTTPSRequirement  bool          = false
+	defaultReadTimeout       time.Duration = 15 * time.Second
+	defaultWriteTimeout      time.Duration = 15 * time.Second
+	defaultRequestsPerMinute int           = 100
 )
 
-// JWTConfig holds the configuration for generating JWT tokens.
-type JWTConfig struct {
-	Secret         string
-	ExpirationTime time.Duration
-	SigningMethod  jwt.SigningMethod
+func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
+	sc := &ServerConfig{
+		port:              defaultPort,
+		forceHTTPS:        defaultHTTPSRequirement,
+		readTimeout:       defaultReadTimeout,
+		writeTimeout:      defaultWriteTimeout,
+		jwtConfig:         NewJWTConfig(),
+		loginConfig:       NewLoginConfig(),
+		requestsPerMinute: defaultRequestsPerMinute,
+	}
+
+	for _, opt := range opts {
+		opt(sc)
+	}
+
+	return sc
 }
 
-// LoginConfig holds configuration for user login.
-type LoginConfig struct {
-	MaxFailedAttempts int
-	Delay             time.Duration
-}
-
-// ServerConfig holds configuration for the server.
-type ServerConfig struct {
-	Port              int
-	CertFilePath      *string
-	KeyFilePath       *string
-	ForceHTTPS        bool
-	ReadTimeout       time.Duration
-	WriteTimeout      time.Duration
-	JWTConfig         *JWTConfig
-	LoginConfig       *LoginConfig
-	RequestsPerMinute int
-}
-
-// NewServerConfig initializes and returns a ServerConfig instance with the provided settings.
-func NewServerConfig(port int, certFilePath, keyFilePath *string, forceHTTPS bool, readTimeout, writeTimeout time.Duration, jwtConfig *JWTConfig, loginConfig *LoginConfig, requestsPerMinute int) *ServerConfig {
-	return &ServerConfig{
-		Port:              port,
-		CertFilePath:      certFilePath,
-		KeyFilePath:       keyFilePath,
-		ForceHTTPS:        forceHTTPS,
-		ReadTimeout:       readTimeout,
-		WriteTimeout:      writeTimeout,
-		JWTConfig:         jwtConfig,
-		LoginConfig:       loginConfig,
-		RequestsPerMinute: requestsPerMinute,
+func WithPort(port int) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.port = port
 	}
 }
 
-// NewDefaultServerConfig initializes and returns a ServerConfig instance with default settings.
-// These defaults include a secure port (8443), optional HTTPS enforcement,
-// read/write timeouts set to 15 seconds, and a default JWT configuration.
-func NewDefaultServerConfig() *ServerConfig {
-	return &ServerConfig{
-		Port:              8443,
-		ForceHTTPS:        false,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		JWTConfig:         NewDefaultJWTConfig(),
-		LoginConfig:       NewDefaultLoginConfig(),
-		RequestsPerMinute: 100,
+func WithCertFilePath(filePath string) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.certFilePath = filePath
 	}
 }
 
-// NewJWTConfig initializes and returns a JWTConfig instance with the provided settings.
-func NewCustomJWTConfig(secret string, expirationTime time.Duration, signingMethod jwt.SigningMethod) *JWTConfig {
-	return &JWTConfig{
-		Secret:         secret,
-		ExpirationTime: expirationTime,
-		SigningMethod:  signingMethod,
+func WithKeyFilePath(filePath string) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.keyFilePath = filePath
 	}
 }
 
-// NewDefaultJWTConfig initializes and returns a JWTConfig instance with the default settings.
-// These defaults include a secret key, expiration time of 15 minutes, and the HS256 signing method.
-func NewDefaultJWTConfig() *JWTConfig {
-	return &JWTConfig{
-		Secret:         "default_secret_key",
-		ExpirationTime: 15 * time.Minute,
-		SigningMethod:  jwt.SigningMethodHS256,
+func WithForceHTTPS() ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.forceHTTPS = true
 	}
 }
 
-// NewCustomLoginConfig initializes and returns a LoginConfig instance with the provided settings.
-func NewCustomLoginConfig(maxFailedAttempts int, delay time.Duration) *LoginConfig {
-	return &LoginConfig{
-		MaxFailedAttempts: maxFailedAttempts,
+func WithReadWriteTimeout(timeout time.Duration) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		if timeout > sc.readTimeout {
+			sc.readTimeout = timeout
+		}
+		if timeout > sc.writeTimeout {
+			sc.writeTimeout = timeout
+		}
 	}
 }
 
-// NewDefaultLoginConfig initializes and returns a LoginConfig instance with the default settings.
-// The default setting is 5 maximum failed login attempts.
-func NewDefaultLoginConfig() *LoginConfig {
-	return &LoginConfig{
-		MaxFailedAttempts: 5,
-		Delay:             500 * time.Millisecond,
+func WithJWTConfig(jwtConfig *JWTConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.jwtConfig = jwtConfig
 	}
+}
+
+func WithLoginConfig(loginConfig *LoginConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.loginConfig = loginConfig
+	}
+}
+
+func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		if requests > defaultRequestsPerMinute {
+			sc.requestsPerMinute = requests
+		}
+	}
+}
+
+func (sc *ServerConfig) Port() int {
+	return sc.port
+}
+
+func (sc *ServerConfig) CertFilePath() string {
+	return sc.certFilePath
+}
+
+func (sc *ServerConfig) KeyFilePath() string {
+	return sc.keyFilePath
+}
+
+func (sc *ServerConfig) ForceHTTPS() bool {
+	return sc.forceHTTPS
+}
+
+func (sc *ServerConfig) ReadTimeout() time.Duration {
+	return sc.readTimeout
+}
+
+func (sc *ServerConfig) WriteTimeout() time.Duration {
+	return sc.writeTimeout
+}
+
+func (sc *ServerConfig) JWTConfig() *JWTConfig {
+	return sc.jwtConfig
+}
+
+func (sc *ServerConfig) LoginConfig() *LoginConfig {
+	return sc.loginConfig
+}
+
+func (sc *ServerConfig) MaxRequestsPerMinute() int {
+	return sc.requestsPerMinute
 }

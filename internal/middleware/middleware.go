@@ -18,7 +18,7 @@ type Middleware struct {
 func NewMiddleware(serverConfig *config.ServerConfig) *Middleware {
 	return &Middleware{
 		serverConfig: serverConfig,
-		rateLimiter:  NewRateLimiter(serverConfig.RequestsPerMinute),
+		rateLimiter:  NewRateLimiter(serverConfig.MaxRequestsPerMinute()),
 	}
 }
 
@@ -38,7 +38,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			_, err := token.ParseJWT(tokenString, *m.serverConfig.JWTConfig)
+			_, err := token.ParseJWT(tokenString, *m.serverConfig.JWTConfig())
 			if err != nil {
 				utils.WriteError(w, errors.NewInvalidCredentialsError())
 				return

@@ -13,12 +13,12 @@ import (
 func GenerateJWT(email string, jwtConfig config.JWTConfig) (string, error) {
 	claims := &jwt.StandardClaims{
 		Subject:   email,
-		ExpiresAt: time.Now().Add(jwtConfig.ExpirationTime).Unix(),
+		ExpiresAt: time.Now().Add(jwtConfig.ExpirationTime()).Unix(),
 		IssuedAt:  time.Now().Unix(),
 	}
 
-	token := jwt.NewWithClaims(jwtConfig.SigningMethod, claims)
-	tokenString, err := token.SignedString([]byte(jwtConfig.Secret))
+	token := jwt.NewWithClaims(jwtConfig.SigningMethod(), claims)
+	tokenString, err := token.SignedString([]byte(jwtConfig.Secret()))
 	if err != nil {
 		return "", err
 	}
@@ -32,7 +32,7 @@ func ParseJWT(tokenString string, jwtConfig config.JWTConfig) (*jwt.StandardClai
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return []byte(jwtConfig.Secret), nil
+		return []byte(jwtConfig.Secret()), nil
 	})
 
 	if err != nil {
