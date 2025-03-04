@@ -16,13 +16,16 @@ type JWTConfig struct {
 // JWTOption defines a function type for configuring JWTConfig
 type JWTOption func(*JWTConfig)
 
+const (
+	defaultSecret         string        = "fallback_secure_default_key"
+	defaultExpirationTime time.Duration = 24 * time.Hour
+)
+
 // NewJWTConfig creates a new JWTConfig with options
 func NewJWTConfig(opts ...JWTOption) *JWTConfig {
-	defaultSecret := "fallback_secure_default_key"
-
 	config := &JWTConfig{
 		secret:         defaultSecret,
-		expirationTime: 15 * time.Minute,
+		expirationTime: defaultExpirationTime,
 		signingMethod:  jwt.SigningMethodHS256,
 	}
 

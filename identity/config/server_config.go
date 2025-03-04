@@ -66,11 +66,16 @@ func WithForceHTTPS() ServerConfigOptions {
 	}
 }
 
-func WithReadWriteTimeout(timeout time.Duration) ServerConfigOptions {
+func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if timeout > sc.readTimeout {
 			sc.readTimeout = timeout
 		}
+	}
+}
+
+func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
+	return func(sc *ServerConfig) {
 		if timeout > sc.writeTimeout {
 			sc.writeTimeout = timeout
 		}
