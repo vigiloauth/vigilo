@@ -24,7 +24,7 @@ const defaultRequiredPasswordLength int = 5
 // GetPasswordConfiguration returns the singleton instance of PasswordConfiguration with default settings.
 // These defaults include a minimum length password of 8, and optional uppercase, number, and symbol.
 // The return configuration can be modified as needed.
-func GetPasswordConfiguration() *PasswordConfiguration {
+func GetPasswordConfiguration() *PasswordConfig {
 	once.Do(func() {
 		instance = &PasswordConfig{
 			requireUpper:  false,
