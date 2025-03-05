@@ -32,12 +32,14 @@ var UserFieldConstants = struct {
 	Password: "password",
 }
 
+const defaultAuthEndpoint string = "/auth"
+
 var UserEndpoints = struct {
 	Registration string
 	Login        string
 	Logout       string
 }{
-	Registration: "/users",
-	Login:        "/login",
-	Logout:       "/logout",
+	Registration: defaultAuthEndpoint + "/signup",
+	Login:        defaultAuthEndpoint + "/login",
+	Logout:       defaultAuthEndpoint + "/logout",
 }

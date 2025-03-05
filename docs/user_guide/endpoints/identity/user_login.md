@@ -1,7 +1,7 @@
 # User Login
 ## Endpoint
 ```
-POST https://localhost:<port>/<uri>/login
+POST https://localhost:<port>/<uri>/auth/login
 ```
 ---
 ### Headers

@@ -1,7 +1,7 @@
 # User Registration
 ## Endpoint
 ```
-POST https://localhost:<port>/<uri>/user
+POST https://localhost:<port>/<uri>/auth/signup
 ```
 ---
 ### Headers
