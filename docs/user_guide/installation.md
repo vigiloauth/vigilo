@@ -23,14 +23,15 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/identity/server"
+		"github.com/vigiloauth/vigilo/identity/config"
 	"net/http"
 )
 
 func main() {
 	appRouter := chi.NewRouter() 
 	
-	// Initialize the VigiloIdentityServer 
-	vigiloIdentityServer := server.NewVigiloIdentityServer()
+    // Initialize the VigiloIdentityServer with default configuration
+	vigiloIdentityServer := server.NewVigiloIdentityServer(config.NewDefaultServerConfig())
 	
 	// Retrieve the Vigilo Identity router.
 	vigiloIdentityRouter := vigiloIdentityServer.Router()
@@ -46,7 +47,7 @@ Save this file as `main.go`, then run the application:
 ```
 go run main.go
 ```
-Your identity server will be available at `http://localhost:8080/identity`.
+Your identity server will be available at `http://localhost:8443/identity`.
 
 ### Next Steps
 After setting up VigiloAuth, refer to the [Identity API Endpoints documentation](endpoints/identity/README.md) to learn how to interact with the identity server.

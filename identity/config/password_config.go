@@ -1,77 +1,107 @@
 package config
 
-import "sync"
+import (
+	"sync"
+)
 
-// PasswordConfiguration holds the password policy settings.
-// It defines the requirements for password complexity and length.
-type PasswordConfiguration struct {
-	requireUppercase bool
-	requireNumber    bool
-	requireSymbol    bool
-	minimumLength    int
+// PasswordConfig holds the password policy settings.
+type PasswordConfig struct {
+	mu            sync.RWMutex
+	requireUpper  bool
+	requireNumber bool
+	requireSymbol bool
+	minLength     int
 }
 
-var instance *PasswordConfiguration
-var once sync.Once
+// Singleton management
+var (
+	instance *PasswordConfig
+	once     sync.Once
+)
 
-// GetPasswordConfiguration returns the singleton instance of PasswordConfiguration.
-// If the instance doesn't exist, it creates one with default settings.
-func GetPasswordConfiguration() *PasswordConfiguration {
+const defaultRequiredPasswordLength int = 5
+
+// GetPasswordConfiguration returns the singleton instance of PasswordConfiguration with default settings.
+// These defaults include a minimum length password of 8, and optional uppercase, number, and symbol.
+// The return configuration can be modified as needed.
+func GetPasswordConfiguration() *PasswordConfig {
 	once.Do(func() {
-		instance = &PasswordConfiguration{
-			requireUppercase: false,
-			requireNumber:    false,
-			requireSymbol:    false,
-			minimumLength:    8,
+		instance = &PasswordConfig{
+			requireUpper:  false,
+			requireNumber: false,
+			requireSymbol: false,
+			minLength:     defaultRequiredPasswordLength,
 		}
 	})
 	return instance
 }
 
-func (p *PasswordConfiguration) GetRequireUppercase() bool {
-	return p.requireUppercase
-}
+// ConfigurePasswordPolicy allows configuring the singleton instance
+func (pc *PasswordConfig) ConfigurePasswordPolicy(opts ...PasswordConfigOption) *PasswordConfig {
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
 
-// SetRequireUppercase sets whether passwords must contain an uppercase letter
-func (p *PasswordConfiguration) SetRequireUppercase(require bool) *PasswordConfiguration {
-	p.requireUppercase = require
-	return p
-}
-
-func (p *PasswordConfiguration) GetRequireNumber() bool {
-	return p.requireNumber
-}
-
-// SetRequireNumber sets whether passwords must contain a numeric digit
-func (p *PasswordConfiguration) SetRequireNumber(require bool) *PasswordConfiguration {
-	p.requireNumber = require
-	return p
-}
-
-func (p *PasswordConfiguration) GetRequireSymbol() bool {
-	return p.requireSymbol
-}
-
-// SetRequireSymbol sets whether passwords must contain a special character
-func (p *PasswordConfiguration) SetRequireSymbol(require bool) *PasswordConfiguration {
-	p.requireSymbol = require
-	return p
-}
-
-func (p *PasswordConfiguration) GetMinimumLength() int {
-	return p.minimumLength
-}
-
-// SetMinimumLength sets the minimum required password length
-// If the provided length is less than 8, the value will not be updated
-// to maintain basic security standards
-func (p *PasswordConfiguration) SetMinimumLength(length int) *PasswordConfiguration {
-	if length >= 8 {
-		p.minimumLength = length
+	for _, opt := range opts {
+		opt(pc)
 	}
-	return p
+
+	return pc
 }
 
-func (p *PasswordConfiguration) Build() *PasswordConfiguration {
-	return p
+// PasswordConfigOption allows functional configuration
+type PasswordConfigOption func(*PasswordConfig)
+
+// WithUppercase adds uppercase requirement
+func WithUppercase() PasswordConfigOption {
+	return func(pc *PasswordConfig) {
+		pc.requireUpper = true
+	}
+}
+
+// WithNumber adds number requirement
+func WithNumber() PasswordConfigOption {
+	return func(pc *PasswordConfig) {
+		pc.requireNumber = true
+	}
+}
+
+// WithSymbol adds symbol requirement
+func WithSymbol() PasswordConfigOption {
+	return func(pc *PasswordConfig) {
+		pc.requireSymbol = true
+	}
+}
+
+// WithMinLength sets minimum password length
+func WithMinLength(length int) PasswordConfigOption {
+	return func(pc *PasswordConfig) {
+		if length > defaultRequiredPasswordLength {
+			pc.minLength = length
+		}
+	}
+}
+
+// Getters with thread-safe read access
+func (pc *PasswordConfig) RequireUppercase() bool {
+	pc.mu.RLock()
+	defer pc.mu.RUnlock()
+	return pc.requireUpper
+}
+
+func (pc *PasswordConfig) RequireNumber() bool {
+	pc.mu.RLock()
+	defer pc.mu.RUnlock()
+	return pc.requireNumber
+}
+
+func (pc *PasswordConfig) RequireSymbol() bool {
+	pc.mu.RLock()
+	defer pc.mu.RUnlock()
+	return pc.requireSymbol
+}
+
+func (pc *PasswordConfig) MinLength() int {
+	pc.mu.RLock()
+	defer pc.mu.RUnlock()
+	return pc.minLength
 }

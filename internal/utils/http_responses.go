@@ -2,8 +2,9 @@ package utils
 
 import (
 	"encoding/json"
-	"github.com/vigiloauth/vigilo/internal/errors"
 	"net/http"
+
+	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
@@ -17,7 +18,7 @@ func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
 
 func WriteError(w http.ResponseWriter, err error) {
 	var status int
-	var response interface{}
+	var response any
 
 	switch e := err.(type) {
 	case *errors.ErrorCollection:
@@ -27,12 +28,36 @@ func WriteError(w http.ResponseWriter, err error) {
 			Description: "One or more validation errors occurred.",
 			Errors:      e.Errors(),
 		}
+	case *errors.AuthenticationError:
+		switch e.ErrorCode {
+		case errors.ErrCodeInvalidCredentials:
+			status = http.StatusUnauthorized
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeInvalidCredentials,
+				Description: e.Message,
+				Error:       e.Error(),
+			}
+		case errors.ErrCodeAccountLocked:
+			status = http.StatusLocked
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeAccountLocked,
+				Description: e.Message,
+				Error:       e.Error(),
+			}
+		}
 	case *errors.InputValidationError:
 		switch e.ErrorCode {
 		case errors.ErrCodeDuplicateUser:
 			status = http.StatusConflict
 			response = ErrorResponse{
 				ErrorCode:   errors.ErrCodeDuplicateUser,
+				Description: e.Message,
+				Error:       e.Error(),
+			}
+		case errors.ErrCodeUserNotFound:
+			status = http.StatusNotFound
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeUserNotFound,
 				Description: e.Message,
 				Error:       e.Error(),
 			}
