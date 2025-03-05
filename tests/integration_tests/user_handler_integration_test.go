@@ -151,7 +151,7 @@ func TestUserHandler_SuccessfulUserLogin(t *testing.T) {
 	}
 }
 
-func TestUserHandler_Logout(t *testing.T) {
+func TestUserHandler_SuccessfulLogout(t *testing.T) {
 	users.ResetInMemoryUserStore()
 	userStore := users.GetInMemoryUserStore()
 	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
