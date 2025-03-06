@@ -14,4 +14,5 @@ const (
 	ErrCodeUserNotFound          = "USER_NOT_FOUND"
 	ErrCodeInvalidCredentials    = "INVALID_CREDENTIALS"
 	ErrCodeAccountLocked         = "ACCOUNT_LOCKED"
+	ErrCodeInvalidFormat         = "INVALID_FORMAT"
 )
