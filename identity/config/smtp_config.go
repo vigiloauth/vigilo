@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
@@ -18,6 +19,8 @@ type SMTPConfig struct {
 	replyTo      string
 	templatePath string
 	credentials  *SMTPCredentials
+	maxRetries   int
+	retryDelay   time.Duration
 }
 
 type SMTPCredentials struct {
@@ -28,13 +31,15 @@ type SMTPCredentials struct {
 type EncryptionType string
 
 const (
-	None             EncryptionType = "none"
-	StartTLS         EncryptionType = "starttls"
-	TLS              EncryptionType = "tls"
-	gmailServer      string         = "smtp.gmail.com"
-	outlookServer    string         = "smtp.office365.com"
-	defaultSMTPPort  int            = 587
-	defaultSESRegion string         = "us-east-1"
+	None              EncryptionType = "none"
+	StartTLS          EncryptionType = "starttls"
+	TLS               EncryptionType = "tls"
+	gmailServer       string         = "smtp.gmail.com"
+	outlookServer     string         = "smtp.office365.com"
+	DefaultSMTPPort   int            = 587
+	defaultSESRegion  string         = "us-east-1"
+	defaultMaxRetries int            = 5
+	defaultRetryDelay time.Duration  = 5 * time.Minute
 )
 
 func NewSMTPConfig(server string, port int, fromAddress, fromName, replyTo, templatePath string, encryption EncryptionType, credentials *SMTPCredentials) (*SMTPConfig, error) {
@@ -46,6 +51,8 @@ func NewSMTPConfig(server string, port int, fromAddress, fromName, replyTo, temp
 		fromName:     fromName,
 		replyTo:      replyTo,
 		templatePath: templatePath,
+		maxRetries:   defaultMaxRetries,
+		retryDelay:   defaultRetryDelay,
 	}
 
 	if credentials != nil {
@@ -78,7 +85,7 @@ func DefaultGmailConfig(fromAddress, fromName string) (*SMTPConfig, error) {
 		password: "",
 	}
 
-	return NewSMTPConfig(gmailServer, defaultSMTPPort, fromAddress, fromName, "", "", StartTLS, credentials)
+	return NewSMTPConfig(gmailServer, DefaultSMTPPort, fromAddress, fromName, "", "", StartTLS, credentials)
 }
 
 func DefaultOutlookConfig(fromAddress, fromName string) (*SMTPConfig, error) {
@@ -87,7 +94,7 @@ func DefaultOutlookConfig(fromAddress, fromName string) (*SMTPConfig, error) {
 		password: "",
 	}
 
-	return NewSMTPConfig(outlookServer, defaultSMTPPort, fromAddress, fromName, "", "", StartTLS, credentials)
+	return NewSMTPConfig(outlookServer, DefaultSMTPPort, fromAddress, fromName, "", "", StartTLS, credentials)
 }
 
 func DefaultAmazonSESConfig(region, fromAddress, fromName string) (*SMTPConfig, error) {
@@ -101,47 +108,7 @@ func DefaultAmazonSESConfig(region, fromAddress, fromName string) (*SMTPConfig, 
 	}
 
 	server := fmt.Sprintf("email-smtp.%s.amazonaws.com", region)
-	return NewSMTPConfig(server, defaultSMTPPort, fromAddress, fromName, "", "", StartTLS, credentials)
-}
-
-func SetCredentials(config *SMTPConfig, username, password string) error {
-	if config == nil {
-		return errors.NewEmptyInputError("SMTP configuration")
-	}
-
-	credentials, err := NewSMTPCredentials(username, password)
-	if err != nil {
-		return err
-	}
-
-	config.credentials = credentials
-	return nil
-}
-
-func SetReplyTo(config *SMTPConfig, replyTo string) error {
-	if config == nil {
-		return errors.NewEmptyInputError("SMTP configuration")
-	}
-
-	if err := validateEmail(replyTo); err != nil {
-		return err
-	}
-
-	config.replyTo = replyTo
-	return nil
-}
-
-func SetTemplatePath(config *SMTPConfig, templatePath string) error {
-	if config == nil {
-		return errors.NewEmptyInputError("SMTP configuration")
-	}
-
-	if templatePath == "" {
-		return errors.NewEmptyInputError("template path")
-	}
-
-	config.templatePath = templatePath
-	return nil
+	return NewSMTPConfig(server, DefaultSMTPPort, fromAddress, fromName, "", "", StartTLS, credentials)
 }
 
 func (sc *SMTPConfig) Server() string {
@@ -152,8 +119,16 @@ func (sc *SMTPConfig) Port() int {
 	return sc.port
 }
 
+func (sc *SMTPConfig) SetPort(port int) {
+	sc.port = port
+}
+
 func (sc *SMTPConfig) Encryption() EncryptionType {
 	return sc.encryption
+}
+
+func (sc *SMTPConfig) SetEncryption(encryption EncryptionType) {
+	sc.encryption = encryption
 }
 
 func (sc *SMTPConfig) FromAddress() string {
@@ -168,8 +143,26 @@ func (sc *SMTPConfig) ReplyTo() string {
 	return sc.replyTo
 }
 
+func (c *SMTPConfig) SetReplyTo(replyTo string) error {
+	if err := validateEmail(replyTo); err != nil {
+		return err
+	}
+
+	c.replyTo = replyTo
+	return nil
+}
+
 func (sc *SMTPConfig) TemplatePath() string {
 	return sc.templatePath
+}
+
+func (sc *SMTPConfig) SetTemplatePath(templatePath string) error {
+	if templatePath == "" {
+		return errors.NewEmptyInputError("template path")
+	}
+
+	sc.templatePath = templatePath
+	return nil
 }
 
 func (sc *SMTPConfig) HasCredentials() bool {
@@ -180,6 +173,36 @@ func (sc *SMTPConfig) HasCredentials() bool {
 
 func (sc *SMTPConfig) Credentials() *SMTPCredentials {
 	return sc.credentials
+}
+
+func (sc *SMTPConfig) SetCredentials(username, password string) error {
+	credentials, err := NewSMTPCredentials(username, password)
+	if err != nil {
+		return err
+	}
+
+	sc.credentials = credentials
+	return nil
+}
+
+func (sc *SMTPConfig) MaxRetries() int {
+	return sc.maxRetries
+}
+
+func (sc *SMTPConfig) SetMaxRetries(retries int) {
+	if retries > sc.maxRetries {
+		sc.maxRetries = retries
+	}
+}
+
+func (sc *SMTPConfig) RetryDelay() time.Duration {
+	return sc.retryDelay
+}
+
+func (sc *SMTPConfig) SetRetryDelay(delay time.Duration) {
+	if delay > sc.retryDelay {
+		sc.retryDelay = delay
+	}
 }
 
 func (c *SMTPCredentials) Username() string {

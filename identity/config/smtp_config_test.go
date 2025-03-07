@@ -37,7 +37,7 @@ func TestDefaultGmailConfig(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, gmailServer, config.Server())
-	assert.Equal(t, defaultSMTPPort, config.Port())
+	assert.Equal(t, DefaultSMTPPort, config.Port())
 	assert.Equal(t, StartTLS, config.Encryption())
 	assert.Equal(t, "from@gmail.com", config.FromAddress())
 	assert.Equal(t, "From Name", config.FromName())
@@ -48,7 +48,7 @@ func TestDefaultOutlookConfig(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, outlookServer, config.Server())
-	assert.Equal(t, defaultSMTPPort, config.Port())
+	assert.Equal(t, DefaultSMTPPort, config.Port())
 	assert.Equal(t, StartTLS, config.Encryption())
 	assert.Equal(t, "from@outlook.com", config.FromAddress())
 	assert.Equal(t, "From Name", config.FromName())
@@ -59,7 +59,7 @@ func TestDefaultAmazonSESConfig(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, "email-smtp.us-west-2.amazonaws.com", config.Server())
-	assert.Equal(t, defaultSMTPPort, config.Port())
+	assert.Equal(t, DefaultSMTPPort, config.Port())
 	assert.Equal(t, StartTLS, config.Encryption())
 	assert.Equal(t, "from@ses.com", config.FromAddress())
 	assert.Equal(t, "From Name", config.FromName())
@@ -69,7 +69,7 @@ func TestSetCredentials(t *testing.T) {
 	config, err := DefaultGmailConfig("from@gmail.com", "From Name")
 	assert.NoError(t, err)
 
-	err = SetCredentials(config, "newuser", "newpass")
+	err = config.SetCredentials("newuser", "newpass")
 	assert.NoError(t, err)
 	assert.True(t, config.HasCredentials())
 	assert.Equal(t, "newuser", config.Credentials().Username())
@@ -80,7 +80,7 @@ func TestSetReplyTo(t *testing.T) {
 	config, err := DefaultGmailConfig("from@gmail.com", "From Name")
 	assert.NoError(t, err)
 
-	err = SetReplyTo(config, "replyto@gmail.com")
+	err = config.SetReplyTo("replyto@gmail.com")
 	assert.NoError(t, err)
 	assert.Equal(t, "replyto@gmail.com", config.ReplyTo())
 }
@@ -89,7 +89,7 @@ func TestSetTemplatePath(t *testing.T) {
 	config, err := DefaultGmailConfig("from@gmail.com", "From Name")
 	assert.NoError(t, err)
 
-	err = SetTemplatePath(config, "/new/path/to/template")
+	err = config.SetTemplatePath("/new/path/to/template")
 	assert.NoError(t, err)
 	assert.Equal(t, "/new/path/to/template", config.TemplatePath())
 }
