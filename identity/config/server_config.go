@@ -11,6 +11,7 @@ type ServerConfig struct {
 	writeTimeout      time.Duration
 	jwtConfig         *JWTConfig
 	loginConfig       *LoginConfig
+	smtpConfig        *SMTPConfig
 	requestsPerMinute int
 }
 
@@ -94,6 +95,12 @@ func WithLoginConfig(loginConfig *LoginConfig) ServerConfigOptions {
 	}
 }
 
+func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.smtpConfig = smtpConfig
+	}
+}
+
 func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if requests > defaultRequestsPerMinute {
@@ -132,6 +139,10 @@ func (sc *ServerConfig) JWTConfig() *JWTConfig {
 
 func (sc *ServerConfig) LoginConfig() *LoginConfig {
 	return sc.loginConfig
+}
+
+func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
+	return sc.smtpConfig
 }
 
 func (sc *ServerConfig) MaxRequestsPerMinute() int {
