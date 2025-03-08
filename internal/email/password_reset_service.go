@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"html/template"
-	"log"
 	"net/smtp"
 	"sync"
 	"time"
@@ -13,11 +12,6 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
-
-// TODO
-// - Create new errors.
-// - Refactor
-// - Test
 
 type PasswordResetService struct {
 	smtpConfig    *config.SMTPConfig
@@ -40,27 +34,22 @@ func NewPasswordResetService(smtpConfig *config.SMTPConfig) (*PasswordResetServi
 }
 
 func (ps *PasswordResetService) GenerateEmail(request EmailRequest) *EmailRequest {
-	if request.ExpiresIn == 0 {
-		request.ExpiresIn = config.DefaultTTL
+	expirationTime := request.PasswordResetRequest.ExpiresIn
+	if expirationTime == 0 {
+		request.PasswordResetRequest.ExpiresIn = config.DefaultTTL
 	}
 
-	expiryTime := time.Now().Add(request.ExpiresIn)
-
-	templateData := map[string]any{
-		"ResetURL":      request.ResetURL,
-		"Token":         request.ResetToken,
-		"ExpiryTime":    expiryTime.Format(time.RFC1123),
-		"ExpireInHours": request.ExpiresIn.Hours(),
-		"AppName":       request.ApplicationID,
-		"UserEmail":     request.Recipient,
-	}
+	expiryTime := time.Now().Add(expirationTime)
+	templateData := generateTemplateData(request, expiryTime)
 
 	return &EmailRequest{
 		Recipient:    request.Recipient,
 		Subject:      fmt.Sprintf("[%s] Password Reset Request", request.ApplicationID),
 		TemplateData: templateData,
-		ResetToken:   request.ResetToken,
-		TokenExpiry:  expiryTime,
+		PasswordResetRequest: &PasswordResetRequest{
+			ResetToken:  request.PasswordResetRequest.ResetToken,
+			TokenExpiry: expiryTime,
+		},
 	}
 }
 
@@ -68,19 +57,18 @@ func (ps *PasswordResetService) SendEmail(request EmailRequest) error {
 	err := ps.sendEmail(request)
 	if err != nil {
 		ps.requestsMutex.Lock()
-		request.RetryCount++
-		request.LastAttempt = time.Now()
-		ps.requests = append(ps.requests, request)
-		ps.requestsMutex.Unlock()
-		return fmt.Errorf("email delivery failed, added to retry queue: %w", err)
+		defer ps.requestsMutex.Unlock()
+		ps.retryEmail(request)
+		return errors.NewEmailDeliveryError(err)
 	}
+
 	return nil
 }
 
 func (ps *PasswordResetService) SetTemplate(tmplContent string) error {
 	tmpl, err := template.New("email").Parse(tmplContent)
 	if err != nil {
-		return fmt.Errorf("failed to parse email template: %w", err)
+		return errors.NewEmailTemplateParseError(err)
 	}
 
 	ps.template = tmpl
@@ -88,48 +76,17 @@ func (ps *PasswordResetService) SetTemplate(tmplContent string) error {
 }
 
 func (ps *PasswordResetService) TestConnection() error {
-	var client *smtp.Client
-	var err error
-
-	serverAddress := fmt.Sprintf("%s:%d", ps.smtpConfig.Server(), ps.smtpConfig.Port())
-
-	switch ps.smtpConfig.Encryption() {
-	case config.TLS:
-		tlsConfig := &tls.Config{ServerName: ps.smtpConfig.Server()}
-		conn, err := tls.Dial("tcp", serverAddress, tlsConfig)
-		if err != nil {
-			return fmt.Errorf("TLS connection failed: %w", err)
-		}
-		client, err = smtp.NewClient(conn, ps.smtpConfig.Server())
-		if err != nil {
-			return fmt.Errorf("error creating new client: %w", err)
-		}
-	case config.None, config.StartTLS:
-		client, err = smtp.Dial(serverAddress)
-	default:
-		return fmt.Errorf("unsupported encryption type: %s", ps.smtpConfig.Encryption())
-	}
-
+	client, err := ps.createSMTPClient()
 	if err != nil {
-		return fmt.Errorf("SMTP server connection failed: %w", err)
+		return err
 	}
-
 	defer client.Quit()
 
-	if ps.smtpConfig.Encryption() == config.StartTLS {
-		if err = client.StartTLS(&tls.Config{ServerName: ps.smtpConfig.Server()}); err != nil {
-			return fmt.Errorf("StartTLS failed: %w", err)
-		}
+	if err := ps.startTLS(client); err != nil {
+		return err
 	}
 
-	if ps.smtpConfig.Credentials() != nil && ps.smtpConfig.Credentials().Username() != "" {
-		auth := smtp.PlainAuth("", ps.smtpConfig.Credentials().Username(), ps.smtpConfig.Credentials().Password(), ps.smtpConfig.Server())
-		if err = client.Auth(auth); err != nil {
-			return fmt.Errorf("SMTP authentication failed: %w", err)
-		}
-	}
-
-	return nil
+	return ps.authenticateCredentials(client)
 }
 
 func (ps *PasswordResetService) ProcessQueue() {
@@ -140,29 +97,8 @@ func (ps *PasswordResetService) ProcessQueue() {
 	now := time.Now()
 
 	for _, request := range ps.requests {
-		if now.Sub(request.LastAttempt) < ps.smtpConfig.RetryDelay() {
+		if ps.shouldRetryEmail(now, request) {
 			remainingRequests = append(remainingRequests, request)
-			continue
-		}
-
-		if !request.TokenExpiry.IsZero() && now.After(request.TokenExpiry) {
-			log.Printf("Skipping expired password reset token for %s", request.Recipient)
-			continue
-		}
-
-		// Attempt to send
-		err := ps.sendEmail(request)
-		if err != nil {
-			request.RetryCount++
-			request.LastAttempt = now
-
-			if request.RetryCount < ps.smtpConfig.MaxRetries() {
-				remainingRequests = append(remainingRequests, request)
-			} else {
-				log.Printf("Maximum retry attempts reaached for email to %s: %v", request.Recipient, err)
-			}
-		} else {
-			log.Printf("Successfully sent queued email to %s", request.Recipient)
 		}
 	}
 
@@ -197,48 +133,19 @@ func (ps *PasswordResetService) sendEmail(request EmailRequest) error {
 
 	var body bytes.Buffer
 	if err := ps.template.Execute(&body, request.TemplateData); err != nil {
-		return fmt.Errorf("template rendering failed: %w", err)
+		return errors.NewTemplateRenderingError(err)
 	}
 
-	from := ps.smtpConfig.FromAddress()
-	if ps.smtpConfig.Credentials().Username() != "" {
-		from = fmt.Sprintf("%s <%s>", ps.smtpConfig.FromName(), ps.smtpConfig.FromAddress())
-	}
+	headers := ps.generateHeaders(request)
+	message := generateMessage(headers, body)
 
-	headers := make(map[string]string)
-	headers["From"] = from
-	headers["To"] = request.Recipient
-	headers["Subject"] = request.Subject
-	headers["MIME-Version"] = "1.0"
-	headers["Content-Type"] = "text/html; charset=UTF-8"
-
-	if ps.smtpConfig.ReplyTo() != "" {
-		headers["Reply-To"] = ps.smtpConfig.ReplyTo()
-	}
-
-	// construct message
-	message := ""
-	for k, v := range headers {
-		message += fmt.Sprintf("%s: %s\r\n", k, v)
-	}
-	message += "\r\n" + body.String()
-
-	// prepare auth
 	auth := smtp.PlainAuth("", ps.smtpConfig.Credentials().Username(), ps.smtpConfig.Credentials().Password(), ps.smtpConfig.Server())
 	serverAddress := fmt.Sprintf("%s:%d", ps.smtpConfig.Server(), ps.smtpConfig.Port())
 
-	// send email based on encryption type
-	switch ps.smtpConfig.Encryption() {
-	case config.None, config.StartTLS:
-		return smtp.SendMail(serverAddress, auth, ps.smtpConfig.FromAddress(), []string{request.Recipient}, []byte(message))
-	case config.TLS:
-		return ps.sendMailTLS(auth, []string{request.Recipient}, []byte(message))
-	default:
-		return fmt.Errorf("unsupported encryption type: %s", ps.smtpConfig.Encryption())
-	}
+	return ps.sendSMTPMail(serverAddress, ps.smtpConfig.FromAddress(), request.Recipient, message, auth)
 }
 
-func (ps *PasswordResetService) sendMailTLS(auth smtp.Auth, recipients []string, message []byte) error {
+func (ps *PasswordResetService) sendMailTLS(recipients []string, message []byte) error {
 	tlsConfig := &tls.Config{ServerName: ps.smtpConfig.Server()}
 	serverAddress := fmt.Sprintf("%s:%d", ps.smtpConfig.Server(), ps.smtpConfig.Port())
 
@@ -254,11 +161,8 @@ func (ps *PasswordResetService) sendMailTLS(auth smtp.Auth, recipients []string,
 	}
 	defer client.Quit()
 
-	// authenticate
-	if auth != nil {
-		if err = client.Auth(auth); err != nil {
-			return err
-		}
+	if err := ps.authenticateCredentials(client); err != nil {
+		return err
 	}
 
 	if err = client.Mail(ps.smtpConfig.FromAddress()); err != nil {
@@ -302,6 +206,150 @@ func (ps *PasswordResetService) loadEmailTemplate() error {
 	}
 
 	return nil
+}
+
+func (ps *PasswordResetService) createSMTPClient() (*smtp.Client, error) {
+	serverAddress := fmt.Sprintf("%s:%d", ps.smtpConfig.Server(), ps.smtpConfig.Port())
+
+	var client *smtp.Client
+	var err error
+
+	switch ps.smtpConfig.Encryption() {
+	case config.TLS:
+		client, err = ps.createTLSClient(serverAddress)
+	case config.None, config.StartTLS:
+		client, err = smtp.Dial(serverAddress)
+	default:
+		return nil, errors.NewUnsupportedEncryptionTypeError(string(ps.smtpConfig.Encryption()))
+	}
+
+	if err != nil {
+		return nil, errors.NewSMTPServerConnectionError(err)
+	}
+
+	return client, nil
+}
+
+func (ps *PasswordResetService) createTLSClient(serverAddress string) (*smtp.Client, error) {
+	tlsConfig := &tls.Config{ServerName: serverAddress}
+	conn, err := tls.Dial("tcp", serverAddress, tlsConfig)
+	if err != nil {
+		return nil, errors.NewTLSConnectionError(err)
+	}
+
+	client, err := smtp.NewClient(conn, ps.smtpConfig.Server())
+	if err != nil {
+		return nil, errors.NewClientCreationError(err)
+	}
+
+	return client, nil
+}
+
+func (ps *PasswordResetService) startTLS(client *smtp.Client) error {
+	if ps.smtpConfig.Encryption() == config.StartTLS {
+		tlsConfig := &tls.Config{ServerName: ps.smtpConfig.Server()}
+		if err := client.StartTLS(tlsConfig); err != nil {
+			return errors.NewStartTLSFailedError(err)
+		}
+	}
+
+	return nil
+}
+
+func (ps *PasswordResetService) authenticateCredentials(client *smtp.Client) error {
+	if ps.smtpConfig.Credentials() != nil && ps.smtpConfig.Credentials().Username() != "" {
+		auth := smtp.PlainAuth(
+			"",
+			ps.smtpConfig.Credentials().Username(),
+			ps.smtpConfig.Credentials().Password(),
+			ps.smtpConfig.Server(),
+		)
+
+		if err := client.Auth(auth); err != nil {
+			return errors.NewSMTPAuthenticationError(err)
+		}
+	}
+
+	return nil
+}
+
+func (ps *PasswordResetService) generateHeaders(request EmailRequest) map[string]string {
+	from := ps.smtpConfig.FromAddress()
+	if ps.smtpConfig.Credentials().Username() != "" {
+		from = fmt.Sprintf("%s <%s>", ps.smtpConfig.FromName(), ps.smtpConfig.FromAddress())
+	}
+
+	headers := make(map[string]string)
+	headers["From"] = from
+	headers["To"] = request.Recipient
+	headers["Subject"] = request.Subject
+	headers["MIME-Version"] = "1.0"
+	headers["Content-Type"] = "text/html; charset=UTF-8"
+
+	if ps.smtpConfig.ReplyTo() != "" {
+		headers["Reply-To"] = ps.smtpConfig.ReplyTo()
+	}
+
+	return headers
+}
+
+func (ps *PasswordResetService) retryEmail(request EmailRequest) {
+	request.RetryCount++
+	request.LastAttempt = time.Now()
+	ps.requests = append(ps.requests, request)
+}
+
+func (ps *PasswordResetService) shouldRetryEmail(now time.Time, request EmailRequest) bool {
+	if now.Sub(request.LastAttempt) < ps.smtpConfig.RetryDelay() {
+		return true
+	}
+
+	if !request.PasswordResetRequest.TokenExpiry.IsZero() &&
+		now.After(request.PasswordResetRequest.TokenExpiry) {
+		return false
+	}
+
+	err := ps.sendEmail(request)
+	if err != nil {
+		ps.retryEmail(request)
+		if request.RetryCount < ps.smtpConfig.MaxRetries() {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (ps *PasswordResetService) sendSMTPMail(serverAddress, fromAddress, recipient, message string, auth smtp.Auth) error {
+	switch ps.smtpConfig.Encryption() {
+	case config.None, config.StartTLS:
+		return smtp.SendMail(serverAddress, auth, fromAddress, []string{recipient}, []byte(message))
+	case config.TLS:
+		return ps.sendMailTLS([]string{recipient}, []byte(message))
+	default:
+		return errors.NewUnsupportedEncryptionTypeError(string(ps.smtpConfig.Encryption()))
+	}
+}
+
+func generateMessage(headers map[string]string, body bytes.Buffer) string {
+	message := ""
+	for k, v := range headers {
+		message += fmt.Sprintf("%s: %s\r\n", k, v)
+	}
+	message += "\r\n" + body.String()
+
+	return message
+}
+
+func generateTemplateData(request EmailRequest, expiryTime time.Time) map[string]any {
+	return map[string]any{
+		"ResetURL":      request.PasswordResetRequest.ResetURL,
+		"Token":         request.PasswordResetRequest.ResetToken,
+		"ExpiryTime":    expiryTime.Format(time.RFC1123),
+		"ExpireInHours": request.PasswordResetRequest.ExpiresIn.Hours(),
+		"AppName":       request.ApplicationID,
+		"UserEmail":     request.Recipient,
+	}
 }
 
 func validateSMTPConfigFields(smtpConfig *config.SMTPConfig) error {
