@@ -3,7 +3,8 @@ package email
 import "time"
 
 type EmailService interface {
-	SendMail(request EmailRequest) error
+	SendEmail(request EmailRequest) error
+	GenerateEmail(request EmailRequest) *EmailRequest
 	SetTemplate(template string) error
 	TestConnection() error
 	ProcessQueue()

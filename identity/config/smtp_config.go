@@ -34,6 +34,7 @@ const (
 	None              EncryptionType = "none"
 	StartTLS          EncryptionType = "starttls"
 	TLS               EncryptionType = "tls"
+	DefaultTTL        time.Duration  = 24 * time.Hour
 	gmailServer       string         = "smtp.gmail.com"
 	outlookServer     string         = "smtp.office365.com"
 	DefaultSMTPPort   int            = 587
@@ -115,6 +116,10 @@ func (sc *SMTPConfig) Server() string {
 	return sc.server
 }
 
+func (sc *SMTPConfig) SetServer(server string) {
+	sc.server = server
+}
+
 func (sc *SMTPConfig) Port() int {
 	return sc.port
 }
@@ -133,6 +138,10 @@ func (sc *SMTPConfig) SetEncryption(encryption EncryptionType) {
 
 func (sc *SMTPConfig) FromAddress() string {
 	return sc.fromAddress
+}
+
+func (sc *SMTPConfig) SetFromAddress(address string) {
+	sc.fromAddress = address
 }
 
 func (sc *SMTPConfig) FromName() string {

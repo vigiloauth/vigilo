@@ -9,6 +9,11 @@ require (
 )
 
 require (
+	github.com/mocktools/go-smtp-mock v1.10.0 // indirect
+	github.com/mocktools/go-smtp-mock/v2 v2.4.0 // indirect
+)
+
+require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/pmezard/go-difflib v1.0.0 // indirect
