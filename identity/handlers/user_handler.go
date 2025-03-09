@@ -6,7 +6,6 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/auth"
-	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -16,18 +15,18 @@ import (
 // communication between HTTP layer and business logic.
 type UserHandler struct {
 	userRegistration *users.UserRegistration
-	userLogin        *auth.UserLogin
-	jwtConfig        *config.JWTConfig
-	TokenBlacklist   *token.TokenBlacklist
+	userLogin        *users.UserLogin
+	jwtConfig        config.JWTConfig
+	sessionService   *auth.SessionService
 }
 
 // NewUserHandler creates a new instance of UserHandler.
-func NewUserHandler(userRegistration *users.UserRegistration, userLogin *auth.UserLogin, jwtConfig *config.JWTConfig) *UserHandler {
+func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin, jwtConfig config.JWTConfig, sessionService *auth.SessionService) *UserHandler {
 	return &UserHandler{
 		userRegistration: userRegistration,
 		userLogin:        userLogin,
 		jwtConfig:        jwtConfig,
-		TokenBlacklist:   token.GetTokenBlacklist(),
+		sessionService:   sessionService,
 	}
 }
 
@@ -53,7 +52,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.CreateSession(w, user.Email, h.jwtConfig); err != nil {
+	if err := h.sessionService.CreateSession(w, user.Email, h.jwtConfig.ExpirationTime()); err != nil {
 		utils.WriteError(w, err)
 		return
 	}
@@ -86,7 +85,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.CreateSession(w, user.Email, h.jwtConfig); err != nil {
+	if err := h.sessionService.CreateSession(w, user.Email, h.jwtConfig.ExpirationTime()); err != nil {
 		utils.WriteError(w, err)
 		return
 	}
@@ -99,7 +98,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 // adds the token to the blacklist to prevent further use, and sends an appropriate response.
 // If the Authorization header is missing or the token is invalid, it returns an error.
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	if err := auth.InvalidateSession(w, r, h.jwtConfig, h.TokenBlacklist); err != nil {
+	if err := h.sessionService.InvalidateSession(w, r); err != nil {
 		utils.WriteError(w, err)
 		return
 	}

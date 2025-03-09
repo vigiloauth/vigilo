@@ -8,15 +8,17 @@ import (
 
 // UserRegistration handles user registration operations.
 type UserRegistration struct {
-	userStore UserStore
-	jwtConfig *config.JWTConfig
+	userStore    UserStore
+	jwtConfig    *config.JWTConfig
+	tokenService *token.TokenService
 }
 
 // NewUserRegistration creates a new UserRegistration instance.
-func NewUserRegistration(userStore UserStore, jwtConfig *config.JWTConfig) *UserRegistration {
+func NewUserRegistration(userStore UserStore, jwtConfig *config.JWTConfig, tokenService *token.TokenService) *UserRegistration {
 	return &UserRegistration{
-		userStore: userStore,
-		jwtConfig: jwtConfig,
+		userStore:    userStore,
+		jwtConfig:    jwtConfig,
+		tokenService: tokenService,
 	}
 }
 
@@ -34,7 +36,7 @@ func (r *UserRegistration) Register(user *User) (*UserRegistrationResponse, erro
 		return nil, err
 	}
 
-	jwtToken, err := token.GenerateJWT(user.Email, *r.jwtConfig)
+	jwtToken, err := r.tokenService.GenerateToken(user.Email, r.jwtConfig.ExpirationTime())
 	if err != nil {
 		return nil, err
 	}

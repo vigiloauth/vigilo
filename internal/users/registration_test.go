@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
@@ -12,7 +13,8 @@ func setupUserRegistration(t *testing.T) (*UserRegistration, UserStore) {
 	ResetInMemoryUserStore()
 	userStore := GetInMemoryUserStore()
 	jwtConfig := config.NewJWTConfig()
-	userRegistration := NewUserRegistration(userStore, jwtConfig)
+	tokenService := token.NewTokenService(jwtConfig)
+	userRegistration := NewUserRegistration(userStore, jwtConfig, tokenService)
 
 	t.Cleanup(func() {
 		ResetInMemoryUserStore()

@@ -10,13 +10,21 @@ import (
 	"github.com/vigiloauth/vigilo/internal/token"
 )
 
-func TestCreateSession(t *testing.T) {
+func setupTestEnvironment() (*SessionService, *config.JWTConfig, *token.TokenService, token.TokenBlacklist) {
 	jwtConfig := config.NewJWTConfig()
+	tokenService := token.NewTokenService(jwtConfig)
+	tokenBlacklist := token.GetTokenBlacklist()
+
+	return NewSessionService(tokenService, tokenBlacklist), jwtConfig, tokenService, tokenBlacklist
+}
+
+func TestCreateSession(t *testing.T) {
+	sessionService, jwtConfig, _, _ := setupTestEnvironment()
 
 	w := httptest.NewRecorder()
 	email := "test@example.com"
 
-	err := CreateSession(w, email, jwtConfig)
+	err := sessionService.CreateSession(w, email, jwtConfig.ExpirationTime())
 	assert.NoError(t, err)
 
 	cookie := w.Result().Cookies()[0]
@@ -28,19 +36,17 @@ func TestCreateSession(t *testing.T) {
 }
 
 func TestInvalidateSession(t *testing.T) {
-	jwtConfig := config.NewJWTConfig()
-
-	tokenBlacklist := token.GetTokenBlacklist()
+	sessionService, jwtConfig, tokenService, tokenBlacklist := setupTestEnvironment()
 
 	email := "test@example.com"
-	validToken, _ := token.GenerateJWT(email, *jwtConfig)
+	validToken, _ := tokenService.GenerateToken(email, jwtConfig.ExpirationTime())
 
 	r := httptest.NewRequest("POST", "/invalidate", nil)
 	r.Header.Set("Authorization", "Bearer "+validToken)
 
 	w := httptest.NewRecorder()
 
-	err := InvalidateSession(w, r, jwtConfig, tokenBlacklist)
+	err := sessionService.InvalidateSession(w, r)
 	assert.NoError(t, err)
 
 	cookie := w.Result().Cookies()[0]
@@ -50,5 +56,6 @@ func TestInvalidateSession(t *testing.T) {
 	assert.True(t, cookie.Secure)
 	assert.Equal(t, http.SameSiteStrictMode, cookie.SameSite)
 
+	// Assert the token is blacklisted
 	assert.True(t, tokenBlacklist.IsTokenBlacklisted(validToken))
 }
