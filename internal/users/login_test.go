@@ -8,19 +8,19 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/auth"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 func setupUserLogin(t *testing.T) (*UserLogin, UserStore) {
 	ResetInMemoryUserStore()
+	config.NewServerConfig()
+
 	userStore := GetInMemoryUserStore()
 	loginAttemptStore := auth.NewLoginAttemptStore()
-	cfg := config.NewServerConfig()
-	tokenService := token.NewTokenService(cfg.JWTConfig())
+	tokenService := token.NewTokenService()
 
-	userLogin := NewUserLogin(userStore, loginAttemptStore, cfg, tokenService)
+	userLogin := NewUserLogin(userStore, loginAttemptStore, tokenService)
 
 	t.Cleanup(func() {
 		ResetInMemoryUserStore()
@@ -31,7 +31,7 @@ func setupUserLogin(t *testing.T) (*UserLogin, UserStore) {
 
 func TestUserLogin_Successful(t *testing.T) {
 	userLogin, userStore := setupUserLogin(t)
-	encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+	encryptedPassword, _ := utils.HashPassword(utils.TestConstants.Password)
 	user := NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 
@@ -64,7 +64,7 @@ func TestUserLogin_Login(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			userLogin, userStore := setupUserLogin(t)
 			if tt.name == "Login fails with invalid password" {
-				encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+				encryptedPassword, _ := utils.HashPassword(utils.TestConstants.Password)
 				user := NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 				_ = userStore.AddUser(user)
 			}
@@ -81,7 +81,7 @@ func TestUserLogin_Login(t *testing.T) {
 
 func TestUserLogin_FailedAttempts(t *testing.T) {
 	userLogin, userStore := setupUserLogin(t)
-	encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+	encryptedPassword, _ := utils.HashPassword(utils.TestConstants.Password)
 	user := NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 
@@ -100,7 +100,7 @@ func TestUserLogin_FailedAttempts(t *testing.T) {
 
 func TestUserLogin_ArtificialDelay(t *testing.T) {
 	userLogin, userStore := setupUserLogin(t)
-	encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+	encryptedPassword, _ := utils.HashPassword(utils.TestConstants.Password)
 	user := NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 
@@ -117,7 +117,7 @@ func TestUserLogin_ArtificialDelay(t *testing.T) {
 
 func TestUserLogin_AccountLocking(t *testing.T) {
 	userLogin, userStore := setupUserLogin(t)
-	encryptedPassword, _ := security.HashPassword(utils.TestConstants.Password)
+	encryptedPassword, _ := utils.HashPassword(utils.TestConstants.Password)
 	user := NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 	_ = userStore.AddUser(user)
 

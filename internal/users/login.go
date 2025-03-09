@@ -6,11 +6,10 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/auth"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/token"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-// UserLogin handles user login operations.
 type UserLogin struct {
 	userStore         UserStore
 	loginAttemptStore *auth.LoginAttemptStore
@@ -20,14 +19,14 @@ type UserLogin struct {
 	tokenService      *token.TokenService
 }
 
-func NewUserLogin(userStore UserStore, loginAttemptStore *auth.LoginAttemptStore, config *config.ServerConfig, tokenService *token.TokenService) *UserLogin {
+func NewUserLogin(userStore UserStore, loginAttemptStore *auth.LoginAttemptStore, tokenService *token.TokenService) *UserLogin {
 	return &UserLogin{
 		userStore:         userStore,
 		loginAttemptStore: loginAttemptStore,
-		config:            config,
+		config:            config.GetServerConfig(),
 		tokenService:      tokenService,
-		maxFailedAttempts: config.LoginConfig().MaxFailedAttempts(),
-		artificialDelay:   config.LoginConfig().Delay(),
+		maxFailedAttempts: config.GetServerConfig().LoginConfig().MaxFailedAttempts(),
+		artificialDelay:   config.GetServerConfig().LoginConfig().Delay(),
 	}
 }
 
@@ -48,7 +47,7 @@ func (l *UserLogin) Login(loginUser *User, loginAttempt *auth.LoginAttempt) (*Us
 	}
 
 	loginAttempt.UserID = retrievedUser.ID
-	if passwordsAreEqual := security.ComparePasswordHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
+	if passwordsAreEqual := utils.ComparePasswordHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
 		l.handleFailedLoginAttempt(&retrievedUser, loginAttempt)
 		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()

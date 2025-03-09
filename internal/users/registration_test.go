@@ -12,9 +12,8 @@ import (
 func setupUserRegistration(t *testing.T) (*UserRegistration, UserStore) {
 	ResetInMemoryUserStore()
 	userStore := GetInMemoryUserStore()
-	jwtConfig := config.NewJWTConfig()
-	tokenService := token.NewTokenService(jwtConfig)
-	userRegistration := NewUserRegistration(userStore, jwtConfig, tokenService)
+	tokenService := token.NewTokenService()
+	userRegistration := NewUserRegistration(userStore, tokenService)
 
 	t.Cleanup(func() {
 		ResetInMemoryUserStore()
@@ -136,10 +135,13 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 }
 
 func configurePasswordPolicy() {
-	config.GetPasswordConfiguration().ConfigurePasswordPolicy(
+	pc := config.NewPasswordConfig(
 		config.WithUppercase(),
 		config.WithNumber(),
 		config.WithSymbol(),
 		config.WithMinLength(10),
+	)
+	config.NewServerConfig(
+		config.WithPasswordConfig(pc),
 	)
 }

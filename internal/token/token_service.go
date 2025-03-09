@@ -12,8 +12,8 @@ type TokenService struct {
 	jwtConfig *config.JWTConfig
 }
 
-func NewTokenService(jwtConfig *config.JWTConfig) *TokenService {
-	return &TokenService{jwtConfig: jwtConfig}
+func NewTokenService() *TokenService {
+	return &TokenService{jwtConfig: config.GetServerConfig().JWTConfig()}
 }
 
 func (ts *TokenService) GenerateToken(subject string, expirationTime time.Duration) (string, error) {

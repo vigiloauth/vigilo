@@ -20,7 +20,8 @@ type PasswordResetService struct {
 	requestsMutex sync.Mutex
 }
 
-func NewPasswordResetService(smtpConfig *config.SMTPConfig) (*PasswordResetService, error) {
+func NewPasswordResetService() (*PasswordResetService, error) {
+	smtpConfig := config.GetServerConfig().SMTPConfig()
 	if err := validateSMTPConfigFields(smtpConfig); err != nil {
 		return nil, err
 	}

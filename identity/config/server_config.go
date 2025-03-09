@@ -1,6 +1,9 @@
 package config
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 type ServerConfig struct {
 	port              int
@@ -12,10 +15,16 @@ type ServerConfig struct {
 	jwtConfig         *JWTConfig
 	loginConfig       *LoginConfig
 	smtpConfig        *SMTPConfig
+	passwordConfig    *PasswordConfig
 	requestsPerMinute int
 }
 
 type ServerConfigOptions func(*ServerConfig)
+
+var (
+	serverConfigInstance *ServerConfig
+	serverConfigOnce     sync.Once
+)
 
 const (
 	defaultPort              int           = 8443
@@ -25,6 +34,16 @@ const (
 	defaultRequestsPerMinute int           = 100
 )
 
+// GetServerConfig returns the global server configuration
+func GetServerConfig() *ServerConfig {
+	if serverConfigInstance == nil {
+		serverConfigOnce.Do(func() {
+			serverConfigInstance = NewServerConfig()
+		})
+	}
+	return serverConfigInstance
+}
+
 func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 	sc := &ServerConfig{
 		port:              defaultPort,
@@ -33,6 +52,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		writeTimeout:      defaultWriteTimeout,
 		jwtConfig:         NewJWTConfig(),
 		loginConfig:       NewLoginConfig(),
+		passwordConfig:    NewPasswordConfig(),
 		requestsPerMinute: defaultRequestsPerMinute,
 	}
 
@@ -40,6 +60,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		opt(sc)
 	}
 
+	serverConfigInstance = sc
 	return sc
 }
 
@@ -101,6 +122,12 @@ func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
 	}
 }
 
+func WithPasswordConfig(passwordConfig *PasswordConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.passwordConfig = passwordConfig
+	}
+}
+
 func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if requests > defaultRequestsPerMinute {
@@ -143,6 +170,10 @@ func (sc *ServerConfig) LoginConfig() *LoginConfig {
 
 func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
 	return sc.smtpConfig
+}
+
+func (sc *ServerConfig) PasswordConfig() *PasswordConfig {
+	return sc.passwordConfig
 }
 
 func (sc *ServerConfig) MaxRequestsPerMinute() int {

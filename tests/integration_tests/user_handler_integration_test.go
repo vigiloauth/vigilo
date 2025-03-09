@@ -11,15 +11,13 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/server"
-	"github.com/vigiloauth/vigilo/internal/security"
 	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 func setupIdentityServer(endpoint string, body []byte) *httptest.ResponseRecorder {
-	serverConfig := config.NewServerConfig()
-	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
+	vigiloIdentityServer := server.NewVigiloIdentityServer()
 	req := httptest.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(body))
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
@@ -37,12 +35,13 @@ func checkErrorResponse(t *testing.T, responseBody []byte) {
 }
 
 func TestUserHandler_HandleUserRegistration(t *testing.T) {
-	config.GetPasswordConfiguration().ConfigurePasswordPolicy(
+	pc := config.NewPasswordConfig(
 		config.WithUppercase(),
 		config.WithNumber(),
 		config.WithSymbol(),
 		config.WithMinLength(10),
 	)
+	config.NewServerConfig(config.WithPasswordConfig(pc))
 
 	tests := []struct {
 		name           string
@@ -135,7 +134,7 @@ func TestUserHandler_SuccessfulUserLogin(t *testing.T) {
 	users.ResetInMemoryUserStore()
 	userStore := users.GetInMemoryUserStore()
 	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	hashedPassword, _ := security.HashPassword(user.Password)
+	hashedPassword, _ := utils.HashPassword(user.Password)
 	user.Password = hashedPassword
 	userStore.AddUser(user)
 
@@ -155,7 +154,7 @@ func TestUserHandler_SuccessfulLogout(t *testing.T) {
 	users.ResetInMemoryUserStore()
 	userStore := users.GetInMemoryUserStore()
 	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	hashedPassword, _ := security.HashPassword(user.Password)
+	hashedPassword, _ := utils.HashPassword(user.Password)
 	user.Password = hashedPassword
 	userStore.AddUser(user)
 
@@ -164,8 +163,9 @@ func TestUserHandler_SuccessfulLogout(t *testing.T) {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Logout, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
-	serverConfig := config.NewServerConfig()
-	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
+
+	config.NewServerConfig()
+	vigiloIdentityServer := server.NewVigiloIdentityServer()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {
@@ -177,18 +177,19 @@ func TestUserHandler_ProtectedRouteWithExpiredToken(t *testing.T) {
 	users.ResetInMemoryUserStore()
 	userStore := users.GetInMemoryUserStore()
 	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	hashedPassword, _ := security.HashPassword(user.Password)
+	hashedPassword, _ := utils.HashPassword(user.Password)
 	user.Password = hashedPassword
 	userStore.AddUser(user)
 
 	expiredToken := generateExpiredToken()
 
-	// Step 3: Create a request to the protected route with the expired token
+	// Create a request to the protected route with the expired token
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Logout, nil)
 	req.Header.Set("Authorization", "Bearer "+expiredToken)
-	serverConfig := config.NewServerConfig()
-	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
+
+	config.NewServerConfig()
+	vigiloIdentityServer := server.NewVigiloIdentityServer()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
@@ -223,8 +224,8 @@ func simulateLogin(t *testing.T, email, password string) string {
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Login, bytes.NewBuffer(loginBody))
 
-	serverConfig := config.NewServerConfig()
-	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
+	config.NewServerConfig()
+	vigiloIdentityServer := server.NewVigiloIdentityServer()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusOK {

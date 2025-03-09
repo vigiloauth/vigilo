@@ -11,12 +11,13 @@ import (
 )
 
 type Middleware struct {
-	serverConfig config.ServerConfig
+	serverConfig *config.ServerConfig
 	tokenService *token.TokenService
 	rateLimiter  *RateLimiter
 }
 
-func NewMiddleware(serverConfig config.ServerConfig, tokenService *token.TokenService) *Middleware {
+func NewMiddleware(tokenService *token.TokenService) *Middleware {
+	serverConfig := config.GetServerConfig()
 	return &Middleware{
 		serverConfig: serverConfig,
 		tokenService: tokenService,

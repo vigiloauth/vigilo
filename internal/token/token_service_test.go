@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/vigiloauth/vigilo/identity/config"
 )
 
 func TestGenerateToken(t *testing.T) {
@@ -32,8 +31,7 @@ func TestGenerateToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jwtConfig := config.NewJWTConfig()
-			tokenService := NewTokenService(jwtConfig)
+			tokenService := NewTokenService()
 
 			tokenString, err := tokenService.GenerateToken(tt.subject, tt.expirationTime)
 
@@ -76,8 +74,7 @@ func TestParseToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jwtConfig := config.NewJWTConfig()
-			tokenService := NewTokenService(jwtConfig)
+			tokenService := NewTokenService()
 
 			if tt.tokenString == "valid_token_string" {
 				validToken, err := tokenService.GenerateToken(tt.expectedSubject, time.Hour)

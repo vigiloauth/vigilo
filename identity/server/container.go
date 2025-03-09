@@ -27,23 +27,23 @@ type ServiceContainer struct {
 	httpServer        *http.Server
 }
 
-func NewServiceContainer(config config.ServerConfig) *ServiceContainer {
+func NewServiceContainer() *ServiceContainer {
 	container := &ServiceContainer{}
 
-	container.tokenService = token.NewTokenService(config.JWTConfig())
+	container.tokenService = token.NewTokenService()
 	container.tokenBlacklist = token.GetTokenBlacklist()
 	container.userStore = users.GetInMemoryUserStore()
 	container.loginAttemptStore = auth.NewLoginAttemptStore()
 
 	container.sessionService = auth.NewSessionService(container.tokenService, container.tokenBlacklist)
-	container.userRegistration = users.NewUserRegistration(container.userStore, config.JWTConfig(), container.tokenService)
-	container.userLogin = users.NewUserLogin(container.userStore, container.loginAttemptStore, &config, container.tokenService)
+	container.userRegistration = users.NewUserRegistration(container.userStore, container.tokenService)
+	container.userLogin = users.NewUserLogin(container.userStore, container.loginAttemptStore, container.tokenService)
 
-	container.userHandler = handlers.NewUserHandler(container.userRegistration, container.userLogin, *config.JWTConfig(), container.sessionService)
-	container.middleware = middleware.NewMiddleware(config, container.tokenService)
+	container.userHandler = handlers.NewUserHandler(container.userRegistration, container.userLogin, container.sessionService)
+	container.middleware = middleware.NewMiddleware(container.tokenService)
 
 	container.tlsConfig = initializeTLSConfig()
-	container.httpServer = initializeHTTPServer(config, container.tlsConfig)
+	container.httpServer = initializeHTTPServer(container.tlsConfig)
 
 	return container
 }
@@ -60,11 +60,11 @@ func initializeTLSConfig() *tls.Config {
 	}
 }
 
-func initializeHTTPServer(serverConfig config.ServerConfig, tlsConfig *tls.Config) *http.Server {
+func initializeHTTPServer(tlsConfig *tls.Config) *http.Server {
 	return &http.Server{
-		Addr:         fmt.Sprintf(":%d", serverConfig.Port()),
-		ReadTimeout:  serverConfig.ReadTimeout(),
-		WriteTimeout: serverConfig.WriteTimeout(),
+		Addr:         fmt.Sprintf(":%d", config.GetServerConfig().Port()),
+		ReadTimeout:  config.GetServerConfig().ReadTimeout(),
+		WriteTimeout: config.GetServerConfig().WriteTimeout(),
 		TLSConfig:    tlsConfig,
 	}
 }

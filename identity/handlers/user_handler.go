@@ -16,16 +16,16 @@ import (
 type UserHandler struct {
 	userRegistration *users.UserRegistration
 	userLogin        *users.UserLogin
-	jwtConfig        config.JWTConfig
+	jwtConfig        *config.JWTConfig
 	sessionService   *auth.SessionService
 }
 
 // NewUserHandler creates a new instance of UserHandler.
-func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin, jwtConfig config.JWTConfig, sessionService *auth.SessionService) *UserHandler {
+func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin, sessionService *auth.SessionService) *UserHandler {
 	return &UserHandler{
 		userRegistration: userRegistration,
 		userLogin:        userLogin,
-		jwtConfig:        jwtConfig,
+		jwtConfig:        config.GetServerConfig().JWTConfig(),
 		sessionService:   sessionService,
 	}
 }

@@ -12,7 +12,7 @@ import (
 
 func setupTestEnvironment() (*SessionService, *config.JWTConfig, *token.TokenService, token.TokenBlacklist) {
 	jwtConfig := config.NewJWTConfig()
-	tokenService := token.NewTokenService(jwtConfig)
+	tokenService := token.NewTokenService()
 	tokenBlacklist := token.GetTokenBlacklist()
 
 	return NewSessionService(tokenService, tokenBlacklist), jwtConfig, tokenService, tokenBlacklist

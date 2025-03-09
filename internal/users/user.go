@@ -147,7 +147,7 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 		return
 	}
 
-	passwordConfig := config.GetPasswordConfiguration()
+	passwordConfig := config.GetServerConfig().PasswordConfig()
 	minimumLength := passwordConfig.MinLength()
 
 	if len(password) < minimumLength {

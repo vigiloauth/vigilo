@@ -22,12 +22,9 @@ type VigiloIdentityServer struct {
 }
 
 // NewVigiloIdentityServer creates and initializes a new instance of IdentityServer.
-func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityServer {
-	if serverConfig == nil {
-		serverConfig = config.NewServerConfig()
-	}
-
-	container := NewServiceContainer(*serverConfig)
+func NewVigiloIdentityServer() *VigiloIdentityServer {
+	container := NewServiceContainer()
+	serverConfig := config.GetServerConfig()
 
 	server := &VigiloIdentityServer{
 		router:       chi.NewRouter(),
