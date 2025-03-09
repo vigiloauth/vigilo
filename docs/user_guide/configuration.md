@@ -69,26 +69,26 @@ func main() {
 	writeTimeout := 15 8 time.Second
 	requestsPerMinute := 100
 
-	serverConfig := NewServerConfig(
-		WithPort(port),
-		WithCertFilePath(certFilePath),
-		WithKeyFilePath(keyFilePath),
-		WithReadTimeout(readTimeout),
-		WithWriteTimeout(writeTimeout)
-		WithMaxRequestsPerMinute(requestsPerMinute)
+	config.NewServerConfig(
+		config.WithPort(port),
+		config.WithCertFilePath(certFilePath),
+		config.WithKeyFilePath(keyFilePath),
+		config.WithReadTimeout(readTimeout),
+		config.WithWriteTimeout(writeTimeout)
+		config.WithMaxRequestsPerMinute(requestsPerMinute)
 	)
 
-	vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
+	vigiloIdentityServer := server.NewVigiloIdentityServer()
 }
 ```
 You can also customize these configurations by providing specific options:
 ``` go
-serverConfig := NewServerConfig(
-    WithLoginConfig(customLoginConfig),
-    WithJWTConfig(customJWTConfig),
-	WithSMTPConfig(smtpConfig),
+config.NewServerConfig(
+    config.WithLoginConfig(customLoginConfig),
+    config.WithJWTConfig(customJWTConfig),
+	config.WithSMTPConfig(smtpConfig),
 )
-vigiloIdentityServer := server.NewVigiloIdentityServer(serverConfig)
+vigiloIdentityServer := server.NewVigiloIdentityServer()
 ```
 By using these options, you can tailor the server's behavior to match your specific requirements while still benefiting from sensible default values.
 
@@ -101,22 +101,22 @@ By default, the server configuration uses the following settings:
 - **RequestsPerMinute:** 100
 
 ## 3. Customizing Password Policy
-To customize the password policy, use the `GetPasswordConfiguration().ConfigurePasswordPolicy(options)` singleton to access the configuration instance and update the settings.
+To customize the password policy, use the `NewPasswordConfig(options)` method and then update the server config instance.
 ```go
 package main
 
 import "github.com/vigiloauth/vigilo/config"
 
 func main() {
-	// Get the password configuration instance.
-	passwordConfig := GetPasswordConfiguration()
-
-	// Customize the settings.
-	passwordConfig.ConfigurePasswordPolicy(
+	pc := config.NewPasswordConfig(
 		WithUppercase(),
 		WithNumber(),
 		WithSymbol(),
 		WithMinLength(12),
+	)
+
+	config.NewServerConfig(
+		config.WithPasswordConfig(pc)
 	)
 }
 ```
@@ -145,14 +145,14 @@ func main() {
 	expirationTime := 15 * time.Minute
 	signingMethod := jwt.SigningMethodHS256
 
-	jwtConfig := NewJWTConfig(
-		WithSecret(secret),
-		WithExpirationTime(expirationTime),
-		WithSigningMethod(signingMethod),
+	jwtConfig := config.NewJWTConfig(
+		config.WithSecret(secret),
+		config.WithExpirationTime(expirationTime),
+		config.WithSigningMethod(signingMethod),
 	)
 
-	serverConfig := NewServerConfig(
-		WithJWTConfig(jwtConfig),
+	serverConfig := config.NewServerConfig(
+		config.WithJWTConfig(jwtConfig),
 	)
 }
 ```
@@ -184,9 +184,13 @@ func main() {
 	maxFailedAttempts := 5
 	delay := 500 * time.Millisecond
 
-	loginConfig := NewLoginConfig(
-		WithMaxFailedAttempts(maxFailedAttempts),
-		WithDelay(delay),
+	loginConfig := config.NewLoginConfig(
+		config.WithMaxFailedAttempts(maxFailedAttempts),
+		config.WithDelay(delay),
+	)
+
+	config.NewServerConfig(
+		config.WithLoginConfig(loginConfig),
 	)
 }
 ```
@@ -212,7 +216,7 @@ func main() {
 	templatePath := "/path/to/templates"
 
 	// Create the SMTP configuration using Gmail as an example.
-	smtpConfig, err := DefaultGmailConfig(fromAddress, fromName)
+	smtpConfig, err := config.DefaultGmailConfig(fromAddress, fromName)
 	if err != nil {
 		fmt.Println("Error creating SMTP config:", err)
 	}
