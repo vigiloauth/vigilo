@@ -14,21 +14,21 @@ import (
 // It encapsulates user registration functionality and manages the
 // communication between HTTP layer and business logic.
 type UserHandler struct {
-	userRegistration  *users.UserRegistration
-	userLogin         *users.UserLogin
-	userPasswordReset *users.UserPasswordReset
-	sessionService    *auth.SessionService
-	jwtConfig         *config.JWTConfig
+	registrationService  *auth.RegistrationService
+	authService          *auth.AuthenticationService
+	passwordResetService *auth.PasswordResetService
+	sessionService       *auth.SessionService
+	jwtConfig            *config.JWTConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
-func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin, userPasswordReset *users.UserPasswordReset, sessionService *auth.SessionService) *UserHandler {
+func NewUserHandler(registrationService *auth.RegistrationService, authService *auth.AuthenticationService, passwordResetService *auth.PasswordResetService, sessionService *auth.SessionService) *UserHandler {
 	return &UserHandler{
-		userRegistration:  userRegistration,
-		userLogin:         userLogin,
-		userPasswordReset: userPasswordReset,
-		sessionService:    sessionService,
-		jwtConfig:         config.GetServerConfig().JWTConfig(),
+		registrationService:  registrationService,
+		authService:          authService,
+		passwordResetService: passwordResetService,
+		sessionService:       sessionService,
+		jwtConfig:            config.GetServerConfig().JWTConfig(),
 	}
 }
 
@@ -48,7 +48,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser(request.Username, request.Email, request.Password)
-	response, err := h.userRegistration.Register(user)
+	response, err := h.registrationService.RegisterUser(user)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
@@ -81,7 +81,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	user := users.NewUser("", request.Email, request.Password)
 	loginAttempt := auth.NewLoginAttempt(r.RemoteAddr, r.Header.Get("X-Forwarded-For"), "", r.UserAgent())
 
-	response, err := h.userLogin.Login(user, loginAttempt)
+	response, err := h.authService.AuthenticateUser(user, loginAttempt)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
@@ -115,7 +115,7 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.userPasswordReset.SendPasswordResetEmail(request.Email)
+	response, err := h.passwordResetService.SendPasswordResetEmail(request.Email)
 	if err != nil {
 		utils.WriteError(w, err)
 		return

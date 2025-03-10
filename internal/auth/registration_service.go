@@ -1,31 +1,32 @@
-package users
+package auth
 
 import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/token"
+	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-// UserRegistration handles user registration operations.
-type UserRegistration struct {
-	userStore    UserStore
+// RegistrationService handles user registration operations.
+type RegistrationService struct {
+	userStore    users.UserStore
 	jwtConfig    *config.JWTConfig
 	tokenService *token.TokenService
 }
 
-// NewUserRegistration creates a new UserRegistration instance.
-func NewUserRegistration(userStore UserStore, tokenService *token.TokenService) *UserRegistration {
-	return &UserRegistration{
+// NewRegistrationService creates a new UserRegistration instance.
+func NewRegistrationService(userStore users.UserStore, tokenService *token.TokenService) *RegistrationService {
+	return &RegistrationService{
 		userStore:    userStore,
 		jwtConfig:    config.GetServerConfig().JWTConfig(),
 		tokenService: tokenService,
 	}
 }
 
-// Register registers a new user in the system.
+// RegisterUser registers a new user in the system.
 // It takes a User object as input, hashes the user's password, and stores the user in the userStore.
 // Returns the registered User object and an error if any occurred during the process.
-func (r *UserRegistration) Register(user *User) (*UserRegistrationResponse, error) {
+func (r *RegistrationService) RegisterUser(user *users.User) (*users.UserRegistrationResponse, error) {
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
 		return nil, err
@@ -41,5 +42,5 @@ func (r *UserRegistration) Register(user *User) (*UserRegistrationResponse, erro
 		return nil, err
 	}
 
-	return NewUserRegistrationResponse(user, jwtToken), nil
+	return users.NewUserRegistrationResponse(user, jwtToken), nil
 }

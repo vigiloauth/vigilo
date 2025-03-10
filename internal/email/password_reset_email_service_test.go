@@ -46,35 +46,35 @@ func createRequest() EmailRequest {
 	}
 }
 
-func TestNewPasswordResetService_ValidSMTPConfig(t *testing.T) {
+func TestNewPasswordResetEmailService_ValidSMTPConfig(t *testing.T) {
 	setupSMTPConfig()
-	ps, err := NewPasswordResetService()
+	ps, err := NewPasswordResetEmailService()
 
 	assert.NoError(t, err, "failed to initialize password reset service")
 	assert.NotNil(t, ps)
 }
 
-func TestNewPasswordResetService_InvalidSMTPConfig(t *testing.T) {
+func TestNewPasswordResetEmailService_InvalidSMTPConfig(t *testing.T) {
 	invalidSMTPConfig := setupSMTPConfig()
 	invalidSMTPConfig.SetPort(0)
 	invalidSMTPConfig.SetServer("")
 
-	ps, err := NewPasswordResetService()
+	ps, err := NewPasswordResetEmailService()
 	assert.Error(t, err, "failed to initialize password reset service")
 	assert.Nil(t, ps)
 }
 
-func TestNewPasswordResetService_LoadingTemplateFailure(t *testing.T) {
+func TestNewPasswordResetEmailService_LoadingTemplateFailure(t *testing.T) {
 	smtpConfig := setupSMTPConfig()
 	smtpConfig.SetTemplatePath("/invalid/template/path")
 
-	_, err := NewPasswordResetService()
+	_, err := NewPasswordResetEmailService()
 	assert.Error(t, err, "expected an error while loading email template")
 }
 
 func TestGenerateEmail(t *testing.T) {
 	setupSMTPConfig()
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	request := createRequest()
 	emailRequest := ps.GenerateEmail(request)
@@ -86,7 +86,7 @@ func TestGenerateEmail(t *testing.T) {
 
 func TestSendEmail_Failure(t *testing.T) {
 	setupSMTPConfig()
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	request := createRequest()
 	err := ps.SendEmail(request)
@@ -95,7 +95,7 @@ func TestSendEmail_Failure(t *testing.T) {
 
 func TestTestConnection_Success(t *testing.T) {
 	setupSMTPConfig()
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	cfg := smtpmock.ConfigurationAttr{
 		HostAddress:       smtpServer,
@@ -117,7 +117,7 @@ func TestTestConnection_Success(t *testing.T) {
 func TestTestConnection_StartTLSFailure(t *testing.T) {
 	smtpConfig := setupSMTPConfig()
 	smtpConfig.SetEncryption(config.StartTLS)
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	cfg := smtpmock.ConfigurationAttr{
 		HostAddress:       smtpServer,
@@ -144,7 +144,7 @@ func TestTestConnection_AuthenticationFailure(t *testing.T) {
 	smtpConfig.SetEncryption(config.None)
 	smtpConfig.SetCredentials("username", "password")
 
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	cfg := smtpmock.ConfigurationAttr{
 		HostAddress:       smtpServer,
@@ -168,7 +168,7 @@ func TestTestConnection_AuthenticationFailure(t *testing.T) {
 func TestTestConnection_TLSFailure(t *testing.T) {
 	smtpConfig := setupSMTPConfig()
 	smtpConfig.SetEncryption(config.TLS)
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	cfg := smtpmock.ConfigurationAttr{
 		HostAddress:       smtpServer,
@@ -190,7 +190,7 @@ func TestTestConnection_TLSFailure(t *testing.T) {
 func TestTestConnection_UnsupportedEncryptionType(t *testing.T) {
 	smtpConfig := setupSMTPConfig()
 	smtpConfig.SetEncryption("unsupported_encryption")
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	err := ps.TestConnection()
 	assert.Error(t, err)
@@ -199,7 +199,7 @@ func TestTestConnection_UnsupportedEncryptionType(t *testing.T) {
 
 func TestTestConnection_Failure(t *testing.T) {
 	setupSMTPConfig()
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	err := ps.TestConnection()
 	assert.Error(t, err)
@@ -207,7 +207,7 @@ func TestTestConnection_Failure(t *testing.T) {
 
 func TestProcessQueue_EmptyQueue(t *testing.T) {
 	setupSMTPConfig()
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	ps.ProcessQueue() // Should not panic or throw any error
 }
@@ -217,7 +217,7 @@ func TestProcessQueue_SkipsExpiredToken(t *testing.T) {
 	smtpConfig.SetMaxRetries(3)
 	smtpConfig.SetRetryDelay(1 * time.Millisecond)
 
-	ps, err := NewPasswordResetService()
+	ps, err := NewPasswordResetEmailService()
 	assert.NoError(t, err)
 
 	expiredRequest := createRequest()
@@ -256,7 +256,7 @@ func TestProcessQueue_Retry(t *testing.T) {
 	smtpConfig.SetMaxRetries(2)
 	smtpConfig.SetRetryDelay(1 * time.Second)
 
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	request := createRequest()
 	ps.SendEmail(request)
@@ -272,7 +272,7 @@ func TestStartQueueProcessor(t *testing.T) {
 	smtpConfig.SetEncryption(config.StartTLS)
 	smtpConfig.SetRetryDelay(1 * time.Second)
 
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 
 	go ps.StartQueueProcessor(2 * time.Second)
 	time.Sleep(5 * time.Second)
@@ -294,7 +294,7 @@ func TestSetTemplate_Success(t *testing.T) {
 	smtpConfig := setupSMTPConfig()
 	smtpConfig.SetTemplatePath(tmpFile.Name())
 
-	ps, _ := NewPasswordResetService()
+	ps, _ := NewPasswordResetEmailService()
 	err = ps.SetTemplate(templateContent)
 	assert.NoError(t, err, "failed to set template")
 }
@@ -305,6 +305,6 @@ func TestSMTPConfigValidation_EmptyFields(t *testing.T) {
 	smtpConfig.SetEncryption("")
 	smtpConfig.SetFromAddress("")
 
-	_, err := NewPasswordResetService()
+	_, err := NewPasswordResetEmailService()
 	assert.Error(t, err, "expected an error when validating an invalid SMTP configuration")
 }

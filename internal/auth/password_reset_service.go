@@ -1,4 +1,4 @@
-package users
+package auth
 
 import (
 	"time"
@@ -6,23 +6,24 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/email"
 	"github.com/vigiloauth/vigilo/internal/token"
+	"github.com/vigiloauth/vigilo/internal/users"
 )
 
-type UserPasswordReset struct {
+type PasswordResetService struct {
 	tokenService *token.TokenService
-	userStore    UserStore
+	userStore    users.UserStore
 	emailService email.EmailService
 }
 
-func NewUserPasswordReset(tokenService *token.TokenService, userStore UserStore, emailService email.EmailService) *UserPasswordReset {
-	return &UserPasswordReset{
+func NewPasswordResetService(tokenService *token.TokenService, userStore users.UserStore, emailService email.EmailService) *PasswordResetService {
+	return &PasswordResetService{
 		tokenService: tokenService,
 		userStore:    userStore,
 		emailService: emailService,
 	}
 }
 
-func (p *UserPasswordReset) SendPasswordResetEmail(userEmail string) (*UserPasswordResetResponse, error) {
+func (p *PasswordResetService) SendPasswordResetEmail(userEmail string) (*users.UserPasswordResetResponse, error) {
 	tokenDuration := config.GetServerConfig().JWTConfig().ExpirationTime()
 	resetToken, err := p.tokenService.GenerateToken(userEmail, tokenDuration)
 	if err != nil {
@@ -45,7 +46,7 @@ func (p *UserPasswordReset) SendPasswordResetEmail(userEmail string) (*UserPassw
 		return nil, err
 	}
 
-	response := &UserPasswordResetResponse{
+	response := &users.UserPasswordResetResponse{
 		Message: "If an account with the given email exists, a password reset link has been sent.",
 	}
 

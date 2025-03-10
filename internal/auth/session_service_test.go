@@ -10,7 +10,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/token"
 )
 
-const email string = "test@example.com"
+const testEmail string = "test@example.com"
 
 func setupTestEnvironment() (*SessionService, *config.JWTConfig, *token.TokenService, token.TokenStore) {
 	jwtConfig := config.NewJWTConfig()
@@ -24,7 +24,7 @@ func TestCreateSession(t *testing.T) {
 	sessionService, jwtConfig, _, _ := setupTestEnvironment()
 
 	w := httptest.NewRecorder()
-	err := sessionService.CreateSession(w, email, jwtConfig.ExpirationTime())
+	err := sessionService.CreateSession(w, testEmail, jwtConfig.ExpirationTime())
 	assert.NoError(t, err)
 
 	cookie := w.Result().Cookies()[0]
@@ -37,7 +37,7 @@ func TestCreateSession(t *testing.T) {
 
 func TestInvalidateSession(t *testing.T) {
 	sessionService, jwtConfig, tokenService, tokenBlacklist := setupTestEnvironment()
-	validToken, _ := tokenService.GenerateToken(email, jwtConfig.ExpirationTime())
+	validToken, _ := tokenService.GenerateToken(testEmail, jwtConfig.ExpirationTime())
 
 	r := httptest.NewRequest("POST", "/invalidate", nil)
 	r.Header.Set("Authorization", "Bearer "+validToken)

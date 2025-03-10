@@ -23,9 +23,9 @@ type ServiceContainer struct {
 	sessionService            *auth.SessionService
 
 	userStore         users.UserStore
-	userRegistration  *users.UserRegistration
-	userLogin         *users.UserLogin
-	userPasswordReset *users.UserPasswordReset
+	userRegistration  *auth.RegistrationService
+	userLogin         *auth.AuthenticationService
+	userPasswordReset *auth.PasswordResetService
 	userHandler       *handlers.UserHandler
 
 	middleware *middleware.Middleware
@@ -40,12 +40,12 @@ func NewServiceContainer() *ServiceContainer {
 	container.userStore = users.GetInMemoryUserStore()
 	container.loginAttemptStore = auth.NewLoginAttemptStore()
 
-	container.passwordResetEmailService, _ = email.NewPasswordResetService()
+	container.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
 	container.tokenService = token.NewTokenService(container.tokenBlacklist)
 	container.sessionService = auth.NewSessionService(container.tokenService, container.tokenBlacklist)
-	container.userPasswordReset = users.NewUserPasswordReset(container.tokenService, container.userStore, container.passwordResetEmailService)
-	container.userRegistration = users.NewUserRegistration(container.userStore, container.tokenService)
-	container.userLogin = users.NewUserLogin(container.userStore, container.loginAttemptStore, container.tokenService)
+	container.userPasswordReset = auth.NewPasswordResetService(container.tokenService, container.userStore, container.passwordResetEmailService)
+	container.userRegistration = auth.NewRegistrationService(container.userStore, container.tokenService)
+	container.userLogin = auth.NewAuthenticationService(container.userStore, container.loginAttemptStore, container.tokenService)
 
 	container.userHandler = handlers.NewUserHandler(container.userRegistration, container.userLogin, container.userPasswordReset, container.sessionService)
 	container.middleware = middleware.NewMiddleware(container.tokenService)

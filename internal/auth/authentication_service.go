@@ -1,26 +1,26 @@
-package users
+package auth
 
 import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/internal/auth"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/token"
+	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-type UserLogin struct {
-	userStore         UserStore
-	loginAttemptStore *auth.LoginAttemptStore
+type AuthenticationService struct {
+	userStore         users.UserStore
+	loginAttemptStore *LoginAttemptStore
 	config            *config.ServerConfig
 	maxFailedAttempts int
 	artificialDelay   time.Duration
 	tokenService      *token.TokenService
 }
 
-func NewUserLogin(userStore UserStore, loginAttemptStore *auth.LoginAttemptStore, tokenService *token.TokenService) *UserLogin {
-	return &UserLogin{
+func NewAuthenticationService(userStore users.UserStore, loginAttemptStore *LoginAttemptStore, tokenService *token.TokenService) *AuthenticationService {
+	return &AuthenticationService{
 		userStore:         userStore,
 		loginAttemptStore: loginAttemptStore,
 		config:            config.GetServerConfig(),
@@ -30,9 +30,9 @@ func NewUserLogin(userStore UserStore, loginAttemptStore *auth.LoginAttemptStore
 	}
 }
 
-// Login logs in a user and returns a token if successful. Each failed login attempt will be saved and if the attempts
+// AuthenticateUser logs in a user and returns a token if successful. Each failed login attempt will be saved and if the attempts
 // exceed the threshold, the account will be locked.
-func (l *UserLogin) Login(loginUser *User, loginAttempt *auth.LoginAttempt) (*UserLoginResponse, error) {
+func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAttempt *LoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
 
 	retrievedUser, found := l.userStore.GetUser(loginUser.Email)
@@ -62,15 +62,15 @@ func (l *UserLogin) Login(loginUser *User, loginAttempt *auth.LoginAttempt) (*Us
 	_ = l.userStore.UpdateUser(&retrievedUser)
 
 	l.applyArtificialDelay(startTime)
-	return NewUserLoginResponse(&retrievedUser, jwtToken), nil
+	return users.NewUserLoginResponse(&retrievedUser, jwtToken), nil
 }
 
 // applyArtificialDelay applies an artificial delay to normalize response times.
-func (l *UserLogin) applyArtificialDelay(startTime time.Time) {
+func (l *AuthenticationService) applyArtificialDelay(startTime time.Time) {
 	time.Sleep(time.Until(startTime.Add(l.artificialDelay)))
 }
 
-func (l *UserLogin) handleFailedLoginAttempt(retrievedUser *User, loginAttempt *auth.LoginAttempt) {
+func (l *AuthenticationService) handleFailedLoginAttempt(retrievedUser *users.User, loginAttempt *LoginAttempt) {
 	retrievedUser.LastFailedLogin = time.Now()
 	l.loginAttemptStore.SaveLoginAttempt(loginAttempt)
 	_ = l.userStore.UpdateUser(retrievedUser)
