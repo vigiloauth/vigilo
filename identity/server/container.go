@@ -8,8 +8,8 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
 	auth "github.com/vigiloauth/vigilo/internal/auth/authentication"
-	loginAttempt "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
-	passwordReset "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
+	login "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
+	password "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
 	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
 	session "github.com/vigiloauth/vigilo/internal/auth/session"
 
@@ -21,17 +21,17 @@ import (
 
 type ServiceContainer struct {
 	tokenBlacklist    token.TokenStore
-	loginAttemptStore *loginAttempt.LoginAttemptStore
+	loginAttemptStore login.LoginAttemptStore
 
 	passwordResetEmailService email.EmailService
-	tokenService              *token.TokenService
-	sessionService            *session.SessionService
+	tokenManager              token.TokenManager
+	sessionService            session.Session
 
-	userStore         users.UserStore
-	userRegistration  *registration.RegistrationService
-	userLogin         *auth.AuthenticationService
-	userPasswordReset *passwordReset.PasswordResetService
-	userHandler       *handlers.UserHandler
+	userStore            users.UserStore
+	registrationService  registration.Registration
+	authService          auth.Authentication
+	passwordResetService password.PasswordReset
+	userHandler          *handlers.UserHandler
 
 	middleware *middleware.Middleware
 	tlsConfig  *tls.Config
@@ -43,17 +43,17 @@ func NewServiceContainer() *ServiceContainer {
 
 	container.tokenBlacklist = token.GetInMemoryTokenStore()
 	container.userStore = users.GetInMemoryUserStore()
-	container.loginAttemptStore = loginAttempt.NewLoginAttemptStore()
+	container.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
 
 	container.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
-	container.tokenService = token.NewTokenService(container.tokenBlacklist)
-	container.sessionService = session.NewSessionService(container.tokenService, container.tokenBlacklist)
-	container.userPasswordReset = passwordReset.NewPasswordResetService(container.tokenService, container.userStore, container.passwordResetEmailService)
-	container.userRegistration = registration.NewRegistrationService(container.userStore, container.tokenService)
-	container.userLogin = auth.NewAuthenticationService(container.userStore, container.loginAttemptStore, container.tokenService)
+	container.tokenManager = token.NewTokenService(container.tokenBlacklist)
+	container.sessionService = session.NewSessionService(container.tokenManager, container.tokenBlacklist)
+	container.passwordResetService = password.NewPasswordResetService(container.tokenManager, container.userStore, container.passwordResetEmailService)
+	container.registrationService = registration.NewRegistrationService(container.userStore, container.tokenManager)
+	container.authService = auth.NewAuthenticationService(container.userStore, container.loginAttemptStore, container.tokenManager)
 
-	container.userHandler = handlers.NewUserHandler(container.userRegistration, container.userLogin, container.userPasswordReset, container.sessionService)
-	container.middleware = middleware.NewMiddleware(container.tokenService)
+	container.userHandler = handlers.NewUserHandler(container.registrationService, container.authService, container.passwordResetService, container.sessionService)
+	container.middleware = middleware.NewMiddleware(container.tokenManager)
 
 	container.tlsConfig = initializeTLSConfig()
 	container.httpServer = initializeHTTPServer(container.tlsConfig)

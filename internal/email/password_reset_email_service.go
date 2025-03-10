@@ -206,10 +206,15 @@ func (ps *PasswordResetEmailService) loadEmailTemplate() error {
 			message := fmt.Sprintf("failed to parse email template: %v", err.Error())
 			return errors.NewInvalidFormatError("template", message)
 		}
-
+		ps.template = template
+	} else {
+		defaultTemplate := getDefaultTemplate()
+		template, err := template.New("default").Parse(defaultTemplate)
+		if err != nil {
+			return err
+		}
 		ps.template = template
 	}
-
 	return nil
 }
 
@@ -375,4 +380,15 @@ func validateSMTPConfigFields(smtpConfig *config.SMTPConfig) error {
 	}
 
 	return nil
+}
+
+func getDefaultTemplate() string {
+	return `
+	<p>Hello,</p>
+	<p>You have requested a password reset. Click the following link to reset your password:</p>
+	<p><a href="{{.ResetURL}}">{{.ResetURL}}</a></p>
+	<p>This link will expire in {{.ExpireInHours}} hours ({{.ExpiryTime}}).</p>
+	<p>If you did not request a password reset, please ignore this email.</p>
+	<p>Sincerely,<br>{{.AppName}}</p>
+	`
 }

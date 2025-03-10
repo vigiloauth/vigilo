@@ -11,23 +11,30 @@ import (
 
 const sessionTokenName string = "session_token"
 
+type Session interface {
+	CreateSession(w http.ResponseWriter, email string, sessionExpiration time.Duration) error
+	InvalidateSession(w http.ResponseWriter, r *http.Request) error
+}
+
+var _ Session = (*SessionService)(nil)
+
 // SessionService handles session management.
 type SessionService struct {
-	tokenService   *token.TokenService
+	tokenManager   token.TokenManager
 	tokenBlacklist token.TokenStore
 }
 
 // NewSessionService creates a new instance of SessionService with the required dependencies.
-func NewSessionService(tokenService *token.TokenService, tokenBlacklist token.TokenStore) *SessionService {
+func NewSessionService(tokenManager token.TokenManager, tokenBlacklist token.TokenStore) *SessionService {
 	return &SessionService{
-		tokenService:   tokenService,
+		tokenManager:   tokenManager,
 		tokenBlacklist: tokenBlacklist,
 	}
 }
 
 // CreateSession creates a new session token and sets it in an HttpOnly cookie.
 func (s *SessionService) CreateSession(w http.ResponseWriter, email string, sessionExpiration time.Duration) error {
-	sessionToken, err := s.tokenService.GenerateToken(email, sessionExpiration)
+	sessionToken, err := s.tokenManager.GenerateToken(email, sessionExpiration)
 	if err != nil {
 		return err
 	}
@@ -53,7 +60,7 @@ func (s *SessionService) InvalidateSession(w http.ResponseWriter, r *http.Reques
 
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-	claims, err := s.tokenService.ParseToken(tokenString)
+	claims, err := s.tokenManager.ParseToken(tokenString)
 	if err != nil {
 		return errors.NewInvalidCredentialsError()
 	}

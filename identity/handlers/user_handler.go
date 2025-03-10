@@ -18,19 +18,19 @@ import (
 // It encapsulates user registration functionality and manages the
 // communication between HTTP layer and business logic.
 type UserHandler struct {
-	registrationService  *registration.RegistrationService
-	authService          *auth.AuthenticationService
-	passwordResetService *passwordReset.PasswordResetService
-	sessionService       *session.SessionService
+	registrationService  registration.Registration
+	authService          auth.Authentication
+	passwordResetService passwordReset.PasswordReset
+	sessionService       session.Session
 	jwtConfig            *config.JWTConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
 func NewUserHandler(
-	registrationService *registration.RegistrationService,
-	authService *auth.AuthenticationService,
-	passwordResetService *passwordReset.PasswordResetService,
-	sessionService *session.SessionService,
+	registrationService registration.Registration,
+	authService auth.Authentication,
+	passwordResetService passwordReset.PasswordReset,
+	sessionService session.Session,
 ) *UserHandler {
 	return &UserHandler{
 		registrationService:  registrationService,

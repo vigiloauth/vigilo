@@ -26,4 +26,5 @@ const (
 	ErrCodeSMTPAuthenticationFailed   = "SMTP_AUTHENTICATION_FAILED"
 	ErrCodeTokenNotFound              = "TOKEN_NOT_FOUND"
 	ErrCodeExpiredToken               = "TOKEN_EXPIRED"
+	ErrCodeTokenCreation              = "TOKEN_GENERATION"
 )

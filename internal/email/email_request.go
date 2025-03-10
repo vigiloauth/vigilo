@@ -18,3 +18,14 @@ type PasswordResetRequest struct {
 	TokenExpiry time.Time
 	ExpiresIn   time.Duration
 }
+
+func NewPasswordResetRequest(userEmail, resetURL, resetToken string, tokenExpiry time.Time) EmailRequest {
+	return EmailRequest{
+		Recipient: userEmail,
+		PasswordResetRequest: &PasswordResetRequest{
+			ResetURL:    resetURL,
+			ResetToken:  resetToken,
+			TokenExpiry: tokenExpiry,
+		},
+	}
+}

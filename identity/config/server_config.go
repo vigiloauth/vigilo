@@ -10,14 +10,15 @@ type ServerConfig struct {
 	port              int
 	certFilePath      string
 	keyFilePath       string
+	baseURL           string
 	forceHTTPS        bool
+	requestsPerMinute int
 	readTimeout       time.Duration
 	writeTimeout      time.Duration
 	jwtConfig         *JWTConfig
 	loginConfig       *LoginConfig
 	smtpConfig        *SMTPConfig
 	passwordConfig    *PasswordConfig
-	requestsPerMinute int
 }
 
 type ServerConfigOptions func(*ServerConfig)
@@ -83,6 +84,12 @@ func WithKeyFilePath(filePath string) ServerConfigOptions {
 	}
 }
 
+func WithBaseURL(baseURL string) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.baseURL = baseURL
+	}
+}
+
 func WithForceHTTPS() ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.forceHTTPS = true
@@ -139,6 +146,10 @@ func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 
 func (sc *ServerConfig) Port() int {
 	return sc.port
+}
+
+func (sc *ServerConfig) BaseURL() string {
+	return sc.baseURL
 }
 
 func (sc *ServerConfig) CertFilePath() string {

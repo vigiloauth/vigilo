@@ -11,21 +11,27 @@ import (
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
+type Authentication interface {
+	AuthenticateUser(loginUser *users.User, loginAttempt *loginAttempt.LoginAttempt) (*users.UserLoginResponse, error)
+}
+
+var _ Authentication = (*AuthenticationService)(nil)
+
 type AuthenticationService struct {
 	userStore         users.UserStore
-	loginAttemptStore *loginAttempt.LoginAttemptStore
+	loginAttemptStore loginAttempt.LoginAttemptStore
 	config            *config.ServerConfig
 	maxFailedAttempts int
 	artificialDelay   time.Duration
-	tokenService      *token.TokenService
+	tokenManager      token.TokenManager
 }
 
-func NewAuthenticationService(userStore users.UserStore, loginAttemptStore *loginAttempt.LoginAttemptStore, tokenService *token.TokenService) *AuthenticationService {
+func NewAuthenticationService(userStore users.UserStore, loginAttemptStore loginAttempt.LoginAttemptStore, tokenManager token.TokenManager) *AuthenticationService {
 	return &AuthenticationService{
 		userStore:         userStore,
 		loginAttemptStore: loginAttemptStore,
 		config:            config.GetServerConfig(),
-		tokenService:      tokenService,
+		tokenManager:      tokenManager,
 		maxFailedAttempts: config.GetServerConfig().LoginConfig().MaxFailedAttempts(),
 		artificialDelay:   config.GetServerConfig().LoginConfig().Delay(),
 	}
@@ -36,8 +42,8 @@ func NewAuthenticationService(userStore users.UserStore, loginAttemptStore *logi
 func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAttempt *loginAttempt.LoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
 
-	retrievedUser, found := l.userStore.GetUser(loginUser.Email)
-	if !found {
+	retrievedUser := l.userStore.GetUser(loginUser.Email)
+	if retrievedUser == nil {
 		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()
 	}
@@ -49,21 +55,21 @@ func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAtt
 
 	loginAttempt.UserID = retrievedUser.ID
 	if passwordsAreEqual := utils.ComparePasswordHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
-		l.handleFailedLoginAttempt(&retrievedUser, loginAttempt)
+		l.handleFailedLoginAttempt(retrievedUser, loginAttempt)
 		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()
 	}
 
-	jwtToken, err := l.tokenService.GenerateToken(retrievedUser.Email, l.config.JWTConfig().ExpirationTime())
+	jwtToken, err := l.tokenManager.GenerateToken(retrievedUser.Email, l.config.JWTConfig().ExpirationTime())
 	if err != nil {
 		return nil, err
 	}
 
 	retrievedUser.LastFailedLogin = time.Time{}
-	_ = l.userStore.UpdateUser(&retrievedUser)
+	_ = l.userStore.UpdateUser(retrievedUser)
 
 	l.applyArtificialDelay(startTime)
-	return users.NewUserLoginResponse(&retrievedUser, jwtToken), nil
+	return users.NewUserLoginResponse(retrievedUser, jwtToken), nil
 }
 
 // applyArtificialDelay applies an artificial delay to normalize response times.

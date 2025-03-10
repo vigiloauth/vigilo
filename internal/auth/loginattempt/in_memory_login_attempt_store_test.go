@@ -24,7 +24,7 @@ func TestNewLoginAttempt(t *testing.T) {
 }
 
 func TestLogLoginAttempt(t *testing.T) {
-	store := NewLoginAttemptStore()
+	store := NewInMemoryLoginAttemptStore()
 	userID := "user1"
 	attempt := &LoginAttempt{
 		UserID:          userID,
@@ -43,7 +43,7 @@ func TestLogLoginAttempt(t *testing.T) {
 }
 
 func TestGetLoginAttempts(t *testing.T) {
-	store := NewLoginAttemptStore()
+	store := NewInMemoryLoginAttemptStore()
 	userID := "user1"
 	attempt1 := &LoginAttempt{
 		UserID:          userID,

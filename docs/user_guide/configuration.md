@@ -20,18 +20,18 @@
 		- [5.1 Example Configuration](#51-example-configuration)
 		- [5.2 Explanation of Fields](#52-explanation-of-fields)
 		- [5.3 Default Fields](#53-default-fields)
-	- [6. SMTP Server Configurations](#6-smtp-server-configuration)
+	- [6. SMTP Server Configuration](#6-smtp-server-configuration)
 		- [6.1 Example Configuration](#61-example-configuration)
-		- [6.2 Explanation of Fields](#62-explanation-of-fields)
-		- [6.3 Default Configurations](#63-default-configurations)
+		- [6.2 Explanation of Fields:](#62-explanation-of-fields)
+		- [6.3 Default Configurations:](#63-default-configurations)
 		- [6.4 Creating SMTP Configurations](#64-creating-smtp-configurations)
 		- [6.5 Modifying the SMTP Configuration](#65-modifying-the-smtp-configuration)
 		- [6.6 Validating the SMTP Configuration](#66-validating-the-smtp-configuration)
 		- [6.7 Example of Using SMTP Credentials](#67-example-of-using-smtp-credentials)
 		- [6.8 Encryption Types](#68-encryption-types)
-	- [7. Handing SSL Certificate Errors in the Frontend](#6-handing-ssl-certificate-errors-in-the-frontend)
-	- [8. Validation and Enforcement](#7-validation-and-enforcement)
-	- [9. Troubleshooting](#8-troubleshooting)
+	- [7. Handing SSL Certificate Errors in the Frontend](#7-handing-ssl-certificate-errors-in-the-frontend)
+	- [8. Validation and Enforcement](#8-validation-and-enforcement)
+	- [9. Troubleshooting](#9-troubleshooting)
 
 ## 1. Overview
 **VigiloAuth** allows you to customize various settings to meet your application's security requirements. This guide walks you through configuring the password complexity and length requirements using the `PasswordConfiguration` struct, as well as configuring the server to enforce HTTPS for secure communication.
@@ -68,8 +68,10 @@ func main() {
 	readTimeout := 15 * time.Second
 	writeTimeout := 15 8 time.Second
 	requestsPerMinute := 100
+	baseURL := "your.domain"
 
 	config.NewServerConfig(
+		config.WithBaseURL(baseURL),
 		config.WithPort(port),
 		config.WithCertFilePath(certFilePath),
 		config.WithKeyFilePath(keyFilePath),

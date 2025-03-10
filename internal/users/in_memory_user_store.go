@@ -43,12 +43,16 @@ func (c *InMemoryUserStore) AddUser(user *User) error {
 	return nil
 }
 
-func (c *InMemoryUserStore) GetUser(email string) (User, bool) {
+func (c *InMemoryUserStore) GetUser(email string) *User {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	user, found := c.data[email]
-	return user, found
+	if !found {
+		return nil
+	}
+
+	return &user
 }
 
 func (c *InMemoryUserStore) DeleteUser(email string) error {

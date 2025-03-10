@@ -2,58 +2,67 @@ package auth
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/internal/token"
+	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/mocks"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-func setupRegistrationService(t *testing.T) (*RegistrationService, users.UserStore) {
-	users.ResetInMemoryUserStore()
-	userStore := users.GetInMemoryUserStore()
-	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
-	userRegistration := NewRegistrationService(userStore, tokenService)
-
-	t.Cleanup(func() {
-		users.ResetInMemoryUserStore()
-	})
-
-	return userRegistration, userStore
-}
+const testToken string = "test_token"
 
 func TestRegistrationService_RegisterUser(t *testing.T) {
-	userRegistration, _ := setupRegistrationService(t)
-	registeredUser, err := userRegistration.RegisterUser(users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password))
+	mockUserStore := &mocks.MockUserStore{}
+	mockTokenService := &mocks.MockTokenManager{}
 
-	if err != nil {
-		t.Errorf("RegisterUser() error = %v, wantError = %v", err, false)
-	}
+	mockUserStore.GetUserFunc = func(value string) *users.User { return nil }
+	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) { return testToken, nil }
 
+	userRegistration := NewRegistrationService(mockUserStore, mockTokenService)
+	registeredUser, err := userRegistration.RegisterUser(createNewUser())
+
+	assert.NoError(t, err)
 	assert.NotNil(t, registeredUser)
 }
 
 func TestRegistrationService_DuplicateEntry(t *testing.T) {
-	userRegistration, userStore := setupRegistrationService(t)
+	mockUserStore := &mocks.MockUserStore{}
+	mockTokenService := &mocks.MockTokenManager{}
+	user := createNewUser()
 
-	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	_ = userStore.AddUser(user)
+	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockUserStore.GetUserFunc = func(email string) *users.User { return user }
 
-	_, err := userRegistration.RegisterUser(user)
-	assert.NotNil(t, err)
+	userRegistration := NewRegistrationService(mockUserStore, mockTokenService)
+
+	expected := errors.NewDuplicateUserError("email")
+	_, actual := userRegistration.RegisterUser(user)
+
+	assert.Error(t, actual)
+	assert.Equal(t, actual, expected)
 }
 
 func TestRegistrationService_PasswordIsNotStoredInPlainText(t *testing.T) {
-	userRegistration, userStore := setupRegistrationService(t)
+	mockUserStore := &mocks.MockUserStore{}
+	mockTokenService := &mocks.MockTokenManager{}
 
-	_ = userStore.DeleteUser(utils.TestConstants.Email)
+	mockUserStore.DeleteUserFunc = func(email string) error { return nil }
+	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockUserStore.GetUserFunc = func(email string) *users.User { return nil }
+	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) { return testToken, nil }
 
-	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
+	userRegistration := NewRegistrationService(mockUserStore, mockTokenService)
+
+	user := createNewUser()
 	_, err := userRegistration.RegisterUser(user)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
-	retrievedUser, _ := users.GetInMemoryUserStore().GetUser(utils.TestConstants.Email)
+	mockUserStore.GetUserFunc = func(email string) *users.User { return user }
+	retrievedUser := mockUserStore.GetUserFunc(utils.TestConstants.Email)
 	assert.NotEqual(t, retrievedUser.Password, utils.TestConstants.Password)
 }
 
@@ -133,6 +142,10 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 			}
 		})
 	}
+}
+
+func createNewUser() *users.User {
+	return users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
 }
 
 func configurePasswordPolicy() {

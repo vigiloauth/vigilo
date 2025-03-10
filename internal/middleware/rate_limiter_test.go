@@ -8,14 +8,16 @@ import (
 )
 
 func TestRateLimiter_Allow(t *testing.T) {
-	rl := NewRateLimiter(2)
+	rate := 2
+	rl := NewRateLimiter(rate)
 	assert.True(t, rl.Allow())
 	assert.True(t, rl.Allow())
 	assert.False(t, rl.Allow())
 }
 
 func TestRateLimiter_TokenRefill(t *testing.T) {
-	rl := NewRateLimiter(1)
+	rate := 1
+	rl := NewRateLimiter(rate)
 	assert.True(t, rl.Allow())
 	assert.False(t, rl.Allow())
 	time.Sleep(2 * time.Second)

@@ -4,26 +4,29 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/internal/token"
+	"github.com/vigiloauth/vigilo/internal/mocks"
 )
 
 const testEmail string = "test@example.com"
-
-func setupTestEnvironment() (*SessionService, *config.JWTConfig, *token.TokenService, token.TokenStore) {
-	jwtConfig := config.NewJWTConfig()
-	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
-	tokenBlacklist := token.GetInMemoryTokenStore()
-
-	return NewSessionService(tokenService, tokenBlacklist), jwtConfig, tokenService, tokenBlacklist
-}
+const testToken string = "test_token"
 
 func TestCreateSession(t *testing.T) {
-	sessionService, jwtConfig, _, _ := setupTestEnvironment()
+	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenStore := &mocks.MockTokenStore{}
+
+	mockTokenManager.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
+		return testToken, nil
+	}
+
+	sessionService := NewSessionService(mockTokenManager, mockTokenStore)
 
 	w := httptest.NewRecorder()
+	jwtConfig := config.NewJWTConfig()
 	err := sessionService.CreateSession(w, testEmail, jwtConfig.ExpirationTime())
 	assert.NoError(t, err)
 
@@ -36,11 +39,26 @@ func TestCreateSession(t *testing.T) {
 }
 
 func TestInvalidateSession(t *testing.T) {
-	sessionService, jwtConfig, tokenService, tokenBlacklist := setupTestEnvironment()
-	validToken, _ := tokenService.GenerateToken(testEmail, jwtConfig.ExpirationTime())
+	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenStore := &mocks.MockTokenStore{}
+	config.NewJWTConfig()
+
+	mockTokenManager.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
+		return testToken, nil
+	}
+
+	mockTokenManager.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
+		return &jwt.StandardClaims{Subject: testEmail}, nil
+	}
+
+	mockTokenStore.IsTokenBlacklistedFunc = func(tokenString string) bool { return false }
+	mockTokenStore.AddTokenFunc = func(tokenString, email string, expirationTime time.Time) {}
+	mockTokenStore.IsTokenBlacklistedFunc = func(tokenString string) bool { return tokenString == testToken }
+
+	sessionService := NewSessionService(mockTokenManager, mockTokenStore)
 
 	r := httptest.NewRequest("POST", "/invalidate", nil)
-	r.Header.Set("Authorization", "Bearer "+validToken)
+	r.Header.Set("Authorization", "Bearer "+testToken)
 
 	w := httptest.NewRecorder()
 
@@ -54,5 +72,5 @@ func TestInvalidateSession(t *testing.T) {
 	assert.True(t, cookie.Secure)
 	assert.Equal(t, http.SameSiteStrictMode, cookie.SameSite)
 
-	assert.True(t, tokenBlacklist.IsTokenBlacklisted(validToken), "token should be blacklisted")
+	assert.True(t, mockTokenStore.IsTokenBlacklistedFunc(testToken), "token should be blacklisted")
 }

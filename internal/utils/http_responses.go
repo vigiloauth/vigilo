@@ -87,6 +87,12 @@ func WriteError(w http.ResponseWriter, err error) {
 				ErrorCode:   errors.ErrCodeExpiredToken,
 				Description: e.Message,
 			}
+		case errors.ErrCodeTokenCreation:
+			status = http.StatusInternalServerError
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeTokenCreation,
+				Description: e.Message,
+			}
 		}
 
 	case *errors.EmailError:

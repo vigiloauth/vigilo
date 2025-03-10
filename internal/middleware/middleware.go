@@ -12,15 +12,15 @@ import (
 
 type Middleware struct {
 	serverConfig *config.ServerConfig
-	tokenService *token.TokenService
+	tokenManager token.TokenManager
 	rateLimiter  *RateLimiter
 }
 
-func NewMiddleware(tokenService *token.TokenService) *Middleware {
+func NewMiddleware(tokenManager token.TokenManager) *Middleware {
 	serverConfig := config.GetServerConfig()
 	return &Middleware{
 		serverConfig: serverConfig,
-		tokenService: tokenService,
+		tokenManager: tokenManager,
 		rateLimiter:  NewRateLimiter(serverConfig.MaxRequestsPerMinute()),
 	}
 }
@@ -41,7 +41,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			_, err := m.tokenService.ParseToken(tokenString)
+			_, err := m.tokenManager.ParseToken(tokenString)
 			if err != nil {
 				utils.WriteError(w, errors.NewInvalidCredentialsError())
 				return

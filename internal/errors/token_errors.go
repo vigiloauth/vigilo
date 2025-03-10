@@ -23,3 +23,7 @@ func NewTokenNotFoundError() *TokenErrors {
 func NewExpiredTokenError() *TokenErrors {
 	return NewBaseTokenError(ErrCodeExpiredToken, "Token has expired")
 }
+
+func NewTokenGenerationError() *TokenErrors {
+	return NewBaseTokenError(ErrCodeTokenCreation, "Error creating token")
+}
