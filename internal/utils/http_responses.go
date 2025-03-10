@@ -91,7 +91,60 @@ func WriteError(w http.ResponseWriter, err error) {
 
 	case *errors.EmailError:
 		switch e.ErrorCode {
-
+		case errors.ErrCodeEmailDeliveryFailed:
+			status = http.StatusInternalServerError
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeEmailDeliveryFailed,
+				Description: e.Message,
+			}
+		case errors.ErrCodeEmailTemplateParseFailed:
+			status = http.StatusBadRequest
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeEmailTemplateParseFailed,
+				Description: e.Message,
+			}
+		case errors.ErrCodeTemplateRenderingFailed:
+			status = http.StatusInternalServerError
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeTemplateRenderingFailed,
+				Description: e.Message,
+			}
+		case errors.ErrCodeUnsupportedEncryptionType:
+			status = http.StatusBadRequest
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeUnsupportedEncryptionType,
+				Description: e.Message,
+			}
+		case errors.ErrCodeSMTPServerConnectionFailed:
+			status = http.StatusBadGateway
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeSMTPServerConnectionFailed,
+				Description: e.Message,
+			}
+		case errors.ErrCodeTLSConnectionFailed:
+			status = http.StatusBadGateway
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeTLSConnectionFailed,
+				Description: e.Message,
+			}
+		case errors.ErrCodeClientCreationFailed:
+			status = http.StatusInternalServerError
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeClientCreationFailed,
+				Description: e.Message,
+			}
+		case errors.ErrCodeStartTLSFailed:
+			status = http.StatusBadGateway
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeStartTLSFailed,
+				Description: e.Message,
+			}
+		case errors.ErrCodeSMTPAuthenticationFailed:
+			status = http.StatusUnauthorized
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeSMTPAuthenticationFailed,
+				Description: e.Message,
+			}
 		}
 
 	default:
