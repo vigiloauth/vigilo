@@ -7,7 +7,12 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
-	"github.com/vigiloauth/vigilo/internal/auth"
+	auth "github.com/vigiloauth/vigilo/internal/auth/authentication"
+	loginAttempt "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
+	passwordReset "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
+	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
+	session "github.com/vigiloauth/vigilo/internal/auth/session"
+
 	"github.com/vigiloauth/vigilo/internal/email"
 	"github.com/vigiloauth/vigilo/internal/middleware"
 	"github.com/vigiloauth/vigilo/internal/token"
@@ -16,16 +21,16 @@ import (
 
 type ServiceContainer struct {
 	tokenBlacklist    token.TokenStore
-	loginAttemptStore *auth.LoginAttemptStore
+	loginAttemptStore *loginAttempt.LoginAttemptStore
 
 	passwordResetEmailService email.EmailService
 	tokenService              *token.TokenService
-	sessionService            *auth.SessionService
+	sessionService            *session.SessionService
 
 	userStore         users.UserStore
-	userRegistration  *auth.RegistrationService
+	userRegistration  *registration.RegistrationService
 	userLogin         *auth.AuthenticationService
-	userPasswordReset *auth.PasswordResetService
+	userPasswordReset *passwordReset.PasswordResetService
 	userHandler       *handlers.UserHandler
 
 	middleware *middleware.Middleware
@@ -38,13 +43,13 @@ func NewServiceContainer() *ServiceContainer {
 
 	container.tokenBlacklist = token.GetInMemoryTokenStore()
 	container.userStore = users.GetInMemoryUserStore()
-	container.loginAttemptStore = auth.NewLoginAttemptStore()
+	container.loginAttemptStore = loginAttempt.NewLoginAttemptStore()
 
 	container.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
 	container.tokenService = token.NewTokenService(container.tokenBlacklist)
-	container.sessionService = auth.NewSessionService(container.tokenService, container.tokenBlacklist)
-	container.userPasswordReset = auth.NewPasswordResetService(container.tokenService, container.userStore, container.passwordResetEmailService)
-	container.userRegistration = auth.NewRegistrationService(container.userStore, container.tokenService)
+	container.sessionService = session.NewSessionService(container.tokenService, container.tokenBlacklist)
+	container.userPasswordReset = passwordReset.NewPasswordResetService(container.tokenService, container.userStore, container.passwordResetEmailService)
+	container.userRegistration = registration.NewRegistrationService(container.userStore, container.tokenService)
 	container.userLogin = auth.NewAuthenticationService(container.userStore, container.loginAttemptStore, container.tokenService)
 
 	container.userHandler = handlers.NewUserHandler(container.userRegistration, container.userLogin, container.userPasswordReset, container.sessionService)

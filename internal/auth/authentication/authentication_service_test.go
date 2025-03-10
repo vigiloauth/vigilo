@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
+	loginAttempt "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
@@ -17,7 +18,7 @@ func setupAuthenticationService(t *testing.T) (*AuthenticationService, users.Use
 	config.NewServerConfig()
 
 	userStore := users.GetInMemoryUserStore()
-	loginAttemptStore := NewLoginAttemptStore()
+	loginAttemptStore := loginAttempt.NewLoginAttemptStore()
 	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
 
 	userLogin := NewAuthenticationService(userStore, loginAttemptStore, tokenService)
@@ -36,7 +37,7 @@ func TestAuthenticationService_SuccessfulUserAuthentication(t *testing.T) {
 	_ = userStore.AddUser(user)
 
 	user.Password = utils.TestConstants.Password
-	loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
+	loginAttempt := loginAttempt.NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 
 	_, err := userLogin.AuthenticateUser(user, loginAttempt)
 	assert.NoError(t, err, "unexpected error during login")
@@ -69,7 +70,7 @@ func TestAuthenticationService_AuthenticateUser(t *testing.T) {
 				_ = userStore.AddUser(user)
 			}
 
-			loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
+			loginAttempt := loginAttempt.NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 			_, err := userLogin.AuthenticateUser(tt.user, loginAttempt)
 
 			if (err != nil) != tt.wantError {
@@ -86,7 +87,7 @@ func TestAuthenticationService_FailedUserAuthenticationAttempts(t *testing.T) {
 	_ = userStore.AddUser(user)
 
 	user.Password = utils.TestConstants.InvalidPassword
-	loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
+	loginAttempt := loginAttempt.NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 
 	loginAttempts := 5
 	for range loginAttempts {
@@ -105,7 +106,7 @@ func TestAuthenticationService_ArtificialDelayDuringUserAuthentication(t *testin
 	_ = userStore.AddUser(user)
 
 	user.Password = utils.TestConstants.InvalidPassword
-	loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
+	loginAttempt := loginAttempt.NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 
 	startTime := time.Now()
 	_, err := userLogin.AuthenticateUser(user, loginAttempt)
@@ -122,7 +123,7 @@ func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing
 	_ = userStore.AddUser(user)
 
 	user.Password = utils.TestConstants.InvalidPassword
-	loginAttempt := NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
+	loginAttempt := loginAttempt.NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
 
 	for range userLogin.maxFailedAttempts {
 		_, err := userLogin.AuthenticateUser(user, loginAttempt)

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	loginAttempt "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
@@ -12,14 +13,14 @@ import (
 
 type AuthenticationService struct {
 	userStore         users.UserStore
-	loginAttemptStore *LoginAttemptStore
+	loginAttemptStore *loginAttempt.LoginAttemptStore
 	config            *config.ServerConfig
 	maxFailedAttempts int
 	artificialDelay   time.Duration
 	tokenService      *token.TokenService
 }
 
-func NewAuthenticationService(userStore users.UserStore, loginAttemptStore *LoginAttemptStore, tokenService *token.TokenService) *AuthenticationService {
+func NewAuthenticationService(userStore users.UserStore, loginAttemptStore *loginAttempt.LoginAttemptStore, tokenService *token.TokenService) *AuthenticationService {
 	return &AuthenticationService{
 		userStore:         userStore,
 		loginAttemptStore: loginAttemptStore,
@@ -32,7 +33,7 @@ func NewAuthenticationService(userStore users.UserStore, loginAttemptStore *Logi
 
 // AuthenticateUser logs in a user and returns a token if successful. Each failed login attempt will be saved and if the attempts
 // exceed the threshold, the account will be locked.
-func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAttempt *LoginAttempt) (*users.UserLoginResponse, error) {
+func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAttempt *loginAttempt.LoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
 
 	retrievedUser, found := l.userStore.GetUser(loginUser.Email)
@@ -70,7 +71,7 @@ func (l *AuthenticationService) applyArtificialDelay(startTime time.Time) {
 	time.Sleep(time.Until(startTime.Add(l.artificialDelay)))
 }
 
-func (l *AuthenticationService) handleFailedLoginAttempt(retrievedUser *users.User, loginAttempt *LoginAttempt) {
+func (l *AuthenticationService) handleFailedLoginAttempt(retrievedUser *users.User, loginAttempt *loginAttempt.LoginAttempt) {
 	retrievedUser.LastFailedLogin = time.Now()
 	l.loginAttemptStore.SaveLoginAttempt(loginAttempt)
 	_ = l.userStore.UpdateUser(retrievedUser)

@@ -5,7 +5,11 @@ import (
 	"net/http"
 
 	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/internal/auth"
+	auth "github.com/vigiloauth/vigilo/internal/auth/authentication"
+	loginAttempt "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
+	passwordReset "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
+	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
+	session "github.com/vigiloauth/vigilo/internal/auth/session"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -14,15 +18,20 @@ import (
 // It encapsulates user registration functionality and manages the
 // communication between HTTP layer and business logic.
 type UserHandler struct {
-	registrationService  *auth.RegistrationService
+	registrationService  *registration.RegistrationService
 	authService          *auth.AuthenticationService
-	passwordResetService *auth.PasswordResetService
-	sessionService       *auth.SessionService
+	passwordResetService *passwordReset.PasswordResetService
+	sessionService       *session.SessionService
 	jwtConfig            *config.JWTConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
-func NewUserHandler(registrationService *auth.RegistrationService, authService *auth.AuthenticationService, passwordResetService *auth.PasswordResetService, sessionService *auth.SessionService) *UserHandler {
+func NewUserHandler(
+	registrationService *registration.RegistrationService,
+	authService *auth.AuthenticationService,
+	passwordResetService *passwordReset.PasswordResetService,
+	sessionService *session.SessionService,
+) *UserHandler {
 	return &UserHandler{
 		registrationService:  registrationService,
 		authService:          authService,
@@ -79,7 +88,11 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser("", request.Email, request.Password)
-	loginAttempt := auth.NewLoginAttempt(r.RemoteAddr, r.Header.Get("X-Forwarded-For"), "", r.UserAgent())
+	loginAttempt := loginAttempt.NewLoginAttempt(
+		r.RemoteAddr,
+		r.Header.Get("X-Forwarded-For"),
+		"", r.UserAgent(),
+	)
 
 	response, err := h.authService.AuthenticateUser(user, loginAttempt)
 	if err != nil {
