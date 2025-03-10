@@ -14,11 +14,11 @@ const sessionTokenName string = "session_token"
 // SessionService handles session management.
 type SessionService struct {
 	tokenService   *token.TokenService
-	tokenBlacklist token.TokenBlacklist
+	tokenBlacklist token.TokenStore
 }
 
 // NewSessionService creates a new instance of SessionService with the required dependencies.
-func NewSessionService(tokenService *token.TokenService, tokenBlacklist token.TokenBlacklist) *SessionService {
+func NewSessionService(tokenService *token.TokenService, tokenBlacklist token.TokenStore) *SessionService {
 	return &SessionService{
 		tokenService:   tokenService,
 		tokenBlacklist: tokenBlacklist,
@@ -61,7 +61,7 @@ func (s *SessionService) InvalidateSession(w http.ResponseWriter, r *http.Reques
 	expiration := time.Unix(claims.ExpiresAt, 0)
 
 	if expiration.After(time.Now()) {
-		s.tokenBlacklist.AddToken(tokenString, expiration)
+		s.tokenBlacklist.AddToken(tokenString, claims.Subject, expiration)
 	}
 
 	http.SetCookie(w, &http.Cookie{

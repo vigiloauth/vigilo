@@ -24,4 +24,6 @@ const (
 	ErrCodeClientCreationFailed       = "CLIENT_CREATION_FAILED"
 	ErrCodeStartTLSFailed             = "STARTTLS_FAILED"
 	ErrCodeSMTPAuthenticationFailed   = "SMTP_AUTHENTICATION_FAILED"
+	ErrCodeTokenNotFound              = "TOKEN_NOT_FOUND"
+	ErrCodeExpiredToken               = "TOKEN_EXPIRED"
 )

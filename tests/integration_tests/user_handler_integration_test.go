@@ -210,7 +210,7 @@ func generateExpiredToken() string {
 	if err != nil {
 		panic("failed to generate expired token: " + err.Error())
 	}
-	token.GetTokenBlacklist().AddToken(tokenString, expiredTime)
+	token.GetInMemoryTokenStore().AddToken(tokenString, utils.TestConstants.Email, expiredTime)
 	return tokenString
 }
 

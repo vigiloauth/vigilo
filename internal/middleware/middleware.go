@@ -36,7 +36,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 			}
 
 			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-			if token.GetTokenBlacklist().IsTokenBlacklisted(tokenString) {
+			if token.GetInMemoryTokenStore().IsTokenBlacklisted(tokenString) {
 				utils.WriteError(w, errors.NewInvalidCredentialsError())
 				return
 			}

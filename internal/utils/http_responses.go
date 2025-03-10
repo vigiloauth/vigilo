@@ -28,6 +28,7 @@ func WriteError(w http.ResponseWriter, err error) {
 			Description: "One or more validation errors occurred.",
 			Errors:      e.Errors(),
 		}
+
 	case *errors.AuthenticationError:
 		switch e.ErrorCode {
 		case errors.ErrCodeInvalidCredentials:
@@ -44,7 +45,9 @@ func WriteError(w http.ResponseWriter, err error) {
 				Description: e.Message,
 				Error:       e.Error(),
 			}
+
 		}
+
 	case *errors.InputValidationError:
 		switch e.ErrorCode {
 		case errors.ErrCodeDuplicateUser:
@@ -69,6 +72,28 @@ func WriteError(w http.ResponseWriter, err error) {
 				Error:       e.Error(),
 			}
 		}
+
+	case *errors.TokenErrors:
+		switch e.ErrorCode {
+		case errors.ErrCodeTokenNotFound:
+			status = http.StatusNotFound
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeTokenNotFound,
+				Description: e.Message,
+			}
+		case errors.ErrCodeExpiredToken:
+			status = http.StatusUnauthorized
+			response = ErrorResponse{
+				ErrorCode:   errors.ErrCodeExpiredToken,
+				Description: e.Message,
+			}
+		}
+
+	case *errors.EmailError:
+		switch e.ErrorCode {
+
+		}
+
 	default:
 		status = http.StatusInternalServerError
 		response = ErrorResponse{

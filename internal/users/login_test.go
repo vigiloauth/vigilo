@@ -18,7 +18,7 @@ func setupUserLogin(t *testing.T) (*UserLogin, UserStore) {
 
 	userStore := GetInMemoryUserStore()
 	loginAttemptStore := auth.NewLoginAttemptStore()
-	tokenService := token.NewTokenService()
+	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
 
 	userLogin := NewUserLogin(userStore, loginAttemptStore, tokenService)
 

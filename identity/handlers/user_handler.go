@@ -14,19 +14,21 @@ import (
 // It encapsulates user registration functionality and manages the
 // communication between HTTP layer and business logic.
 type UserHandler struct {
-	userRegistration *users.UserRegistration
-	userLogin        *users.UserLogin
-	jwtConfig        *config.JWTConfig
-	sessionService   *auth.SessionService
+	userRegistration  *users.UserRegistration
+	userLogin         *users.UserLogin
+	userPasswordReset *users.UserPasswordReset
+	sessionService    *auth.SessionService
+	jwtConfig         *config.JWTConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
-func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin, sessionService *auth.SessionService) *UserHandler {
+func NewUserHandler(userRegistration *users.UserRegistration, userLogin *users.UserLogin, userPasswordReset *users.UserPasswordReset, sessionService *auth.SessionService) *UserHandler {
 	return &UserHandler{
-		userRegistration: userRegistration,
-		userLogin:        userLogin,
-		jwtConfig:        config.GetServerConfig().JWTConfig(),
-		sessionService:   sessionService,
+		userRegistration:  userRegistration,
+		userLogin:         userLogin,
+		userPasswordReset: userPasswordReset,
+		sessionService:    sessionService,
+		jwtConfig:         config.GetServerConfig().JWTConfig(),
 	}
 }
 
@@ -104,4 +106,20 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var request users.UserPasswordResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	response, err := h.userPasswordReset.SendPasswordResetEmail(request.Email)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, response)
 }

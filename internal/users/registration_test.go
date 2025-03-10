@@ -12,7 +12,7 @@ import (
 func setupUserRegistration(t *testing.T) (*UserRegistration, UserStore) {
 	ResetInMemoryUserStore()
 	userStore := GetInMemoryUserStore()
-	tokenService := token.NewTokenService()
+	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
 	userRegistration := NewUserRegistration(userStore, tokenService)
 
 	t.Cleanup(func() {

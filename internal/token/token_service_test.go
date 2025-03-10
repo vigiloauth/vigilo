@@ -8,7 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGenerateToken(t *testing.T) {
+const invalidToken string = "invalidToken"
+
+func TestTokenService_GenerateToken(t *testing.T) {
 	tests := []struct {
 		name           string
 		subject        string
@@ -31,7 +33,7 @@ func TestGenerateToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tokenService := NewTokenService()
+			tokenService := NewTokenService(GetInMemoryTokenStore())
 
 			tokenString, err := tokenService.GenerateToken(tt.subject, tt.expirationTime)
 
@@ -45,7 +47,7 @@ func TestGenerateToken(t *testing.T) {
 	}
 }
 
-func TestParseToken(t *testing.T) {
+func TestTokenService_ParseToken(t *testing.T) {
 	tests := []struct {
 		name            string
 		tokenString     string
@@ -74,7 +76,7 @@ func TestParseToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tokenService := NewTokenService()
+			tokenService := NewTokenService(GetInMemoryTokenStore())
 
 			if tt.tokenString == "valid_token_string" {
 				validToken, err := tokenService.GenerateToken(tt.expectedSubject, time.Hour)
@@ -92,4 +94,54 @@ func TestParseToken(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTokenService_GetToken(t *testing.T) {
+	tokenStore := GetInMemoryTokenStore()
+	tokenService := NewTokenService(tokenStore)
+
+	tokenService.AddToken(token, email, time.Now().Add(1*time.Hour))
+
+	result, err := tokenService.GetToken(email, token)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	result, err = tokenService.GetToken(email, invalidToken)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+}
+
+func TestTokenService_IsTokenBlacklisted(t *testing.T) {
+	tokenStore := GetInMemoryTokenStore()
+	tokenService := NewTokenService(tokenStore)
+
+	tokenStore.AddToken(token, email, time.Now().Add(1*time.Hour))
+
+	isBlacklisted := tokenService.IsTokenBlacklisted(token)
+	assert.True(t, isBlacklisted)
+}
+
+func TestTokenService_AddToken(t *testing.T) {
+	tokenStore := GetInMemoryTokenStore()
+	tokenService := NewTokenService(tokenStore)
+
+	tokenStore.AddToken(token, email, time.Now().Add(1*time.Hour))
+
+	tokenData, err := tokenService.GetToken(email, token)
+	assert.NoError(t, err)
+	assert.NotNil(t, tokenData)
+}
+
+func TestTokenService_DeleteToken(t *testing.T) {
+	tokenStore := GetInMemoryTokenStore()
+	tokenService := NewTokenService(tokenStore)
+
+	tokenStore.AddToken(token, email, time.Now().Add(1*time.Hour))
+
+	err := tokenService.DeleteToken(token)
+	assert.NoError(t, err)
+
+	tokenData, err := tokenService.GetToken(email, token)
+	assert.Error(t, err)
+	assert.Nil(t, tokenData)
 }

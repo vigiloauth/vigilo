@@ -9,11 +9,15 @@ import (
 )
 
 type TokenService struct {
-	jwtConfig *config.JWTConfig
+	jwtConfig  *config.JWTConfig
+	tokenStore TokenStore
 }
 
-func NewTokenService() *TokenService {
-	return &TokenService{jwtConfig: config.GetServerConfig().JWTConfig()}
+func NewTokenService(tokenStore TokenStore) *TokenService {
+	return &TokenService{
+		jwtConfig:  config.GetServerConfig().JWTConfig(),
+		tokenStore: tokenStore,
+	}
 }
 
 func (ts *TokenService) GenerateToken(subject string, expirationTime time.Duration) (string, error) {
@@ -49,4 +53,24 @@ func (ts *TokenService) ParseToken(tokenString string) (*jwt.StandardClaims, err
 	}
 
 	return nil, errors.New("invalid token")
+}
+
+func (ts *TokenService) IsTokenBlacklisted(token string) bool {
+	return ts.tokenStore.IsTokenBlacklisted(token)
+}
+
+func (ts *TokenService) AddToken(token string, email string, expirationTime time.Time) {
+	ts.tokenStore.AddToken(token, email, expirationTime)
+}
+
+func (ts *TokenService) GetToken(email string, token string) (*TokenData, error) {
+	retrievedToken, err := ts.tokenStore.GetToken(token, email)
+	if err != nil {
+		return nil, err
+	}
+	return retrievedToken, nil
+}
+
+func (ts *TokenService) DeleteToken(token string) error {
+	return ts.tokenStore.DeleteToken(token)
 }

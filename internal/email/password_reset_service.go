@@ -22,6 +22,10 @@ type PasswordResetService struct {
 
 func NewPasswordResetService() (*PasswordResetService, error) {
 	smtpConfig := config.GetServerConfig().SMTPConfig()
+	if smtpConfig == nil {
+		return nil, errors.NewEmptyInputError("SMTP Configuration")
+	}
+
 	if err := validateSMTPConfigFields(smtpConfig); err != nil {
 		return nil, err
 	}

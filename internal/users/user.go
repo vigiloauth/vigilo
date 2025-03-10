@@ -46,6 +46,16 @@ type UserLoginResponse struct {
 	JWTToken string `json:"token"`
 }
 
+type UserPasswordResetRequest struct {
+	Email       string `json:"email"`
+	ResetToken  string `json:"reset_token"`
+	NewPassword string `json:"new_password"`
+}
+
+type UserPasswordResetResponse struct {
+	Message string `json:"message"`
+}
+
 // NewUser creates a new user
 func NewUser(username, email, password string) *User {
 	return &User{
@@ -100,6 +110,17 @@ func (req *UserRegistrationRequest) Validate() error {
 
 	validateEmail(req.Email, errorCollection)
 	validatePassword(req.Password, errorCollection)
+
+	if errorCollection.HasErrors() {
+		return errorCollection
+	}
+
+	return nil
+}
+
+func (req *UserPasswordResetRequest) Validate() error {
+	errorCollection := errors.NewErrorCollection()
+	validatePassword(req.NewPassword, errorCollection)
 
 	if errorCollection.HasErrors() {
 		return errorCollection

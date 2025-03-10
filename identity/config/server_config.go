@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -169,6 +170,10 @@ func (sc *ServerConfig) LoginConfig() *LoginConfig {
 }
 
 func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
+	if sc.smtpConfig == nil {
+		fmt.Println("Warning: SMTP configuration is not set")
+		return nil
+	}
 	return sc.smtpConfig
 }
 
