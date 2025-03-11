@@ -36,7 +36,7 @@ func NewRegistrationService(userStore users.UserStore, tokenManager token.TokenM
 func (r *RegistrationService) RegisterUser(user *users.User) (*users.UserRegistrationResponse, error) {
 	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to hash password")
 	}
 
 	if existingUser := r.userStore.GetUser(user.Email); existingUser != nil {
@@ -45,12 +45,12 @@ func (r *RegistrationService) RegisterUser(user *users.User) (*users.UserRegistr
 
 	user.Password = hashedPassword
 	if err := r.userStore.AddUser(user); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to create new user")
 	}
 
 	jwtToken, err := r.tokenManager.GenerateToken(user.Email, r.jwtConfig.ExpirationTime())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to generate token")
 	}
 
 	return users.NewUserRegistrationResponse(user, jwtToken), nil

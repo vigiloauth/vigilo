@@ -27,12 +27,12 @@ func NewPasswordResetEmailService() (*PasswordResetEmailService, error) {
 	}
 
 	if err := validateSMTPConfigFields(smtpConfig); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to validate SMTP Credentials")
 	}
 
 	ps := &PasswordResetEmailService{smtpConfig: smtpConfig}
 	if err := ps.loadEmailTemplate(); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to load email template")
 	}
 
 	return ps, nil
@@ -83,12 +83,12 @@ func (ps *PasswordResetEmailService) SetTemplate(tmplContent string) error {
 func (ps *PasswordResetEmailService) TestConnection() error {
 	client, err := ps.createSMTPClient()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create SMTP Client")
 	}
 	defer client.Quit()
 
 	if err := ps.startTLS(client); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to start TLS")
 	}
 
 	return ps.authenticateCredentials(client)
@@ -156,44 +156,44 @@ func (ps *PasswordResetEmailService) sendMailTLS(recipients []string, message []
 
 	conn, err := tls.Dial("tcp", serverAddress, tlsConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to connect to given network address")
 	}
 	defer conn.Close()
 
 	client, err := smtp.NewClient(conn, ps.smtpConfig.Server())
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to create a new SMTP client")
 	}
 	defer client.Quit()
 
 	if err := ps.authenticateCredentials(client); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to authenticate SMTP credentials")
 	}
 
 	if err = client.Mail(ps.smtpConfig.FromAddress()); err != nil {
-		return err
+		return errors.Wrap(err, "Failed to initiate a mail transaction")
 	}
 
 	for _, recipient := range recipients {
 		if err = client.Rcpt(recipient); err != nil {
-			return err
+			return errors.Wrap(err, "Failed to initiate RCPT command to the recipient")
 		}
 	}
 
 	// send email body
 	w, err := client.Data()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to issue DATA command to the server")
 	}
 
 	_, err = w.Write(message)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to write message")
 	}
 
 	err = w.Close()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Failed to close `io.WriterCloser`")
 	}
 
 	return nil
@@ -211,7 +211,7 @@ func (ps *PasswordResetEmailService) loadEmailTemplate() error {
 		defaultTemplate := getDefaultTemplate()
 		template, err := template.New("default").Parse(defaultTemplate)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "Failed to parse default template")
 		}
 		ps.template = template
 	}
@@ -283,21 +283,22 @@ func (ps *PasswordResetEmailService) authenticateCredentials(client *smtp.Client
 	return nil
 }
 
-func (ps *PasswordResetEmailService) generateHeaders(request EmailRequest) map[string]string {
+func (ps *PasswordResetEmailService) generateHeaders(request EmailRequest) Headers {
 	from := ps.smtpConfig.FromAddress()
 	if ps.smtpConfig.Credentials().Username() != "" {
 		from = fmt.Sprintf("%s <%s>", ps.smtpConfig.FromName(), ps.smtpConfig.FromAddress())
 	}
 
-	headers := make(map[string]string)
-	headers["From"] = from
-	headers["To"] = request.Recipient
-	headers["Subject"] = request.Subject
-	headers["MIME-Version"] = "1.0"
-	headers["Content-Type"] = "text/html; charset=UTF-8"
+	headers := Headers{
+		From:        from,
+		To:          request.Recipient,
+		Subject:     request.Subject,
+		MimeVersion: "1.0",
+		ContentType: "text/html; charset=UTF-8",
+	}
 
 	if ps.smtpConfig.ReplyTo() != "" {
-		headers["Reply-To"] = ps.smtpConfig.ReplyTo()
+		headers.ReplyTo = ps.smtpConfig.ReplyTo()
 	}
 
 	return headers
@@ -310,13 +311,17 @@ func (ps *PasswordResetEmailService) retryEmail(request EmailRequest) {
 }
 
 func (ps *PasswordResetEmailService) shouldRetryEmail(now time.Time, request EmailRequest) bool {
-	if now.Sub(request.LastAttempt) < ps.smtpConfig.RetryDelay() {
-		return true
+	maxRetries := ps.smtpConfig.MaxRetries()
+	if request.RetryCount >= maxRetries {
+		return false
 	}
 
-	if !request.PasswordResetRequest.TokenExpiry.IsZero() &&
-		now.After(request.PasswordResetRequest.TokenExpiry) {
+	if tokenIsExpired(request, now) {
 		return false
+	}
+
+	if now.Sub(request.LastAttempt) < ps.smtpConfig.RetryDelay() {
+		return true
 	}
 
 	err := ps.sendEmail(request)
@@ -331,34 +336,40 @@ func (ps *PasswordResetEmailService) shouldRetryEmail(now time.Time, request Ema
 }
 
 func (ps *PasswordResetEmailService) sendSMTPMail(serverAddress, fromAddress, recipient, message string, auth smtp.Auth) error {
+	recipients := []string{recipient}
+	messageBytes := []byte(message)
+
 	switch ps.smtpConfig.Encryption() {
 	case config.None, config.StartTLS:
-		return smtp.SendMail(serverAddress, auth, fromAddress, []string{recipient}, []byte(message))
+		return smtp.SendMail(serverAddress, auth, fromAddress, recipients, messageBytes)
 	case config.TLS:
-		return ps.sendMailTLS([]string{recipient}, []byte(message))
+		return ps.sendMailTLS(recipients, messageBytes)
 	default:
 		return errors.NewUnsupportedEncryptionTypeError(string(ps.smtpConfig.Encryption()))
 	}
 }
 
-func generateMessage(headers map[string]string, body bytes.Buffer) string {
+func generateMessage(headers Headers, body bytes.Buffer) string {
 	message := ""
-	for k, v := range headers {
-		message += fmt.Sprintf("%s: %s\r\n", k, v)
+	message += fmt.Sprintf("From: %s\r\n", headers.From)
+	message += fmt.Sprintf("To: %s\r\n", headers.To)
+	message += fmt.Sprintf("Subject: %s\r\n", headers.Subject)
+	message += fmt.Sprintf("MIME-Version: %s\r\n", headers.MimeVersion)
+	message += fmt.Sprintf("Content-Type: %s\r\n", headers.ContentType)
+	if headers.ReplyTo != "" {
+		message += fmt.Sprintf("Reply-To: %s\r\n", headers.ReplyTo)
 	}
 	message += "\r\n" + body.String()
 
 	return message
 }
-
-func generateTemplateData(request EmailRequest, expiryTime time.Time) map[string]any {
-	return map[string]any{
-		"ResetURL":      request.PasswordResetRequest.ResetURL,
-		"Token":         request.PasswordResetRequest.ResetToken,
-		"ExpiryTime":    expiryTime.Format(time.RFC1123),
-		"ExpireInHours": request.PasswordResetRequest.ExpiresIn.Hours(),
-		"AppName":       request.ApplicationID,
-		"UserEmail":     request.Recipient,
+func generateTemplateData(request EmailRequest, expiryTime time.Time) TemplateData {
+	return TemplateData{
+		ResetURL:   request.PasswordResetRequest.ResetURL,
+		Token:      request.PasswordResetRequest.ResetToken,
+		ExpiryTime: expiryTime.Format(time.RFC1123),
+		AppName:    request.ApplicationID,
+		UserEmail:  request.Recipient,
 	}
 }
 
@@ -391,4 +402,8 @@ func getDefaultTemplate() string {
 	<p>If you did not request a password reset, please ignore this email.</p>
 	<p>Sincerely,<br>{{.AppName}}</p>
 	`
+}
+
+func tokenIsExpired(request EmailRequest, now time.Time) bool {
+	return !request.PasswordResetRequest.TokenExpiry.IsZero() && now.After(request.PasswordResetRequest.TokenExpiry)
 }

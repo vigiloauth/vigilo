@@ -11,7 +11,10 @@ import (
 	"github.com/vigiloauth/vigilo/internal/users"
 )
 
-const tokenDuration time.Duration = 15 * time.Minute
+const (
+	tokenDuration    time.Duration = 15 * time.Minute
+	resetResponseMsg string        = "Password reset instructions have been sent to your email if an account exists."
+)
 
 type PasswordReset interface {
 	SendPasswordResetEmail(userEmail string) (*users.UserPasswordResetResponse, error)
@@ -35,33 +38,25 @@ func NewPasswordResetService(tokenManager token.TokenManager, userStore users.Us
 
 func (p *PasswordResetService) SendPasswordResetEmail(userEmail string) (*users.UserPasswordResetResponse, error) {
 	if user := p.userStore.GetUser(userEmail); user == nil {
-		return &users.UserPasswordResetResponse{
-			Message: "If an account with the given email exists, a password reset link has been sent.",
-		}, nil
+		return &users.UserPasswordResetResponse{Message: resetResponseMsg}, nil
 	}
 
 	resetToken, err := p.tokenManager.GenerateToken(userEmail, tokenDuration)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to generate reset token")
 	}
-
-	tokenExpirationTime := time.Now().Add(tokenDuration)
-	p.tokenManager.AddToken(resetToken, userEmail, tokenExpirationTime)
 
 	resetURL, err := p.constructResetURL(resetToken)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to construct reset URL")
 	}
 
-	emailRequest := email.NewPasswordResetRequest(userEmail, resetURL, resetToken, tokenExpirationTime)
-	emailRequest = *p.emailService.GenerateEmail(emailRequest)
-	if err := p.emailService.SendEmail(emailRequest); err != nil {
-		return nil, err
+	if err := p.generateAndSendEmail(userEmail, resetURL, resetToken); err != nil {
+		return nil, errors.Wrap(err, "Failed to send email")
 	}
 
-	return &users.UserPasswordResetResponse{
-		Message: "If an account with the given email exists, a password reset link has been sent.",
-	}, nil
+	p.addTokenToStore(resetToken, userEmail)
+	return &users.UserPasswordResetResponse{Message: resetResponseMsg}, nil
 }
 
 func (p *PasswordResetService) constructResetURL(resetToken string) (string, error) {
@@ -71,4 +66,19 @@ func (p *PasswordResetService) constructResetURL(resetToken string) (string, err
 	}
 
 	return fmt.Sprintf("%s?token=%s", resetURLBase, resetToken), nil
+}
+
+func (p *PasswordResetService) generateAndSendEmail(userEmail, resetURL, resetToken string) error {
+	emailRequest := email.NewPasswordResetRequest(userEmail, resetURL, resetToken, time.Now().Add(tokenDuration))
+	emailRequest = *p.emailService.GenerateEmail(emailRequest)
+	if err := p.emailService.SendEmail(emailRequest); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (p *PasswordResetService) addTokenToStore(resetToken, userEmail string) {
+	tokenExpirationTime := time.Now().Add(tokenDuration)
+	p.tokenManager.AddToken(resetToken, userEmail, tokenExpirationTime)
 }

@@ -16,10 +16,6 @@ import (
 
 const email string = "test@example.com"
 
-func setupMiddlewareTests(mockTokenManager *mocks.MockTokenManager, mockTokenStore *mocks.MockTokenStore) *Middleware {
-	return NewMiddleware(mockTokenManager)
-}
-
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	mockTokenManager := &mocks.MockTokenManager{}
 	mockTokenStore := &mocks.MockTokenStore{}
@@ -29,12 +25,12 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	mockTokenManager.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
-
 	mockTokenManager.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: email}, nil
 	}
+	mockTokenStore.IsTokenBlacklistedFunc = func(token string) bool { return false }
 
-	middleware := setupMiddlewareTests(mockTokenManager, mockTokenStore)
+	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("Authorization", "Bearer "+tokenString)
@@ -58,16 +54,14 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 	mockTokenManager.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
-
 	mockTokenManager.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: email}, nil
 	}
-
 	mockTokenStore.IsTokenBlacklistedFunc = func(tokenString string) bool {
 		return tokenString == "blacklistedToken"
 	}
 
-	middleware := setupMiddlewareTests(mockTokenManager, mockTokenStore)
+	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("Authorization", "Bearer "+tokenString)
@@ -86,11 +80,10 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	mockTokenManager := &mocks.MockTokenManager{}
 	mockTokenStore := &mocks.MockTokenStore{}
 
-	mockTokenManager.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
-		return nil, errors.New("invalid token")
-	}
+	mockTokenManager.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) { return nil, errors.New("invalid token") }
+	mockTokenStore.IsTokenBlacklistedFunc = func(token string) bool { return true }
 
-	middleware := setupMiddlewareTests(mockTokenManager, mockTokenStore)
+	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("Authorization", "Bearer invalid.token")
@@ -106,7 +99,9 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 }
 
 func TestRedirectToHTTPS(t *testing.T) {
-	middleware := NewMiddleware(nil)
+	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenStore := &mocks.MockTokenStore{}
+	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 
 	r := httptest.NewRequest("GET", "http://example.com", nil)
 	w := httptest.NewRecorder()
@@ -122,7 +117,9 @@ func TestRedirectToHTTPS(t *testing.T) {
 }
 
 func TestRateLimit(t *testing.T) {
-	middleware := NewMiddleware(nil)
+	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenStore := &mocks.MockTokenStore{}
+	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 
 	handler := middleware.RateLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -20,18 +20,17 @@ import (
 )
 
 type ServiceContainer struct {
-	tokenBlacklist    token.TokenStore
+	tokenStore        token.TokenStore
 	loginAttemptStore login.LoginAttemptStore
+	userStore         users.UserStore
 
-	passwordResetEmailService email.EmailService
 	tokenManager              token.TokenManager
+	passwordResetEmailService email.EmailService
 	sessionService            session.Session
-
-	userStore            users.UserStore
-	registrationService  registration.Registration
-	authService          auth.Authentication
-	passwordResetService password.PasswordReset
-	userHandler          *handlers.UserHandler
+	registrationService       registration.Registration
+	authService               auth.Authentication
+	passwordResetService      password.PasswordReset
+	userHandler               *handlers.UserHandler
 
 	middleware *middleware.Middleware
 	tlsConfig  *tls.Config
@@ -41,19 +40,19 @@ type ServiceContainer struct {
 func NewServiceContainer() *ServiceContainer {
 	container := &ServiceContainer{}
 
-	container.tokenBlacklist = token.GetInMemoryTokenStore()
+	container.tokenStore = token.GetInMemoryTokenStore()
 	container.userStore = users.GetInMemoryUserStore()
 	container.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
 
 	container.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
-	container.tokenManager = token.NewTokenService(container.tokenBlacklist)
-	container.sessionService = session.NewSessionService(container.tokenManager, container.tokenBlacklist)
+	container.tokenManager = token.NewTokenService(container.tokenStore)
+	container.sessionService = session.NewSessionService(container.tokenManager, container.tokenStore)
 	container.passwordResetService = password.NewPasswordResetService(container.tokenManager, container.userStore, container.passwordResetEmailService)
 	container.registrationService = registration.NewRegistrationService(container.userStore, container.tokenManager)
 	container.authService = auth.NewAuthenticationService(container.userStore, container.loginAttemptStore, container.tokenManager)
 
 	container.userHandler = handlers.NewUserHandler(container.registrationService, container.authService, container.passwordResetService, container.sessionService)
-	container.middleware = middleware.NewMiddleware(container.tokenManager)
+	container.middleware = middleware.NewMiddleware(container.tokenManager, container.tokenStore)
 
 	container.tlsConfig = initializeTLSConfig()
 	container.httpServer = initializeHTTPServer(container.tlsConfig)

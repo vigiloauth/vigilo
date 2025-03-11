@@ -1,5 +1,7 @@
 package errors
 
+import "fmt"
+
 const (
 	ErrCodeEmpty                      = "EMPTY_FIELD"
 	ErrCodeInvalidPasswordFormat      = "INVALID_PASSWORD_FORMAT"
@@ -27,4 +29,12 @@ const (
 	ErrCodeTokenNotFound              = "TOKEN_NOT_FOUND"
 	ErrCodeExpiredToken               = "TOKEN_EXPIRED"
 	ErrCodeTokenCreation              = "TOKEN_GENERATION"
+	ErrCodeInvalidToken               = "INVALID_TOKEN"
 )
+
+func Wrap(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", message, err)
+}

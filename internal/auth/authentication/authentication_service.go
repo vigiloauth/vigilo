@@ -41,50 +41,65 @@ func NewAuthenticationService(userStore users.UserStore, loginAttemptStore login
 // exceed the threshold, the account will be locked.
 func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAttempt *loginAttempt.LoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
+	defer l.applyArtificialDelay(startTime)
 
 	retrievedUser := l.userStore.GetUser(loginUser.Email)
 	if retrievedUser == nil {
-		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()
 	}
 
 	if retrievedUser.AccountLocked {
-		l.applyArtificialDelay(startTime)
 		return nil, errors.NewAccountLockedError()
 	}
 
 	loginAttempt.UserID = retrievedUser.ID
 	if passwordsAreEqual := utils.ComparePasswordHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
 		l.handleFailedLoginAttempt(retrievedUser, loginAttempt)
-		l.applyArtificialDelay(startTime)
 		return nil, errors.NewInvalidCredentialsError()
 	}
 
 	jwtToken, err := l.tokenManager.GenerateToken(retrievedUser.Email, l.config.JWTConfig().ExpirationTime())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to generate token")
 	}
 
 	retrievedUser.LastFailedLogin = time.Time{}
-	_ = l.userStore.UpdateUser(retrievedUser)
+	if err := l.userStore.UpdateUser(retrievedUser); err != nil {
+		return nil, errors.Wrap(err, "Failed to update user")
+	}
 
-	l.applyArtificialDelay(startTime)
 	return users.NewUserLoginResponse(retrievedUser, jwtToken), nil
 }
 
 // applyArtificialDelay applies an artificial delay to normalize response times.
 func (l *AuthenticationService) applyArtificialDelay(startTime time.Time) {
-	time.Sleep(time.Until(startTime.Add(l.artificialDelay)))
+	elapsed := time.Since(startTime)
+	if elapsed < l.artificialDelay {
+		time.Sleep(l.artificialDelay - elapsed)
+	}
 }
 
-func (l *AuthenticationService) handleFailedLoginAttempt(retrievedUser *users.User, loginAttempt *loginAttempt.LoginAttempt) {
+func (l *AuthenticationService) handleFailedLoginAttempt(retrievedUser *users.User, loginAttempt *loginAttempt.LoginAttempt) error {
 	retrievedUser.LastFailedLogin = time.Now()
 	l.loginAttemptStore.SaveLoginAttempt(loginAttempt)
-	_ = l.userStore.UpdateUser(retrievedUser)
-
-	loginAttempts := l.loginAttemptStore.GetLoginAttempts(retrievedUser.ID)
-	if len(loginAttempts) >= l.maxFailedAttempts {
-		retrievedUser.AccountLocked = true
-		_ = l.userStore.UpdateUser(retrievedUser)
+	if err := l.userStore.UpdateUser(retrievedUser); err != nil {
+		return err
 	}
+
+	if l.shouldLockAccount(retrievedUser.ID) {
+		if err := l.lockAccount(retrievedUser); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *AuthenticationService) shouldLockAccount(userID string) bool {
+	loginAttempts := l.loginAttemptStore.GetLoginAttempts(userID)
+	return len(loginAttempts) >= l.maxFailedAttempts
+}
+
+func (l *AuthenticationService) lockAccount(retrievedUser *users.User) error {
+	retrievedUser.AccountLocked = true
+	return l.userStore.UpdateUser(retrievedUser)
 }

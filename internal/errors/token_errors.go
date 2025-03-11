@@ -27,3 +27,7 @@ func NewExpiredTokenError() *TokenErrors {
 func NewTokenGenerationError() *TokenErrors {
 	return NewBaseTokenError(ErrCodeTokenCreation, "Error creating token")
 }
+
+func NewInvalidTokenError() *TokenErrors {
+	return NewBaseTokenError(ErrCodeInvalidToken, "Invalid token")
+}

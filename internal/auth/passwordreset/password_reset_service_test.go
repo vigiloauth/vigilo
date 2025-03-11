@@ -16,7 +16,7 @@ import (
 const userEmail string = "test@email.com"
 const baseURL string = "https://base.com/reset"
 const testToken string = "test_token"
-const successMessage string = "If an account with the given email exists, a password reset link has been sent."
+const successMessage string = "Password reset instructions have been sent to your email if an account exists."
 
 func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 	config.NewServerConfig(config.WithBaseURL(baseURL))
@@ -47,7 +47,7 @@ func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 			mockTokenFunc: func(email string, duration time.Duration) (string, error) {
 				return "", errors.NewTokenGenerationError()
 			},
-			expectedError: errors.NewTokenGenerationError(),
+			expectedError: fmt.Errorf("Failed to generate reset token: %w", errors.NewTokenGenerationError()),
 		},
 		{
 			name:      "Email sending error",
@@ -61,8 +61,9 @@ func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 			mockEmailSendFunc: func(request email.EmailRequest) error {
 				return errors.NewBaseError(errors.ErrCodeEmailDeliveryFailed, "Email delivery failed, added to retry queue")
 			},
-			expectedError: errors.NewBaseError(errors.ErrCodeEmailDeliveryFailed, "Email delivery failed, added to retry queue"),
+			expectedError: fmt.Errorf("Failed to send email: %w", errors.NewBaseError(errors.ErrCodeEmailDeliveryFailed, "Email delivery failed, added to retry queue")),
 		},
+
 		{
 			name:      "Success",
 			userEmail: userEmail,

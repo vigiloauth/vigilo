@@ -81,7 +81,7 @@ func TestGenerateEmail(t *testing.T) {
 
 	assert.Equal(t, request.Recipient, emailRequest.Recipient, "recipients are not equal")
 	assert.Contains(t, emailRequest.Subject, "Password Reset Request")
-	assert.Contains(t, emailRequest.TemplateData["ResetURL"], resetURL)
+	assert.Equal(t, emailRequest.TemplateData.ResetURL, resetURL)
 }
 
 func TestSendEmail_Failure(t *testing.T) {
