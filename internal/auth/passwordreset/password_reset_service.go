@@ -9,6 +9,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 const (
@@ -18,6 +19,7 @@ const (
 
 type PasswordReset interface {
 	SendPasswordResetEmail(userEmail string) (*users.UserPasswordResetResponse, error)
+	ResetPassword(userEmail, newPassword, resetToken string) (*users.UserPasswordResetResponse, error)
 }
 
 var _ PasswordReset = (*PasswordResetService)(nil)
@@ -59,13 +61,42 @@ func (p *PasswordResetService) SendPasswordResetEmail(userEmail string) (*users.
 	return &users.UserPasswordResetResponse{Message: resetResponseMsg}, nil
 }
 
+func (p *PasswordResetService) ResetPassword(userEmail, newPassword, resetToken string) (*users.UserPasswordResetResponse, error) {
+	storedToken, err := p.tokenManager.ParseToken(resetToken)
+	if err != nil {
+		return nil, errors.NewInvalidTokenError()
+	}
+
+	if storedToken.Subject != userEmail {
+		return nil, errors.NewUnauthorizedError("Invalid token")
+	}
+
+	encryptedPassword, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to encrypt password")
+	}
+
+	user := users.NewUser("", userEmail, encryptedPassword)
+	if err := p.userStore.UpdateUser(user); err != nil {
+		return nil, errors.Wrap(err, "Failed to update user")
+	}
+
+	if err := p.tokenManager.DeleteToken(resetToken); err != nil {
+		return nil, errors.Wrap(err, "Failed to delete reset token")
+	}
+
+	return &users.UserPasswordResetResponse{
+		Message: "Password has been reset successfully",
+	}, nil
+}
+
 func (p *PasswordResetService) constructResetURL(resetToken string) (string, error) {
 	resetURLBase := config.GetServerConfig().BaseURL()
 	if resetURLBase == "" {
 		return "", errors.NewEmptyInputError("Base URL")
 	}
 
-	return fmt.Sprintf("%s?token=%s", resetURLBase, resetToken), nil
+	return fmt.Sprintf("%s?requestId=%s", resetURLBase, resetToken), nil
 }
 
 func (p *PasswordResetService) generateAndSendEmail(userEmail, resetURL, resetToken string) error {

@@ -9,12 +9,25 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
+
+const (
+	userEmail   string = "test@email.com"
+	username    string = "username"
+	password    string = "Pa$s_W0Rd_"
+	newPassword string = "__Pa$$_w0rD"
+)
+
+func setupTest() {
+	users.ResetInMemoryUserStore()
+	config.NewServerConfig()
+}
 
 func setupIdentityServer(endpoint string, body []byte) *httptest.ResponseRecorder {
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
@@ -24,17 +37,8 @@ func setupIdentityServer(endpoint string, body []byte) *httptest.ResponseRecorde
 	return rr
 }
 
-func checkErrorResponse(t *testing.T, responseBody []byte) {
-	var response map[string]any
-	if err := json.Unmarshal(responseBody, &response); err != nil {
-		t.Fatalf("failed to unmarshal response body: %v", err)
-	}
-	if response["error_code"] == nil {
-		t.Errorf("expected error in response, got none")
-	}
-}
-
 func TestUserHandler_HandleUserRegistration(t *testing.T) {
+	setupTest()
 	pc := config.NewPasswordConfig(
 		config.WithUppercase(),
 		config.WithNumber(),
@@ -95,16 +99,11 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			users.ResetInMemoryUserStore()
 			body, err := json.Marshal(test.requestBody)
-			if err != nil {
-				t.Fatalf("failed to marshal request body: %v", err)
-			}
+			assert.NoError(t, err)
 
 			rr := setupIdentityServer(utils.UserEndpoints.Registration, body)
-			if rr.Code != test.expectedStatus {
-				t.Errorf("expected status %v, got %v", test.expectedStatus, rr.Code)
-			}
+			assert.Equal(t, test.expectedStatus, rr.Code)
 
 			if test.wantError {
 				checkErrorResponse(t, rr.Body.Bytes())
@@ -114,87 +113,177 @@ func TestUserHandler_HandleUserRegistration(t *testing.T) {
 }
 
 func TestUserHandler_DuplicateEmail(t *testing.T) {
-	users.ResetInMemoryUserStore()
+	setupTest()
 	requestBody := users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	_ = users.GetInMemoryUserStore().AddUser(user)
+	createTestUser(t)
 
 	body, err := json.Marshal(requestBody)
-	if err != nil {
-		t.Fatalf("failed to marshal request body: %v", err)
-	}
+	assert.NoError(t, err)
 
 	rr := setupIdentityServer(utils.UserEndpoints.Registration, body)
-	if rr.Code != http.StatusConflict {
-		t.Errorf("expected status %v, got %v", http.StatusConflict, rr.Code)
-	}
+	assert.Equal(t, http.StatusConflict, rr.Code)
 }
 
 func TestUserHandler_SuccessfulUserLogin(t *testing.T) {
-	users.ResetInMemoryUserStore()
-	userStore := users.GetInMemoryUserStore()
-	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	hashedPassword, _ := utils.HashPassword(user.Password)
-	user.Password = hashedPassword
-	userStore.AddUser(user)
+	setupTest()
+	createTestUser(t)
 
 	requestBody := users.NewUserLoginRequest(utils.TestConstants.Email, utils.TestConstants.Password)
 	body, err := json.Marshal(requestBody)
-	if err != nil {
-		t.Fatalf("failed to marshal request body: %v", err)
-	}
+	assert.NoError(t, err)
 
 	rr := setupIdentityServer(utils.UserEndpoints.Login, body)
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected status %v, got %v", http.StatusOK, rr.Code)
-	}
+	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
 func TestUserHandler_SuccessfulLogout(t *testing.T) {
-	users.ResetInMemoryUserStore()
-	userStore := users.GetInMemoryUserStore()
-	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	hashedPassword, _ := utils.HashPassword(user.Password)
-	user.Password = hashedPassword
-	userStore.AddUser(user)
-
+	setupTest()
+	createTestUser(t)
 	token := simulateLogin(t, utils.TestConstants.Email, utils.TestConstants.Password)
 
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Logout, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	config.NewServerConfig()
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("expected status %v, got %v", http.StatusOK, rr.Code)
-	}
+	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
 func TestUserHandler_ProtectedRouteWithExpiredToken(t *testing.T) {
-	users.ResetInMemoryUserStore()
-	userStore := users.GetInMemoryUserStore()
-	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
-	hashedPassword, _ := utils.HashPassword(user.Password)
-	user.Password = hashedPassword
-	userStore.AddUser(user)
-
+	setupTest()
+	createTestUser(t)
 	expiredToken := generateExpiredToken()
 
-	// Create a request to the protected route with the expired token
 	rr := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Logout, nil)
 	req.Header.Set("Authorization", "Bearer "+expiredToken)
 
-	config.NewServerConfig()
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusUnauthorized {
-		t.Errorf("expected status %v, got %v", http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestUserHandler_RequestPasswordResetEmail(t *testing.T) {
+	testServer := httptest.NewServer(server.NewVigiloIdentityServer().Router())
+	defer testServer.Close()
+	users.ResetInMemoryUserStore()
+
+	testCases := []struct {
+		name           string
+		requestBody    users.UserPasswordResetRequest
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Successful Request",
+			requestBody:    users.UserPasswordResetRequest{Email: "test@example.com"},
+			expectedStatus: http.StatusOK,
+			expectedBody:   `{"message":"Password reset instructions have been sent to your email if an account exists."}`,
+		},
+		{
+			name:           "Invalid Request Body",
+			requestBody:    users.UserPasswordResetRequest{},
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"description":"malformed or missing field", "error":"email: malformed or missing field", "error_code":"INVALID_FORMAT"}`,
+		},
 	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			body, err := json.Marshal(tc.requestBody)
+			assert.NoError(t, err)
+
+			url := testServer.URL + utils.UserEndpoints.RequestPasswordReset
+			resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
+			assert.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			buf := new(bytes.Buffer)
+			_, err = buf.ReadFrom(resp.Body)
+			assert.NoError(t, err)
+			assert.JSONEq(t, tc.expectedBody, buf.String())
+		})
+	}
+}
+
+func TestUserHandler_ResetPassword(t *testing.T) {
+	testServer := httptest.NewServer(server.NewVigiloIdentityServer().Router())
+	defer testServer.Close()
+
+	user := users.NewUser(username, userEmail, password)
+	users.GetInMemoryUserStore().AddUser(user)
+
+	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
+	resetToken, err := tokenService.GenerateToken(userEmail, time.Hour)
+	token.GetInMemoryTokenStore().AddToken(resetToken, userEmail, time.Now().Add(time.Hour))
+	assert.NoError(t, err)
+
+	testCases := []struct {
+		name           string
+		requestBody    users.UserPasswordResetRequest
+		expectedStatus int
+	}{
+		{
+			name:           "Successful Reset",
+			requestBody:    users.UserPasswordResetRequest{Email: userEmail, ResetToken: resetToken, NewPassword: newPassword},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "Invalid Request Body",
+			requestBody:    users.UserPasswordResetRequest{Email: userEmail},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Invalid token",
+			requestBody:    users.UserPasswordResetRequest{Email: userEmail, ResetToken: "invalid", NewPassword: newPassword},
+			expectedStatus: http.StatusUnauthorized,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			body, err := json.Marshal(tc.requestBody)
+			assert.NoError(t, err)
+
+			url := testServer.URL + utils.UserEndpoints.ResetPassword
+			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(body))
+			assert.NoError(t, err)
+			req.Header.Set("Content-Type", "application/json")
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			assert.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
+
+			buf := new(bytes.Buffer)
+			_, err = buf.ReadFrom(resp.Body)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func checkErrorResponse(t *testing.T, responseBody []byte) {
+	var response map[string]any
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		t.Fatalf("failed to unmarshal response body: %v", err)
+	}
+	assert.NotNil(t, response["error_code"], "expected error in response, got none")
+}
+
+func createTestUser(t *testing.T) *users.User {
+	user := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
+	hashedPassword, err := utils.HashPassword(user.Password)
+	assert.NoError(t, err)
+	user.Password = hashedPassword
+	users.GetInMemoryUserStore().AddUser(user)
+	return user
 }
 
 func generateExpiredToken() string {
@@ -216,31 +305,16 @@ func generateExpiredToken() string {
 
 func simulateLogin(t *testing.T, email, password string) string {
 	loginRequest := users.NewUserLoginRequest(email, password)
-	loginBody, err := json.Marshal(loginRequest)
-	if err != nil {
-		t.Fatalf("failed to marshal login request body: %v", err)
-	}
+	body, err := json.Marshal(loginRequest)
+	assert.NoError(t, err)
 
-	rr := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Login, bytes.NewBuffer(loginBody))
-
-	config.NewServerConfig()
-	vigiloIdentityServer := server.NewVigiloIdentityServer()
-	vigiloIdentityServer.Router().ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Fatalf("expected status %v, got %v", http.StatusOK, rr.Code)
-	}
+	rr := setupIdentityServer(utils.UserEndpoints.Login, body)
+	assert.Equal(t, http.StatusOK, rr.Code)
 
 	var loginResponse users.UserLoginResponse
-	if err := json.Unmarshal(rr.Body.Bytes(), &loginResponse); err != nil {
-		t.Fatalf("failed to unmarshal login response body: %v", err)
-	}
+	err = json.Unmarshal(rr.Body.Bytes(), &loginResponse)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, loginResponse.JWTToken, "expected token in login response, got none")
 
-	token := loginResponse.JWTToken
-	if token == "" {
-		t.Fatalf("expected token in login response, got none")
-	}
-
-	return token
+	return loginResponse.JWTToken
 }

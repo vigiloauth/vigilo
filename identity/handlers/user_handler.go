@@ -6,10 +6,11 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	auth "github.com/vigiloauth/vigilo/internal/auth/authentication"
-	loginAttempt "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
-	passwordReset "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
+	login "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
+	password "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
 	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
 	session "github.com/vigiloauth/vigilo/internal/auth/session"
+	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -20,7 +21,7 @@ import (
 type UserHandler struct {
 	registrationService  registration.Registration
 	authService          auth.Authentication
-	passwordResetService passwordReset.PasswordReset
+	passwordResetService password.PasswordReset
 	sessionService       session.Session
 	jwtConfig            *config.JWTConfig
 }
@@ -29,7 +30,7 @@ type UserHandler struct {
 func NewUserHandler(
 	registrationService registration.Registration,
 	authService auth.Authentication,
-	passwordResetService passwordReset.PasswordReset,
+	passwordResetService password.PasswordReset,
 	sessionService session.Session,
 ) *UserHandler {
 	return &UserHandler{
@@ -88,7 +89,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser("", request.Email, request.Password)
-	loginAttempt := loginAttempt.NewLoginAttempt(
+	loginAttempt := login.NewLoginAttempt(
 		r.RemoteAddr,
 		r.Header.Get("X-Forwarded-For"),
 		"", r.UserAgent(),
@@ -121,6 +122,33 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// RequestPasswordResetEmail is HTTP handler for requesting a password reset email.
+// It process the incoming request and sends a password reset email to the user if they
+// exist with the provided email.
+func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
+	var request users.UserPasswordResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	if request.Email == "" {
+		utils.WriteError(w, errors.NewInvalidFormatError("email", "malformed or missing field"))
+		return
+	}
+
+	response, err := h.passwordResetService.SendPasswordResetEmail(request.Email)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, response)
+}
+
+// ResetPassword handles the password reset request.
+// It decodes the request body into a UserPasswordResetRequest, validates the request,
+// and then calls the passwordResetService to reset the user's password.
 func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var request users.UserPasswordResetRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -128,7 +156,17 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.passwordResetService.SendPasswordResetEmail(request.Email)
+	if err := request.Validate(); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	response, err := h.passwordResetService.ResetPassword(
+		request.Email,
+		request.NewPassword,
+		request.ResetToken,
+	)
+
 	if err != nil {
 		utils.WriteError(w, err)
 		return

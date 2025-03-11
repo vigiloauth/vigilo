@@ -5,15 +5,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/email"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/mocks"
+	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 const userEmail string = "test@email.com"
+const userPassword string = "userPassword"
 const baseURL string = "https://base.com/reset"
 const testToken string = "test_token"
 const successMessage string = "Password reset instructions have been sent to your email if an account exists."
@@ -125,7 +129,7 @@ func TestPasswordResetService_constructResetURL(t *testing.T) {
 		{
 			name:        "Valid URL",
 			baseURL:     baseURL,
-			expectedURL: fmt.Sprintf("%s?token=%s", baseURL, testToken),
+			expectedURL: fmt.Sprintf("%s?requestId=%s", baseURL, testToken),
 		},
 		{
 			name:          "Empty Base URL",
@@ -149,4 +153,123 @@ func TestPasswordResetService_constructResetURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
+	mockTokenService := &mocks.MockTokenManager{}
+	mockUserStore := &mocks.MockUserStore{}
+	mockEmailService := &mocks.MockEmailService{}
+	existingUser := createTestUser(t)
+
+	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+		return &jwt.StandardClaims{Subject: existingUser.Email}, nil
+	}
+	mockUserStore.UpdateUserFunc = func(user *users.User) error { return nil }
+	mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+
+	var capturedToken string
+	mockTokenService.DeleteTokenFunc = func(token string) error {
+		capturedToken = token
+		return nil
+	}
+	mockTokenService.GetTokenFunc = func(email, token string) (*token.TokenData, error) {
+		return nil, nil
+	}
+
+	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+	expected := users.UserPasswordResetResponse{Message: "Password has been reset successfully"}
+	actual, err := ps.ResetPassword(existingUser.Email, existingUser.Password, testToken)
+
+	assert.NoError(t, err, "expected no error when updating the password")
+	assert.Equal(t, actual.Message, expected.Message)
+
+	assert.Equal(t, testToken, capturedToken, "expected DeleteToken to be called with the correct token")
+}
+
+func TestPasswordResetService_ResetPasswordInvalidToken(t *testing.T) {
+	mockTokenService := &mocks.MockTokenManager{}
+	mockUserStore := &mocks.MockUserStore{}
+	mockEmailService := &mocks.MockEmailService{}
+	existingUser := createTestUser(t)
+
+	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+		return nil, errors.NewInvalidTokenError()
+	}
+
+	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+	expected := errors.NewInvalidTokenError()
+	_, actual := ps.ResetPassword(existingUser.Email, existingUser.Email, "invalid_token")
+
+	assert.Equal(t, actual, expected, "expected errors to match")
+}
+
+func TestPasswordResetService_InvalidJWTClaims(t *testing.T) {
+	mockTokenService := &mocks.MockTokenManager{}
+	mockUserStore := &mocks.MockUserStore{}
+	mockEmailService := &mocks.MockEmailService{}
+
+	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+		return &jwt.StandardClaims{Subject: "invalidEmail@test.com"}, nil
+	}
+
+	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+	expected := errors.NewUnauthorizedError("Invalid token")
+	_, actual := ps.ResetPassword(userEmail, userPassword, testToken)
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, actual, expected, "expected errors to match")
+}
+
+func TestPasswordResetService_TokenDeletionFailed(t *testing.T) {
+	mockTokenService := &mocks.MockTokenManager{}
+	mockUserStore := &mocks.MockUserStore{}
+	mockEmailService := &mocks.MockEmailService{}
+
+	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+		return &jwt.StandardClaims{Subject: userEmail}, nil
+	}
+	mockUserStore.UpdateUserFunc = func(user *users.User) error { return nil }
+	mockTokenService.DeleteTokenFunc = func(token string) error {
+		return errors.NewTokenNotFoundError()
+	}
+
+	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+
+	expected := errors.Wrap(errors.NewTokenNotFoundError(), "Failed to delete reset token")
+	_, actual := ps.ResetPassword(userEmail, userPassword, testToken)
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, actual.Error(), expected.Error())
+}
+
+func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
+	mockTokenService := &mocks.MockTokenManager{}
+	mockUserStore := &mocks.MockUserStore{}
+	mockEmailService := &mocks.MockEmailService{}
+
+	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+		return &jwt.StandardClaims{Subject: userEmail}, nil
+	}
+	mockUserStore.UpdateUserFunc = func(user *users.User) error {
+		return errors.NewUserNotFoundError()
+	}
+
+	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+
+	expected := errors.Wrap(errors.NewUserNotFoundError(), "Failed to update user")
+	_, actual := ps.ResetPassword(userEmail, userPassword, testToken)
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, actual.Error(), expected.Error())
+}
+
+func createTestUser(t *testing.T) *users.User {
+	encryptedPassword, err := utils.HashPassword(utils.TestConstants.Password)
+	if err != nil {
+		t.Fatalf("Failed to hash password: %v", err)
+	}
+	return users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
 }

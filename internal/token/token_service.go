@@ -45,7 +45,7 @@ func (ts *TokenService) ParseToken(tokenString string) (*jwt.StandardClaims, err
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed parse JWT with claims")
+		return nil, errors.Wrap(err, "Failed to parse JWT with claims")
 	}
 
 	if claims, ok := token.Claims.(*jwt.StandardClaims); ok && token.Valid {
