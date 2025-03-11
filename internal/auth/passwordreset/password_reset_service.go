@@ -62,6 +62,10 @@ func (p *PasswordResetService) SendPasswordResetEmail(userEmail string) (*users.
 }
 
 func (p *PasswordResetService) ResetPassword(userEmail, newPassword, resetToken string) (*users.UserPasswordResetResponse, error) {
+	if _, err := p.tokenManager.GetToken(userEmail, resetToken); err != nil {
+		return nil, errors.Wrap(err, "Reset token does not exist")
+	}
+
 	storedToken, err := p.tokenManager.ParseToken(resetToken)
 	if err != nil {
 		return nil, errors.NewInvalidTokenError()

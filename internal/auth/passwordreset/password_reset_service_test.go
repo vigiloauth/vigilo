@@ -266,6 +266,26 @@ func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
 	assert.Equal(t, actual.Error(), expected.Error())
 }
 
+func TestPasswordResetService_TokenDoesNotExist(t *testing.T) {
+	mockTokenService := &mocks.MockTokenManager{}
+	mockUserStore := &mocks.MockUserStore{}
+	mockEmailService := &mocks.MockEmailService{}
+
+	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+		return &jwt.StandardClaims{Subject: userEmail}, nil
+	}
+	mockTokenService.GetTokenFunc = func(email, token string) (*token.TokenData, error) {
+		return nil, errors.NewTokenNotFoundError()
+	}
+
+	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+	expected := errors.Wrap(errors.NewTokenNotFoundError(), "Reset token does not exist")
+	_, actual := ps.ResetPassword(userEmail, userEmail, testToken)
+
+	assert.NotNil(t, actual)
+	assert.Equal(t, actual.Error(), expected.Error())
+}
+
 func createTestUser(t *testing.T) *users.User {
 	encryptedPassword, err := utils.HashPassword(utils.TestConstants.Password)
 	if err != nil {

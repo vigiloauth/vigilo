@@ -74,3 +74,7 @@ func (ts *TokenService) GetToken(email string, token string) (*TokenData, error)
 func (ts *TokenService) DeleteToken(token string) error {
 	return ts.tokenStore.DeleteToken(token)
 }
+
+func (ts *TokenService) IsTokenExpired(token string) bool {
+	return true
+}
