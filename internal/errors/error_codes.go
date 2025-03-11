@@ -30,6 +30,7 @@ const (
 	ErrCodeExpiredToken               = "TOKEN_EXPIRED"
 	ErrCodeTokenCreation              = "TOKEN_GENERATION"
 	ErrCodeInvalidToken               = "INVALID_TOKEN"
+	ErrCodeUnauthorized               = "UNAUTHORIZED"
 )
 
 func Wrap(err error, message string) error {
