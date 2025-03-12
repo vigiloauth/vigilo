@@ -25,7 +25,7 @@ func setupRateLimitedServer(requestsPerMinute int, requestBody []byte) *httptest
 
 func TestRateLimiting(t *testing.T) {
 	users.ResetInMemoryUserStore()
-	user := users.NewUser("", utils.TestConstants.Email, utils.TestConstants.Password)
+	user := users.NewUser("", utils.TestEmail, utils.TestPassword1)
 	requestBody, err := json.Marshal(user)
 
 	userStore := users.GetInMemoryUserStore()

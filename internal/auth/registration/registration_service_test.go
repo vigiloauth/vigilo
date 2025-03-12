@@ -62,8 +62,8 @@ func TestRegistrationService_PasswordIsNotStoredInPlainText(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockUserStore.GetUserFunc = func(email string) *users.User { return user }
-	retrievedUser := mockUserStore.GetUserFunc(utils.TestConstants.Email)
-	assert.NotEqual(t, retrievedUser.Password, utils.TestConstants.Password)
+	retrievedUser := mockUserStore.GetUserFunc(utils.TestEmail)
+	assert.NotEqual(t, retrievedUser.Password, utils.TestPassword1)
 }
 
 func TestUserRegistrationRequest_Validate(t *testing.T) {
@@ -75,22 +75,22 @@ func TestUserRegistrationRequest_Validate(t *testing.T) {
 	}{
 		{
 			name:      "Validate returns no errors",
-			req:       users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password),
+			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.TestPassword1),
 			wantError: false,
 		},
 		{
 			name:      "Validate returns error for empty username",
-			req:       users.NewUserRegistrationRequest("", utils.TestConstants.Email, utils.TestConstants.Password),
+			req:       users.NewUserRegistrationRequest("", utils.TestEmail, utils.TestPassword1),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns error for empty email",
-			req:       users.NewUserRegistrationRequest(utils.TestConstants.Username, "", utils.TestConstants.Password),
+			req:       users.NewUserRegistrationRequest(utils.TestUsername, "", utils.TestPassword1),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns error for empty password",
-			req:       users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, ""),
+			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, ""),
 			wantError: true,
 		},
 	}
@@ -114,22 +114,22 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 	}{
 		{
 			name:      "Validate returns an error when the password is missing an uppercase",
-			req:       users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
+			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns an error when the password is missing a number",
-			req:       users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
+			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns an error when the password is too short",
-			req:       users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
+			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns an error when the password is missing a symbol",
-			req:       users.NewUserRegistrationRequest(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.InvalidPassword),
+			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
 			wantError: true,
 		},
 	}
@@ -145,7 +145,10 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 }
 
 func createNewUser() *users.User {
-	return users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
+	return users.NewUser(
+		utils.TestUsername,
+		utils.TestEmail,
+		utils.TestPassword1)
 }
 
 func configurePasswordPolicy() {

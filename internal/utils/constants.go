@@ -1,27 +1,5 @@
 package utils
 
-var TestConstants = struct {
-	Username        string
-	Email           string
-	Password        string
-	DuplicateEmail  string
-	InvalidPassword string
-	IPAddress       string
-	RequestMetadata string
-	Details         string
-	UserAgent       string
-}{
-	Username:        "username",
-	Email:           "vigilo@vigiloauth.com",
-	Password:        "Pa$s_w0rds",
-	DuplicateEmail:  "duplicate_email@test.com",
-	InvalidPassword: "invalid",
-	IPAddress:       "127.001.00",
-	RequestMetadata: "request_metadata",
-	Details:         "details",
-	UserAgent:       "user_agent",
-}
-
 var UserFieldConstants = struct {
 	Username string
 	Email    string
@@ -47,3 +25,15 @@ var UserEndpoints = struct {
 	RequestPasswordReset: defaultAuthEndpoint + "/reset-password",
 	ResetPassword:        defaultAuthEndpoint + "/reset-password/confirm",
 }
+
+const (
+	TestEmail           string = "test@email.com"
+	TestUsername        string = "username"
+	TestPassword1       string = "Pa$s_W0Rd_"
+	TestPassword2       string = "__Pa$$_w0rD"
+	InvalidPassword     string = "invalid"
+	TestIPAddress       string = "127.001.00"
+	TestRequestMetadata string = "request_metadata"
+	TestRequestDetails  string = "details"
+	TestUserAgent       string = "user_agent"
+)

@@ -26,8 +26,10 @@ func GetInMemoryUserStore() *InMemoryUserStore {
 
 // ResetInMemoryUserStore resets the in-memory user store for testing purposes.
 func ResetInMemoryUserStore() {
-	instance = &InMemoryUserStore{
-		data: make(map[string]User),
+	if instance != nil {
+		instance.mu.Lock()
+		instance.data = make(map[string]User)
+		instance.mu.Unlock()
 	}
 }
 

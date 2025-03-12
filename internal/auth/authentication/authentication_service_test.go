@@ -25,7 +25,7 @@ func TestAuthenticationService_SuccessfulUserAuthentication(t *testing.T) {
 	mockUserStore.UpdateUserFunc = func(user *users.User) error { return nil }
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	loginUser := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, utils.TestConstants.Password)
+	loginUser := users.NewUser(utils.TestUsername, utils.TestEmail, utils.TestPassword1)
 	loginAttempt := createTestLoginAttempt()
 
 	_, err := authService.AuthenticateUser(loginUser, loginAttempt)
@@ -48,7 +48,7 @@ func TestAuthenticationService_AuthenticateUserInvalidPassword(t *testing.T) {
 	}
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	loginUser := users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, "password")
+	loginUser := users.NewUser(utils.TestUsername, utils.TestEmail, utils.InvalidPassword)
 	loginAttempt := createTestLoginAttempt()
 
 	expected := errors.NewInvalidCredentialsError()
@@ -97,7 +97,7 @@ func TestAuthenticationService_FailedUserAuthenticationAttempts(t *testing.T) {
 	}
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	user.Password = utils.TestConstants.InvalidPassword
+	user.Password = utils.InvalidPassword
 	loginAttempt := createTestLoginAttempt()
 	expectedAttempts := 5
 	for range expectedAttempts {
@@ -122,8 +122,8 @@ func TestAuthenticationService_ArtificialDelayDuringUserAuthentication(t *testin
 	mockLoginAttemptStore.GetLoginAttemptsFunc = func(userID string) []*login.LoginAttempt { return []*login.LoginAttempt{} }
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	user.Password = utils.TestConstants.InvalidPassword
-	loginAttempt := login.NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
+	user.Password = utils.InvalidPassword
+	loginAttempt := login.NewLoginAttempt(utils.TestIPAddress, utils.TestRequestMetadata, utils.TestRequestDetails, utils.TestUserAgent)
 
 	expected := 500 * time.Millisecond
 	startTime := time.Now()
@@ -155,14 +155,14 @@ func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing
 	}
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	user.Password = utils.TestConstants.InvalidPassword
+	user.Password = utils.InvalidPassword
 	loginAttempt := createTestLoginAttempt()
 	for range authService.maxFailedAttempts {
 		_, err := authService.AuthenticateUser(user, loginAttempt)
 		assert.NotNil(t, err)
 	}
 
-	retrievedUser := mockUserStore.GetUserFunc(utils.TestConstants.Email)
+	retrievedUser := mockUserStore.GetUserFunc(utils.TestEmail)
 	assert.True(t, retrievedUser.AccountLocked, "expected account to be locked")
 
 	expected := errors.NewAccountLockedError()
@@ -173,13 +173,17 @@ func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing
 }
 
 func createTestUser(t *testing.T) *users.User {
-	encryptedPassword, err := utils.HashPassword(utils.TestConstants.Password)
+	encryptedPassword, err := utils.HashPassword(utils.TestPassword1)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
-	return users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
+	return users.NewUser(utils.TestUsername, utils.TestEmail, encryptedPassword)
 }
 
 func createTestLoginAttempt() *login.LoginAttempt {
-	return login.NewLoginAttempt(utils.TestConstants.IPAddress, utils.TestConstants.RequestMetadata, utils.TestConstants.Details, utils.TestConstants.UserAgent)
+	return login.NewLoginAttempt(
+		utils.TestIPAddress,
+		utils.TestRequestMetadata,
+		utils.TestRequestDetails,
+		utils.TestUserAgent)
 }

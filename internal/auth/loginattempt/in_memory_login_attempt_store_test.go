@@ -9,10 +9,10 @@ import (
 )
 
 func TestNewLoginAttempt(t *testing.T) {
-	ipAddress := utils.TestConstants.IPAddress
-	requestMetadata := utils.TestConstants.RequestMetadata
-	details := utils.TestConstants.Details
-	userAgent := utils.TestConstants.UserAgent
+	ipAddress := utils.TestIPAddress
+	requestMetadata := utils.TestRequestMetadata
+	details := utils.TestRequestDetails
+	userAgent := utils.TestUserAgent
 
 	attempt := NewLoginAttempt(ipAddress, requestMetadata, details, userAgent)
 
@@ -28,11 +28,11 @@ func TestLogLoginAttempt(t *testing.T) {
 	userID := "user1"
 	attempt := &LoginAttempt{
 		UserID:          userID,
-		IPAddress:       utils.TestConstants.IPAddress,
+		IPAddress:       utils.TestIPAddress,
 		Timestamp:       time.Now(),
-		RequestMetadata: utils.TestConstants.RequestMetadata,
-		Details:         utils.TestConstants.Details,
-		UserAgent:       utils.TestConstants.UserAgent,
+		RequestMetadata: utils.TestRequestMetadata,
+		Details:         utils.TestRequestDetails,
+		UserAgent:       utils.TestUserAgent,
 	}
 
 	store.SaveLoginAttempt(attempt)

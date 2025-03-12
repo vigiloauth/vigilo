@@ -267,9 +267,9 @@ func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
 }
 
 func createTestUser(t *testing.T) *users.User {
-	encryptedPassword, err := utils.HashPassword(utils.TestConstants.Password)
+	encryptedPassword, err := utils.HashPassword(utils.TestPassword1)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
-	return users.NewUser(utils.TestConstants.Username, utils.TestConstants.Email, encryptedPassword)
+	return users.NewUser(utils.TestUsername, utils.TestEmail, encryptedPassword)
 }
