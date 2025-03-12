@@ -24,13 +24,15 @@ type ServiceContainer struct {
 	loginAttemptStore login.LoginAttemptStore
 	userStore         users.UserStore
 
-	tokenManager              token.TokenManager
 	passwordResetEmailService email.EmailService
-	sessionService            session.Session
-	registrationService       registration.Registration
-	authService               auth.Authentication
-	passwordResetService      password.PasswordReset
-	userHandler               *handlers.UserHandler
+	emailNotificationService  email.EmailService
+
+	tokenManager         token.TokenManager
+	sessionService       session.Session
+	registrationService  registration.Registration
+	authService          auth.Authentication
+	passwordResetService password.PasswordReset
+	userHandler          *handlers.UserHandler
 
 	middleware *middleware.Middleware
 	tlsConfig  *tls.Config
@@ -45,6 +47,8 @@ func NewServiceContainer() *ServiceContainer {
 	container.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
 
 	container.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
+	container.emailNotificationService, _ = email.NewEmailNotificationService()
+
 	container.tokenManager = token.NewTokenService(container.tokenStore)
 	container.sessionService = session.NewSessionService(container.tokenManager, container.tokenStore)
 	container.passwordResetService = password.NewPasswordResetService(container.tokenManager, container.userStore, container.passwordResetEmailService)

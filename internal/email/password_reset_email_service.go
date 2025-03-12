@@ -13,6 +13,8 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
+var _ EmailService = (*PasswordResetEmailService)(nil)
+
 type PasswordResetEmailService struct {
 	smtpConfig    *config.SMTPConfig
 	template      *template.Template
