@@ -162,6 +162,7 @@ func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
 	existingUser := createTestUser(t)
 
 	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockUserStore.GetUserFunc = func(value string) *users.User { return existingUser }
 	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: existingUser.Email}, nil
 	}
@@ -181,9 +182,8 @@ func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
 	expected := users.UserPasswordResetResponse{Message: "Password has been reset successfully"}
 	actual, err := ps.ResetPassword(existingUser.Email, existingUser.Password, testToken)
 
-	assert.NoError(t, err, "expected no error when updating the password")
+	assert.NoError(t, err, "error when updating the password")
 	assert.Equal(t, actual.Message, expected.Message)
-
 	assert.Equal(t, testToken, capturedToken, "expected DeleteToken to be called with the correct token")
 }
 
@@ -225,8 +225,10 @@ func TestPasswordResetService_TokenDeletionFailed(t *testing.T) {
 	mockTokenService := &mocks.MockTokenManager{}
 	mockUserStore := &mocks.MockUserStore{}
 	mockEmailService := &mocks.MockEmailService{}
+	existingUser := createTestUser(t)
 
 	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockUserStore.GetUserFunc = func(value string) *users.User { return existingUser }
 	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: userEmail}, nil
 	}
@@ -248,8 +250,10 @@ func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
 	mockTokenService := &mocks.MockTokenManager{}
 	mockUserStore := &mocks.MockUserStore{}
 	mockEmailService := &mocks.MockEmailService{}
+	existingUser := createTestUser(t)
 
 	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockUserStore.GetUserFunc = func(value string) *users.User { return existingUser }
 	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: userEmail}, nil
 	}
@@ -264,6 +268,35 @@ func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
 
 	assert.NotNil(t, actual)
 	assert.Equal(t, actual.Error(), expected.Error())
+}
+
+func TestPasswordResetService_LockedAccount_UnlockedAfterUpdate(t *testing.T) {
+	mockTokenService := &mocks.MockTokenManager{}
+	mockUserStore := &mocks.MockUserStore{}
+	mockEmailService := &mocks.MockEmailService{}
+	existingUser := createTestUser(t)
+	existingUser.AccountLocked = true
+
+	var updatedUser *users.User
+
+	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
+	mockUserStore.GetUserFunc = func(value string) *users.User { return existingUser }
+	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+		return &jwt.StandardClaims{Subject: userEmail}, nil
+	}
+	mockUserStore.UpdateUserFunc = func(user *users.User) error {
+		updatedUser = user
+		return nil
+	}
+	mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+
+	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+
+	_, err := ps.ResetPassword(userEmail, userEmail, testToken)
+	assert.NoError(t, err, "error occurred when updating user")
+
+	assert.NotNil(t, updatedUser, "updated user should not be nil")
+	assert.False(t, updatedUser.AccountLocked, "account should be unlocked after password reset")
 }
 
 func createTestUser(t *testing.T) *users.User {

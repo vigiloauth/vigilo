@@ -76,7 +76,16 @@ func (p *PasswordResetService) ResetPassword(userEmail, newPassword, resetToken 
 		return nil, errors.Wrap(err, "Failed to encrypt password")
 	}
 
-	user := users.NewUser("", userEmail, encryptedPassword)
+	user := p.userStore.GetUser(userEmail)
+	if user == nil {
+		return nil, errors.NewUserNotFoundError()
+	}
+
+	if user.AccountLocked {
+		user.AccountLocked = false
+	}
+
+	user.Password = encryptedPassword
 	if err := p.userStore.UpdateUser(user); err != nil {
 		return nil, errors.Wrap(err, "Failed to update user")
 	}
