@@ -14,6 +14,7 @@ type MockEmailService struct {
 	ProcessQueueFunc        func()
 	StartQueueProcessorFunc func(interval time.Duration)
 	GetQueueStatusFunc      func() (int, map[string]int)
+	ClearQueueFunc          func()
 }
 
 func (m *MockEmailService) SendEmail(request email.EmailRequest) error {
@@ -42,4 +43,8 @@ func (m *MockEmailService) StartQueueProcessor(interval time.Duration) {
 
 func (m *MockEmailService) GetQueueStatus() (int, map[string]int) {
 	return m.GetQueueStatusFunc()
+}
+
+func (m *MockEmailService) ClearQueue() {
+	m.ClearQueueFunc()
 }
