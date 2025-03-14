@@ -46,9 +46,14 @@ func getErrorMapping(err error) (int, ErrorResponse) {
 			errors.ErrCodeUnauthorized:       {http.StatusUnauthorized, ""},
 		},
 		"InputValidationError": {
-			errors.ErrCodeDuplicateUser: {http.StatusConflict, ""},
-			errors.ErrCodeUserNotFound:  {http.StatusNotFound, ""},
-			"default":                   {http.StatusBadRequest, ""},
+			errors.ErrCodeDuplicateUser:    {http.StatusConflict, ""},
+			errors.ErrCodeUserNotFound:     {http.StatusNotFound, ""},
+			errors.ErrCodeEmpty:            {http.StatusBadRequest, ""},
+			errors.ErrCodeMissingNumber:    {http.StatusBadRequest, ""},
+			errors.ErrCodeMissingSymbol:    {http.StatusBadRequest, ""},
+			errors.ErrCodeMissingUppercase: {http.StatusBadRequest, ""},
+			errors.ErrCodeInvalidFormat:    {http.StatusUnprocessableEntity, ""},
+			"default":                      {http.StatusBadRequest, ""},
 		},
 		"TokenErrors": {
 			errors.ErrCodeTokenNotFound: {http.StatusNotFound, ""},
@@ -57,7 +62,7 @@ func getErrorMapping(err error) (int, ErrorResponse) {
 			errors.ErrCodeInvalidToken:  {http.StatusUnauthorized, ""},
 		},
 		"EmailError": {
-			errors.ErrCodeEmailDeliveryFailed:        {http.StatusInternalServerError, ""},
+			errors.ErrCodeEmailDeliveryFailed:        {http.StatusFailedDependency, ""},
 			errors.ErrCodeEmailTemplateParseFailed:   {http.StatusBadRequest, ""},
 			errors.ErrCodeTemplateRenderingFailed:    {http.StatusInternalServerError, ""},
 			errors.ErrCodeUnsupportedEncryptionType:  {http.StatusBadRequest, ""},

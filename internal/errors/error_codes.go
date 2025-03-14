@@ -17,7 +17,7 @@ const (
 	ErrCodeInvalidCredentials         = "INVALID_CREDENTIALS"
 	ErrCodeAccountLocked              = "ACCOUNT_LOCKED"
 	ErrCodeInvalidFormat              = "INVALID_FORMAT"
-	ErrCodeEmailDeliveryFailed        = "EMAIL_DELIVERY_FAILED"
+	ErrCodeEmailDeliveryFailed        = "EMAIL_DELIVERY_ERROR"
 	ErrCodeEmailTemplateParseFailed   = "EMAIL_TEMPLATE_PARSE_FAILED"
 	ErrCodeTemplateRenderingFailed    = "TEMPLATE_RENDERING_FAILED"
 	ErrCodeUnsupportedEncryptionType  = "UNSUPPORTED_ENCRYPTION_TYPE"
