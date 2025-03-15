@@ -16,6 +16,7 @@ const testEmail string = "test@example.com"
 const testToken string = "test_token"
 
 func TestCreateSession(t *testing.T) {
+	config.NewServerConfig(config.WithForceHTTPS())
 	mockTokenManager := &mocks.MockTokenManager{}
 	mockTokenStore := &mocks.MockTokenStore{}
 
@@ -39,6 +40,7 @@ func TestCreateSession(t *testing.T) {
 }
 
 func TestInvalidateSession(t *testing.T) {
+	config.NewServerConfig(config.WithForceHTTPS())
 	mockTokenManager := &mocks.MockTokenManager{}
 	mockTokenStore := &mocks.MockTokenStore{}
 	config.NewJWTConfig()
