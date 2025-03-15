@@ -297,7 +297,7 @@ func TestPasswordReset(t *testing.T) {
 			{
 				name:           "Invalid Request Body",
 				requestBody:    users.UserPasswordResetRequest{},
-				expectedStatus: http.StatusBadRequest,
+				expectedStatus: http.StatusUnprocessableEntity,
 				expectedBody:   `{"description":"malformed or missing field", "error":"email: malformed or missing field", "error_code":"INVALID_FORMAT"}`,
 			},
 		}
@@ -365,7 +365,7 @@ func TestPasswordReset(t *testing.T) {
 		resetRequest := users.UserPasswordResetRequest{
 			Email:       utils.TestEmail,
 			ResetToken:  resetToken,
-			NewPassword: utils.TestEmail,
+			NewPassword: utils.TestPassword2,
 		}
 
 		resetResp := helper.sendRequest(http.MethodPatch, utils.UserEndpoints.ResetPassword, resetRequest)
