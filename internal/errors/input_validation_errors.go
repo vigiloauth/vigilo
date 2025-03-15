@@ -56,7 +56,7 @@ func NewPasswordFormatError(missingField, errCode string) *InputValidationError 
 	return &InputValidationError{
 		Field:     "password",
 		ErrorCode: errCode,
-		Message:   fmt.Sprintf("Password must contain at leat one %s", missingField),
+		Message:   fmt.Sprintf("Password must contain at least one %s", missingField),
 	}
 }
 
@@ -66,5 +66,14 @@ func NewUserNotFoundError() *InputValidationError {
 		Field:     "email",
 		ErrorCode: ErrCodeUserNotFound,
 		Message:   "User not found",
+	}
+}
+
+// NewInvalidFormatError creates an error for invalid input formats
+func NewInvalidFormatError(field, message string) *InputValidationError {
+	return &InputValidationError{
+		Field:     field,
+		ErrorCode: ErrCodeInvalidFormat,
+		Message:   message,
 	}
 }

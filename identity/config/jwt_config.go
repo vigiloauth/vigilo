@@ -6,14 +6,12 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-// JWTConfig holds the configuration for generating JWT tokens.
 type JWTConfig struct {
 	secret         string
 	expirationTime time.Duration
 	signingMethod  jwt.SigningMethod
 }
 
-// JWTOption defines a function type for configuring JWTConfig
 type JWTOption func(*JWTConfig)
 
 const (
@@ -21,7 +19,6 @@ const (
 	defaultExpirationTime time.Duration = 24 * time.Hour
 )
 
-// NewJWTConfig creates a new JWTConfig with options
 func NewJWTConfig(opts ...JWTOption) *JWTConfig {
 	config := &JWTConfig{
 		secret:         defaultSecret,
@@ -36,21 +33,18 @@ func NewJWTConfig(opts ...JWTOption) *JWTConfig {
 	return config
 }
 
-// WithSecret sets a custom secret key for JWT
 func WithSecret(secret string) JWTOption {
 	return func(c *JWTConfig) {
 		c.secret = secret
 	}
 }
 
-// WithExpirationTime sets custom expiration time
 func WithExpirationTime(duration time.Duration) JWTOption {
 	return func(c *JWTConfig) {
 		c.expirationTime = duration
 	}
 }
 
-// WithSigningMethod sets custom signing method
 func WithSigningMethod(method jwt.SigningMethod) JWTOption {
 	return func(c *JWTConfig) {
 		c.signingMethod = method

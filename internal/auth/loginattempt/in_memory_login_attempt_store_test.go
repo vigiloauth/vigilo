@@ -9,10 +9,10 @@ import (
 )
 
 func TestNewLoginAttempt(t *testing.T) {
-	ipAddress := utils.TestConstants.IPAddress
-	requestMetadata := utils.TestConstants.RequestMetadata
-	details := utils.TestConstants.Details
-	userAgent := utils.TestConstants.UserAgent
+	ipAddress := utils.TestIPAddress
+	requestMetadata := utils.TestRequestMetadata
+	details := utils.TestRequestDetails
+	userAgent := utils.TestUserAgent
 
 	attempt := NewLoginAttempt(ipAddress, requestMetadata, details, userAgent)
 
@@ -24,15 +24,15 @@ func TestNewLoginAttempt(t *testing.T) {
 }
 
 func TestLogLoginAttempt(t *testing.T) {
-	store := NewLoginAttemptStore()
+	store := NewInMemoryLoginAttemptStore()
 	userID := "user1"
 	attempt := &LoginAttempt{
 		UserID:          userID,
-		IPAddress:       utils.TestConstants.IPAddress,
+		IPAddress:       utils.TestIPAddress,
 		Timestamp:       time.Now(),
-		RequestMetadata: utils.TestConstants.RequestMetadata,
-		Details:         utils.TestConstants.Details,
-		UserAgent:       utils.TestConstants.UserAgent,
+		RequestMetadata: utils.TestRequestMetadata,
+		Details:         utils.TestRequestDetails,
+		UserAgent:       utils.TestUserAgent,
 	}
 
 	store.SaveLoginAttempt(attempt)
@@ -43,7 +43,7 @@ func TestLogLoginAttempt(t *testing.T) {
 }
 
 func TestGetLoginAttempts(t *testing.T) {
-	store := NewLoginAttemptStore()
+	store := NewInMemoryLoginAttemptStore()
 	userID := "user1"
 	attempt1 := &LoginAttempt{
 		UserID:          userID,

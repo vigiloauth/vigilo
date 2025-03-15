@@ -46,6 +46,16 @@ type UserLoginResponse struct {
 	JWTToken string `json:"token"`
 }
 
+type UserPasswordResetRequest struct {
+	Email       string `json:"email"`
+	ResetToken  string `json:"reset_token"`
+	NewPassword string `json:"new_password"`
+}
+
+type UserPasswordResetResponse struct {
+	Message string `json:"message"`
+}
+
 // NewUser creates a new user
 func NewUser(username, email, password string) *User {
 	return &User{
@@ -108,6 +118,17 @@ func (req *UserRegistrationRequest) Validate() error {
 	return nil
 }
 
+func (req *UserPasswordResetRequest) Validate() error {
+	errorCollection := errors.NewErrorCollection()
+	validatePassword(req.NewPassword, errorCollection)
+
+	if errorCollection.HasErrors() {
+		return errorCollection
+	}
+
+	return nil
+}
+
 // Validate validates the UserLoginRequest fields
 func (req *UserLoginRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
@@ -147,7 +168,7 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 		return
 	}
 
-	passwordConfig := config.GetPasswordConfiguration()
+	passwordConfig := config.GetServerConfig().PasswordConfig()
 	minimumLength := passwordConfig.MinLength()
 
 	if len(password) < minimumLength {

@@ -1,20 +1,32 @@
 package config
 
-import "time"
+import (
+	"fmt"
+	"sync"
+	"time"
+)
 
 type ServerConfig struct {
 	port              int
 	certFilePath      string
 	keyFilePath       string
+	baseURL           string
 	forceHTTPS        bool
+	requestsPerMinute int
 	readTimeout       time.Duration
 	writeTimeout      time.Duration
 	jwtConfig         *JWTConfig
 	loginConfig       *LoginConfig
-	requestsPerMinute int
+	smtpConfig        *SMTPConfig
+	passwordConfig    *PasswordConfig
 }
 
 type ServerConfigOptions func(*ServerConfig)
+
+var (
+	serverConfigInstance *ServerConfig
+	serverConfigOnce     sync.Once
+)
 
 const (
 	defaultPort              int           = 8443
@@ -24,6 +36,16 @@ const (
 	defaultRequestsPerMinute int           = 100
 )
 
+// GetServerConfig returns the global server configuration
+func GetServerConfig() *ServerConfig {
+	if serverConfigInstance == nil {
+		serverConfigOnce.Do(func() {
+			serverConfigInstance = NewServerConfig()
+		})
+	}
+	return serverConfigInstance
+}
+
 func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 	sc := &ServerConfig{
 		port:              defaultPort,
@@ -32,6 +54,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		writeTimeout:      defaultWriteTimeout,
 		jwtConfig:         NewJWTConfig(),
 		loginConfig:       NewLoginConfig(),
+		passwordConfig:    NewPasswordConfig(),
 		requestsPerMinute: defaultRequestsPerMinute,
 	}
 
@@ -39,6 +62,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		opt(sc)
 	}
 
+	serverConfigInstance = sc
 	return sc
 }
 
@@ -57,6 +81,12 @@ func WithCertFilePath(filePath string) ServerConfigOptions {
 func WithKeyFilePath(filePath string) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.keyFilePath = filePath
+	}
+}
+
+func WithBaseURL(baseURL string) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.baseURL = baseURL
 	}
 }
 
@@ -94,6 +124,18 @@ func WithLoginConfig(loginConfig *LoginConfig) ServerConfigOptions {
 	}
 }
 
+func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.smtpConfig = smtpConfig
+	}
+}
+
+func WithPasswordConfig(passwordConfig *PasswordConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.passwordConfig = passwordConfig
+	}
+}
+
 func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if requests > defaultRequestsPerMinute {
@@ -104,6 +146,10 @@ func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 
 func (sc *ServerConfig) Port() int {
 	return sc.port
+}
+
+func (sc *ServerConfig) BaseURL() string {
+	return sc.baseURL
 }
 
 func (sc *ServerConfig) CertFilePath() string {
@@ -132,6 +178,18 @@ func (sc *ServerConfig) JWTConfig() *JWTConfig {
 
 func (sc *ServerConfig) LoginConfig() *LoginConfig {
 	return sc.loginConfig
+}
+
+func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
+	if sc.smtpConfig == nil {
+		fmt.Println("Warning: SMTP configuration is not set")
+		return nil
+	}
+	return sc.smtpConfig
+}
+
+func (sc *ServerConfig) PasswordConfig() *PasswordConfig {
+	return sc.passwordConfig
 }
 
 func (sc *ServerConfig) MaxRequestsPerMinute() int {

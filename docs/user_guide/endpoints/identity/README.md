@@ -8,3 +8,5 @@ The **VigiloAuth** Identity Management service is a core component responsible f
 - [User Registration](user_registration.md)
 - [User Login](user_login.md)
 - [User Logout](user_logout.md)
+- [Password Reset](password_reset.md)
+- [Password Reset Email Request](password_reset_request.md)

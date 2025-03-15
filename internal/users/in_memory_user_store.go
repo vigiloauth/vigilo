@@ -26,8 +26,10 @@ func GetInMemoryUserStore() *InMemoryUserStore {
 
 // ResetInMemoryUserStore resets the in-memory user store for testing purposes.
 func ResetInMemoryUserStore() {
-	instance = &InMemoryUserStore{
-		data: make(map[string]User),
+	if instance != nil {
+		instance.mu.Lock()
+		instance.data = make(map[string]User)
+		instance.mu.Unlock()
 	}
 }
 
@@ -43,12 +45,16 @@ func (c *InMemoryUserStore) AddUser(user *User) error {
 	return nil
 }
 
-func (c *InMemoryUserStore) GetUser(email string) (User, bool) {
+func (c *InMemoryUserStore) GetUser(email string) *User {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	user, found := c.data[email]
-	return user, found
+	if !found {
+		return nil
+	}
+
+	return &user
 }
 
 func (c *InMemoryUserStore) DeleteUser(email string) error {

@@ -5,8 +5,12 @@ import (
 	"net/http"
 
 	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/internal/auth"
-	"github.com/vigiloauth/vigilo/internal/token"
+	auth "github.com/vigiloauth/vigilo/internal/auth/authentication"
+	login "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
+	password "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
+	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
+	session "github.com/vigiloauth/vigilo/internal/auth/session"
+	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -15,19 +19,26 @@ import (
 // It encapsulates user registration functionality and manages the
 // communication between HTTP layer and business logic.
 type UserHandler struct {
-	userRegistration *users.UserRegistration
-	userLogin        *auth.UserLogin
-	jwtConfig        *config.JWTConfig
-	TokenBlacklist   *token.TokenBlacklist
+	registrationService  registration.Registration
+	authService          auth.Authentication
+	passwordResetService password.PasswordReset
+	sessionService       session.Session
+	jwtConfig            *config.JWTConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
-func NewUserHandler(userRegistration *users.UserRegistration, userLogin *auth.UserLogin, jwtConfig *config.JWTConfig) *UserHandler {
+func NewUserHandler(
+	registrationService registration.Registration,
+	authService auth.Authentication,
+	passwordResetService password.PasswordReset,
+	sessionService session.Session,
+) *UserHandler {
 	return &UserHandler{
-		userRegistration: userRegistration,
-		userLogin:        userLogin,
-		jwtConfig:        jwtConfig,
-		TokenBlacklist:   token.GetTokenBlacklist(),
+		registrationService:  registrationService,
+		authService:          authService,
+		passwordResetService: passwordResetService,
+		sessionService:       sessionService,
+		jwtConfig:            config.GetServerConfig().JWTConfig(),
 	}
 }
 
@@ -47,13 +58,13 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser(request.Username, request.Email, request.Password)
-	response, err := h.userRegistration.Register(user)
+	response, err := h.registrationService.RegisterUser(user)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
-	if err := auth.CreateSession(w, user.Email, h.jwtConfig); err != nil {
+	if err := h.sessionService.CreateSession(w, user.Email, h.jwtConfig.ExpirationTime()); err != nil {
 		utils.WriteError(w, err)
 		return
 	}
@@ -78,15 +89,19 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser("", request.Email, request.Password)
-	loginAttempt := auth.NewLoginAttempt(r.RemoteAddr, r.Header.Get("X-Forwarded-For"), "", r.UserAgent())
+	loginAttempt := login.NewLoginAttempt(
+		r.RemoteAddr,
+		r.Header.Get("X-Forwarded-For"),
+		"", r.UserAgent(),
+	)
 
-	response, err := h.userLogin.Login(user, loginAttempt)
+	response, err := h.authService.AuthenticateUser(user, loginAttempt)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
-	if err := auth.CreateSession(w, user.Email, h.jwtConfig); err != nil {
+	if err := h.sessionService.CreateSession(w, user.Email, h.jwtConfig.ExpirationTime()); err != nil {
 		utils.WriteError(w, err)
 		return
 	}
@@ -99,10 +114,63 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 // adds the token to the blacklist to prevent further use, and sends an appropriate response.
 // If the Authorization header is missing or the token is invalid, it returns an error.
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	if err := auth.InvalidateSession(w, r, h.jwtConfig, h.TokenBlacklist); err != nil {
+	if err := h.sessionService.InvalidateSession(w, r); err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// RequestPasswordResetEmail is HTTP handler for requesting a password reset email.
+// It process the incoming request and sends a password reset email to the user if they
+// exist with the provided email.
+func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
+	var request users.UserPasswordResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	if request.Email == "" {
+		utils.WriteError(w, errors.NewInvalidFormatError("email", "malformed or missing field"))
+		return
+	}
+
+	response, err := h.passwordResetService.SendPasswordResetEmail(request.Email)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, response)
+}
+
+// ResetPassword handles the password reset request.
+// It decodes the request body into a UserPasswordResetRequest, validates the request,
+// and then calls the passwordResetService to reset the user's password.
+func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var request users.UserPasswordResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	if err := request.Validate(); err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	response, err := h.passwordResetService.ResetPassword(
+		request.Email,
+		request.NewPassword,
+		request.ResetToken,
+	)
+
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, response)
 }

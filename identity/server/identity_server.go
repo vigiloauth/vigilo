@@ -2,15 +2,12 @@ package server
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
-	"github.com/vigiloauth/vigilo/internal/auth"
 	"github.com/vigiloauth/vigilo/internal/middleware"
-	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
@@ -25,22 +22,17 @@ type VigiloIdentityServer struct {
 }
 
 // NewVigiloIdentityServer creates and initializes a new instance of IdentityServer.
-func NewVigiloIdentityServer(serverConfig *config.ServerConfig) *VigiloIdentityServer {
-	if serverConfig == nil {
-		serverConfig = config.NewServerConfig()
-	}
-
-	userHandler := initializeUserHandler(serverConfig)
-	tlsConfig := initializeTLSConfig()
-	httpServer := initializeHTTPServer(serverConfig, tlsConfig)
+func NewVigiloIdentityServer() *VigiloIdentityServer {
+	container := NewServiceContainer()
+	serverConfig := config.GetServerConfig()
 
 	server := &VigiloIdentityServer{
 		router:       chi.NewRouter(),
-		userHandler:  userHandler,
+		userHandler:  container.userHandler,
 		serverConfig: serverConfig,
-		tlsConfig:    tlsConfig,
-		httpServer:   httpServer,
-		middleware:   middleware.NewMiddleware(serverConfig),
+		tlsConfig:    container.tlsConfig,
+		httpServer:   container.httpServer,
+		middleware:   container.middleware,
 	}
 
 	server.setupRoutes()
@@ -61,39 +53,11 @@ func (s *VigiloIdentityServer) setupRoutes() {
 
 	s.router.Post(utils.UserEndpoints.Registration, s.userHandler.Register)
 	s.router.Post(utils.UserEndpoints.Login, s.userHandler.Login)
+	s.router.Post(utils.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
+	s.router.Patch(utils.UserEndpoints.ResetPassword, s.userHandler.ResetPassword)
 
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())
 		r.Post(utils.UserEndpoints.Logout, s.userHandler.Logout)
 	})
-}
-
-func initializeUserHandler(serverConfig *config.ServerConfig) *handlers.UserHandler {
-	userStore := users.GetInMemoryUserStore()
-	loginAttemptStore := auth.NewLoginAttemptStore()
-	userRegistration := users.NewUserRegistration(userStore, serverConfig.JWTConfig())
-	userLogin := auth.NewUserLogin(userStore, loginAttemptStore, serverConfig)
-
-	return handlers.NewUserHandler(userRegistration, userLogin, serverConfig.JWTConfig())
-}
-
-func initializeTLSConfig() *tls.Config {
-	return &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-		},
-	}
-}
-
-func initializeHTTPServer(serverConfig *config.ServerConfig, tlsConfig *tls.Config) *http.Server {
-	return &http.Server{
-		Addr:         fmt.Sprintf(":%d", serverConfig.Port()),
-		ReadTimeout:  serverConfig.ReadTimeout(),
-		WriteTimeout: serverConfig.WriteTimeout(),
-		TLSConfig:    tlsConfig,
-	}
 }

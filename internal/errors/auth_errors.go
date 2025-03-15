@@ -24,3 +24,10 @@ func NewInvalidCredentialsError() *AuthenticationError {
 		Message:   "Invalid credentials",
 	}
 }
+
+func NewUnauthorizedError(message string) *AuthenticationError {
+	return &AuthenticationError{
+		ErrorCode: ErrCodeUnauthorized,
+		Message:   message,
+	}
+}

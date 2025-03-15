@@ -5,17 +5,7 @@ import (
 	"time"
 )
 
-const maxStoredLoginAttempts = 100
-
-type LoginAttempt struct {
-	UserID          string
-	IPAddress       string
-	Timestamp       time.Time
-	RequestMetadata string
-	Details         string
-	UserAgent       string
-	FailedAttempts  int
-}
+var _ LoginAttemptStore = (*InMemoryLoginAttemptStore)(nil)
 
 func NewLoginAttempt(ipAddress, requestMetadata, details, userAgent string) *LoginAttempt {
 	return &LoginAttempt{
@@ -28,21 +18,21 @@ func NewLoginAttempt(ipAddress, requestMetadata, details, userAgent string) *Log
 	}
 }
 
-// LoginAttemptStore is a store for login attempts
-type LoginAttemptStore struct {
+// InMemoryLoginAttemptStore is a store for login attempts
+type InMemoryLoginAttemptStore struct {
 	attempts map[string][]*LoginAttempt
 	mu       sync.RWMutex
 }
 
-// NewLoginAttemptStore creates a new LoginAttemptStore
-func NewLoginAttemptStore() *LoginAttemptStore {
-	return &LoginAttemptStore{
+// NewInMemoryLoginAttemptStore creates a new LoginAttemptStore
+func NewInMemoryLoginAttemptStore() *InMemoryLoginAttemptStore {
+	return &InMemoryLoginAttemptStore{
 		attempts: make(map[string][]*LoginAttempt),
 	}
 }
 
 // SaveLoginAttempt logs a login attempt
-func (s *LoginAttemptStore) SaveLoginAttempt(attempt *LoginAttempt) {
+func (s *InMemoryLoginAttemptStore) SaveLoginAttempt(attempt *LoginAttempt) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -51,14 +41,14 @@ func (s *LoginAttemptStore) SaveLoginAttempt(attempt *LoginAttempt) {
 }
 
 // GetLoginAttempts returns all login attempts for a given user
-func (s *LoginAttemptStore) GetLoginAttempts(userID string) []*LoginAttempt {
+func (s *InMemoryLoginAttemptStore) GetLoginAttempts(userID string) []*LoginAttempt {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	return s.attempts[userID]
 }
 
-func (s *LoginAttemptStore) trimLoginAttempts(userID string) {
+func (s *InMemoryLoginAttemptStore) trimLoginAttempts(userID string) {
 	if len(s.attempts[userID]) > maxStoredLoginAttempts {
 		s.attempts[userID] = s.attempts[userID][1:]
 	}

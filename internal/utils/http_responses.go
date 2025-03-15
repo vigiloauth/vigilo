@@ -16,67 +16,105 @@ func WriteJSON(w http.ResponseWriter, status int, data interface{}) {
 	}
 }
 
-func WriteError(w http.ResponseWriter, err error) {
-	var status int
-	var response any
+// errorMapping defines the status code and error code for different error types
+type errorMapping struct {
+	StatusCode  int
+	Description string
+}
 
-	switch e := err.(type) {
-	case *errors.ErrorCollection:
-		status = http.StatusBadRequest
-		response = ErrorResponse{
+func getErrorMapping(err error) (int, ErrorResponse) {
+	// Default error response
+	defaultResponse := ErrorResponse{
+		ErrorCode:   errors.ErrCodeInternalServerError,
+		Description: err.Error(),
+	}
+
+	// Error collection handling (validation errors)
+	if e, ok := err.(*errors.ErrorCollection); ok {
+		return http.StatusBadRequest, ErrorResponse{
 			ErrorCode:   errors.ErrCodeValidationError,
 			Description: "One or more validation errors occurred.",
 			Errors:      e.Errors(),
 		}
+	}
+
+	// Define mappings by error type and code
+	mappings := map[string]map[string]errorMapping{
+		"AuthenticationError": {
+			errors.ErrCodeInvalidCredentials: {http.StatusUnauthorized, ""},
+			errors.ErrCodeAccountLocked:      {http.StatusLocked, ""},
+			errors.ErrCodeUnauthorized:       {http.StatusUnauthorized, ""},
+		},
+		"InputValidationError": {
+			errors.ErrCodeDuplicateUser:    {http.StatusConflict, ""},
+			errors.ErrCodeUserNotFound:     {http.StatusNotFound, ""},
+			errors.ErrCodeEmpty:            {http.StatusBadRequest, ""},
+			errors.ErrCodeMissingNumber:    {http.StatusBadRequest, ""},
+			errors.ErrCodeMissingSymbol:    {http.StatusBadRequest, ""},
+			errors.ErrCodeMissingUppercase: {http.StatusBadRequest, ""},
+			errors.ErrCodeInvalidFormat:    {http.StatusUnprocessableEntity, ""},
+			"default":                      {http.StatusBadRequest, ""},
+		},
+		"TokenErrors": {
+			errors.ErrCodeTokenNotFound: {http.StatusNotFound, ""},
+			errors.ErrCodeExpiredToken:  {http.StatusUnauthorized, ""},
+			errors.ErrCodeTokenCreation: {http.StatusInternalServerError, ""},
+			errors.ErrCodeInvalidToken:  {http.StatusUnauthorized, ""},
+		},
+		"EmailError": {
+			errors.ErrCodeEmailDeliveryFailed:        {http.StatusFailedDependency, ""},
+			errors.ErrCodeEmailTemplateParseFailed:   {http.StatusBadRequest, ""},
+			errors.ErrCodeTemplateRenderingFailed:    {http.StatusInternalServerError, ""},
+			errors.ErrCodeUnsupportedEncryptionType:  {http.StatusBadRequest, ""},
+			errors.ErrCodeSMTPServerConnectionFailed: {http.StatusBadGateway, ""},
+			errors.ErrCodeTLSConnectionFailed:        {http.StatusBadGateway, ""},
+			errors.ErrCodeClientCreationFailed:       {http.StatusInternalServerError, ""},
+			errors.ErrCodeStartTLSFailed:             {http.StatusBadGateway, ""},
+			errors.ErrCodeSMTPAuthenticationFailed:   {http.StatusUnauthorized, ""},
+		},
+	}
+
+	// Handle each error type
+	switch e := err.(type) {
 	case *errors.AuthenticationError:
-		switch e.ErrorCode {
-		case errors.ErrCodeInvalidCredentials:
-			status = http.StatusUnauthorized
-			response = ErrorResponse{
-				ErrorCode:   errors.ErrCodeInvalidCredentials,
-				Description: e.Message,
-				Error:       e.Error(),
-			}
-		case errors.ErrCodeAccountLocked:
-			status = http.StatusLocked
-			response = ErrorResponse{
-				ErrorCode:   errors.ErrCodeAccountLocked,
+		if mapping, ok := mappings["AuthenticationError"][e.ErrorCode]; ok {
+			return mapping.StatusCode, ErrorResponse{
+				ErrorCode:   e.ErrorCode,
 				Description: e.Message,
 				Error:       e.Error(),
 			}
 		}
 	case *errors.InputValidationError:
-		switch e.ErrorCode {
-		case errors.ErrCodeDuplicateUser:
-			status = http.StatusConflict
-			response = ErrorResponse{
-				ErrorCode:   errors.ErrCodeDuplicateUser,
+		mapping, ok := mappings["InputValidationError"][e.ErrorCode]
+		if !ok {
+			mapping = mappings["InputValidationError"]["default"]
+		}
+		return mapping.StatusCode, ErrorResponse{
+			ErrorCode:   e.ErrorCode,
+			Description: e.Message,
+			Error:       e.Error(),
+		}
+	case *errors.TokenErrors:
+		if mapping, ok := mappings["TokenErrors"][e.ErrorCode]; ok {
+			return mapping.StatusCode, ErrorResponse{
+				ErrorCode:   e.ErrorCode,
 				Description: e.Message,
-				Error:       e.Error(),
-			}
-		case errors.ErrCodeUserNotFound:
-			status = http.StatusNotFound
-			response = ErrorResponse{
-				ErrorCode:   errors.ErrCodeUserNotFound,
-				Description: e.Message,
-				Error:       e.Error(),
-			}
-		default:
-			status = http.StatusBadRequest
-			response = ErrorResponse{
-				ErrorCode:   errors.ErrCodeValidationError,
-				Description: e.Message,
-				Error:       e.Error(),
 			}
 		}
-	default:
-		status = http.StatusInternalServerError
-		response = ErrorResponse{
-			ErrorCode:   errors.ErrCodeInternalServerError,
-			Description: err.Error(),
+	case *errors.EmailError:
+		if mapping, ok := mappings["EmailError"][e.ErrorCode]; ok {
+			return mapping.StatusCode, ErrorResponse{
+				ErrorCode:   e.ErrorCode,
+				Description: e.Message,
+			}
 		}
 	}
 
+	return http.StatusInternalServerError, defaultResponse
+}
+
+func WriteError(w http.ResponseWriter, err error) {
+	status, response := getErrorMapping(err)
 	WriteJSON(w, status, response)
 }
 
