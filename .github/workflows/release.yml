@@ -30,18 +30,28 @@ jobs:
       - name: Install semantic-release
         run: npm install -g semantic-release @semantic-release/github
 
+      - name: Run semantic-release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx semantic-release
+          echo "new_release_published=${{ env.NEW_RELEASE_PUBLISHED }}" >> $GITHUB_OUTPUT
+          echo "new_release_version=${{ env.NEW_RELEASE_VERSION }}" >> $GITHUB_OUTPUT
+
+      # This crucial step fetches the newly created tag
+      - name: Fetch tags
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: git fetch --tags origin
+
       - name: Install GoReleaser
+        if: steps.semantic.outputs.new_release_published == 'true'
         uses: goreleaser/goreleaser-action@v5
         with:
           install-only: true
 
-      - name: Run semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
-
       - name: Run GoReleaser
-        if: success()
+        if: steps.semantic.outputs.new_release_published == 'true'
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
