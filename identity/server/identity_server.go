@@ -13,12 +13,13 @@ import (
 
 // VigiloIdentityServer represents the identity library's functionality.
 type VigiloIdentityServer struct {
-	router       chi.Router
-	userHandler  *handlers.UserHandler
-	serverConfig *config.ServerConfig
-	tlsConfig    *tls.Config
-	httpServer   *http.Server
-	middleware   *middleware.Middleware
+	router        chi.Router
+	userHandler   *handlers.UserHandler
+	clientHandler *handlers.ClientHandler
+	serverConfig  *config.ServerConfig
+	tlsConfig     *tls.Config
+	httpServer    *http.Server
+	middleware    *middleware.Middleware
 }
 
 // NewVigiloIdentityServer creates and initializes a new instance of IdentityServer.
@@ -27,12 +28,13 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 	serverConfig := config.GetServerConfig()
 
 	server := &VigiloIdentityServer{
-		router:       chi.NewRouter(),
-		userHandler:  container.userHandler,
-		serverConfig: serverConfig,
-		tlsConfig:    container.tlsConfig,
-		httpServer:   container.httpServer,
-		middleware:   container.middleware,
+		router:        chi.NewRouter(),
+		userHandler:   container.userHandler,
+		clientHandler: container.clientHandler,
+		serverConfig:  serverConfig,
+		tlsConfig:     container.tlsConfig,
+		httpServer:    container.httpServer,
+		middleware:    container.middleware,
 	}
 
 	server.setupRoutes()
@@ -51,10 +53,13 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Use(s.middleware.RateLimit)
 
+	// User related routes
 	s.router.Post(utils.UserEndpoints.Registration, s.userHandler.Register)
 	s.router.Post(utils.UserEndpoints.Login, s.userHandler.Login)
 	s.router.Post(utils.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
 	s.router.Patch(utils.UserEndpoints.ResetPassword, s.userHandler.ResetPassword)
+
+	s.router.Post(utils.ClientEndpoints.Registration, s.clientHandler.Register)
 
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())

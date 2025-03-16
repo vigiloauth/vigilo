@@ -4,6 +4,7 @@ import "fmt"
 
 const (
 	ErrCodeEmpty                      = "EMPTY_FIELD"
+	ErrCodeBadRequest                 = "BAD_REQUEST"
 	ErrCodeInvalidPasswordFormat      = "INVALID_PASSWORD_FORMAT"
 	ErrCodePasswordLength             = "INVALID_PASSWORD_LENGTH"
 	ErrCodeMissingUppercase           = "MISSING_UPPERCASE"
@@ -31,6 +32,13 @@ const (
 	ErrCodeTokenCreation              = "TOKEN_GENERATION"
 	ErrCodeInvalidToken               = "INVALID_TOKEN"
 	ErrCodeUnauthorized               = "UNAUTHORIZED"
+	ErrCodeDuplicateClient            = "DUPLICATE_CLIENT_ID"
+	ErrCodeClientNotFound             = "CLIENT_NOT_FOUND"
+	ErrCodeInvalidClientType          = "INVALID_CLIENT_TYPE"
+	ErrCodeInvalidGrantType           = "INVALID_GRANT_TYPE"
+	ErrCodeInvalidRedirectURI         = "INVALID_REDIRECT_URI"
+	ErrCodeInvalidScope               = "INVALID_SCOPE"
+	ErrCodeClientSecretNotAllowed     = "CLIENT_SECRET_NOT_ALLOWED"
 )
 
 func Wrap(err error, message string) error {

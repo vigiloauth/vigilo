@@ -26,6 +26,12 @@ var UserEndpoints = struct {
 	ResetPassword:        defaultAuthEndpoint + "/reset-password/confirm",
 }
 
+var ClientEndpoints = struct {
+	Registration string
+}{
+	Registration: "/register",
+}
+
 const (
 	TestEmail           string = "test@email.com"
 	TestUsername        string = "username"

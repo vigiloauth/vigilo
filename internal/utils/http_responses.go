@@ -72,6 +72,15 @@ func getErrorMapping(err error) (int, ErrorResponse) {
 			errors.ErrCodeStartTLSFailed:             {http.StatusBadGateway, ""},
 			errors.ErrCodeSMTPAuthenticationFailed:   {http.StatusUnauthorized, ""},
 		},
+		"ClientError": {
+			errors.ErrCodeDuplicateClient:    {http.StatusConflict, ""},
+			errors.ErrCodeClientNotFound:     {http.StatusNotFound, ""},
+			errors.ErrCodeInvalidGrantType:   {http.StatusBadRequest, ""},
+			errors.ErrCodeInvalidClientType:  {http.StatusBadRequest, ""},
+			errors.ErrCodeInvalidRedirectURI: {http.StatusBadRequest, ""},
+			errors.ErrCodeInvalidScope:       {http.StatusBadRequest, ""},
+			errors.ErrCodeBadRequest:         {http.StatusBadRequest, ""},
+		},
 	}
 
 	// Handle each error type

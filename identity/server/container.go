@@ -12,6 +12,8 @@ import (
 	password "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
 	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
 	session "github.com/vigiloauth/vigilo/internal/auth/session"
+	clientService "github.com/vigiloauth/vigilo/internal/client/service"
+	clientStore "github.com/vigiloauth/vigilo/internal/client/store"
 
 	"github.com/vigiloauth/vigilo/internal/email"
 	"github.com/vigiloauth/vigilo/internal/middleware"
@@ -23,6 +25,7 @@ type ServiceContainer struct {
 	tokenStore        token.TokenStore
 	loginAttemptStore login.LoginAttemptStore
 	userStore         users.UserStore
+	clientStore       clientStore.ClientStore
 
 	passwordResetEmailService email.EmailService
 	emailNotificationService  email.EmailService
@@ -32,7 +35,10 @@ type ServiceContainer struct {
 	registrationService  registration.Registration
 	authService          auth.Authentication
 	passwordResetService password.PasswordReset
-	userHandler          *handlers.UserHandler
+	clientService        clientService.ClientService
+
+	userHandler   *handlers.UserHandler
+	clientHandler *handlers.ClientHandler
 
 	middleware *middleware.Middleware
 	tlsConfig  *tls.Config
@@ -45,6 +51,7 @@ func NewServiceContainer() *ServiceContainer {
 	container.tokenStore = token.GetInMemoryTokenStore()
 	container.userStore = users.GetInMemoryUserStore()
 	container.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
+	container.clientStore = clientStore.NewInMemoryClientStore()
 
 	container.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
 	container.emailNotificationService, _ = email.NewEmailNotificationService()
@@ -54,8 +61,11 @@ func NewServiceContainer() *ServiceContainer {
 	container.passwordResetService = password.NewPasswordResetService(container.tokenManager, container.userStore, container.passwordResetEmailService)
 	container.registrationService = registration.NewRegistrationService(container.userStore, container.tokenManager)
 	container.authService = auth.NewAuthenticationService(container.userStore, container.loginAttemptStore, container.tokenManager)
+	container.clientService = clientService.NewClientService(container.clientStore)
 
 	container.userHandler = handlers.NewUserHandler(container.registrationService, container.authService, container.passwordResetService, container.sessionService)
+	container.clientHandler = handlers.NewClientHandler(container.clientService)
+
 	container.middleware = middleware.NewMiddleware(container.tokenManager, container.tokenStore)
 
 	container.tlsConfig = initializeTLSConfig()
