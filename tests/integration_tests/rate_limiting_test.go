@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/users"
@@ -25,17 +26,15 @@ func setupRateLimitedServer(requestsPerMinute int, requestBody []byte) *httptest
 
 func TestRateLimiting(t *testing.T) {
 	users.ResetInMemoryUserStore()
-	user := users.NewUser("", utils.TestEmail, utils.TestPassword1)
-	requestBody, err := json.Marshal(user)
+	request := users.UserLoginRequest{Email: utils.TestEmail, Password: utils.TestPassword1}
+	requestBody, err := json.Marshal(request)
+	assert.NoError(t, err, "failed to marshal request body")
 
 	userStore := users.GetInMemoryUserStore()
+	user := users.NewUser("", utils.TestEmail, utils.TestPassword1)
 	hashedPassword, _ := utils.HashPassword(user.Password)
 	user.Password = hashedPassword
 	_ = userStore.AddUser(user)
-
-	if err != nil {
-		t.Fatalf("failed to marshal request body: %v", err)
-	}
 
 	requestsPerMinute := 5
 	for range requestsPerMinute {

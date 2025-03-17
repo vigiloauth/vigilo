@@ -13,12 +13,12 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID              string    `json:"id"`
+	ID              string    `json:"-"`
 	Username        string    `json:"username"`
 	Email           string    `json:"email"`
-	Password        string    `json:"password"`
-	LastFailedLogin time.Time `json:"last_failed_login"`
-	AccountLocked   bool      `json:"account_locked"`
+	Password        string    `json:"-"`
+	LastFailedLogin time.Time `json:"-"`
+	AccountLocked   bool      `json:"-"`
 }
 
 // UserRegistrationRequest represents the registration request payload
