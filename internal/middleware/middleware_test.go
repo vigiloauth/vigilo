@@ -29,6 +29,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 		return &jwt.StandardClaims{Subject: email}, nil
 	}
 	mockTokenStore.IsTokenBlacklistedFunc = func(token string) bool { return false }
+	mockTokenManager.IsTokenExpiredFunc = func(token string) bool { return false }
 
 	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 
@@ -73,7 +74,7 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 
 	handler.ServeHTTP(w, r)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code, "expected status code to be 401 Unauthorized")
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {

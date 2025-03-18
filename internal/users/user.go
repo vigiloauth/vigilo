@@ -8,55 +8,66 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-// User represents a user in the system
+// User represents a user in the system.
 type User struct {
-	ID              string    `json:"-"`
-	Username        string    `json:"username"`
-	Email           string    `json:"email"`
-	Password        string    `json:"-"`
-	LastFailedLogin time.Time `json:"-"`
-	AccountLocked   bool      `json:"-"`
+	ID              string    `json:"-"`          // Unique identifier for the user.
+	Username        string    `json:"username"`   // User's username.
+	Email           string    `json:"email"`      // User's email address.
+	Password        string    `json:"-"`          // User's password (hashed).
+	LastFailedLogin time.Time `json:"-"`          // Timestamp of the last failed login attempt.
+	AccountLocked   bool      `json:"-"`          // Indicates if the user's account is locked.
 }
 
-// UserRegistrationRequest represents the registration request payload
+// UserRegistrationRequest represents the registration request payload.
 type UserRegistrationRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Username string `json:"username"` // Username for the new user.
+	Email    string `json:"email"`    // Email address for the new user.
+	Password string `json:"password"` // Password for the new user.
 }
 
-// UserRegistrationResponse represents the registration response payload
+// UserRegistrationResponse represents the registration response payload.
 type UserRegistrationResponse struct {
-	User     *User
-	JWTToken string `json:"token"`
+	User     *User  `json:"user"`  // The created User object.
+	JWTToken string `json:"token"` // JWT token for the registered user.
 }
 
-// UserLoginRequest represents the login request payload
+// UserLoginRequest represents the login request payload.
 type UserLoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email"`    // User's email address.
+	Password string `json:"password"` // User's password.
 }
 
-// UserLoginResponse represents the login response payload
+// UserLoginResponse represents the login response payload.
 type UserLoginResponse struct {
-	User     *User
-	JWTToken string `json:"token"`
+	User     *User  `json:"user"`  // The authenticated User object.
+	JWTToken string `json:"token"` // JWT token for the authenticated user.
 }
 
+// UserPasswordResetRequest represents the password reset request payload.
 type UserPasswordResetRequest struct {
-	Email       string `json:"email"`
-	ResetToken  string `json:"reset_token"`
-	NewPassword string `json:"new_password"`
+	Email       string `json:"email"`        // User's email address.
+	ResetToken  string `json:"reset_token"`  // Password reset token.
+	NewPassword string `json:"new_password"` // New password for the user.
 }
 
+// UserPasswordResetResponse represents the password reset response payload.
 type UserPasswordResetResponse struct {
-	Message string `json:"message"`
+	Message string `json:"message"` // Message indicating the result of the password reset.
 }
 
-// NewUser creates a new user
+// NewUser creates a new User instance.
+//
+// Parameters:
+//
+//	username string: The user's username.
+//	email string: The user's email address.
+//	password string: The user's password (hashed).
+//
+// Returns:
+//
+//	*User: A new User instance.
 func NewUser(username, email, password string) *User {
 	return &User{
 		Username:        username,
@@ -67,7 +78,17 @@ func NewUser(username, email, password string) *User {
 	}
 }
 
-// NewUserRegistrationRequest creates a new registration request
+// NewUserRegistrationRequest creates a new UserRegistrationRequest instance.
+//
+// Parameters:
+//
+//	username string: The username for the registration request.
+//	email string: The email for the registration request.
+//	password string: The password for the registration request.
+//
+// Returns:
+//
+//	*UserRegistrationRequest: A new UserRegistrationRequest instance.
 func NewUserRegistrationRequest(username, email, password string) *UserRegistrationRequest {
 	return &UserRegistrationRequest{
 		Username: username,
@@ -76,7 +97,16 @@ func NewUserRegistrationRequest(username, email, password string) *UserRegistrat
 	}
 }
 
-// NewUserRegistrationResponse creates a new registration response
+// NewUserRegistrationResponse creates a new UserRegistrationResponse instance.
+//
+// Parameters:
+//
+//	user *User: The created User object.
+//	jwtToken string: The JWT token for the registered user.
+//
+// Returns:
+//
+//	*UserRegistrationResponse: A new UserRegistrationResponse instance.
 func NewUserRegistrationResponse(user *User, jwtToken string) *UserRegistrationResponse {
 	return &UserRegistrationResponse{
 		User:     user,
@@ -84,7 +114,16 @@ func NewUserRegistrationResponse(user *User, jwtToken string) *UserRegistrationR
 	}
 }
 
-// NewUserLoginRequest creates a new login request
+// NewUserLoginRequest creates a new UserLoginRequest instance.
+//
+// Parameters:
+//
+//	email string: The email for the login request.
+//	password string: The password for the login request.
+//
+// Returns:
+//
+//	*UserLoginRequest: A new UserLoginRequest instance.
 func NewUserLoginRequest(email, password string) *UserLoginRequest {
 	return &UserLoginRequest{
 		Email:    email,
@@ -92,7 +131,16 @@ func NewUserLoginRequest(email, password string) *UserLoginRequest {
 	}
 }
 
-// NewUserLoginResponse creates a new login response
+// NewUserLoginResponse creates a new UserLoginResponse instance.
+//
+// Parameters:
+//
+//	user *User: The authenticated User object.
+//	jwtToken string: The JWT token for the authenticated user.
+//
+// Returns:
+//
+//	*UserLoginResponse: A new UserLoginResponse instance.
 func NewUserLoginResponse(user *User, jwtToken string) *UserLoginResponse {
 	return &UserLoginResponse{
 		User:     user,
@@ -100,12 +148,17 @@ func NewUserLoginResponse(user *User, jwtToken string) *UserLoginResponse {
 	}
 }
 
-// Validate validates the UserRegistrationRequest fields
+// Validate validates the UserRegistrationRequest fields.
+//
+// Returns:
+//
+//	error: An ErrorCollection if validation fails, or nil if validation succeeds.
 func (req *UserRegistrationRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
 	if req.Username == "" {
-		errorCollection.Add(errors.NewEmptyInputError(utils.UserFieldConstants.Username))
+		err := errors.New(errors.ErrCodeEmptyInput, "username is empty")
+		errorCollection.Add(err)
 	}
 
 	validateEmail(req.Email, errorCollection)
@@ -118,6 +171,11 @@ func (req *UserRegistrationRequest) Validate() error {
 	return nil
 }
 
+// Validate validates the UserPasswordResetRequest fields.
+//
+// Returns:
+//
+//	error: An ErrorCollection if validation fails, or nil if validation succeeds.
 func (req *UserPasswordResetRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 	validatePassword(req.NewPassword, errorCollection)
@@ -129,14 +187,18 @@ func (req *UserPasswordResetRequest) Validate() error {
 	return nil
 }
 
-// Validate validates the UserLoginRequest fields
+// Validate validates the UserLoginRequest fields.
+//
+// Returns:
+//
+//	error: An ErrorCollection if validation fails, or nil if validation succeeds.
 func (req *UserLoginRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
-
 	validateEmail(req.Email, errorCollection)
 
 	if req.Password == "" {
-		errorCollection.Add(errors.NewEmptyInputError(utils.UserFieldConstants.Password))
+		err := errors.New(errors.ErrCodeEmptyInput, "password is empty")
+		errorCollection.Add(err)
 	}
 
 	if errorCollection.HasErrors() {
@@ -147,24 +209,45 @@ func (req *UserLoginRequest) Validate() error {
 }
 
 // validateEmail validates the email format and adds errors to the ErrorCollection.
+//
+// Parameters:
+//
+//	email string: The email address to validate.
+//	errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
 func validateEmail(email string, errorCollection *errors.ErrorCollection) {
 	if email == "" {
-		errorCollection.Add(errors.NewEmptyInputError(utils.UserFieldConstants.Email))
+		err := errors.New(errors.ErrCodeEmptyInput, "email is empty")
+		errorCollection.Add(err)
 	} else if !isValidEmailFormat(email) {
-		errorCollection.Add(errors.NewEmailFormatError(utils.UserFieldConstants.Email))
+		err := errors.New(errors.ErrCodeInvalidFormat, "invalid email format")
+		errorCollection.Add(err)
 	}
 }
 
 // isValidEmailFormat validates the email format.
+//
+// Parameters:
+//
+//	email string: The email address to validate.
+//
+// Returns:
+//
+//	bool: True if the email format is valid, false otherwise.
 func isValidEmailFormat(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
 }
 
 // validatePassword validates the password and adds errors to the ErrorCollection.
+//
+// Parameters:
+//
+//	password string: The password to validate.
+//	errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
 func validatePassword(password string, errorCollection *errors.ErrorCollection) {
 	if password == "" {
-		errorCollection.Add(errors.NewEmptyInputError(utils.UserFieldConstants.Password))
+		err := errors.New(errors.ErrCodeEmptyInput, "password is empty")
+		errorCollection.Add(err)
 		return
 	}
 
@@ -172,19 +255,23 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 	minimumLength := passwordConfig.MinLength()
 
 	if len(password) < minimumLength {
-		errorCollection.Add(errors.NewPasswordLengthError(minimumLength))
+		err := errors.New(errors.ErrCodePasswordLength, "password does not match required length")
+		errorCollection.Add(err)
 	}
 
 	if passwordConfig.RequireUppercase() && !containsUppercase(password) {
-		errorCollection.Add(errors.NewPasswordFormatError("uppercase letter", errors.ErrCodeMissingUppercase))
+		err := errors.New(errors.ErrCodeMissingUppercase, "password is missing a required uppercase letter")
+		errorCollection.Add(err)
 	}
 
 	if passwordConfig.RequireNumber() && !containsNumber(password) {
-		errorCollection.Add(errors.NewPasswordFormatError("number", errors.ErrCodeMissingNumber))
+		err := errors.New(errors.ErrCodeMissingNumber, "password is missing a required number")
+		errorCollection.Add(err)
 	}
 
 	if passwordConfig.RequireSymbol() && !containsSymbol(password) {
-		errorCollection.Add(errors.NewPasswordFormatError("symbol", errors.ErrCodeMissingSymbol))
+		err := errors.New(errors.ErrCodeMissingSymbol, "password is missing a required symbold")
+		errorCollection.Add(err)
 	}
 }
 

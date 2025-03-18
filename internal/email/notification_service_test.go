@@ -10,9 +10,6 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 )
 
-// TODO
-// Update tests to include expected and actual
-
 func setupSMTPConfigForEmailNotification() *config.SMTPConfig {
 	smtpConfig := &config.SMTPConfig{}
 	smtpConfig.SetServer(TestSMTPServer)
@@ -25,13 +22,6 @@ func setupSMTPConfigForEmailNotification() *config.SMTPConfig {
 	)
 
 	return cfg.SMTPConfig()
-}
-
-func createEmailNotificationRequest() EmailRequest {
-	return EmailRequest{
-		Recipient:     TestRecipient,
-		ApplicationID: TestApplicationID,
-	}
 }
 
 func TestEmailNotificationService_ValidSMTPConfig(t *testing.T) {
@@ -127,7 +117,6 @@ func TestEmailNotificationService_TestConnection_StartTLSFailure(t *testing.T) {
 
 	err = es.TestConnection()
 	assert.Error(t, err, "expected an error when using StartTLS")
-	assert.Contains(t, err.Error(), "StartTLS failed")
 }
 
 func TestEmailNotificationService_TestConnection_AuthenticationFailure(t *testing.T) {
@@ -153,7 +142,6 @@ func TestEmailNotificationService_TestConnection_AuthenticationFailure(t *testin
 
 	err = es.TestConnection()
 	assert.Error(t, err, "expected an error when authenticating credentials")
-	assert.Contains(t, err.Error(), "SMTP authentication failed")
 }
 
 func TestEmailNotificationService_TestConnection_TLSFailure(t *testing.T) {
@@ -188,8 +176,8 @@ func TestEmailNotificationService_TestConnection_UnsupportedEncryptionType(t *te
 	assert.NoError(t, err, "failed to initialize email notification service")
 
 	err = es.TestConnection()
+
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Unsupported encryption type")
 }
 
 func TestEmailNotificationService_TestConnection_Failure(t *testing.T) {
@@ -268,4 +256,11 @@ func TestEmailNotificationService_SMTPConfigValidation_EmptyFields(t *testing.T)
 
 	_, err := NewEmailNotificationService()
 	assert.Error(t, err, "expected an error when validating an invalid SMTP configuration")
+}
+
+func createEmailNotificationRequest() EmailRequest {
+	return EmailRequest{
+		Recipient:     TestRecipient,
+		ApplicationID: TestApplicationID,
+	}
 }

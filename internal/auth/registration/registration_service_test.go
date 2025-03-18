@@ -9,10 +9,15 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/mocks"
 	"github.com/vigiloauth/vigilo/internal/users"
-	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-const testToken string = "test_token"
+const (
+	testUsername        string = "username"
+	testEmail           string = "test@mail.com"
+	testPassword        string = "Pa#$w_0rds"
+	testToken           string = "test_token"
+	testInvalidPassword string = "invalid"
+)
 
 func TestRegistrationService_RegisterUser(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
@@ -39,7 +44,7 @@ func TestRegistrationService_DuplicateEntry(t *testing.T) {
 
 	userRegistration := NewRegistrationService(mockUserStore, mockTokenService)
 
-	expected := errors.NewDuplicateUserError("email")
+	expected := errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
 	_, actual := userRegistration.RegisterUser(user)
 
 	assert.Error(t, actual)
@@ -62,8 +67,8 @@ func TestRegistrationService_PasswordIsNotStoredInPlainText(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockUserStore.GetUserFunc = func(email string) *users.User { return user }
-	retrievedUser := mockUserStore.GetUserFunc(utils.TestEmail)
-	assert.NotEqual(t, retrievedUser.Password, utils.TestPassword1)
+	retrievedUser := mockUserStore.GetUserFunc(testEmail)
+	assert.NotEqual(t, retrievedUser.Password, testPassword)
 }
 
 func TestUserRegistrationRequest_Validate(t *testing.T) {
@@ -75,22 +80,22 @@ func TestUserRegistrationRequest_Validate(t *testing.T) {
 	}{
 		{
 			name:      "Validate returns no errors",
-			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.TestPassword1),
+			req:       users.NewUserRegistrationRequest(testUsername, testEmail, testPassword),
 			wantError: false,
 		},
 		{
 			name:      "Validate returns error for empty username",
-			req:       users.NewUserRegistrationRequest("", utils.TestEmail, utils.TestPassword1),
+			req:       users.NewUserRegistrationRequest("", testEmail, testPassword),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns error for empty email",
-			req:       users.NewUserRegistrationRequest(utils.TestUsername, "", utils.TestPassword1),
+			req:       users.NewUserRegistrationRequest(testUsername, "", testPassword),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns error for empty password",
-			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, ""),
+			req:       users.NewUserRegistrationRequest(testUsername, testEmail, ""),
 			wantError: true,
 		},
 	}
@@ -114,22 +119,22 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 	}{
 		{
 			name:      "Validate returns an error when the password is missing an uppercase",
-			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
+			req:       users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns an error when the password is missing a number",
-			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
+			req:       users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns an error when the password is too short",
-			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
+			req:       users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			wantError: true,
 		},
 		{
 			name:      "Validate returns an error when the password is missing a symbol",
-			req:       users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
+			req:       users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			wantError: true,
 		},
 	}
@@ -145,10 +150,7 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 }
 
 func createNewUser() *users.User {
-	return users.NewUser(
-		utils.TestUsername,
-		utils.TestEmail,
-		utils.TestPassword1)
+	return users.NewUser(testUsername, testEmail, testPassword)
 }
 
 func configurePasswordPolicy() {
