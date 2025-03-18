@@ -28,10 +28,10 @@ func NewClientHandler(clientService service.ClientService) *ClientHandler {
 	return &ClientHandler{clientService: clientService}
 }
 
-// RegisterPublicClient is the HTTP handler for public client registration.
+// RegisterClient is the HTTP handler for public client registration.
 // It process incoming HTTP requests for registering public clients, and
 // returns an appropriate response.
-func (h *ClientHandler) RegisterPublicClient(w http.ResponseWriter, r *http.Request) {
+func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 	var req client.ClientRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.WriteError(w, err)
@@ -64,7 +64,7 @@ func (h *ClientHandler) RegisterPublicClient(w http.ResponseWriter, r *http.Requ
 		newClient.TokenEndpointAuthMethod = req.TokenEndpointAuthMethod
 	}
 
-	response, err := h.clientService.CreatePublicClient(newClient)
+	response, err := h.clientService.SaveClient(newClient)
 	if err != nil {
 		utils.WriteError(w, err)
 		return

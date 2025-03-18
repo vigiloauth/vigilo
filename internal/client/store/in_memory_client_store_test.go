@@ -16,10 +16,10 @@ func TestInMemoryClientStore_CreateClient(t *testing.T) {
 		cs := NewInMemoryClientStore()
 		client := createTestClient()
 
-		err := cs.CreateClient(client)
+		err := cs.SaveClient(client)
 		assert.NoError(t, err, "expected no error when creating client")
 
-		retrievedClient := cs.GetClient(clientID)
+		retrievedClient := cs.GetClientByID(clientID)
 		assert.NotNil(t, retrievedClient, "expected retrieved client to not be nil")
 		assert.Equal(t, retrievedClient, client, "expected both clients to be equal")
 	})
@@ -29,12 +29,12 @@ func TestInMemoryClientStore_CreateClient(t *testing.T) {
 		client := createTestClient()
 
 		// Create first client
-		err := cs.CreateClient(client)
+		err := cs.SaveClient(client)
 		assert.NoError(t, err, "expected no error when creating client")
 
 		// Attempt to add a duplicate client
 		expected := errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
-		actual := cs.CreateClient(client)
+		actual := cs.SaveClient(client)
 
 		assert.Error(t, actual, "expected error when creating duplicate client")
 		assert.Equal(t, actual, expected)
@@ -45,10 +45,10 @@ func TestInMemoryClientStore_GetClient(t *testing.T) {
 	cs := NewInMemoryClientStore()
 	client := createTestClient()
 
-	err := cs.CreateClient(client)
+	err := cs.SaveClient(client)
 	assert.NoError(t, err, "expected no error when creating client")
 
-	retrievedClient := cs.GetClient(clientID)
+	retrievedClient := cs.GetClientByID(clientID)
 	assert.NotNil(t, retrievedClient)
 	assert.Equal(t, retrievedClient, client)
 }
@@ -57,13 +57,13 @@ func TestInMemoryClientStore_DeleteClient(t *testing.T) {
 	cs := NewInMemoryClientStore()
 	client := createTestClient()
 
-	err := cs.CreateClient(client)
+	err := cs.SaveClient(client)
 	assert.NoError(t, err, "expected no error when creating client")
 
-	err = cs.DeleteClient(clientID)
+	err = cs.DeleteClientByID(clientID)
 	assert.NoError(t, err, "expected no error when deleting client")
 
-	existingClient := cs.GetClient(clientID)
+	existingClient := cs.GetClientByID(clientID)
 	assert.Nil(t, existingClient, "expected client to be nil")
 }
 
@@ -72,14 +72,14 @@ func TestInMemoryClientStore_UpdateClient(t *testing.T) {
 		cs := NewInMemoryClientStore()
 		client := createTestClient()
 
-		err := cs.CreateClient(client)
+		err := cs.SaveClient(client)
 		assert.NoError(t, err, "expected no error when creating client")
 
 		client.Name = "New Client Name"
 		err = cs.UpdateClient(client)
 		assert.NoError(t, err)
 
-		retrievedClient := cs.GetClient(clientID)
+		retrievedClient := cs.GetClientByID(clientID)
 		assert.NotNil(t, retrievedClient)
 		assert.Equal(t, retrievedClient.Name, client.Name)
 	})

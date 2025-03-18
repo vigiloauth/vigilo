@@ -44,7 +44,7 @@ func NewInMemoryClientStore() *InMemoryClientStore {
 	return &InMemoryClientStore{data: make(map[string]*client.Client)}
 }
 
-// CreateClient adds a new client to the store if it does not already exist.
+// SaveClient adds a new client to the store if it does not already exist.
 //
 // Parameters:
 //
@@ -53,7 +53,7 @@ func NewInMemoryClientStore() *InMemoryClientStore {
 // Returns:
 //
 //	error: An error if the client already exists, nil otherwise.
-func (cs *InMemoryClientStore) CreateClient(client *client.Client) error {
+func (cs *InMemoryClientStore) SaveClient(client *client.Client) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
@@ -65,7 +65,7 @@ func (cs *InMemoryClientStore) CreateClient(client *client.Client) error {
 	return nil
 }
 
-// GetClient retrieves a client by its ID.
+// GetClientByID retrieves a client by its ID.
 //
 // Parameters:
 //
@@ -74,7 +74,7 @@ func (cs *InMemoryClientStore) CreateClient(client *client.Client) error {
 // Returns:
 //
 //	*client.Client: The client object if found, nil otherwise.
-func (cs *InMemoryClientStore) GetClient(clientID string) *client.Client {
+func (cs *InMemoryClientStore) GetClientByID(clientID string) *client.Client {
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
 
@@ -86,7 +86,7 @@ func (cs *InMemoryClientStore) GetClient(clientID string) *client.Client {
 	return client
 }
 
-// DeleteClient removes a client from the store by its ID.
+// DeleteClientByID removes a client from the store by its ID.
 //
 // Parameters:
 //
@@ -95,7 +95,7 @@ func (cs *InMemoryClientStore) GetClient(clientID string) *client.Client {
 // Returns:
 //
 //	error: Always returns nil.
-func (cs *InMemoryClientStore) DeleteClient(clientID string) error {
+func (cs *InMemoryClientStore) DeleteClientByID(clientID string) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 	delete(cs.data, clientID)

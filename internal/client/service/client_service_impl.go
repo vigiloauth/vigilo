@@ -1,6 +1,8 @@
 package client
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,7 +32,7 @@ func NewClientService(clientStore store.ClientStore) *ClientServiceImpl {
 	return &ClientServiceImpl{clientStore: clientStore}
 }
 
-// CreatePublicClient registers a new public client.
+// SaveClient registers a new public client.
 //
 // Parameters:
 //
@@ -40,21 +42,29 @@ func NewClientService(clientStore store.ClientStore) *ClientServiceImpl {
 //
 //	*client.ClientRegistrationResponse: The response containing client details.
 //	error: An error if registration fails.
-func (cs *ClientServiceImpl) CreatePublicClient(newClient *client.Client) (*client.ClientRegistrationResponse, error) {
+func (cs *ClientServiceImpl) SaveClient(newClient *client.Client) (*client.ClientRegistrationResponse, error) {
 	clientID, err := cs.generateUniqueClientID()
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to generate client ID")
+	}
+
+	if newClient.Type == client.Confidential {
+		clientSecret, err := cs.generateClientSecret()
+		if err != nil {
+			return nil, errors.Wrap(err, "", "failed to generate client secret")
+		}
+		newClient.Secret = clientSecret
 	}
 
 	newClient.ID = clientID
 	newClient.CreatedAt = time.Now()
 	newClient.UpdatedAt = time.Now()
 
-	if err := cs.clientStore.CreateClient(newClient); err != nil {
+	if err := cs.clientStore.SaveClient(newClient); err != nil {
 		return nil, errors.Wrap(err, "", "failed to create new public client")
 	}
 
-	return &client.ClientRegistrationResponse{
+	response := &client.ClientRegistrationResponse{
 		ID:                      newClient.ID,
 		Type:                    newClient.Type,
 		RedirectURIS:            newClient.RedirectURIS,
@@ -63,7 +73,13 @@ func (cs *ClientServiceImpl) CreatePublicClient(newClient *client.Client) (*clie
 		CreatedAt:               newClient.CreatedAt,
 		UpdatedAt:               newClient.UpdatedAt,
 		TokenEndpointAuthMethod: newClient.TokenEndpointAuthMethod,
-	}, nil
+	}
+
+	if newClient.Type == client.Confidential {
+		response.Secret = newClient.Secret
+	}
+
+	return response, nil
 }
 
 // generateUniqueClientID generates a unique client ID, ensuring it is not already in use.
@@ -78,7 +94,7 @@ func (cs *ClientServiceImpl) generateUniqueClientID() (string, error) {
 
 	for range maxRetries {
 		clientID := uuid.New().String()
-		if existingClient := cs.clientStore.GetClient(clientID); existingClient == nil {
+		if existingClient := cs.clientStore.GetClientByID(clientID); existingClient == nil {
 			return clientID, nil
 		}
 		time.Sleep(retryDelay)
@@ -88,4 +104,23 @@ func (cs *ClientServiceImpl) generateUniqueClientID() (string, error) {
 		errors.ErrCodeInternalServerError,
 		"failed to generate unique client ID after multiple retries",
 	)
+}
+
+// generateClientSecret generates a unique client secret, making sure it is not already in use.
+//
+// Returns:
+//
+//	string: The generated client secret.
+//	error: An error if the client secret fails after multiple retries.
+func (cs *ClientServiceImpl) generateClientSecret() (string, error) {
+	bytes := make([]byte, 32)
+
+	if _, err := rand.Read(bytes); err != nil {
+		return "", errors.New(
+			errors.ErrCodeInternalServerError,
+			"failed to generate cryptographically secure random bytes",
+		)
+	}
+
+	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }

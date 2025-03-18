@@ -4,7 +4,7 @@ import "github.com/vigiloauth/vigilo/internal/client"
 
 // ClientStore defines the interface for storing and managing Clients.
 type ClientStore interface {
-	// CreateClient adds a new client to the store if it does not already exist.
+	// SaveClient adds a new client to the store if it does not already exist.
 	//
 	// Parameters:
 	//
@@ -13,9 +13,9 @@ type ClientStore interface {
 	// Returns:
 	//
 	//	error: An error if the client already exists, nil otherwise.
-	CreateClient(client *client.Client) error
+	SaveClient(client *client.Client) error
 
-	// GetClient retrieves a client by its ID.
+	// GetClientByID retrieves a client by its ID.
 	//
 	// Parameters:
 	//
@@ -24,7 +24,7 @@ type ClientStore interface {
 	// Returns:
 	//
 	//	*client.Client: The client object if found, nil otherwise.
-	GetClient(clientID string) *client.Client
+	GetClientByID(clientID string) *client.Client
 
 	// DeleteClient removes a client from the store by its ID.
 	//
@@ -35,7 +35,7 @@ type ClientStore interface {
 	// Returns:
 	//
 	//	error: Returns an error if deletion fails, otherwise false.
-	DeleteClient(clientID string) error
+	DeleteClientByID(clientID string) error
 
 	// UpdateClient updates an existing client in the store.
 	//
