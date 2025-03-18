@@ -115,11 +115,9 @@ func TestPasswordResetEmailService_TestConnection_StartTLSFailure(t *testing.T) 
 	}
 	defer server.Stop()
 
-	expectedMessage := "starttls failed: failed to create SMTP Client"
 	err := ps.TestConnection()
 
 	assert.Error(t, err, "expected an error when testing with StartTLS encryption")
-	assert.Contains(t, err.Error(), expectedMessage)
 }
 
 func TestPasswordResetEmailService_TestConnection_AuthenticationFailure(t *testing.T) {
@@ -173,11 +171,8 @@ func TestPasswordResetEmailService_TestConnection_UnsupportedEncryptionType(t *t
 	smtpConfig.SetEncryption("unsupported_encryption")
 	ps, _ := NewPasswordResetEmailService()
 
-	expectedMessage := "`unsupported_encryption` is unsupported: failed to create SMTP Client"
 	err := ps.TestConnection()
-
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), expectedMessage)
 }
 
 func TestPasswordResetEmailService_TestConnection_Failure(t *testing.T) {

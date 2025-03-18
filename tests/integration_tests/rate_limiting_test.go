@@ -28,12 +28,11 @@ func TestRateLimiting(t *testing.T) {
 	users.ResetInMemoryUserStore()
 	user := users.NewUser("", testEmail, testPassword1)
 
-	request := users.UserLoginRequest{Email: utils.TestEmail, Password: utils.TestPassword1}
+	request := users.UserLoginRequest{Email: testEmail, Password: testPassword1}
 	requestBody, err := json.Marshal(request)
 	assert.NoError(t, err, "failed to marshal request body")
 
 	userStore := users.GetInMemoryUserStore()
-	user := users.NewUser("", utils.TestEmail, utils.TestPassword1)
 	hashedPassword, _ := utils.HashPassword(user.Password)
 	user.Password = hashedPassword
 	_ = userStore.AddUser(user)

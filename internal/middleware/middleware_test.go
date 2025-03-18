@@ -29,6 +29,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 		return &jwt.StandardClaims{Subject: email}, nil
 	}
 	mockTokenStore.IsTokenBlacklistedFunc = func(token string) bool { return false }
+	mockTokenManager.IsTokenExpiredFunc = func(token string) bool { return false }
 
 	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 

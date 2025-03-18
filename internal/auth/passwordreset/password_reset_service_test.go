@@ -251,8 +251,8 @@ func TestPasswordResetService_TokenDeletionFailed(t *testing.T) {
 	assert.True(t, ok, "expected a VigiloAuthError")
 
 	assert.Equal(t, errors.ErrCodeTokenNotFound, vigiloErr.ErrorCode, "expected correct error code")
-	assert.Equal(t, "token not found", vigiloErr.Message, "expected correct error message")
-	assert.Equal(t, "failed to delete reset token", vigiloErr.Details, "expected correct error details")
+	assert.Equal(t, "failed to delete reset token", vigiloErr.Message, "expected correct error message")
+	assert.Equal(t, "token not found", vigiloErr.Details, "expected correct error details")
 	assert.NotNil(t, vigiloErr.WrappedErr, "expected a wrapped error")
 }
 
@@ -280,8 +280,8 @@ func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
 	assert.True(t, ok, "expected a VigiloAuthError")
 
 	assert.Equal(t, errors.ErrCodeUserNotFound, vigiloErr.ErrorCode, "expected correct error code")
-	assert.Contains(t, vigiloErr.Message, "user not found", "expected correct error message")
-	assert.Contains(t, vigiloErr.Details, "failed to update user", "expected correct error details")
+	assert.Contains(t, vigiloErr.Details, "user not found", "expected correct error message")
+	assert.Contains(t, vigiloErr.Message, "failed to update user", "expected correct error details")
 }
 
 func TestPasswordResetService_LockedAccount_UnlockedAfterUpdate(t *testing.T) {

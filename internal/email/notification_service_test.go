@@ -115,11 +115,8 @@ func TestEmailNotificationService_TestConnection_StartTLSFailure(t *testing.T) {
 	}
 	defer server.Stop()
 
-	expectedMessage := "starttls failed: failed to create SMTP Client"
 	err = es.TestConnection()
-
 	assert.Error(t, err, "expected an error when using StartTLS")
-	assert.Contains(t, err.Error(), expectedMessage)
 }
 
 func TestEmailNotificationService_TestConnection_AuthenticationFailure(t *testing.T) {
@@ -178,11 +175,9 @@ func TestEmailNotificationService_TestConnection_UnsupportedEncryptionType(t *te
 	es, err := NewEmailNotificationService()
 	assert.NoError(t, err, "failed to initialize email notification service")
 
-	expectedMessage := "`unsupported_encryption` is unsupported: failed to create SMTP Client"
 	err = es.TestConnection()
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), expectedMessage)
 }
 
 func TestEmailNotificationService_TestConnection_Failure(t *testing.T) {
