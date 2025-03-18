@@ -133,7 +133,8 @@ func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.R
 	}
 
 	if request.Email == "" {
-		utils.WriteError(w, errors.NewInvalidFormatError("email", "malformed or missing field"))
+		err := errors.New(errors.ErrCodeInvalidFormat, "email is malformed or missing")
+		utils.WriteError(w, err)
 		return
 	}
 

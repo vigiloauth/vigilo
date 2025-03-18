@@ -19,6 +19,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/users"
 )
 
+// ServiceContainer holds all the services and dependencies needed for the server.
 type ServiceContainer struct {
 	tokenStore        token.TokenStore
 	loginAttemptStore login.LoginAttemptStore
@@ -39,31 +40,57 @@ type ServiceContainer struct {
 	httpServer *http.Server
 }
 
+// NewServiceContainer creates a new ServiceContainer instance with all services initialized.
+// It initializes in-memory stores, services, handlers, middleware, TLS configuration, and the HTTP server.
+//
+// Returns:
+//
+//	*ServiceContainer: A new ServiceContainer instance.
 func NewServiceContainer() *ServiceContainer {
 	container := &ServiceContainer{}
-
-	container.tokenStore = token.GetInMemoryTokenStore()
-	container.userStore = users.GetInMemoryUserStore()
-	container.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
-
-	container.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
-	container.emailNotificationService, _ = email.NewEmailNotificationService()
-
-	container.tokenManager = token.NewTokenService(container.tokenStore)
-	container.sessionService = session.NewSessionService(container.tokenManager, container.tokenStore)
-	container.passwordResetService = password.NewPasswordResetService(container.tokenManager, container.userStore, container.passwordResetEmailService)
-	container.registrationService = registration.NewRegistrationService(container.userStore, container.tokenManager)
-	container.authService = auth.NewAuthenticationService(container.userStore, container.loginAttemptStore, container.tokenManager)
-
-	container.userHandler = handlers.NewUserHandler(container.registrationService, container.authService, container.passwordResetService, container.sessionService)
-	container.middleware = middleware.NewMiddleware(container.tokenManager, container.tokenStore)
-
-	container.tlsConfig = initializeTLSConfig()
-	container.httpServer = initializeHTTPServer(container.tlsConfig)
-
+	container.initializeInMemoryStores()
+	container.initializeServices()
+	container.initializeHandlers()
+	container.initializeServerConfigs()
 	return container
 }
 
+// initializeInMemoryStores initializes the in-memory data stores used by the service container.
+func (c *ServiceContainer) initializeInMemoryStores() {
+	c.tokenStore = token.GetInMemoryTokenStore()
+	c.userStore = users.GetInMemoryUserStore()
+	c.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
+}
+
+// initializeServices initializes the various services used by the service container.
+func (c *ServiceContainer) initializeServices() {
+	c.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
+	c.emailNotificationService, _ = email.NewEmailNotificationService()
+	c.tokenManager = token.NewTokenService(c.tokenStore)
+	c.sessionService = session.NewSessionService(c.tokenManager, c.tokenStore)
+	c.passwordResetService = password.NewPasswordResetService(c.tokenManager, c.userStore, c.passwordResetEmailService)
+	c.registrationService = registration.NewRegistrationService(c.userStore, c.tokenManager)
+	c.authService = auth.NewAuthenticationService(c.userStore, c.loginAttemptStore, c.tokenManager)
+}
+
+// initializeHandlers initializes the HTTP handlers used by the service container.
+func (c *ServiceContainer) initializeHandlers() {
+	c.userHandler = handlers.NewUserHandler(c.registrationService, c.authService, c.passwordResetService, c.sessionService)
+}
+
+// initializeServerConfigs initializes the server-related configurations, including middleware, TLS configuration, and the HTTP server.
+func (c *ServiceContainer) initializeServerConfigs() {
+	c.middleware = middleware.NewMiddleware(c.tokenManager, c.tokenManager)
+	c.tlsConfig = initializeTLSConfig()
+	c.httpServer = initializeHTTPServer(c.tlsConfig)
+}
+
+// initializeTLSConfig creates and returns a TLS configuration.
+// It sets the minimum TLS version and preferred cipher suites.
+//
+// Returns:
+//
+//	*tls.Config: A TLS configuration instance.
 func initializeTLSConfig() *tls.Config {
 	return &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -76,6 +103,16 @@ func initializeTLSConfig() *tls.Config {
 	}
 }
 
+// initializeHTTPServer creates and returns an HTTP server instance.
+// It configures the server address, read timeout, write timeout, and TLS configuration.
+//
+// Parameters:
+//
+//	tlsConfig *tls.Config: The TLS configuration to use.
+//
+// Returns:
+//
+//	*http.Server: An HTTP server instance.
 func initializeHTTPServer(tlsConfig *tls.Config) *http.Server {
 	return &http.Server{
 		Addr:         fmt.Sprintf(":%d", config.GetServerConfig().Port()),

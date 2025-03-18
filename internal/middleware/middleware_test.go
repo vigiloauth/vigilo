@@ -73,7 +73,7 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 
 	handler.ServeHTTP(w, r)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code, "expected status code to be 401 Unauthorized")
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {

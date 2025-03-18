@@ -5,21 +5,22 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/utils"
+)
+
+const (
+	testIPAddress       string = "127.001.00"
+	testRequestMetadata string = "request_metadata"
+	testUserAgent       string = "user_agent"
+	testRequestDetails  string = "request_details"
 )
 
 func TestNewLoginAttempt(t *testing.T) {
-	ipAddress := utils.TestIPAddress
-	requestMetadata := utils.TestRequestMetadata
-	details := utils.TestRequestDetails
-	userAgent := utils.TestUserAgent
+	attempt := NewLoginAttempt(testIPAddress, testRequestMetadata, testRequestDetails, testUserAgent)
 
-	attempt := NewLoginAttempt(ipAddress, requestMetadata, details, userAgent)
-
-	assert.Equal(t, ipAddress, attempt.IPAddress)
-	assert.Equal(t, requestMetadata, attempt.RequestMetadata)
-	assert.Equal(t, details, attempt.Details)
-	assert.Equal(t, userAgent, attempt.UserAgent)
+	assert.Equal(t, testIPAddress, attempt.IPAddress)
+	assert.Equal(t, testRequestMetadata, attempt.RequestMetadata)
+	assert.Equal(t, testRequestDetails, attempt.Details)
+	assert.Equal(t, testUserAgent, attempt.UserAgent)
 	assert.WithinDuration(t, time.Now(), attempt.Timestamp, time.Second)
 }
 
@@ -28,11 +29,11 @@ func TestLogLoginAttempt(t *testing.T) {
 	userID := "user1"
 	attempt := &LoginAttempt{
 		UserID:          userID,
-		IPAddress:       utils.TestIPAddress,
+		IPAddress:       testIPAddress,
 		Timestamp:       time.Now(),
-		RequestMetadata: utils.TestRequestMetadata,
-		Details:         utils.TestRequestDetails,
-		UserAgent:       utils.TestUserAgent,
+		RequestMetadata: testRequestMetadata,
+		Details:         testRequestDetails,
+		UserAgent:       testUserAgent,
 	}
 
 	store.SaveLoginAttempt(attempt)

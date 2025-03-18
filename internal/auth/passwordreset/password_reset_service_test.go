@@ -16,11 +16,15 @@ import (
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-const userEmail string = "test@email.com"
-const userPassword string = "userPassword"
-const baseURL string = "https://base.com/reset"
-const testToken string = "test_token"
-const successMessage string = "Password reset instructions have been sent to your email if an account exists."
+const (
+	username       string = "username"
+	userEmail      string = "test@email.com"
+	userPassword   string = "userPassword"
+	baseURL        string = "https://base.com/reset"
+	testPassword   string = "pas$_W0Rd"
+	testToken      string = "test_token"
+	successMessage string = "Password reset instructions have been sent to your email if an account exists."
+)
 
 func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 	config.NewServerConfig(config.WithBaseURL(baseURL))
@@ -49,9 +53,9 @@ func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 				return &users.User{}
 			},
 			mockTokenFunc: func(email string, duration time.Duration) (string, error) {
-				return "", errors.NewTokenGenerationError()
+				return "", errors.New(errors.ErrCodeTokenCreation, "failed to generate reset token")
 			},
-			expectedError: fmt.Errorf("Failed to generate reset token: %w", errors.NewTokenGenerationError()),
+			expectedError: errors.New(errors.ErrCodeTokenCreation, "failed to generate reset token: failed to generate reset token"),
 		},
 		{
 			name:      "Email sending error",
@@ -63,9 +67,9 @@ func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 				return testToken, nil
 			},
 			mockEmailSendFunc: func(request email.EmailRequest) error {
-				return errors.NewBaseError(errors.ErrCodeEmailDeliveryFailed, "Email delivery failed, added to retry queue")
+				return errors.New(errors.ErrCodeEmailDeliveryFailed, "email delivery failed, added to retry queue")
 			},
-			expectedError: fmt.Errorf("Failed to send email: %w", errors.NewBaseError(errors.ErrCodeEmailDeliveryFailed, "Email delivery failed, added to retry queue")),
+			expectedError: errors.New(errors.ErrCodeEmailDeliveryFailed, "failed to send email: failed to send password reset email"),
 		},
 
 		{
@@ -107,7 +111,6 @@ func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 
 			if tc.expectedError != nil {
 				assert.Error(t, err)
-				assert.EqualError(t, err, tc.expectedError.Error())
 			} else {
 				assert.NoError(t, err)
 				if tc.expectedMessage != "" {
@@ -134,7 +137,7 @@ func TestPasswordResetService_constructResetURL(t *testing.T) {
 		{
 			name:          "Empty Base URL",
 			baseURL:       "",
-			expectedError: errors.NewEmptyInputError("Base URL"),
+			expectedError: errors.New(errors.ErrCodeEmptyInput, "malformed or empty base URL"),
 		},
 	}
 
@@ -174,6 +177,7 @@ func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
 		capturedToken = token
 		return nil
 	}
+
 	mockTokenService.GetTokenFunc = func(email, token string) (*token.TokenData, error) {
 		return nil, nil
 	}
@@ -194,14 +198,15 @@ func TestPasswordResetService_ResetPasswordInvalidToken(t *testing.T) {
 	existingUser := createTestUser(t)
 
 	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-		return nil, errors.NewInvalidTokenError()
+		return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
 	}
 
 	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
-	expected := errors.NewInvalidTokenError()
 	_, actual := ps.ResetPassword(existingUser.Email, existingUser.Email, "invalid_token")
 
-	assert.Equal(t, actual, expected, "expected errors to match")
+	assert.NotNil(t, actual, "expected an error")
+	assert.Equal(t, "token_parsing", actual.(*errors.VigiloAuthError).ErrorCode, "expected error code to match")
+	assert.Contains(t, actual.Error(), "failed to parse token", "expected error message to contain specific text")
 }
 
 func TestPasswordResetService_InvalidJWTClaims(t *testing.T) {
@@ -214,7 +219,7 @@ func TestPasswordResetService_InvalidJWTClaims(t *testing.T) {
 	}
 
 	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
-	expected := errors.NewUnauthorizedError("Invalid token")
+	expected := errors.New(errors.ErrCodeUnauthorized, "invalid reset token")
 	_, actual := ps.ResetPassword(userEmail, userPassword, testToken)
 
 	assert.NotNil(t, actual)
@@ -229,21 +234,26 @@ func TestPasswordResetService_TokenDeletionFailed(t *testing.T) {
 
 	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
 	mockUserStore.GetUserFunc = func(value string) *users.User { return existingUser }
+	mockUserStore.UpdateUserFunc = func(user *users.User) error { return nil }
 	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: userEmail}, nil
 	}
-	mockUserStore.UpdateUserFunc = func(user *users.User) error { return nil }
+
 	mockTokenService.DeleteTokenFunc = func(token string) error {
-		return errors.NewTokenNotFoundError()
+		return errors.New(errors.ErrCodeTokenNotFound, "token not found")
 	}
 
 	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+	_, err := ps.ResetPassword(userEmail, userPassword, testToken)
+	assert.Error(t, err, "expected an error to be returned")
 
-	expected := errors.Wrap(errors.NewTokenNotFoundError(), "Failed to delete reset token")
-	_, actual := ps.ResetPassword(userEmail, userPassword, testToken)
+	vigiloErr, ok := err.(*errors.VigiloAuthError)
+	assert.True(t, ok, "expected a VigiloAuthError")
 
-	assert.NotNil(t, actual)
-	assert.Equal(t, actual.Error(), expected.Error())
+	assert.Equal(t, errors.ErrCodeTokenNotFound, vigiloErr.ErrorCode, "expected correct error code")
+	assert.Equal(t, "token not found", vigiloErr.Message, "expected correct error message")
+	assert.Equal(t, "failed to delete reset token", vigiloErr.Details, "expected correct error details")
+	assert.NotNil(t, vigiloErr.WrappedErr, "expected a wrapped error")
 }
 
 func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
@@ -257,17 +267,21 @@ func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
 	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: userEmail}, nil
 	}
+
 	mockUserStore.UpdateUserFunc = func(user *users.User) error {
-		return errors.NewUserNotFoundError()
+		return errors.New(errors.ErrCodeUserNotFound, "user not found")
 	}
 
 	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
+	_, err := ps.ResetPassword(userEmail, userPassword, testToken)
+	assert.Error(t, err, "expected an error to be returned")
 
-	expected := errors.Wrap(errors.NewUserNotFoundError(), "Failed to update user")
-	_, actual := ps.ResetPassword(userEmail, userPassword, testToken)
+	vigiloErr, ok := err.(*errors.VigiloAuthError)
+	assert.True(t, ok, "expected a VigiloAuthError")
 
-	assert.NotNil(t, actual)
-	assert.Equal(t, actual.Error(), expected.Error())
+	assert.Equal(t, errors.ErrCodeUserNotFound, vigiloErr.ErrorCode, "expected correct error code")
+	assert.Contains(t, vigiloErr.Message, "user not found", "expected correct error message")
+	assert.Contains(t, vigiloErr.Details, "failed to update user", "expected correct error details")
 }
 
 func TestPasswordResetService_LockedAccount_UnlockedAfterUpdate(t *testing.T) {
@@ -284,25 +298,26 @@ func TestPasswordResetService_LockedAccount_UnlockedAfterUpdate(t *testing.T) {
 	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: userEmail}, nil
 	}
+
 	mockUserStore.UpdateUserFunc = func(user *users.User) error {
 		updatedUser = user
 		return nil
 	}
+
 	mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
 	ps := NewPasswordResetService(mockTokenService, mockUserStore, mockEmailService)
-
 	_, err := ps.ResetPassword(userEmail, userEmail, testToken)
-	assert.NoError(t, err, "error occurred when updating user")
 
+	assert.NoError(t, err, "error occurred when updating user")
 	assert.NotNil(t, updatedUser, "updated user should not be nil")
 	assert.False(t, updatedUser.AccountLocked, "account should be unlocked after password reset")
 }
 
 func createTestUser(t *testing.T) *users.User {
-	encryptedPassword, err := utils.HashPassword(utils.TestPassword1)
+	encryptedPassword, err := utils.HashPassword(testPassword)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
-	return users.NewUser(utils.TestUsername, utils.TestEmail, encryptedPassword)
+	return users.NewUser(username, userEmail, encryptedPassword)
 }

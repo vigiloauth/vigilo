@@ -2,15 +2,26 @@ package config
 
 const defaultRequiredPasswordLength int = 5
 
+// PasswordConfig holds the configuration for password complexity requirements.
 type PasswordConfig struct {
-	requireUpper  bool
-	requireNumber bool
-	requireSymbol bool
-	minLength     int
+	requireUpper  bool // Indicates whether uppercase letters are required.
+	requireNumber bool // Indicates whether numbers are required.
+	requireSymbol bool // Indicates whether symbols are required.
+	minLength     int  // Minimum required password length.
 }
 
+// PasswordConfigOption is a function type used to configure PasswordConfig options.
 type PasswordConfigOption func(*PasswordConfig)
 
+// NewPasswordConfig creates a new PasswordConfig with default values and applies provided options.
+//
+// Parameters:
+//
+//	opts ...PasswordConfigOption: A variadic list of PasswordConfigOption functions to configure the PasswordConfig.
+//
+// Returns:
+//
+//	*PasswordConfig: A new PasswordConfig instance.
 func NewPasswordConfig(opts ...PasswordConfigOption) *PasswordConfig {
 	pc := &PasswordConfig{
 		requireUpper:  false,
@@ -26,24 +37,48 @@ func NewPasswordConfig(opts ...PasswordConfigOption) *PasswordConfig {
 	return pc
 }
 
+// WithUppercase configures the PasswordConfig to require uppercase letters.
+//
+// Returns:
+//
+//	PasswordConfigOption: A function that configures the uppercase requirement.
 func WithUppercase() PasswordConfigOption {
 	return func(pc *PasswordConfig) {
 		pc.requireUpper = true
 	}
 }
 
+// WithNumber configures the PasswordConfig to require numbers.
+//
+// Returns:
+//
+//	PasswordConfigOption: A function that configures the number requirement.
 func WithNumber() PasswordConfigOption {
 	return func(pc *PasswordConfig) {
 		pc.requireNumber = true
 	}
 }
 
+// WithSymbol configures the PasswordConfig to require symbols.
+//
+// Returns:
+//
+//	PasswordConfigOption: A function that configures the symbol requirement.
 func WithSymbol() PasswordConfigOption {
 	return func(pc *PasswordConfig) {
 		pc.requireSymbol = true
 	}
 }
 
+// WithMinLength configures the minimum required password length for the PasswordConfig.
+//
+// Parameters:
+//
+//	length int: The minimum password length.
+//
+// Returns:
+//
+//	PasswordConfigOption: A function that configures the minimum length.
 func WithMinLength(length int) PasswordConfigOption {
 	return func(pc *PasswordConfig) {
 		if length > defaultRequiredPasswordLength {
@@ -52,18 +87,38 @@ func WithMinLength(length int) PasswordConfigOption {
 	}
 }
 
+// RequireUppercase returns whether uppercase letters are required from the PasswordConfig.
+//
+// Returns:
+//
+//	bool: True if uppercase letters are required, false otherwise.
 func (pc *PasswordConfig) RequireUppercase() bool {
 	return pc.requireUpper
 }
 
+// RequireNumber returns whether numbers are required from the PasswordConfig.
+//
+// Returns:
+//
+//	bool: True if numbers are required, false otherwise.
 func (pc *PasswordConfig) RequireNumber() bool {
 	return pc.requireNumber
 }
 
+// RequireSymbol returns whether symbols are required from the PasswordConfig.
+//
+// Returns:
+//
+//	bool: True if symbols are required, false otherwise.
 func (pc *PasswordConfig) RequireSymbol() bool {
 	return pc.requireSymbol
 }
 
+// MinLength returns the minimum required password length from the PasswordConfig.
+//
+// Returns:
+//
+//	int: The minimum required password length.
 func (pc *PasswordConfig) MinLength() int {
 	return pc.minLength
 }
