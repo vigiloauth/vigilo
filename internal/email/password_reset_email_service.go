@@ -87,7 +87,7 @@ func (ps *PasswordResetEmailService) GenerateEmail(request EmailRequest) *EmailR
 
 	return &EmailRequest{
 		Recipient: request.Recipient,
-		Subject:   fmt.Sprintf("[%s] Password Reset Request", request.ApplicationID),
+		Subject:   fmt.Sprintf("[%s] Password Reset Request", request.TemplateData.AppName),
 		TemplateData: TemplateData{
 			ResetURL:   request.PasswordResetRequest.ResetURL,
 			Token:      request.PasswordResetRequest.ResetToken,
