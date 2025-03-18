@@ -12,12 +12,12 @@ import (
 
 // User represents a user in the system.
 type User struct {
-	ID              string    `json:"id"`                // Unique identifier for the user.
-	Username        string    `json:"username"`          // User's username.
-	Email           string    `json:"email"`             // User's email address.
-	Password        string    `json:"password"`          // User's password (hashed).
-	LastFailedLogin time.Time `json:"last_failed_login"` // Timestamp of the last failed login attempt.
-	AccountLocked   bool      `json:"account_locked"`    // Indicates if the user's account is locked.
+	ID              string    `json:"-"`          // Unique identifier for the user.
+	Username        string    `json:"username"`   // User's username.
+	Email           string    `json:"email"`      // User's email address.
+	Password        string    `json:"-"`          // User's password (hashed).
+	LastFailedLogin time.Time `json:"-"`          // Timestamp of the last failed login attempt.
+	AccountLocked   bool      `json:"-"`          // Indicates if the user's account is locked.
 }
 
 // UserRegistrationRequest represents the registration request payload.

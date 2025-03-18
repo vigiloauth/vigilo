@@ -123,7 +123,7 @@ func checkErrorResponse(t *testing.T, responseBody []byte) {
 	assert.NotNil(t, response["error_code"], "expected error in response, got none")
 }
 
-func TestUserRegistration(t *testing.T) {
+func TestUserHandler_UserRegistration(t *testing.T) {
 	setup(t)
 	// Configure password requirements
 	pc := config.NewPasswordConfig(
@@ -203,7 +203,7 @@ func TestUserRegistration(t *testing.T) {
 	}
 }
 
-func TestDuplicateEmail(t *testing.T) {
+func TestUserHandler_DuplicateEmail(t *testing.T) {
 	helper := setup(t)
 	helper.createTestUser()
 
@@ -219,7 +219,7 @@ func TestDuplicateEmail(t *testing.T) {
 	assert.Equal(t, http.StatusConflict, rr.Code)
 }
 
-func TestUserAuthentication(t *testing.T) {
+func TestUserHandler_UserAuthentication(t *testing.T) {
 	t.Run("Successful Login", func(t *testing.T) {
 		helper := setup(t)
 		helper.createTestUser()
@@ -279,7 +279,7 @@ func TestUserAuthentication(t *testing.T) {
 	})
 }
 
-func TestPasswordReset(t *testing.T) {
+func TestUserHandler_PasswordReset(t *testing.T) {
 	t.Run("Request Password Reset Email", func(t *testing.T) {
 		helper := setupServer(t)
 		defer helper.Server.Close()
