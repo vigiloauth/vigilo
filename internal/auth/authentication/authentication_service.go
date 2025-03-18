@@ -26,7 +26,7 @@ type AuthenticationService struct {
 	config            *config.ServerConfig           // Server configuration.
 	maxFailedAttempts int                            // Maximum failed login attempts.
 	artificialDelay   time.Duration                  // Artificial delay for login attempts.
-	tokenManager      token.TokenManager             // Token manager for JWT.
+	tokenService      token.TokenService             // Token manager for JWT.
 }
 
 // NewAuthenticationService creates a new AuthenticationService instance.
@@ -35,17 +35,17 @@ type AuthenticationService struct {
 //
 //	userStore users.UserStore: The user data store.
 //	loginAttemptStore loginAttempt.LoginAttemptStore: The login attempt data store.
-//	tokenManager token.TokenManager: The token manager.
+//	tokenService token.TokenService: The token service.
 //
 // Returns:
 //
 //	*AuthenticationService: A new AuthenticationService instance.
-func NewAuthenticationService(userStore users.UserStore, loginAttemptStore loginAttempt.LoginAttemptStore, tokenManager token.TokenManager) *AuthenticationService {
+func NewAuthenticationService(userStore users.UserStore, loginAttemptStore loginAttempt.LoginAttemptStore, tokenService token.TokenService) *AuthenticationService {
 	return &AuthenticationService{
 		userStore:         userStore,
 		loginAttemptStore: loginAttemptStore,
 		config:            config.GetServerConfig(),
-		tokenManager:      tokenManager,
+		tokenService:      tokenService,
 		maxFailedAttempts: config.GetServerConfig().LoginConfig().MaxFailedAttempts(),
 		artificialDelay:   config.GetServerConfig().LoginConfig().Delay(),
 	}
@@ -82,7 +82,7 @@ func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAtt
 		return nil, errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
 	}
 
-	jwtToken, err := l.tokenManager.GenerateToken(retrievedUser.Email, l.config.JWTConfig().ExpirationTime())
+	jwtToken, err := l.tokenService.GenerateToken(retrievedUser.Email, l.config.JWTConfig().ExpirationTime())
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrCodeTokenCreation, "failed to create token")
 	}

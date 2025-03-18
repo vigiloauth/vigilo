@@ -61,7 +61,7 @@ func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Post(utils.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
 	s.router.Patch(utils.UserEndpoints.ResetPassword, s.userHandler.ResetPassword)
 
-	s.router.Post(utils.ClientEndpoints.Registration, s.clientHandler.Register)
+	s.router.Post(utils.ClientEndpoints.Registration, s.clientHandler.RegisterPublicClient)
 
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())

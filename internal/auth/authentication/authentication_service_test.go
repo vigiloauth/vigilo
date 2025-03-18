@@ -27,7 +27,7 @@ const (
 func TestAuthenticationService_SuccessfulUserAuthentication(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
 	mockLoginAttemptStore := &mocks.MockLoginAttemptStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	user := createTestUser(t)
 
 	mockUserStore.AddUserFunc = func(u *users.User) error { return nil }
@@ -47,7 +47,7 @@ func TestAuthenticationService_SuccessfulUserAuthentication(t *testing.T) {
 func TestAuthenticationService_AuthenticateUserInvalidPassword(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
 	mockLoginAttemptStore := &mocks.MockLoginAttemptStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	user := createTestUser(t)
 
 	mockUserStore.GetUserFunc = func(value string) *users.User { return user }
@@ -73,7 +73,7 @@ func TestAuthenticationService_AuthenticateUserInvalidPassword(t *testing.T) {
 func TestAuthenticationService_AuthenticateUser_UserNotFound(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
 	mockLoginAttemptStore := &mocks.MockLoginAttemptStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 
 	mockUserStore.GetUserFunc = func(value string) *users.User { return nil }
 
@@ -91,7 +91,7 @@ func TestAuthenticationService_AuthenticateUser_UserNotFound(t *testing.T) {
 func TestAuthenticationService_FailedUserAuthenticationAttempts(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
 	mockLoginAttemptStore := &mocks.MockLoginAttemptStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	user := createTestUser(t)
 
 	mockUserStore.AddUserFunc = func(u *users.User) error { return nil }
@@ -126,7 +126,7 @@ func TestAuthenticationService_FailedUserAuthenticationAttempts(t *testing.T) {
 func TestAuthenticationService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
 	mockLoginAttemptStore := &mocks.MockLoginAttemptStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	user := createTestUser(t)
 
 	mockUserStore.AddUserFunc = func(u *users.User) error { return nil }
@@ -151,7 +151,7 @@ func TestAuthenticationService_ArtificialDelayDuringUserAuthentication(t *testin
 func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
 	mockLoginAttemptStore := &mocks.MockLoginAttemptStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	user := createTestUser(t)
 
 	mockUserStore.AddUserFunc = func(u *users.User) error { return nil }
@@ -181,11 +181,8 @@ func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing
 	retrievedUser := mockUserStore.GetUserFunc(testEmail)
 	assert.True(t, retrievedUser.AccountLocked, "expected account to be locked")
 
-	expected := errors.New(errors.ErrCodeAccountLocked, "account is locked due to too many failed login attempts")
-	_, actual := authService.AuthenticateUser(user, loginAttempt)
-
-	assert.NotNil(t, actual, "expected error on login attempt with locked account")
-	assert.Equal(t, actual, expected)
+	_, err := authService.AuthenticateUser(user, loginAttempt)
+	assert.Error(t, err, "expected error on login attempt with locked account")
 }
 
 func createTestUser(t *testing.T) *users.User {

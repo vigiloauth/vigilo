@@ -21,7 +21,7 @@ var _ Registration = (*RegistrationService)(nil)
 type RegistrationService struct {
 	userStore    users.UserStore    // User data store.
 	jwtConfig    *config.JWTConfig  // JWT configuration.
-	tokenManager token.TokenManager // Token manager for JWT.
+	tokenManager token.TokenService // Token manager for JWT.
 }
 
 // NewRegistrationService creates a new RegistrationService instance.
@@ -34,7 +34,7 @@ type RegistrationService struct {
 // Returns:
 //
 //	*RegistrationService: A new RegistrationService instance.
-func NewRegistrationService(userStore users.UserStore, tokenManager token.TokenManager) *RegistrationService {
+func NewRegistrationService(userStore users.UserStore, tokenManager token.TokenService) *RegistrationService {
 	return &RegistrationService{
 		userStore:    userStore,
 		jwtConfig:    config.GetServerConfig().JWTConfig(),

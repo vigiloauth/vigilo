@@ -15,3 +15,9 @@ var UserEndpoints = struct {
 	RequestPasswordReset: defaultAuthEndpoint + "/reset-password",
 	ResetPassword:        defaultAuthEndpoint + "/reset-password/confirm",
 }
+
+var ClientEndpoints = struct {
+	Registration string
+}{
+	Registration: "/register",
+}

@@ -220,6 +220,11 @@ func (sc *SMTPConfig) FromName() string {
 	return sc.fromName
 }
 
+// SetFromName sets the sender's name
+func (sc *SMTPConfig) SetFromName(fromName string) {
+	sc.fromName = fromName
+}
+
 // ReplyTo returns the reply-to email address.
 func (sc *SMTPConfig) ReplyTo() string {
 	return sc.replyTo

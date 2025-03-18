@@ -46,14 +46,23 @@ func TestClientRegistrationRequest_ValidatePublicClient(t *testing.T) {
 		err := client.Validate()
 		assert.Error(t, err)
 	})
+
+	t.Run("Invalid Response Types", func(t *testing.T) {
+		client := createPublicClientRegistrationRequest()
+		client.ResponseTypes = []ResponseType{TokenResponseType}
+
+		err := client.Validate()
+		assert.Error(t, err)
+	})
 }
 
 func createPublicClientRegistrationRequest() *ClientRegistrationRequest {
 	return &ClientRegistrationRequest{
-		Name:         "Test Client",
-		Type:         Public,
-		RedirectURIS: []string{"https://www.example-app.com/callback", "myapp://callback"},
-		GrantTypes:   []GrantType{AuthorizationCode, PKCE},
-		Scopes:       []Scope{Read, Write},
+		Name:          "Test Client",
+		Type:          Public,
+		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
+		GrantTypes:    []GrantType{AuthorizationCode, PKCE},
+		Scopes:        []Scope{Read, Write},
+		ResponseTypes: []ResponseType{CodeResponseType, IDTokenResponseType},
 	}
 }

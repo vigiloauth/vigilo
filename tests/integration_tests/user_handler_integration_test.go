@@ -198,8 +198,6 @@ func TestUserHandler_UserRegistration(t *testing.T) {
 			if test.wantError {
 				checkErrorResponse(t, rr.Body.Bytes())
 			}
-
-			fmt.Println(rr.Body)
 		})
 	}
 }
@@ -300,7 +298,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 				name:           "Invalid Request Body",
 				requestBody:    users.UserPasswordResetRequest{},
 				expectedStatus: http.StatusUnprocessableEntity,
-				expectedBody:   `{"error_code":"invalid_format", "message":"email is malformed or missing"}`,
+				expectedBody:   `{"error_code":"invalid_format", "message":"email is either malformed or missing"}`,
 			},
 		}
 

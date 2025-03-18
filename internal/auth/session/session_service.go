@@ -25,7 +25,7 @@ var _ Session = (*SessionService)(nil)
 
 // SessionService handles session management.
 type SessionService struct {
-	tokenManager   token.TokenManager // Token manager for JWT.
+	tokenManager   token.TokenService // Token manager for JWT.
 	tokenBlacklist token.TokenStore   // Token store for blacklisted tokens.
 }
 
@@ -39,7 +39,7 @@ type SessionService struct {
 // Returns:
 //
 //	*SessionService: A new SessionService instance.
-func NewSessionService(tokenManager token.TokenManager, tokenBlacklist token.TokenStore) *SessionService {
+func NewSessionService(tokenManager token.TokenService, tokenBlacklist token.TokenStore) *SessionService {
 	return &SessionService{
 		tokenManager:   tokenManager,
 		tokenBlacklist: tokenBlacklist,

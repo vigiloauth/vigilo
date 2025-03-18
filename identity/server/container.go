@@ -12,6 +12,7 @@ import (
 	password "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
 	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
 	session "github.com/vigiloauth/vigilo/internal/auth/session"
+	client "github.com/vigiloauth/vigilo/internal/client/service"
 	clientService "github.com/vigiloauth/vigilo/internal/client/service"
 	clientStore "github.com/vigiloauth/vigilo/internal/client/store"
 
@@ -31,7 +32,7 @@ type ServiceContainer struct {
 	passwordResetEmailService email.EmailService
 	emailNotificationService  email.EmailService
 
-	tokenManager         token.TokenManager
+	tokenManager         token.TokenService
 	sessionService       session.Session
 	registrationService  registration.Registration
 	authService          auth.Authentication
@@ -66,6 +67,7 @@ func (c *ServiceContainer) initializeInMemoryStores() {
 	c.tokenStore = token.GetInMemoryTokenStore()
 	c.userStore = users.GetInMemoryUserStore()
 	c.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
+	c.clientStore = clientStore.NewInMemoryClientStore()
 }
 
 // initializeServices initializes the various services used by the service container.
@@ -77,14 +79,17 @@ func (c *ServiceContainer) initializeServices() {
 	c.passwordResetService = password.NewPasswordResetService(c.tokenManager, c.userStore, c.passwordResetEmailService)
 	c.registrationService = registration.NewRegistrationService(c.userStore, c.tokenManager)
 	c.authService = auth.NewAuthenticationService(c.userStore, c.loginAttemptStore, c.tokenManager)
+	c.clientService = client.NewClientService(c.clientStore)
 }
 
 // initializeHandlers initializes the HTTP handlers used by the service container.
 func (c *ServiceContainer) initializeHandlers() {
 	c.userHandler = handlers.NewUserHandler(c.registrationService, c.authService, c.passwordResetService, c.sessionService)
+	c.clientHandler = handlers.NewClientHandler(c.clientService)
 }
 
-// initializeServerConfigs initializes the server-related configurations, including middleware, TLS configuration, and the HTTP server.
+// initializeServerConfigs initializes the server-related configurations,
+// including middleware, TLS configuration, and the HTTP server.
 func (c *ServiceContainer) initializeServerConfigs() {
 	c.middleware = middleware.NewMiddleware(c.tokenManager, c.tokenManager)
 	c.tlsConfig = initializeTLSConfig()

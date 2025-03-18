@@ -16,8 +16,6 @@ import (
 )
 
 // UserHandler handles HTTP requests related to user operations.
-// It encapsulates user registration functionality and manages the
-// communication between HTTP layer and business logic.
 type UserHandler struct {
 	registrationService  registration.Registration
 	authService          auth.Authentication
@@ -27,6 +25,16 @@ type UserHandler struct {
 }
 
 // NewUserHandler creates a new instance of UserHandler.
+//
+// Parameters:
+//
+//	registrationService registration.Registration: The registration service.
+//	authService auth.Authentication: The authentication service.
+//	passwordResetService password.PasswordReset: The password reset service.
+//	sessionService session.Session: The session service.
+//
+// Returns:
+// *UserHandler: A new UserHandler instance.
 func NewUserHandler(
 	registrationService registration.Registration,
 	authService auth.Authentication,
@@ -133,7 +141,7 @@ func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.R
 	}
 
 	if request.Email == "" {
-		err := errors.New(errors.ErrCodeInvalidFormat, "email is malformed or missing")
+		err := errors.New(errors.ErrCodeInvalidFormat, "email is either malformed or missing")
 		utils.WriteError(w, err)
 		return
 	}

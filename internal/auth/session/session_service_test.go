@@ -19,7 +19,7 @@ const (
 
 func TestSessionService_CreateSession(t *testing.T) {
 	config.NewServerConfig(config.WithForceHTTPS())
-	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenManager := &mocks.MockTokenService{}
 	mockTokenStore := &mocks.MockTokenStore{}
 
 	mockTokenManager.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
@@ -43,7 +43,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 
 func TestSessionService_InvalidateSession(t *testing.T) {
 	config.NewServerConfig(config.WithForceHTTPS())
-	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenManager := &mocks.MockTokenService{}
 	mockTokenStore := &mocks.MockTokenStore{}
 	config.NewJWTConfig()
 

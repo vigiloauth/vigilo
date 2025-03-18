@@ -249,7 +249,7 @@ func (ps *PasswordResetEmailService) loadEmailTemplate() error {
 func (ps *PasswordResetEmailService) buildMessage(request EmailRequest, body bytes.Buffer) string {
 	// Create header
 	from := ps.smtpConfig.FromAddress()
-	if ps.smtpConfig.Credentials().Username() != "" {
+	if ps.smtpConfig.Credentials() != nil && ps.smtpConfig.Credentials().Username() != "" {
 		from = fmt.Sprintf("%s <%s>", ps.smtpConfig.FromName(), ps.smtpConfig.FromAddress())
 	}
 

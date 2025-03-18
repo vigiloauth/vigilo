@@ -19,6 +19,7 @@ func setupSMTPConfigForPasswordReset() *config.SMTPConfig {
 	smtpConfig := &config.SMTPConfig{}
 	smtpConfig.SetServer(TestSMTPServer)
 	smtpConfig.SetPort(TestSMTPPort)
+	smtpConfig.SetFromName(TestFromAddress)
 	smtpConfig.SetFromAddress(TestFromAddress)
 	smtpConfig.SetEncryption(config.None)
 
@@ -68,7 +69,8 @@ func TestPasswordResetEmailService_GenerateEmail(t *testing.T) {
 }
 
 func TestPasswordResetEmailService_SendEmailFailure(t *testing.T) {
-	setupSMTPConfigForPasswordReset()
+	smtpConfig := setupSMTPConfigForPasswordReset()
+	smtpConfig.SetCredentials("username", "password")
 	ps, _ := NewPasswordResetEmailService()
 
 	request := createPasswordResetRequest()
@@ -192,6 +194,7 @@ func TestPasswordResetEmailService_ProcessQueue_EmptyQueue(t *testing.T) {
 
 func TestPasswordResetEmailService_ProcessQueue_SkipsExpiredToken(t *testing.T) {
 	smtpConfig := setupSMTPConfigForPasswordReset()
+	smtpConfig.SetCredentials("username", "password")
 	smtpConfig.SetMaxRetries(3)
 	smtpConfig.SetRetryDelay(1 * time.Millisecond)
 
@@ -232,6 +235,7 @@ func TestPasswordResetEmailService_ProcessQueue_SkipsExpiredToken(t *testing.T) 
 func TestPasswordResetEmailService_ProcessQueue_Retry(t *testing.T) {
 	smtpConfig := setupSMTPConfigForPasswordReset()
 	smtpConfig.SetMaxRetries(2)
+	smtpConfig.SetCredentials("username", "password")
 	smtpConfig.SetRetryDelay(1 * time.Second)
 
 	ps, _ := NewPasswordResetEmailService()

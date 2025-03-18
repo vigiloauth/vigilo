@@ -17,7 +17,7 @@ import (
 const email string = "test@example.com"
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {
-	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenManager := &mocks.MockTokenService{}
 	mockTokenStore := &mocks.MockTokenStore{}
 
 	tokenString := "validToken"
@@ -47,7 +47,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 }
 
 func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
-	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenManager := &mocks.MockTokenService{}
 	mockTokenStore := &mocks.MockTokenStore{}
 
 	tokenString := "blacklistedToken"
@@ -78,7 +78,7 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
-	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenManager := &mocks.MockTokenService{}
 	mockTokenStore := &mocks.MockTokenStore{}
 
 	mockTokenManager.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) { return nil, errors.New("invalid token") }
@@ -100,7 +100,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 }
 
 func TestRedirectToHTTPS(t *testing.T) {
-	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenManager := &mocks.MockTokenService{}
 	mockTokenStore := &mocks.MockTokenStore{}
 	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 
@@ -118,7 +118,7 @@ func TestRedirectToHTTPS(t *testing.T) {
 }
 
 func TestRateLimit(t *testing.T) {
-	mockTokenManager := &mocks.MockTokenManager{}
+	mockTokenManager := &mocks.MockTokenService{}
 	mockTokenStore := &mocks.MockTokenStore{}
 	middleware := NewMiddleware(mockTokenManager, mockTokenStore)
 

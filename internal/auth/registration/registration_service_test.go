@@ -21,7 +21,7 @@ const (
 
 func TestRegistrationService_RegisterUser(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 
 	mockUserStore.GetUserFunc = func(value string) *users.User { return nil }
 	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
@@ -36,7 +36,7 @@ func TestRegistrationService_RegisterUser(t *testing.T) {
 
 func TestRegistrationService_DuplicateEntry(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	user := createNewUser()
 
 	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }
@@ -53,7 +53,7 @@ func TestRegistrationService_DuplicateEntry(t *testing.T) {
 
 func TestRegistrationService_PasswordIsNotStoredInPlainText(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 
 	mockUserStore.DeleteUserFunc = func(email string) error { return nil }
 	mockUserStore.AddUserFunc = func(user *users.User) error { return nil }

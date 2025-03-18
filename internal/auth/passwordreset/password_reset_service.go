@@ -28,7 +28,7 @@ var _ PasswordReset = (*PasswordResetService)(nil)
 
 // PasswordResetService provides password reset functionality.
 type PasswordResetService struct {
-	tokenManager token.TokenManager // Token manager for JWT.
+	tokenManager token.TokenService // Token manager for JWT.
 	userStore    users.UserStore    // User data store.
 	emailService email.EmailService // Email service for sending reset emails.
 }
@@ -44,7 +44,7 @@ type PasswordResetService struct {
 // Returns:
 //
 //	*PasswordResetService: A new PasswordResetService instance.
-func NewPasswordResetService(tokenManager token.TokenManager, userStore users.UserStore, emailService email.EmailService) *PasswordResetService {
+func NewPasswordResetService(tokenManager token.TokenService, userStore users.UserStore, emailService email.EmailService) *PasswordResetService {
 	return &PasswordResetService{
 		tokenManager: tokenManager,
 		userStore:    userStore,

@@ -13,7 +13,7 @@ import (
 // Middleware encapsulates middleware functionalities.
 type Middleware struct {
 	serverConfig *config.ServerConfig // Server configuration.
-	tokenManager token.TokenManager   // Token manager for JWT operations.
+	tokenManager token.TokenService   // Token manager for JWT operations.
 	tokenStore   token.TokenStore     // Token store for blacklisted tokens.
 	rateLimiter  *RateLimiter         // Rate limiter for request rate limiting.
 }
@@ -28,7 +28,7 @@ type Middleware struct {
 // Returns:
 //
 //	*Middleware: A new Middleware instance.
-func NewMiddleware(tokenManager token.TokenManager, tokenStore token.TokenStore) *Middleware {
+func NewMiddleware(tokenManager token.TokenService, tokenStore token.TokenStore) *Middleware {
 	serverConfig := config.GetServerConfig()
 	return &Middleware{
 		serverConfig: serverConfig,

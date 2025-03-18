@@ -33,7 +33,7 @@ func TestInMemoryClientStore_CreateClient(t *testing.T) {
 		assert.NoError(t, err, "expected no error when creating client")
 
 		// Attempt to add a duplicate client
-		expected := errors.NewDuplicateClientError()
+		expected := errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
 		actual := cs.CreateClient(client)
 
 		assert.Error(t, actual, "expected error when creating duplicate client")
@@ -88,7 +88,7 @@ func TestInMemoryClientStore_UpdateClient(t *testing.T) {
 		cs := NewInMemoryClientStore()
 		client := createTestClient()
 
-		expected := errors.NewClientNotFoundError()
+		expected := errors.New(errors.ErrCodeClientNotFound, "client not found using provided ID")
 		actual := cs.UpdateClient(client)
 		assert.Equal(t, expected, actual)
 	})

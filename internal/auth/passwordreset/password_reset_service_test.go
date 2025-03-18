@@ -90,7 +90,7 @@ func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockTokenManager := &mocks.MockTokenManager{
+			mockTokenManager := &mocks.MockTokenService{
 				GenerateTokenFunc: tc.mockTokenFunc,
 				AddTokenFunc:      func(token, email string, expiry time.Time) {},
 			}
@@ -159,7 +159,7 @@ func TestPasswordResetService_constructResetURL(t *testing.T) {
 }
 
 func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	mockUserStore := &mocks.MockUserStore{}
 	mockEmailService := &mocks.MockEmailService{}
 	existingUser := createTestUser(t)
@@ -192,7 +192,7 @@ func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
 }
 
 func TestPasswordResetService_ResetPasswordInvalidToken(t *testing.T) {
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	mockUserStore := &mocks.MockUserStore{}
 	mockEmailService := &mocks.MockEmailService{}
 	existingUser := createTestUser(t)
@@ -210,7 +210,7 @@ func TestPasswordResetService_ResetPasswordInvalidToken(t *testing.T) {
 }
 
 func TestPasswordResetService_InvalidJWTClaims(t *testing.T) {
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	mockUserStore := &mocks.MockUserStore{}
 	mockEmailService := &mocks.MockEmailService{}
 
@@ -227,7 +227,7 @@ func TestPasswordResetService_InvalidJWTClaims(t *testing.T) {
 }
 
 func TestPasswordResetService_TokenDeletionFailed(t *testing.T) {
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	mockUserStore := &mocks.MockUserStore{}
 	mockEmailService := &mocks.MockEmailService{}
 	existingUser := createTestUser(t)
@@ -257,7 +257,7 @@ func TestPasswordResetService_TokenDeletionFailed(t *testing.T) {
 }
 
 func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	mockUserStore := &mocks.MockUserStore{}
 	mockEmailService := &mocks.MockEmailService{}
 	existingUser := createTestUser(t)
@@ -285,7 +285,7 @@ func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
 }
 
 func TestPasswordResetService_LockedAccount_UnlockedAfterUpdate(t *testing.T) {
-	mockTokenService := &mocks.MockTokenManager{}
+	mockTokenService := &mocks.MockTokenService{}
 	mockUserStore := &mocks.MockUserStore{}
 	mockEmailService := &mocks.MockEmailService{}
 	existingUser := createTestUser(t)

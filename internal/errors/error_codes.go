@@ -42,6 +42,16 @@ const (
 	ErrCodeSMTPAuthenticationFailed   = "smtp_authentication_failed"
 	ErrCodeSMTPServerError            = "smtp_server_error"
 
+	// Client errors
+	ErrCodeInvalidClient          = "invalid_client"
+	ErrCodeInvalidGrantType       = "invalid_grant_type"
+	ErrCodeInvalidRedirectURI     = "invalid_redirect_uri"
+	ErrCodeInvalidScope           = "invalid_scope"
+	ErrCodeClientSecretNotAllowed = "client_secret_not_allowed"
+	ErrCodeClientNotFound         = "client_not_found"
+	ErrCodeDuplicateClient        = "duplicate_client"
+	ErrCodeInvalidResponseType    = "invalid_response_type"
+
 	// System errors
 	ErrCodeInternalServerError = "internal_server_error"
 )
@@ -60,6 +70,12 @@ var statusCodeMap = map[string]int{
 	ErrCodeEmailTemplateParseFailed:  http.StatusBadRequest,
 	ErrCodeUnsupportedEncryptionType: http.StatusBadRequest,
 	ErrCodeMissingHeader:             http.StatusBadRequest,
+	ErrCodeInvalidClient:             http.StatusBadRequest,
+	ErrCodeInvalidGrantType:          http.StatusBadRequest,
+	ErrCodeInvalidRedirectURI:        http.StatusBadRequest,
+	ErrCodeInvalidScope:              http.StatusBadRequest,
+	ErrCodeClientSecretNotAllowed:    http.StatusBadRequest,
+	ErrCodeInvalidResponseType:       http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -70,11 +86,13 @@ var statusCodeMap = map[string]int{
 	ErrCodeTokenParsing:             http.StatusUnauthorized,
 
 	// 404 Not Found
-	ErrCodeUserNotFound:  http.StatusNotFound,
-	ErrCodeTokenNotFound: http.StatusNotFound,
+	ErrCodeUserNotFound:   http.StatusNotFound,
+	ErrCodeTokenNotFound:  http.StatusNotFound,
+	ErrCodeClientNotFound: http.StatusNotFound,
 
 	// 409 Conflict
-	ErrCodeDuplicateUser: http.StatusConflict,
+	ErrCodeDuplicateUser:   http.StatusConflict,
+	ErrCodeDuplicateClient: http.StatusConflict,
 
 	// 422 Unprocessable Entity
 	ErrCodeInvalidFormat: http.StatusUnprocessableEntity,

@@ -7,16 +7,27 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
+// Ensure InMemoryClientStore implements the ClientStore interface.
 var _ ClientStore = (*InMemoryClientStore)(nil)
 
+// InMemoryClientStore provides an in-memory implementation of ClientStore.
+// It uses a map to store clients and a read-write mutex for concurrency control.
 type InMemoryClientStore struct {
-	data map[string]*client.Client
-	mu   sync.RWMutex
+	data map[string]*client.Client // Map storing client data by client ID.
+	mu   sync.RWMutex              // Read-write mutex for concurrent access.
 }
 
-var instance *InMemoryClientStore
-var once sync.Once
+var (
+	instance *InMemoryClientStore
+	once     sync.Once
+)
 
+// GetInMemoryClientStore returns a singleton instance of InMemoryClientStore.
+// It ensures that only one instance is created using sync.Once.
+//
+// Returns:
+//
+//	*InMemoryClientStore: The singleton instance of InMemoryClientStore.
 func GetInMemoryClientStore() *InMemoryClientStore {
 	once.Do(func() {
 		instance = NewInMemoryClientStore()
@@ -24,22 +35,45 @@ func GetInMemoryClientStore() *InMemoryClientStore {
 	return instance
 }
 
+// NewInMemoryClientStore initializes a new InMemoryClientStore instance.
+//
+// Returns:
+//
+//	*InMemoryClientStore: A new in-memory client store.
 func NewInMemoryClientStore() *InMemoryClientStore {
 	return &InMemoryClientStore{data: make(map[string]*client.Client)}
 }
 
+// CreateClient adds a new client to the store if it does not already exist.
+//
+// Parameters:
+//
+//	client *client.Client: The client object to store.
+//
+// Returns:
+//
+//	error: An error if the client already exists, nil otherwise.
 func (cs *InMemoryClientStore) CreateClient(client *client.Client) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
 	if _, clientExists := cs.data[client.ID]; clientExists {
-		return errors.NewDuplicateClientError()
+		return errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
 	}
 
 	cs.data[client.ID] = client
 	return nil
 }
 
+// GetClient retrieves a client by its ID.
+//
+// Parameters:
+//
+//	clientID string: The ID of the client to retrieve.
+//
+// Returns:
+//
+//	*client.Client: The client object if found, nil otherwise.
 func (cs *InMemoryClientStore) GetClient(clientID string) *client.Client {
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
@@ -52,6 +86,15 @@ func (cs *InMemoryClientStore) GetClient(clientID string) *client.Client {
 	return client
 }
 
+// DeleteClient removes a client from the store by its ID.
+//
+// Parameters:
+//
+//	clientID string: The ID of the client to delete.
+//
+// Returns:
+//
+//	error: Always returns nil.
 func (cs *InMemoryClientStore) DeleteClient(clientID string) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
@@ -59,12 +102,21 @@ func (cs *InMemoryClientStore) DeleteClient(clientID string) error {
 	return nil
 }
 
+// UpdateClient updates an existing client in the store.
+//
+// Parameters:
+//
+//	client *client.Client: The updated client object.
+//
+// Returns:
+//
+//	error: An error if the client does not exist, nil otherwise.
 func (cs *InMemoryClientStore) UpdateClient(client *client.Client) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
 	if _, clientExists := cs.data[client.ID]; !clientExists {
-		return errors.NewClientNotFoundError()
+		return errors.New(errors.ErrCodeClientNotFound, "client not found using provided ID")
 	}
 
 	cs.data[client.ID] = client

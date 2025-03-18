@@ -163,7 +163,7 @@ func (req *UserRegistrationRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
 	if req.Username == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "username is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "`username` is empty")
 		errorCollection.Add(err)
 	}
 
@@ -203,7 +203,7 @@ func (req *UserLoginRequest) Validate() error {
 	validateEmail(req.Email, errorCollection)
 
 	if req.Password == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "password is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "`password` is empty")
 		errorCollection.Add(err)
 	}
 
@@ -222,7 +222,7 @@ func (req *UserLoginRequest) Validate() error {
 //	errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
 func validateEmail(email string, errorCollection *errors.ErrorCollection) {
 	if email == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "email is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "`email` is empty")
 		errorCollection.Add(err)
 	} else if !isValidEmailFormat(email) {
 		err := errors.New(errors.ErrCodeInvalidFormat, "invalid email format")
@@ -252,7 +252,7 @@ func isValidEmailFormat(email string) bool {
 //	errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
 func validatePassword(password string, errorCollection *errors.ErrorCollection) {
 	if password == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "password is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "`password` is empty")
 		errorCollection.Add(err)
 		return
 	}
@@ -276,7 +276,7 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 	}
 
 	if passwordConfig.RequireSymbol() && !containsSymbol(password) {
-		err := errors.New(errors.ErrCodeMissingSymbol, "password is missing a required symbold")
+		err := errors.New(errors.ErrCodeMissingSymbol, "password is missing a required symbol")
 		errorCollection.Add(err)
 	}
 }
