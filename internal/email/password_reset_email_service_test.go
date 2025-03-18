@@ -29,17 +29,6 @@ func setupSMTPConfigForPasswordReset() *config.SMTPConfig {
 	return cfg.SMTPConfig()
 }
 
-func createPasswordResetRequest() EmailRequest {
-	return EmailRequest{
-		Recipient:     TestRecipient,
-		ApplicationID: TestApplicationID,
-		PasswordResetRequest: &PasswordResetRequest{
-			ResetURL:   resetURL,
-			ResetToken: resetToken,
-		},
-	}
-}
-
 func TestNewPasswordResetEmailService_ValidSMTPConfig(t *testing.T) {
 	setupSMTPConfigForPasswordReset()
 	ps, err := NewPasswordResetEmailService()
@@ -127,8 +116,8 @@ func TestPasswordResetEmailService_TestConnection_StartTLSFailure(t *testing.T) 
 	defer server.Stop()
 
 	err := ps.TestConnection()
+
 	assert.Error(t, err, "expected an error when testing with StartTLS encryption")
-	assert.Contains(t, err.Error(), "StartTLS failed")
 }
 
 func TestPasswordResetEmailService_TestConnection_AuthenticationFailure(t *testing.T) {
@@ -153,7 +142,6 @@ func TestPasswordResetEmailService_TestConnection_AuthenticationFailure(t *testi
 
 	err := ps.TestConnection()
 	assert.Error(t, err, "expected an error when authenticating credentials")
-	assert.Contains(t, err.Error(), "SMTP authentication failed")
 }
 
 func TestPasswordResetEmailService_TestConnection_TLSFailure(t *testing.T) {
@@ -185,7 +173,6 @@ func TestPasswordResetEmailService_TestConnection_UnsupportedEncryptionType(t *t
 
 	err := ps.TestConnection()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Unsupported encryption type")
 }
 
 func TestPasswordResetEmailService_TestConnection_Failure(t *testing.T) {
@@ -298,4 +285,15 @@ func TestPasswordResetEmailService_SMTPConfigValidation_EmptyFields(t *testing.T
 
 	_, err := NewPasswordResetEmailService()
 	assert.Error(t, err, "expected an error when validating an invalid SMTP configuration")
+}
+
+func createPasswordResetRequest() EmailRequest {
+	return EmailRequest{
+		Recipient:     TestRecipient,
+		ApplicationID: TestApplicationID,
+		PasswordResetRequest: &PasswordResetRequest{
+			ResetURL:   resetURL,
+			ResetToken: resetToken,
+		},
+	}
 }

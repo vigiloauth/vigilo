@@ -12,10 +12,12 @@ import (
 	"github.com/vigiloauth/vigilo/internal/mocks"
 )
 
-const testEmail string = "test@example.com"
-const testToken string = "test_token"
+const (
+	testEmail string = "test@example.com"
+	testToken string = "test_token"
+)
 
-func TestCreateSession(t *testing.T) {
+func TestSessionService_CreateSession(t *testing.T) {
 	config.NewServerConfig(config.WithForceHTTPS())
 	mockTokenManager := &mocks.MockTokenManager{}
 	mockTokenStore := &mocks.MockTokenStore{}
@@ -39,7 +41,7 @@ func TestCreateSession(t *testing.T) {
 	assert.Equal(t, http.SameSiteStrictMode, cookie.SameSite)
 }
 
-func TestInvalidateSession(t *testing.T) {
+func TestSessionService_InvalidateSession(t *testing.T) {
 	config.NewServerConfig(config.WithForceHTTPS())
 	mockTokenManager := &mocks.MockTokenManager{}
 	mockTokenStore := &mocks.MockTokenStore{}

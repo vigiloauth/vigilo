@@ -3,6 +3,7 @@ package integration_tests
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -45,7 +46,7 @@ func setupServer(t *testing.T) *TestHelper {
 
 // createTestUser creates a test user with default credentials
 func (h *TestHelper) createTestUser() *users.User {
-	user := users.NewUser(utils.TestUsername, utils.TestEmail, utils.TestPassword1)
+	user := users.NewUser(testUsername, testEmail, testPassword1)
 	hashedPassword, err := utils.HashPassword(user.Password)
 	assert.NoError(h.T, err)
 	user.Password = hashedPassword
@@ -90,7 +91,7 @@ func (h *TestHelper) sendRequest(method, endpoint string, body any) *http.Respon
 func (h *TestHelper) generateExpiredToken() string {
 	expiredTime := time.Now().Add(-1 * time.Hour)
 	claims := &jwt.StandardClaims{
-		Subject:   utils.TestEmail,
+		Subject:   testEmail,
 		ExpiresAt: expiredTime.Unix(),
 		IssuedAt:  time.Now().Unix(),
 	}
@@ -99,17 +100,17 @@ func (h *TestHelper) generateExpiredToken() string {
 	tokenString, err := jwtToken.SignedString([]byte("secret"))
 	assert.NoError(h.T, err)
 
-	token.GetInMemoryTokenStore().AddToken(tokenString, utils.TestEmail, expiredTime)
+	token.GetInMemoryTokenStore().AddToken(tokenString, testEmail, expiredTime)
 	return tokenString
 }
 
 // setupResetToken generates a password reset token for the current user
 func (h *TestHelper) setupResetToken(duration time.Duration) string {
 	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
-	resetToken, err := tokenService.GenerateToken(utils.TestEmail, duration)
+	resetToken, err := tokenService.GenerateToken(testEmail, duration)
 	assert.NoError(h.T, err)
 
-	token.GetInMemoryTokenStore().AddToken(resetToken, utils.TestEmail, time.Now().Add(duration))
+	token.GetInMemoryTokenStore().AddToken(resetToken, testEmail, time.Now().Add(duration))
 	return resetToken
 }
 
@@ -141,43 +142,43 @@ func TestUserHandler_UserRegistration(t *testing.T) {
 	}{
 		{
 			name:           "Successful User Registration",
-			requestBody:    *users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.TestPassword1),
+			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1),
 			expectedStatus: http.StatusCreated,
 			wantError:      false,
 		},
 		{
 			name:           "User Registration fails given invalid request body",
-			requestBody:    *users.NewUserRegistrationRequest("", "invalid-email", utils.TestPassword1),
+			requestBody:    *users.NewUserRegistrationRequest("", "invalid-email", testPassword1),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Missing required fields in request",
-			requestBody:    *users.NewUserRegistrationRequest(utils.TestUsername, "", ""),
+			requestBody:    *users.NewUserRegistrationRequest(testUsername, "", ""),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Invalid password length",
-			requestBody:    *users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
+			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contains an uppercase letter",
-			requestBody:    *users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
+			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contain a number",
-			requestBody:    *users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
+			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contain a symbol",
-			requestBody:    *users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.InvalidPassword),
+			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
@@ -206,7 +207,7 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 	helper := setup(t)
 	helper.createTestUser()
 
-	requestBody := users.NewUserRegistrationRequest(utils.TestUsername, utils.TestEmail, utils.TestPassword1)
+	requestBody := users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1)
 	body, err := json.Marshal(requestBody)
 	assert.NoError(t, err)
 
@@ -223,7 +224,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		helper := setup(t)
 		helper.createTestUser()
 
-		requestBody := users.NewUserLoginRequest(utils.TestEmail, utils.TestPassword1)
+		requestBody := users.NewUserLoginRequest(testEmail, testPassword1)
 		body, err := json.Marshal(requestBody)
 		assert.NoError(t, err)
 
@@ -240,7 +241,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		helper.createTestUser()
 
 		// Login to get token
-		loginRequest := users.NewUserLoginRequest(utils.TestEmail, utils.TestPassword1)
+		loginRequest := users.NewUserLoginRequest(testEmail, testPassword1)
 		body, err := json.Marshal(loginRequest)
 		assert.NoError(t, err)
 
@@ -273,6 +274,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		rr := httptest.NewRecorder()
 		vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
+		fmt.Println(rr.Body)
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 }
@@ -290,7 +292,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 		}{
 			{
 				name:           "Successful Request",
-				requestBody:    users.UserPasswordResetRequest{Email: utils.TestEmail},
+				requestBody:    users.UserPasswordResetRequest{Email: testEmail},
 				expectedStatus: http.StatusOK,
 				expectedBody:   `{"message":"Password reset instructions have been sent to your email if an account exists."}`,
 			},
@@ -298,7 +300,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 				name:           "Invalid Request Body",
 				requestBody:    users.UserPasswordResetRequest{},
 				expectedStatus: http.StatusUnprocessableEntity,
-				expectedBody:   `{"description":"malformed or missing field", "error":"email: malformed or missing field", "error_code":"INVALID_FORMAT"}`,
+				expectedBody:   `{"error_code":"invalid_format", "message":"email is malformed or missing"}`,
 			},
 		}
 
@@ -330,17 +332,17 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 		}{
 			{
 				name:           "Successful Reset",
-				requestBody:    users.UserPasswordResetRequest{Email: utils.TestEmail, ResetToken: resetToken, NewPassword: utils.TestPassword2},
+				requestBody:    users.UserPasswordResetRequest{Email: testEmail, ResetToken: resetToken, NewPassword: testPassword2},
 				expectedStatus: http.StatusOK,
 			},
 			{
 				name:           "Invalid Request Body",
-				requestBody:    users.UserPasswordResetRequest{Email: utils.TestEmail},
+				requestBody:    users.UserPasswordResetRequest{Email: testEmail},
 				expectedStatus: http.StatusBadRequest,
 			},
 			{
 				name:           "Invalid token",
-				requestBody:    users.UserPasswordResetRequest{Email: utils.TestEmail, ResetToken: "invalid", NewPassword: utils.TestPassword2},
+				requestBody:    users.UserPasswordResetRequest{Email: testEmail, ResetToken: "invalid", NewPassword: testPassword2},
 				expectedStatus: http.StatusUnauthorized,
 			},
 		}
@@ -363,9 +365,9 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 
 		// Reset the password
 		resetRequest := users.UserPasswordResetRequest{
-			Email:       utils.TestEmail,
+			Email:       testEmail,
 			ResetToken:  resetToken,
-			NewPassword: utils.TestPassword2,
+			NewPassword: testPassword2,
 		}
 
 		resetResp := helper.sendRequest(http.MethodPatch, utils.UserEndpoints.ResetPassword, resetRequest)
@@ -373,7 +375,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resetResp.StatusCode)
 
 		// Attempt login with new password
-		loginRequest := users.NewUserLoginRequest(utils.TestEmail, utils.TestPassword2)
+		loginRequest := users.NewUserLoginRequest(testEmail, testPassword2)
 		loginResp := helper.sendRequest(http.MethodPost, utils.UserEndpoints.Login, loginRequest)
 		defer loginResp.Body.Close()
 		assert.Equal(t, http.StatusOK, loginResp.StatusCode)
@@ -385,7 +387,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 		assert.NotEmpty(t, loginResponse.JWTToken)
 
 		// Attempt login with old password
-		oldLoginRequest := users.NewUserLoginRequest(utils.TestEmail, utils.TestPassword1)
+		oldLoginRequest := users.NewUserLoginRequest(testEmail, testPassword1)
 		oldLoginResp := helper.sendRequest(http.MethodPost, utils.UserEndpoints.Login, oldLoginRequest)
 		defer oldLoginResp.Body.Close()
 		assert.Equal(t, http.StatusUnauthorized, oldLoginResp.StatusCode)

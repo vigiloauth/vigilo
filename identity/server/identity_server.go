@@ -50,6 +50,8 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 	return s.router
 }
 
+// setupRoutes configures the HTTP routes for the VigiloIdentityServer.
+// It applies middleware, sets up user-related endpoints, and groups authenticated routes.
 func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Use(s.middleware.RateLimit)
 

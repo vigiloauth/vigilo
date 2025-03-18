@@ -12,6 +12,18 @@ import (
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
+const (
+	testUsername        string = "username"
+	testEmail           string = "vigilo@auth.com"
+	testPassword1       string = "pas$_W0Rd"
+	testPassword2       string = "PAs%$_W0Rddd"
+	testInvalidPassword string = "invalid"
+	testIPAddress       string = "127.001.00"
+	testRequestMetadata string = "request_metadata"
+	testUserAgent       string = "user_agent"
+	testRequestDetails  string = "request_details"
+)
+
 func TestAuthenticationService_SuccessfulUserAuthentication(t *testing.T) {
 	mockUserStore := &mocks.MockUserStore{}
 	mockLoginAttemptStore := &mocks.MockLoginAttemptStore{}
@@ -25,7 +37,7 @@ func TestAuthenticationService_SuccessfulUserAuthentication(t *testing.T) {
 	mockUserStore.UpdateUserFunc = func(user *users.User) error { return nil }
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	loginUser := users.NewUser(utils.TestUsername, utils.TestEmail, utils.TestPassword1)
+	loginUser := users.NewUser(testUsername, testEmail, testPassword1)
 	loginAttempt := createTestLoginAttempt()
 
 	_, err := authService.AuthenticateUser(loginUser, loginAttempt)
@@ -48,10 +60,10 @@ func TestAuthenticationService_AuthenticateUserInvalidPassword(t *testing.T) {
 	}
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	loginUser := users.NewUser(utils.TestUsername, utils.TestEmail, utils.InvalidPassword)
+	loginUser := users.NewUser(testUsername, testEmail, testInvalidPassword)
 	loginAttempt := createTestLoginAttempt()
 
-	expected := errors.NewInvalidCredentialsError()
+	expected := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
 	_, actual := authService.AuthenticateUser(loginUser, loginAttempt)
 
 	assert.Error(t, actual, "expected error during authentication")
@@ -69,7 +81,7 @@ func TestAuthenticationService_AuthenticateUser_UserNotFound(t *testing.T) {
 	loginUser := createTestUser(t)
 	loginAttempt := createTestLoginAttempt()
 
-	expected := errors.NewInvalidCredentialsError()
+	expected := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
 	_, actual := authService.AuthenticateUser(loginUser, loginAttempt)
 
 	assert.Error(t, actual, "expected error during authentication")
@@ -87,6 +99,7 @@ func TestAuthenticationService_FailedUserAuthenticationAttempts(t *testing.T) {
 	mockLoginAttemptStore.SaveLoginAttemptFunc = func(attempt *login.LoginAttempt) {}
 	mockUserStore.UpdateUserFunc = func(user *users.User) error { return nil }
 	mockLoginAttemptStore.SaveLoginAttemptFunc = func(attempt *login.LoginAttempt) {}
+
 	mockLoginAttemptStore.GetLoginAttemptsFunc = func(userID string) []*login.LoginAttempt {
 		attempts := []*login.LoginAttempt{}
 		totalAttempts := 5
@@ -97,8 +110,9 @@ func TestAuthenticationService_FailedUserAuthenticationAttempts(t *testing.T) {
 	}
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	user.Password = utils.InvalidPassword
+	user.Password = testInvalidPassword
 	loginAttempt := createTestLoginAttempt()
+
 	expectedAttempts := 5
 	for range expectedAttempts {
 		_, err := authService.AuthenticateUser(user, loginAttempt)
@@ -122,8 +136,8 @@ func TestAuthenticationService_ArtificialDelayDuringUserAuthentication(t *testin
 	mockLoginAttemptStore.GetLoginAttemptsFunc = func(userID string) []*login.LoginAttempt { return []*login.LoginAttempt{} }
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	user.Password = utils.InvalidPassword
-	loginAttempt := login.NewLoginAttempt(utils.TestIPAddress, utils.TestRequestMetadata, utils.TestRequestDetails, utils.TestUserAgent)
+	user.Password = testInvalidPassword
+	loginAttempt := createTestLoginAttempt()
 
 	expected := 500 * time.Millisecond
 	startTime := time.Now()
@@ -145,6 +159,7 @@ func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing
 	mockLoginAttemptStore.SaveLoginAttemptFunc = func(attempt *login.LoginAttempt) {}
 	mockUserStore.UpdateUserFunc = func(user *users.User) error { return nil }
 	mockLoginAttemptStore.SaveLoginAttemptFunc = func(attempt *login.LoginAttempt) {}
+
 	mockLoginAttemptStore.GetLoginAttemptsFunc = func(userID string) []*login.LoginAttempt {
 		attempts := []*login.LoginAttempt{}
 		totalAttempts := 5
@@ -155,17 +170,18 @@ func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing
 	}
 
 	authService := NewAuthenticationService(mockUserStore, mockLoginAttemptStore, mockTokenService)
-	user.Password = utils.InvalidPassword
+	user.Password = testInvalidPassword
+
 	loginAttempt := createTestLoginAttempt()
 	for range authService.maxFailedAttempts {
 		_, err := authService.AuthenticateUser(user, loginAttempt)
 		assert.NotNil(t, err)
 	}
 
-	retrievedUser := mockUserStore.GetUserFunc(utils.TestEmail)
+	retrievedUser := mockUserStore.GetUserFunc(testEmail)
 	assert.True(t, retrievedUser.AccountLocked, "expected account to be locked")
 
-	expected := errors.NewAccountLockedError()
+	expected := errors.New(errors.ErrCodeAccountLocked, "account is locked due to too many failed login attempts")
 	_, actual := authService.AuthenticateUser(user, loginAttempt)
 
 	assert.NotNil(t, actual, "expected error on login attempt with locked account")
@@ -173,17 +189,17 @@ func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing
 }
 
 func createTestUser(t *testing.T) *users.User {
-	encryptedPassword, err := utils.HashPassword(utils.TestPassword1)
+	encryptedPassword, err := utils.HashPassword(testPassword1)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
-	return users.NewUser(utils.TestUsername, utils.TestEmail, encryptedPassword)
+	return users.NewUser(testUsername, testEmail, encryptedPassword)
 }
 
 func createTestLoginAttempt() *login.LoginAttempt {
 	return login.NewLoginAttempt(
-		utils.TestIPAddress,
-		utils.TestRequestMetadata,
-		utils.TestRequestDetails,
-		utils.TestUserAgent)
+		testIPAddress,
+		testRequestMetadata,
+		testRequestDetails,
+		testUserAgent)
 }
