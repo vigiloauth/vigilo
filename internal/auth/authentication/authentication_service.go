@@ -73,7 +73,7 @@ func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAtt
 	}
 
 	if retrievedUser.AccountLocked {
-		return nil, errors.New(errors.ErrCodeAccountLocked, "account is locked due to too many failed login attempts")
+		return nil, errors.New(errors.ErrCodeAccountLocked, "account is locked due to too many failed login attempts -- please reset your password")
 	}
 
 	loginAttempt.UserID = retrievedUser.ID
