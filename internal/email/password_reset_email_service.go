@@ -63,7 +63,7 @@ func (ps *PasswordResetEmailService) SendEmail(request EmailRequest) error {
 		ps.requestsMutex.Lock()
 		defer ps.requestsMutex.Unlock()
 		ps.retryEmail(&request)
-		return errors.Wrap(err, errors.ErrCodeEmailDeliveryFailed, "email delivery failed, added to retry queue")
+		return errors.Wrap(err, errors.ErrCodeEmailDeliveryFailed, err.Error())
 	}
 
 	return nil
@@ -87,7 +87,7 @@ func (ps *PasswordResetEmailService) GenerateEmail(request EmailRequest) *EmailR
 
 	return &EmailRequest{
 		Recipient: request.Recipient,
-		Subject:   fmt.Sprintf("[%s] Password Reset Request", request.ApplicationID),
+		Subject:   fmt.Sprintf("[%s] Password Reset Request", request.TemplateData.AppName),
 		TemplateData: TemplateData{
 			ResetURL:   request.PasswordResetRequest.ResetURL,
 			Token:      request.PasswordResetRequest.ResetToken,
@@ -512,7 +512,7 @@ func (ps *PasswordResetEmailService) getDefaultTemplate() string {
 	<p>Hello,</p>
 	<p>You have requested a password reset. Click the following link to reset your password:</p>
 	<p><a href="{{.ResetURL}}">{{.ResetURL}}</a></p>
-	<p>This link will expire in {{.ExpireInHours}} hours ({{.ExpiryTime}}).</p>
+	<p>This link will expire in {{.ExpiryTime}} hours.</p>
 	<p>If you did not request a password reset, please ignore this email.</p>
 	<p>Sincerely,<br>{{.AppName}}</p>
 	`

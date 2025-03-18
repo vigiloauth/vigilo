@@ -3,7 +3,6 @@ package integration_tests
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -276,7 +275,6 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		rr := httptest.NewRecorder()
 		vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
-		fmt.Println(rr.Body)
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 }
@@ -384,6 +382,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 
 		// Verify JWT token in response
 		var loginResponse users.UserLoginResponse
+
 		err := json.NewDecoder(loginResp.Body).Decode(&loginResponse)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, loginResponse.JWTToken)
