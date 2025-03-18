@@ -12,12 +12,12 @@ import (
 
 // User represents a user in the system.
 type User struct {
-	ID              string    `json:"-"`          // Unique identifier for the user.
-	Username        string    `json:"username"`   // User's username.
-	Email           string    `json:"email"`      // User's email address.
-	Password        string    `json:"-"`          // User's password (hashed).
-	LastFailedLogin time.Time `json:"-"`          // Timestamp of the last failed login attempt.
-	AccountLocked   bool      `json:"-"`          // Indicates if the user's account is locked.
+	ID              string    // Unique identifier for the user.
+	Username        string    // User's username.
+	Email           string    // User's email address.
+	Password        string    // User's password (hashed).
+	LastFailedLogin time.Time // Timestamp of the last failed login attempt.
+	AccountLocked   bool      // Indicates if the user's account is locked.
 }
 
 // UserRegistrationRequest represents the registration request payload.
@@ -29,8 +29,9 @@ type UserRegistrationRequest struct {
 
 // UserRegistrationResponse represents the registration response payload.
 type UserRegistrationResponse struct {
-	User     *User  `json:"user"`  // The created User object.
-	JWTToken string `json:"token"` // JWT token for the registered user.
+	Username string `json:"username"` // The username of the registered user.
+	Email    string `json:"email"`    // The email of the registered user.
+	JWTToken string `json:"token"`    // JWT token for the registered user.
 }
 
 // UserLoginRequest represents the login request payload.
@@ -41,8 +42,10 @@ type UserLoginRequest struct {
 
 // UserLoginResponse represents the login response payload.
 type UserLoginResponse struct {
-	User     *User  `json:"user"`  // The authenticated User object.
-	JWTToken string `json:"token"` // JWT token for the authenticated user.
+	Username        string    `json:"username"`          // The username of the registered user.
+	Email           string    `json:"email"`             // The email of the registered user.
+	JWTToken        string    `json:"token"`             // JWT token for the registered user.
+	LastFailedLogin time.Time `json:"last_failed_login"` // Timestamp of the last failed login attempt.
 }
 
 // UserPasswordResetRequest represents the password reset request payload.
@@ -109,7 +112,8 @@ func NewUserRegistrationRequest(username, email, password string) *UserRegistrat
 //	*UserRegistrationResponse: A new UserRegistrationResponse instance.
 func NewUserRegistrationResponse(user *User, jwtToken string) *UserRegistrationResponse {
 	return &UserRegistrationResponse{
-		User:     user,
+		Username: user.Username,
+		Email:    user.Email,
 		JWTToken: jwtToken,
 	}
 }
@@ -143,8 +147,10 @@ func NewUserLoginRequest(email, password string) *UserLoginRequest {
 //	*UserLoginResponse: A new UserLoginResponse instance.
 func NewUserLoginResponse(user *User, jwtToken string) *UserLoginResponse {
 	return &UserLoginResponse{
-		User:     user,
-		JWTToken: jwtToken,
+		Username:        user.Username,
+		Email:           user.Email,
+		JWTToken:        jwtToken,
+		LastFailedLogin: user.LastFailedLogin,
 	}
 }
 
