@@ -199,6 +199,8 @@ func TestUserHandler_UserRegistration(t *testing.T) {
 			if test.wantError {
 				checkErrorResponse(t, rr.Body.Bytes())
 			}
+
+			fmt.Println(rr.Body)
 		})
 	}
 }

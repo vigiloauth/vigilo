@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"github.com/google/uuid"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/token"
@@ -62,6 +63,7 @@ func (r *RegistrationService) RegisterUser(user *users.User) (*users.UserRegistr
 		return nil, errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
 	}
 
+	user.ID = uuid.New().String()
 	user.Password = hashedPassword
 	if err := r.userStore.AddUser(user); err != nil {
 		return nil, errors.Wrap(err, "", "failed to create new user")
