@@ -22,7 +22,7 @@ func WriteError(w http.ResponseWriter, err error) {
 	if e, ok := err.(*errors.ErrorCollection); ok {
 		err := errors.VigiloAuthError{
 			ErrorCode: errors.ErrCodeValidationError,
-			Message:   "One or more validation errors occured",
+			Message:   "One or more validation errors occurred",
 			Errors:    e.Errors(),
 		}
 		WriteJSON(w, http.StatusBadRequest, err)
