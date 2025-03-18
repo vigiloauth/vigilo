@@ -6,7 +6,6 @@ import (
 
 	"github.com/vigiloauth/vigilo/internal/client"
 	service "github.com/vigiloauth/vigilo/internal/client/service"
-	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
@@ -34,15 +33,6 @@ func NewClientHandler(clientService service.ClientService) *ClientHandler {
 func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 	var req client.ClientRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		utils.WriteError(w, err)
-		return
-	}
-
-	if req.Type != client.Public {
-		err := errors.New(
-			errors.ErrCodeInvalidClient,
-			"the client is public but is being registered as confidential",
-		)
 		utils.WriteError(w, err)
 		return
 	}
