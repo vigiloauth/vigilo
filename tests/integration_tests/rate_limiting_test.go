@@ -35,7 +35,7 @@ func TestRateLimiting(t *testing.T) {
 	assert.NoError(t, err, "failed to marshal request body")
 
 	userStore := users.GetInMemoryUserStore()
-	hashedPassword, _ := utils.HashPassword(user.Password)
+	hashedPassword, _ := utils.HashString(user.Password)
 	user.Password = hashedPassword
 	_ = userStore.AddUser(user)
 

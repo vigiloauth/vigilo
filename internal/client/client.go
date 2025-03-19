@@ -55,6 +55,13 @@ type ClientRegistrationResponse struct {
 	TokenEndpointAuthMethod string         `json:"token_endpoint_auth_method,omitempty"`
 }
 
+// ClientSecretRegenerateResponse represents the response when regenerating a client secret.
+type ClientSecretRegenerateResponse struct {
+	ClientID     string    `json:"client_id"`
+	ClientSecret string    `json:"client_secret"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
 // ClientType represents the type of an OAuth client.
 type ClientType string
 

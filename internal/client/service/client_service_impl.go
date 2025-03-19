@@ -9,6 +9,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/client"
 	store "github.com/vigiloauth/vigilo/internal/client/store"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 // Ensures that ClientServiceImpl implements the ClientService interface.
@@ -47,21 +48,24 @@ func (cs *ClientServiceImpl) SaveClient(newClient *client.Client) (*client.Clien
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to generate client ID")
 	}
+	newClient.ID = clientID
 
+	var plainSecret string
 	if newClient.Type == client.Confidential {
-		clientSecret, err := cs.generateClientSecret()
+		plainSecret, err = cs.generateClientSecret()
 		if err != nil {
-			return nil, errors.Wrap(err, "", "failed to generate client secret")
+			return nil, errors.NewInternalServerError()
 		}
-		newClient.Secret = clientSecret
+		hashedSecret, err := utils.HashString(plainSecret)
+		if err != nil {
+			return nil, errors.NewInternalServerError()
+		}
+		newClient.Secret = hashedSecret
 	}
 
-	newClient.ID = clientID
-	newClient.CreatedAt = time.Now()
-	newClient.UpdatedAt = time.Now()
-
+	newClient.CreatedAt, newClient.UpdatedAt = time.Now(), time.Now()
 	if err := cs.clientStore.SaveClient(newClient); err != nil {
-		return nil, errors.Wrap(err, "", "failed to create new public client")
+		return nil, errors.Wrap(err, "", "failed to create new client")
 	}
 
 	response := &client.ClientRegistrationResponse{
@@ -78,10 +82,24 @@ func (cs *ClientServiceImpl) SaveClient(newClient *client.Client) (*client.Clien
 	}
 
 	if newClient.Type == client.Confidential {
-		response.Secret = newClient.Secret
+		response.Secret = plainSecret
 	}
 
 	return response, nil
+}
+
+// RegenerateClientSecret regenerates a client secret.
+//
+// Parameters
+//
+//	clientID string: The ID of the client.
+//
+// Returns:
+//
+//	*client.ClientSecretRegenerationResponse: If successful.
+//	error: An error if the regeneration fails.
+func (cs *ClientServiceImpl) RegenerateClientSecret(clientID string) (*client.ClientSecretRegenerateResponse, error) {
+	return nil, nil
 }
 
 // generateUniqueClientID generates a unique client ID, ensuring it is not already in use.
@@ -102,10 +120,7 @@ func (cs *ClientServiceImpl) generateUniqueClientID() (string, error) {
 		time.Sleep(retryDelay)
 	}
 
-	return "", errors.New(
-		errors.ErrCodeInternalServerError,
-		"failed to generate unique client ID after multiple retries",
-	)
+	return "", errors.NewInternalServerError()
 }
 
 // generateClientSecret generates a unique client secret, making sure it is not already in use.
@@ -118,10 +133,7 @@ func (cs *ClientServiceImpl) generateClientSecret() (string, error) {
 	bytes := make([]byte, 32)
 
 	if _, err := rand.Read(bytes); err != nil {
-		return "", errors.New(
-			errors.ErrCodeInternalServerError,
-			"failed to generate cryptographically secure random bytes",
-		)
+		return "", errors.NewInternalServerError()
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes), nil

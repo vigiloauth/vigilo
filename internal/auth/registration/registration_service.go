@@ -54,7 +54,7 @@ func NewRegistrationService(userStore users.UserStore, tokenManager token.TokenS
 //	*users.UserRegistrationResponse: The registered user object and JWT token.
 //	error: An error if any occurred during the process.
 func (r *RegistrationService) RegisterUser(user *users.User) (*users.UserRegistrationResponse, error) {
-	hashedPassword, err := utils.HashPassword(user.Password)
+	hashedPassword, err := utils.HashString(user.Password)
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to encrypt password")
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/internal/client"
 	service "github.com/vigiloauth/vigilo/internal/client/service"
 	"github.com/vigiloauth/vigilo/internal/errors"
@@ -29,8 +30,6 @@ func NewClientHandler(clientService service.ClientService) *ClientHandler {
 }
 
 // RegisterClient is the HTTP handler for public client registration.
-// It process incoming HTTP requests for registering public clients, and
-// returns an appropriate response.
 func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
@@ -41,8 +40,7 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 
 	var req client.ClientRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		utils.WriteError(w, err)
+		utils.WriteError(w, errors.NewInternalServerError())
 		return
 	}
 
@@ -70,4 +68,22 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, response)
+}
+
+// RegenerateSecret is the HTTP handler for regenerating client secrets.
+func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request) {
+	clientID := chi.URLParam(r, "client_id")
+	if clientID == "" {
+		err := errors.New(errors.ErrCodeInvalidFormat, "missing `client_id`")
+		utils.WriteError(w, err)
+		return
+	}
+
+	response, err := h.clientService.RegenerateClientSecret(clientID)
+	if err != nil {
+		utils.WriteError(w, err)
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, response)
 }

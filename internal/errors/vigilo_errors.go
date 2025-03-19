@@ -1,6 +1,8 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // VigiloAuthError represents a standardized error structure
 type VigiloAuthError struct {
@@ -24,6 +26,13 @@ func New(code string, message string) error {
 	return &VigiloAuthError{
 		ErrorCode: code,
 		Message:   message,
+	}
+}
+
+func NewInternalServerError() error {
+	return &VigiloAuthError{
+		ErrorCode: ErrCodeInternalServerError,
+		Message:   "An unexpected error occurred. Please try again later.",
 	}
 }
 

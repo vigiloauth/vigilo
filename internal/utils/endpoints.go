@@ -1,6 +1,7 @@
 package utils
 
 const defaultAuthEndpoint string = "/auth"
+const defaultClientEndpoint string = "/clients"
 
 var UserEndpoints = struct {
 	Registration         string
@@ -17,7 +18,9 @@ var UserEndpoints = struct {
 }
 
 var ClientEndpoints = struct {
-	Registration string
+	Registration     string
+	RegenerateSecret string
 }{
-	Registration: "/clients",
+	Registration:     defaultClientEndpoint,
+	RegenerateSecret: defaultAuthEndpoint + "/{client_id}/regenerate-secret",
 }

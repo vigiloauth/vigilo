@@ -77,7 +77,7 @@ func (l *AuthenticationService) AuthenticateUser(loginUser *users.User, loginAtt
 	}
 
 	loginAttempt.UserID = retrievedUser.ID
-	if passwordsAreEqual := utils.ComparePasswordHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
+	if passwordsAreEqual := utils.CompareHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
 		l.handleFailedLoginAttempt(retrievedUser, loginAttempt)
 		return nil, errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
 	}

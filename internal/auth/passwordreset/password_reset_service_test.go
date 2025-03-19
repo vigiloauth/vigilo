@@ -315,7 +315,7 @@ func TestPasswordResetService_LockedAccount_UnlockedAfterUpdate(t *testing.T) {
 }
 
 func createTestUser(t *testing.T) *users.User {
-	encryptedPassword, err := utils.HashPassword(testPassword)
+	encryptedPassword, err := utils.HashString(testPassword)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}

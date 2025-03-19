@@ -107,7 +107,7 @@ func (p *PasswordResetService) ResetPassword(userEmail, newPassword, resetToken 
 		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid reset token")
 	}
 
-	encryptedPassword, err := utils.HashPassword(newPassword)
+	encryptedPassword, err := utils.HashString(newPassword)
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to encrypt password")
 	}

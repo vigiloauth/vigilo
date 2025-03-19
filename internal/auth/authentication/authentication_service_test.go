@@ -186,7 +186,7 @@ func TestAuthenticationService_AccountLockingDuringUserAuthentication(t *testing
 }
 
 func createTestUser(t *testing.T) *users.User {
-	encryptedPassword, err := utils.HashPassword(testPassword1)
+	encryptedPassword, err := utils.HashString(testPassword1)
 	if err != nil {
 		t.Fatalf("Failed to hash password: %v", err)
 	}

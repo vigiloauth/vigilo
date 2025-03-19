@@ -326,7 +326,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 // createTestUser creates a test user with default credentials
 func (h *TestHelper) createTestUser() *users.User {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
-	hashedPassword, err := utils.HashPassword(user.Password)
+	hashedPassword, err := utils.HashString(user.Password)
 	assert.NoError(h.T, err)
 	user.Password = hashedPassword
 	users.GetInMemoryUserStore().AddUser(user)
