@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"slices"
+
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
@@ -30,8 +32,8 @@ type Client struct {
 type ClientRegistrationRequest struct {
 	Name                    string         `json:"client_name"`
 	RedirectURIS            []string       `json:"redirect_uris"`
-	Secret                  string         `json:"client_secret,omitempty"`
 	Type                    ClientType     `json:"client_type"`
+	Secret                  string         `json:"client_secret,omitempty"`
 	GrantTypes              []GrantType    `json:"grant_types"`
 	Scopes                  []Scope        `json:"scopes,omitempty"`
 	ResponseTypes           []ResponseType `json:"response_types"`
@@ -41,9 +43,9 @@ type ClientRegistrationRequest struct {
 // ClientRegistrationResponse represents a response after registering an OAuth client.
 type ClientRegistrationResponse struct {
 	ID                      string         `json:"client_id"`
-	Name                    string         `json:"name"`
-	Type                    ClientType     `json:"client_type"`
+	Name                    string         `json:"client_name"`
 	Secret                  string         `json:"client_secret,omitempty"`
+	Type                    ClientType     `json:"client_type"`
 	RedirectURIS            []string       `json:"redirect_uris"`
 	GrantTypes              []GrantType    `json:"grant_types"`
 	Scopes                  []Scope        `json:"scopes,omitempty"`
@@ -112,6 +114,11 @@ func (req *ClientRegistrationRequest) Validate() error {
 
 	if req.Type == Public && req.Secret != "" {
 		err := errors.New(errors.ErrCodeClientSecretNotAllowed, "`client_secret` must not be provided")
+		errorCollection.Add(err)
+	}
+
+	if req.TokenEndpointAuthMethod != "" && !slices.Contains(req.GrantTypes, ClientCredentials) {
+		err := errors.New(errors.ErrCodeInvalidGrantType, "`token_endpoint_auth` is required for `client_credentials` grant")
 		errorCollection.Add(err)
 	}
 
@@ -314,12 +321,7 @@ func (req *ClientRegistrationRequest) validateResponseTypes(errorCollection *err
 
 // contains checks if a slice contains a specific element.
 func contains[T comparable](slice []T, element T) bool {
-	for _, v := range slice {
-		if v == element {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, element)
 }
 
 // isLoopbackIP checks if the given IP is a loopback address.

@@ -5,18 +5,18 @@ POST https://localhost:<port>/<uri>/auth/signup
 ```
 ---
 ### Headers
-| Key             | Value                         | Description                                |
-| :-------------- | :---------------------------- | :----------------------------------------- |
+| Key             | Value                         | Description                              |
+| :-------------- | :---------------------------- | :----------------------------------------|
 | Content-Type    | application/json              | Indicates that the request body is JSON. |
-| Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.     |
-| Content-Length  | [Content-Length]              | The length of the request body in bytes.  |
+| Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.  |
+| Content-Length  | [Content-Length]              | The length of the request body in bytes. |
 ---
 ### Request Body
-| Field    | Type   | Required | Description                   |
-|----------|--------|----------|-------------------------------|
-| username | string | Yes      | The user's chosen username.   |
-| email    | string | Yes      | The user's email address.     |
-| password | string | Yes      | The password for the account. |
+| Field     | Type    | Required  | Description                    |
+|:----------|:--------|:----------|:-------------------------------|
+| username  | string  | Yes       | The user's username.
+| email     | string  | Yes       | The user's email address.      |
+| password  | string  | Yes       | The password for the account.  |
 
 ```json
 {

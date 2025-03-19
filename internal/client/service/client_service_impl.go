@@ -71,6 +71,7 @@ func (cs *ClientServiceImpl) SaveClient(newClient *client.Client) (*client.Clien
 		RedirectURIS:            newClient.RedirectURIS,
 		GrantTypes:              newClient.GrantTypes,
 		Scopes:                  newClient.Scopes,
+		ResponseTypes:           newClient.ResponseTypes,
 		CreatedAt:               newClient.CreatedAt,
 		UpdatedAt:               newClient.UpdatedAt,
 		TokenEndpointAuthMethod: newClient.TokenEndpointAuthMethod,

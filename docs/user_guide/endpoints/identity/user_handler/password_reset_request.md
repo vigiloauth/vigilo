@@ -13,9 +13,9 @@ POST https://localhost:<port>/<uri>/auth/reset-password
 | Content-Length  | 44                            | 
 ---
 ### Request Body
-| Field    | Type   | Required | Description                   |
-|----------|--------|----------|-------------------------------|
-| email    | string | Yes      | The user's email address.     |
+| Field      | Type    | Required  | Description                    |
+| :----------|:--------|:----------|:-------------------------------|
+| email      | string  | Yes          | The user's email address.     |
 ```json
 {
     "email": "email@vigilo.com",

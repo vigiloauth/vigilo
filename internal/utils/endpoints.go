@@ -19,5 +19,5 @@ var UserEndpoints = struct {
 var ClientEndpoints = struct {
 	Registration string
 }{
-	Registration: "/register",
+	Registration: "/clients",
 }

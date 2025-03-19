@@ -28,21 +28,18 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 		name           string
 		requestBody    *client.ClientRegistrationRequest
 		expectedStatus int
-		wantError      bool
 		isPublicClient bool
 	}{
 		{
 			name:           "Successful Public Client Registration",
 			requestBody:    createClientRegistrationRequest(),
 			expectedStatus: http.StatusCreated,
-			wantError:      false,
 			isPublicClient: true,
 		},
 		{
 			name:           "Successful Confidential Client Registration",
 			requestBody:    createClientRegistrationRequest(),
 			expectedStatus: http.StatusCreated,
-			wantError:      false,
 			isPublicClient: false,
 		},
 	}
@@ -61,25 +58,21 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 			rr := setupTest(requestBody)
 			assert.Equal(t, test.expectedStatus, rr.Code)
 
-			if test.wantError {
-				checkErrorResponse(t, rr.Body.Bytes())
+			var responseBody client.ClientRegistrationResponse
+			err = json.NewDecoder(rr.Body).Decode(&responseBody)
+			assert.NoError(t, err)
+
+			// For confidential clients, verify client secret was generated
+			if test.isPublicClient {
+				assert.Empty(t, responseBody.Secret)
 			} else {
-				var responseBody client.ClientRegistrationResponse
-				err = json.NewDecoder(rr.Body).Decode(&responseBody)
-				assert.NoError(t, err)
-
-				// For confidential clients, verify client secret was generated
-				if test.isPublicClient {
-					assert.Empty(t, responseBody.Secret)
-				} else {
-					assert.NotEmpty(t, responseBody.Secret)
-				}
-
-				assert.NotEmpty(t, responseBody.ID)
-				assert.Equal(t, test.requestBody.Name, responseBody.Name)
-				assert.Equal(t, test.requestBody.Type, responseBody.Type)
-				assert.ElementsMatch(t, test.requestBody.RedirectURIS, responseBody.RedirectURIS)
+				assert.NotEmpty(t, responseBody.Secret)
 			}
+
+			assert.NotEmpty(t, responseBody.ID)
+			assert.Equal(t, test.requestBody.Name, responseBody.Name)
+			assert.Equal(t, test.requestBody.Type, responseBody.Type)
+			assert.ElementsMatch(t, test.requestBody.RedirectURIS, responseBody.RedirectURIS)
 		})
 	}
 }
@@ -102,31 +95,30 @@ func TestClientHandler_RegisterClient_MissingRequiredFields(t *testing.T) {
 	assert.NoError(t, err)
 
 	rr := setupTest(requestBody)
-
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestClientHandler_RegisterClient_InvalidRedirectURIS(t *testing.T) {
 	req := createClientRegistrationRequest()
+	req.Type = client.Public
 	req.RedirectURIS = []string{"not-a-valid-url"}
 
 	requestBody, err := json.Marshal(req)
 	assert.NoError(t, err)
 
 	rr := setupTest(requestBody)
-
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestClientHandler_RegisterClient_InvalidGrantTypes(t *testing.T) {
 	req := createClientRegistrationRequest()
+	req.Type = client.Public
 	req.GrantTypes = []client.GrantType{"invalid-grant"}
 
 	requestBody, err := json.Marshal(req)
 	assert.NoError(t, err)
 
 	rr := setupTest(requestBody)
-
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
