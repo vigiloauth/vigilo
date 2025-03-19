@@ -13,7 +13,6 @@ import (
 	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
 	session "github.com/vigiloauth/vigilo/internal/auth/session"
 	client "github.com/vigiloauth/vigilo/internal/client/service"
-	clientService "github.com/vigiloauth/vigilo/internal/client/service"
 	clientStore "github.com/vigiloauth/vigilo/internal/client/store"
 
 	"github.com/vigiloauth/vigilo/internal/email"
@@ -37,7 +36,7 @@ type ServiceContainer struct {
 	registrationService  registration.Registration
 	authService          auth.Authentication
 	passwordResetService password.PasswordReset
-	clientService        clientService.ClientService
+	clientService        client.ClientService
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
