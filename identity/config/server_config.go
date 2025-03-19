@@ -257,9 +257,7 @@ func WithPasswordConfig(passwordConfig *PasswordConfig) ServerConfigOptions {
 //	ServerConfigOptions: A function that configures the server configuration.
 func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		if requests > defaultRequestsPerMinute {
-			sc.requestsPerMinute = requests
-		}
+		sc.requestsPerMinute = requests
 	}
 }
 

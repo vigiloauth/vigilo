@@ -55,13 +55,18 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Use(s.middleware.RateLimit)
 
-	// User related routes
-	s.router.Post(utils.UserEndpoints.Registration, s.userHandler.Register)
-	s.router.Post(utils.UserEndpoints.Login, s.userHandler.Login)
-	s.router.Post(utils.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
-	s.router.Patch(utils.UserEndpoints.ResetPassword, s.userHandler.ResetPassword)
+	s.router.Group(func(r chi.Router) {
+		r.Use(s.middleware.RequiresContentType("application/json"))
 
-	s.router.Post(utils.ClientEndpoints.Registration, s.clientHandler.RegisterClient)
+		// User related routes
+		r.Post(utils.UserEndpoints.Registration, s.userHandler.Register)
+		r.Post(utils.UserEndpoints.Login, s.userHandler.Login)
+		r.Post(utils.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
+		r.Patch(utils.UserEndpoints.ResetPassword, s.userHandler.ResetPassword)
+
+		// Client related routes
+		r.Post(utils.ClientEndpoints.Registration, s.clientHandler.RegisterClient)
+	})
 
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())

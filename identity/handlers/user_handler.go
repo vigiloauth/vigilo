@@ -56,6 +56,7 @@ func NewUserHandler(
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request users.UserRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
 		utils.WriteError(w, err)
 		return
 	}
@@ -87,6 +88,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request users.UserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
 		utils.WriteError(w, err)
 		return
 	}
@@ -136,6 +138,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
 	var request users.UserPasswordResetRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
 		utils.WriteError(w, err)
 		return
 	}
@@ -161,6 +164,7 @@ func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.R
 func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var request users.UserPasswordResetRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
 		utils.WriteError(w, err)
 		return
 	}

@@ -66,6 +66,7 @@ func (cs *ClientServiceImpl) SaveClient(newClient *client.Client) (*client.Clien
 
 	response := &client.ClientRegistrationResponse{
 		ID:                      newClient.ID,
+		Name:                    newClient.Name,
 		Type:                    newClient.Type,
 		RedirectURIS:            newClient.RedirectURIS,
 		GrantTypes:              newClient.GrantTypes,

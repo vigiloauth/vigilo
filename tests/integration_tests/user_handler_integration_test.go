@@ -43,85 +43,6 @@ func setupServer(t *testing.T) *TestHelper {
 	return helper
 }
 
-// createTestUser creates a test user with default credentials
-func (h *TestHelper) createTestUser() *users.User {
-	user := users.NewUser(testUsername, testEmail, testPassword1)
-	hashedPassword, err := utils.HashPassword(user.Password)
-	assert.NoError(h.T, err)
-	user.Password = hashedPassword
-	users.GetInMemoryUserStore().AddUser(user)
-	h.User = user
-	return user
-}
-
-// sendRequest is a helper to send HTTP requests to the test server
-func (h *TestHelper) sendRequest(method, endpoint string, body any) *http.Response {
-	var bodyReader *bytes.Buffer
-
-	if body != nil {
-		jsonBody, err := json.Marshal(body)
-		assert.NoError(h.T, err)
-		bodyReader = bytes.NewBuffer(jsonBody)
-	} else {
-		bodyReader = bytes.NewBuffer(nil)
-	}
-
-	var url string
-	if h.Server != nil {
-		url = h.Server.URL + endpoint
-	} else {
-		url = endpoint // For direct test recorder usage
-	}
-
-	req, err := http.NewRequest(method, url, bodyReader)
-	assert.NoError(h.T, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	if h.JWTToken != "" {
-		req.Header.Set("Authorization", "Bearer "+h.JWTToken)
-	}
-
-	resp, err := h.Client.Do(req)
-	assert.NoError(h.T, err)
-	return resp
-}
-
-// generateExpiredToken creates an expired JWT token for testing
-func (h *TestHelper) generateExpiredToken() string {
-	expiredTime := time.Now().Add(-1 * time.Hour)
-	claims := &jwt.StandardClaims{
-		Subject:   testEmail,
-		ExpiresAt: expiredTime.Unix(),
-		IssuedAt:  time.Now().Unix(),
-	}
-
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := jwtToken.SignedString([]byte("secret"))
-	assert.NoError(h.T, err)
-
-	token.GetInMemoryTokenStore().AddToken(tokenString, testEmail, expiredTime)
-	return tokenString
-}
-
-// setupResetToken generates a password reset token for the current user
-func (h *TestHelper) setupResetToken(duration time.Duration) string {
-	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
-	resetToken, err := tokenService.GenerateToken(testEmail, duration)
-	assert.NoError(h.T, err)
-
-	token.GetInMemoryTokenStore().AddToken(resetToken, testEmail, time.Now().Add(duration))
-	return resetToken
-}
-
-// checkErrorResponse verifies that the response contains an error
-func checkErrorResponse(t *testing.T, responseBody []byte) {
-	var response map[string]any
-	if err := json.Unmarshal(responseBody, &response); err != nil {
-		t.Fatalf("failed to unmarshal response body: %v", err)
-	}
-	assert.NotNil(t, response["error_code"], "expected error in response, got none")
-}
-
 func TestUserHandler_UserRegistration(t *testing.T) {
 	setup(t)
 	// Configure password requirements
@@ -135,49 +56,49 @@ func TestUserHandler_UserRegistration(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		requestBody    users.UserRegistrationRequest
+		requestBody    *users.UserRegistrationRequest
 		expectedStatus int
 		wantError      bool
 	}{
 		{
 			name:           "Successful User Registration",
-			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1),
+			requestBody:    users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1),
 			expectedStatus: http.StatusCreated,
 			wantError:      false,
 		},
 		{
 			name:           "User Registration fails given invalid request body",
-			requestBody:    *users.NewUserRegistrationRequest("", "invalid-email", testPassword1),
+			requestBody:    users.NewUserRegistrationRequest("", "invalid-email", testPassword1),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Missing required fields in request",
-			requestBody:    *users.NewUserRegistrationRequest(testUsername, "", ""),
+			requestBody:    users.NewUserRegistrationRequest(testUsername, "", ""),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Invalid password length",
-			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
+			requestBody:    users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contains an uppercase letter",
-			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
+			requestBody:    users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contain a number",
-			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
+			requestBody:    users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
 		{
 			name:           "Password does not contain a symbol",
-			requestBody:    *users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
+			requestBody:    users.NewUserRegistrationRequest(testUsername, testEmail, testInvalidPassword),
 			expectedStatus: http.StatusBadRequest,
 			wantError:      true,
 		},
@@ -190,6 +111,7 @@ func TestUserHandler_UserRegistration(t *testing.T) {
 
 			vigiloIdentityServer := server.NewVigiloIdentityServer()
 			req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Registration, bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 			vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
@@ -212,6 +134,8 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Registration, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
@@ -229,6 +153,8 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 
 		vigiloIdentityServer := server.NewVigiloIdentityServer()
 		req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Login, bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+
 		rr := httptest.NewRecorder()
 		vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
@@ -246,6 +172,8 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 
 		vigiloIdentityServer := server.NewVigiloIdentityServer()
 		loginReq := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Login, bytes.NewBuffer(body))
+		loginReq.Header.Set("Content-Type", "application/json")
+
 		loginRR := httptest.NewRecorder()
 		vigiloIdentityServer.Router().ServeHTTP(loginRR, loginReq)
 
@@ -269,6 +197,8 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 
 		vigiloIdentityServer := server.NewVigiloIdentityServer()
 		req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Logout, nil)
+		req.Header.Set("Content-Type", "application/json")
+
 		req.Header.Set("Authorization", "Bearer "+expiredToken)
 		rr := httptest.NewRecorder()
 		vigiloIdentityServer.Router().ServeHTTP(rr, req)
@@ -391,4 +321,83 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 		defer oldLoginResp.Body.Close()
 		assert.Equal(t, http.StatusUnauthorized, oldLoginResp.StatusCode)
 	})
+}
+
+// createTestUser creates a test user with default credentials
+func (h *TestHelper) createTestUser() *users.User {
+	user := users.NewUser(testUsername, testEmail, testPassword1)
+	hashedPassword, err := utils.HashPassword(user.Password)
+	assert.NoError(h.T, err)
+	user.Password = hashedPassword
+	users.GetInMemoryUserStore().AddUser(user)
+	h.User = user
+	return user
+}
+
+// sendRequest is a helper to send HTTP requests to the test server
+func (h *TestHelper) sendRequest(method, endpoint string, body any) *http.Response {
+	var bodyReader *bytes.Buffer
+
+	if body != nil {
+		jsonBody, err := json.Marshal(body)
+		assert.NoError(h.T, err)
+		bodyReader = bytes.NewBuffer(jsonBody)
+	} else {
+		bodyReader = bytes.NewBuffer(nil)
+	}
+
+	var url string
+	if h.Server != nil {
+		url = h.Server.URL + endpoint
+	} else {
+		url = endpoint // For direct test recorder usage
+	}
+
+	req, err := http.NewRequest(method, url, bodyReader)
+	assert.NoError(h.T, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	if h.JWTToken != "" {
+		req.Header.Set("Authorization", "Bearer "+h.JWTToken)
+	}
+
+	resp, err := h.Client.Do(req)
+	assert.NoError(h.T, err)
+	return resp
+}
+
+// generateExpiredToken creates an expired JWT token for testing
+func (h *TestHelper) generateExpiredToken() string {
+	expiredTime := time.Now().Add(-1 * time.Hour)
+	claims := &jwt.StandardClaims{
+		Subject:   testEmail,
+		ExpiresAt: expiredTime.Unix(),
+		IssuedAt:  time.Now().Unix(),
+	}
+
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := jwtToken.SignedString([]byte("secret"))
+	assert.NoError(h.T, err)
+
+	token.GetInMemoryTokenStore().AddToken(tokenString, testEmail, expiredTime)
+	return tokenString
+}
+
+// setupResetToken generates a password reset token for the current user
+func (h *TestHelper) setupResetToken(duration time.Duration) string {
+	tokenService := token.NewTokenService(token.GetInMemoryTokenStore())
+	resetToken, err := tokenService.GenerateToken(testEmail, duration)
+	assert.NoError(h.T, err)
+
+	token.GetInMemoryTokenStore().AddToken(resetToken, testEmail, time.Now().Add(duration))
+	return resetToken
+}
+
+// checkErrorResponse verifies that the response contains an error
+func checkErrorResponse(t *testing.T, responseBody []byte) {
+	var response map[string]any
+	if err := json.Unmarshal(responseBody, &response); err != nil {
+		t.Fatalf("failed to unmarshal response body: %v", err)
+	}
+	assert.NotNil(t, response["error_code"], "expected error in response, got none")
 }

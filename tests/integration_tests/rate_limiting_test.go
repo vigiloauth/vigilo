@@ -19,6 +19,8 @@ func setupRateLimitedServer(requestsPerMinute int, requestBody []byte) *httptest
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
 
 	req := httptest.NewRequest(http.MethodPost, utils.UserEndpoints.Login, bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 	return rr
@@ -40,13 +42,9 @@ func TestRateLimiting(t *testing.T) {
 	requestsPerMinute := 5
 	for range requestsPerMinute {
 		rr := setupRateLimitedServer(requestsPerMinute, requestBody)
-		if rr.Code != http.StatusOK {
-			t.Fatalf("Expected status code 200, got %d", rr.Code)
-		}
+		assert.Equal(t, http.StatusOK, rr.Code)
 	}
 
 	rr := setupRateLimitedServer(requestsPerMinute, requestBody)
-	if rr.Code != http.StatusOK {
-		t.Fatalf("Expected status code 200, got %d", rr.Code)
-	}
+	assert.Equal(t, http.StatusOK, rr.Code)
 }

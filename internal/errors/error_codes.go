@@ -15,6 +15,7 @@ const (
 	ErrCodeInvalidFormat         = "invalid_format"
 	ErrCodeValidationError       = "validation_error"
 	ErrCodeMissingHeader         = "missing_header"
+	ErrCodeInvalidContentType    = "invalid_content_type"
 
 	// User errors
 	ErrCodeDuplicateUser      = "duplicate_user"
@@ -52,6 +53,9 @@ const (
 	ErrCodeDuplicateClient        = "duplicate_client"
 	ErrCodeInvalidResponseType    = "invalid_response_type"
 
+	// Middleware Errors
+	ErrCodeRequestLimitExceeded = "request_limit_exceeded"
+
 	// System errors
 	ErrCodeInternalServerError = "internal_server_error"
 )
@@ -76,6 +80,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidScope:              http.StatusBadRequest,
 	ErrCodeClientSecretNotAllowed:    http.StatusBadRequest,
 	ErrCodeInvalidResponseType:       http.StatusBadRequest,
+	ErrCodeInvalidContentType:        http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -114,6 +119,9 @@ var statusCodeMap = map[string]int{
 	ErrCodeTLSConnectionFailed:        http.StatusBadGateway,
 	ErrCodeStartTLSFailed:             http.StatusBadGateway,
 	ErrCodeSMTPServerError:            http.StatusBadGateway,
+
+	// 429 Too Many Requests
+	ErrCodeRequestLimitExceeded: http.StatusTooManyRequests,
 }
 
 // StatusCode returns the HTTP status code associated with the error code

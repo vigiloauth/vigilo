@@ -6,6 +6,7 @@ import (
 
 	"github.com/vigiloauth/vigilo/internal/client"
 	service "github.com/vigiloauth/vigilo/internal/client/service"
+	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
@@ -31,8 +32,16 @@ func NewClientHandler(clientService service.ClientService) *ClientHandler {
 // It process incoming HTTP requests for registering public clients, and
 // returns an appropriate response.
 func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		err := errors.New(errors.ErrCodeInvalidContentType, "unsupported Content-Type, expected application/json")
+		utils.WriteError(w, err)
+		return
+	}
+
 	var req client.ClientRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
 		utils.WriteError(w, err)
 		return
 	}

@@ -41,6 +41,7 @@ type ClientRegistrationRequest struct {
 // ClientRegistrationResponse represents a response after registering an OAuth client.
 type ClientRegistrationResponse struct {
 	ID                      string         `json:"client_id"`
+	Name                    string         `json:"name"`
 	Type                    ClientType     `json:"client_type"`
 	Secret                  string         `json:"client_secret,omitempty"`
 	RedirectURIS            []string       `json:"redirect_uris"`
