@@ -66,7 +66,7 @@ func NewServiceContainer() *ServiceContainer {
 func (c *ServiceContainer) initializeInMemoryStores() {
 	c.tokenStore = token.GetInMemoryTokenStore()
 	c.userStore = users.GetInMemoryUserStore()
-	c.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
+	c.loginAttemptStore = login.GetInMemoryLoginAttemptStore()
 	c.clientStore = clientStore.GetInMemoryClientStore()
 }
 

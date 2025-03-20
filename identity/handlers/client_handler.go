@@ -69,6 +69,7 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 //	- user
 //	- auth
 //	- create reusable methods
+// Refactor service layer to return object rather than DTO
 // Send message when secret is regenerated
 // Write docs
 

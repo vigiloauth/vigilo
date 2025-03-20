@@ -23,9 +23,7 @@ var once sync.Once                          // Ensures singleton initialization 
 //	*InMemoryUserStore: The singleton instance of InMemoryUserStore.
 func GetInMemoryUserStore() *InMemoryUserStore {
 	once.Do(func() {
-		instance = &InMemoryUserStore{
-			data: make(map[string]User),
-		}
+		instance = &InMemoryUserStore{data: make(map[string]User)}
 	})
 	return instance
 }

@@ -58,7 +58,6 @@ func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Du
 		return "", errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to retrieve the signed token")
 	}
 
-	ts.SaveToken(tokenString, subject, time.Now().Add(expirationTime))
 	return tokenString, nil
 }
 

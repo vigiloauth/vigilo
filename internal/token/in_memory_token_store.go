@@ -25,12 +25,19 @@ var once sync.Once               // Ensures singleton initialization only once.
 //	*InMemoryTokenStore: The singleton instance of InMemoryTokenStore.
 func GetInMemoryTokenStore() *InMemoryTokenStore {
 	once.Do(func() {
-		instance = &InMemoryTokenStore{
-			tokens: make(map[string]TokenData),
-		}
+		instance = &InMemoryTokenStore{tokens: make(map[string]TokenData)}
 		go instance.cleanupExpiredTokens()
 	})
 	return instance
+}
+
+// ResetInMemoryTokenStore resets the in-memory token store for testing purposes.
+func ResetInMemoryTokenStore() {
+	if instance != nil {
+		instance.mu.Lock()
+		instance.tokens = make(map[string]TokenData)
+		instance.mu.Unlock()
+	}
 }
 
 // SaveToken adds a token to the store.

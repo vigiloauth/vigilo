@@ -7,32 +7,15 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
-// Ensure InMemoryClientStore implements the ClientStore interface.
-var _ ClientStore = (*InMemoryClientStore)(nil)
+var _ ClientStore = (*InMemoryClientStore)(nil) // Ensure InMemoryClientStore implements the ClientStore interface.
+var instance *InMemoryClientStore               // Singleton instance of InMemoryClientStore
+var once sync.Once                              // Makes sure the store is only initialized once.
 
 // InMemoryClientStore provides an in-memory implementation of ClientStore.
 // It uses a map to store clients and a read-write mutex for concurrency control.
 type InMemoryClientStore struct {
 	data map[string]*client.Client // Map storing client data by client ID.
 	mu   sync.RWMutex              // Read-write mutex for concurrent access.
-}
-
-var (
-	instance *InMemoryClientStore
-	once     sync.Once
-)
-
-// GetInMemoryClientStore returns a singleton instance of InMemoryClientStore.
-// It ensures that only one instance is created using sync.Once.
-//
-// Returns:
-//
-//	*InMemoryClientStore: The singleton instance of InMemoryClientStore.
-func GetInMemoryClientStore() *InMemoryClientStore {
-	once.Do(func() {
-		instance = NewInMemoryClientStore()
-	})
-	return instance
 }
 
 // NewInMemoryClientStore initializes a new InMemoryClientStore instance.
@@ -42,6 +25,28 @@ func GetInMemoryClientStore() *InMemoryClientStore {
 //	*InMemoryClientStore: A new in-memory client store.
 func NewInMemoryClientStore() *InMemoryClientStore {
 	return &InMemoryClientStore{data: make(map[string]*client.Client)}
+}
+
+// GetInMemoryClientStore returns a singleton instance of InMemoryClientStore.
+// It ensures that only one instance is created using sync.Once.
+//
+// Returns:
+//
+//	*InMemoryClientStore: The singleton instance of InMemoryClientStore.
+func GetInMemoryClientStore() *InMemoryClientStore {
+	once.Do(func() {
+		instance = &InMemoryClientStore{data: make(map[string]*client.Client)}
+	})
+	return instance
+}
+
+// ResetInMemoryClientStore resets the in-memory store for testing purposes.
+func ResetInMemoryClientStore() {
+	if instance != nil {
+		instance.mu.Lock()
+		instance.data = make(map[string]*client.Client)
+		instance.mu.Unlock()
+	}
 }
 
 // SaveClient adds a new client to the store if it does not already exist.

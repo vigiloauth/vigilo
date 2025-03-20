@@ -5,8 +5,9 @@ import (
 	"time"
 )
 
-// Ensure InMemoryLoginAttemptStore implements the LoginAttemptStore interface.
-var _ LoginAttemptStore = (*InMemoryLoginAttemptStore)(nil)
+var _ LoginAttemptStore = (*InMemoryLoginAttemptStore)(nil) // Ensure InMemoryLoginAttemptStore implements the LoginAttemptStore interface.
+var instance *InMemoryLoginAttemptStore                     // Singleton instance of InMemoryLoginAttemptStore.
+var once sync.Once                                          // Makes sure the singleton is only initialized once.
 
 // NewLoginAttempt creates a new LoginAttempt instance.
 //
@@ -46,6 +47,29 @@ type InMemoryLoginAttemptStore struct {
 func NewInMemoryLoginAttemptStore() *InMemoryLoginAttemptStore {
 	return &InMemoryLoginAttemptStore{
 		attempts: make(map[string][]*LoginAttempt),
+	}
+}
+
+// GetInMemoryLoginAttemptStore returns the singleton instance of InMemoryLoginAttemptStore.
+//
+// Returns:
+//
+//	*InMemoryLoginAttemptStore: The singleton instance of InMemoryLoginAttemptStore.
+func GetInMemoryLoginAttemptStore() *InMemoryLoginAttemptStore {
+	once.Do(func() {
+		instance = &InMemoryLoginAttemptStore{
+			attempts: make(map[string][]*LoginAttempt),
+		}
+	})
+	return instance
+}
+
+// ResetInMemoryLoginAttemptStore resets the in-memory store for testing purposes.
+func ResetInMemoryLoginAttemptStore() {
+	if instance != nil {
+		instance.mu.Lock()
+		instance.attempts = make(map[string][]*LoginAttempt)
+		instance.mu.Unlock()
 	}
 }
 
