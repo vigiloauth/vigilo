@@ -27,4 +27,18 @@ type ClientService interface {
 	//  *client.ClientSecretRegenerationResponse: If successful
 	//  error: An error if the regeneration fails.
 	RegenerateClientSecret(clientID string) (*client.ClientSecretRegenerateResponse, error)
+
+	// AuthenticateAndAuthorizeClient authenticates the client using provided credentials
+	// and authorizes access by validating required grant types and scopes.
+	//
+	// Parameters:
+	//
+	//	clientID string: The ID of the client.
+	//	clientSecret string: The client secret.
+	//
+	// Returns:
+	//
+	//	*client.Client: The authenticated client if successful.
+	//	error: An error if authentication or authorization fails.
+	AuthenticateAndAuthorizeClient(clientID, clientSecret string) (*client.Client, error)
 }

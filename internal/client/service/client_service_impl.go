@@ -102,6 +102,45 @@ func (cs *ClientServiceImpl) RegenerateClientSecret(clientID string) (*client.Cl
 	return nil, nil
 }
 
+// AuthenticateAndAuthorizeClient authenticates the client using provided credentials
+// and authorizes access by validating required grant types and scopes.
+//
+// Parameters:
+//
+//	clientID string: The ID of the client.
+//	clientSecret string: The client secret.
+//
+// Returns:
+//
+//	*client.Client: The authenticated client if successful.
+//	error: An error if authentication or authorization fails.
+func (cs *ClientServiceImpl) AuthenticateAndAuthorizeClient(clientID, clientSecret string) (*client.Client, error) {
+	if clientID == "" || clientSecret == "" {
+		return nil, errors.New(errors.ErrCodeEmptyInput, "missing required parameter")
+	}
+
+	existingClient := cs.clientStore.GetClientByID(clientID)
+	if existingClient == nil {
+		return nil, errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
+	}
+	if !existingClient.IsConfidential() {
+		return nil, errors.New(errors.ErrCodeUnauthorizedClient, "client is not type `confidential`")
+	}
+	if existingClient.Secret != clientSecret {
+		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid `client_secret` provided")
+	}
+
+	if !existingClient.HasGrantType(client.ClientCredentials) {
+		return nil, errors.New(errors.ErrCodeInvalidGrantType, "client does not have required grant type `client_credentials`")
+	}
+
+	if !existingClient.HasScope(client.ClientManage) {
+		return nil, errors.New(errors.ErrCodeInvalidScope, "client does not have required scope `client:manage`")
+	}
+
+	return existingClient, nil
+}
+
 // generateUniqueClientID generates a unique client ID, ensuring it is not already in use.
 //
 // Returns:

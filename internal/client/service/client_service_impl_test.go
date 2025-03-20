@@ -9,6 +9,11 @@ import (
 	"github.com/vigiloauth/vigilo/internal/mocks"
 )
 
+const (
+	testClientID     string = "client_id"
+	testClientSecret string = "client_secret"
+)
+
 func TestClientService_SaveClient(t *testing.T) {
 	mockClientStore := &mocks.MockClientStore{}
 	testClient := createTestClient()
@@ -64,11 +69,109 @@ func TestClientService_SaveClient(t *testing.T) {
 	})
 }
 
+func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
+	mockClientStore := &mocks.MockClientStore{}
+
+	t.Run("Success", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Secret = testClientSecret
+		testClient.ID = testClientID
+		testClient.Scopes = append(testClient.Scopes, client.ClientManage)
+		testClient.GrantTypes = append(testClient.GrantTypes, client.ClientCredentials)
+
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client {
+			return testClient
+		}
+
+		cs := NewClientService(mockClientStore)
+		result, err := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+
+		assert.NotNil(t, result)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Client Does Not Exist", func(t *testing.T) {
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
+
+		cs := NewClientService(mockClientStore)
+		result, expected := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+
+		assert.Nil(t, result)
+		assert.Error(t, expected)
+	})
+
+	t.Run("Client Secrets Do Not Match", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Secret = "client_secret_2"
+		testClient.ID = testClientID
+		testClient.Scopes = append(testClient.Scopes, client.ClientManage)
+		testClient.GrantTypes = append(testClient.GrantTypes, client.ClientCredentials)
+
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client {
+			return testClient
+		}
+
+		cs := NewClientService(mockClientStore)
+		result, expected := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+
+		assert.Nil(t, result)
+		assert.Error(t, expected)
+	})
+
+	t.Run("Missing `client_credentials` Grant Type", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Secret = testClientSecret
+		testClient.ID = testClientID
+		testClient.Scopes = append(testClient.Scopes, client.ClientManage)
+		testClient.GrantTypes = append(testClient.GrantTypes, client.PKCE)
+
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client {
+			return testClient
+		}
+
+		cs := NewClientService(mockClientStore)
+		actual := errors.New(errors.ErrCodeInvalidGrantType, "client does not have required grant type `client_credentials`")
+		result, expected := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+
+		assert.Nil(t, result)
+		assert.Error(t, expected)
+		assert.Equal(t, expected.Error(), actual.Error())
+	})
+
+	t.Run("Missing `client:manage` Scope", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Secret = testClientSecret
+		testClient.ID = testClientID
+		testClient.GrantTypes = append(testClient.GrantTypes, client.ClientCredentials)
+
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client {
+			return testClient
+		}
+
+		cs := NewClientService(mockClientStore)
+		actual := errors.New(errors.ErrCodeInvalidGrantType, "client does not have required scope `client:manage`")
+		result, expected := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+
+		assert.Nil(t, result)
+		assert.Error(t, expected)
+		assert.Equal(t, expected.Error(), actual.Error())
+	})
+
+	t.Run("Empty Parameters Returns an Error", func(t *testing.T) {
+		cs := NewClientService(mockClientStore)
+		expected := errors.New(errors.ErrCodeEmptyInput, "missing required parameter")
+		_, actual := cs.AuthenticateAndAuthorizeClient("", "")
+
+		assert.Error(t, actual)
+		assert.Equal(t, actual.Error(), expected.Error())
+	})
+}
+
 func createTestClient() *client.Client {
 	return &client.Client{
 		Name:         "Test Name",
 		RedirectURIS: []string{"https://localhost/callback"},
 		GrantTypes:   []client.GrantType{client.AuthorizationCode},
-		Scopes:       []client.Scope{client.Read, client.Write},
+		Scopes:       []client.Scope{client.ClientRead, client.ClientWrite},
 	}
 }
