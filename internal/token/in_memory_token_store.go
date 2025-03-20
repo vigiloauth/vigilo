@@ -33,14 +33,14 @@ func GetInMemoryTokenStore() *InMemoryTokenStore {
 	return instance
 }
 
-// AddToken adds a token to the store.
+// SaveToken adds a token to the store.
 //
 // Parameters:
 //
 //	token string: The token string.
 //	email string: The email associated with the token.
 //	expiration time.Time: The token's expiration time.
-func (b *InMemoryTokenStore) AddToken(token string, email string, expiration time.Time) {
+func (b *InMemoryTokenStore) SaveToken(token string, email string, expiration time.Time) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.tokens[token] = TokenData{

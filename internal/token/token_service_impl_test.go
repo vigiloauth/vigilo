@@ -100,7 +100,7 @@ func TestTokenService_GetToken(t *testing.T) {
 	tokenStore := GetInMemoryTokenStore()
 	tokenService := NewTokenService(tokenStore)
 
-	tokenService.AddToken(token, email, time.Now().Add(1*time.Hour))
+	tokenService.SaveToken(token, email, time.Now().Add(1*time.Hour))
 
 	result, err := tokenService.GetToken(email, token)
 	assert.NoError(t, err)
@@ -115,7 +115,7 @@ func TestTokenService_IsTokenBlacklisted(t *testing.T) {
 	tokenStore := GetInMemoryTokenStore()
 	tokenService := NewTokenService(tokenStore)
 
-	tokenStore.AddToken(token, email, time.Now().Add(1*time.Hour))
+	tokenStore.SaveToken(token, email, time.Now().Add(1*time.Hour))
 
 	isBlacklisted := tokenService.IsTokenBlacklisted(token)
 	assert.True(t, isBlacklisted)
@@ -125,7 +125,7 @@ func TestTokenService_AddToken(t *testing.T) {
 	tokenStore := GetInMemoryTokenStore()
 	tokenService := NewTokenService(tokenStore)
 
-	tokenStore.AddToken(token, email, time.Now().Add(1*time.Hour))
+	tokenStore.SaveToken(token, email, time.Now().Add(1*time.Hour))
 
 	tokenData, err := tokenService.GetToken(email, token)
 	assert.NoError(t, err)
@@ -136,7 +136,7 @@ func TestTokenService_DeleteToken(t *testing.T) {
 	tokenStore := GetInMemoryTokenStore()
 	tokenService := NewTokenService(tokenStore)
 
-	tokenStore.AddToken(token, email, time.Now().Add(1*time.Hour))
+	tokenStore.SaveToken(token, email, time.Now().Add(1*time.Hour))
 
 	err := tokenService.DeleteToken(token)
 	assert.NoError(t, err)

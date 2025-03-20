@@ -62,7 +62,7 @@ func createPublicClientRegistrationRequest() *ClientRegistrationRequest {
 		Type:          Public,
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
 		GrantTypes:    []GrantType{AuthorizationCode, PKCE},
-		Scopes:        []Scope{Read, Write},
+		Scopes:        []Scope{ClientRead, ClientWrite},
 		ResponseTypes: []ResponseType{CodeResponseType, IDTokenResponseType},
 	}
 }

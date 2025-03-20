@@ -172,7 +172,7 @@ func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 		Name:          "Test Name",
 		RedirectURIS:  []string{"https://loaclhost/callback"},
 		GrantTypes:    []client.GrantType{client.AuthorizationCode, client.PKCE},
-		Scopes:        []client.Scope{client.Read, client.Write},
+		Scopes:        []client.Scope{client.ClientRead, client.ClientWrite},
 		ResponseTypes: []client.ResponseType{client.CodeResponseType, client.IDTokenResponseType},
 	}
 }

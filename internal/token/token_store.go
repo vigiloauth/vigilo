@@ -4,13 +4,13 @@ import "time"
 
 // TokenStore defines the interface for storing and managing tokens.
 type TokenStore interface {
-	// AddToken adds a token to the store.
+	// SaveToken adds a token to the store.
 	//
 	// Parameters:
 	//   token string: The token string to add.
-	//   email string: The email associated with the token.
+	//   id string: The id associated with the token.
 	//   expiration time.Time: The token's expiration time.
-	AddToken(token string, email string, expiration time.Time)
+	SaveToken(token string, id string, expiration time.Time)
 
 	// IsTokenBlacklisted checks if a token is blacklisted.
 	//

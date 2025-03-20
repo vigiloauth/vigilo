@@ -38,13 +38,13 @@ type TokenService interface {
 	//   bool: True if the token is blacklisted, false otherwise.
 	IsTokenBlacklisted(token string) bool
 
-	// AddToken adds a token to the token store.
+	// SaveToken adds a token to the token store.
 	//
 	// Parameters:
 	//   token string: The token string to add.
-	//   email string: The email associated with the token.
+	//   id string: The id associated with the token.
 	//   expirationTime time.Time: The token's expiration time.
-	AddToken(token string, email string, expirationTime time.Time)
+	SaveToken(token string, id string, expirationTime time.Time)
 
 	// GetToken retrieves a token from the token store and validates it.
 	//

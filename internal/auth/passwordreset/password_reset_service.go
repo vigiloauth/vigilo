@@ -183,5 +183,5 @@ func (p *PasswordResetService) generateAndSendEmail(userEmail, resetURL, resetTo
 //	userEmail string: The user's email address.
 func (p *PasswordResetService) addTokenToStore(resetToken, userEmail string) {
 	tokenExpirationTime := time.Now().Add(tokenDuration)
-	p.tokenManager.AddToken(resetToken, userEmail, tokenExpirationTime)
+	p.tokenManager.SaveToken(resetToken, userEmail, tokenExpirationTime)
 }

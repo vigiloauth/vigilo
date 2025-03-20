@@ -56,7 +56,7 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 	}
 
 	mockTokenStore.IsTokenBlacklistedFunc = func(tokenString string) bool { return false }
-	mockTokenStore.AddTokenFunc = func(tokenString, email string, expirationTime time.Time) {}
+	mockTokenStore.SaveTokenFunc = func(tokenString, email string, expirationTime time.Time) {}
 	mockTokenStore.IsTokenBlacklistedFunc = func(tokenString string) bool { return tokenString == testToken }
 
 	sessionService := NewSessionService(mockTokenManager, mockTokenStore)

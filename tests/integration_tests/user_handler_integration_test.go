@@ -228,7 +228,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 				name:           "Invalid Request Body",
 				requestBody:    users.UserPasswordResetRequest{},
 				expectedStatus: http.StatusUnprocessableEntity,
-				expectedBody:   `{"error_code":"invalid_format", "message":"email is either malformed or missing"}`,
+				expectedBody:   `{"error":"invalid_format", "error_description":"email is either malformed or missing"}`,
 			},
 		}
 
@@ -379,7 +379,7 @@ func (h *TestHelper) generateExpiredToken() string {
 	tokenString, err := jwtToken.SignedString([]byte("secret"))
 	assert.NoError(h.T, err)
 
-	token.GetInMemoryTokenStore().AddToken(tokenString, testEmail, expiredTime)
+	token.GetInMemoryTokenStore().SaveToken(tokenString, testEmail, expiredTime)
 	return tokenString
 }
 
@@ -389,7 +389,7 @@ func (h *TestHelper) setupResetToken(duration time.Duration) string {
 	resetToken, err := tokenService.GenerateToken(testEmail, duration)
 	assert.NoError(h.T, err)
 
-	token.GetInMemoryTokenStore().AddToken(resetToken, testEmail, time.Now().Add(duration))
+	token.GetInMemoryTokenStore().SaveToken(resetToken, testEmail, time.Now().Add(duration))
 	return resetToken
 }
 
@@ -399,5 +399,5 @@ func checkErrorResponse(t *testing.T, responseBody []byte) {
 	if err := json.Unmarshal(responseBody, &response); err != nil {
 		t.Fatalf("failed to unmarshal response body: %v", err)
 	}
-	assert.NotNil(t, response["error_code"], "expected error in response, got none")
+	assert.NotNil(t, response["error"], "expected error in response, got none")
 }

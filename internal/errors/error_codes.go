@@ -16,6 +16,7 @@ const (
 	ErrCodeValidationError       = "validation_error"
 	ErrCodeMissingHeader         = "missing_header"
 	ErrCodeInvalidContentType    = "invalid_content_type"
+	ErrCodeInvalidRequest        = "invalid_request"
 
 	// User errors
 	ErrCodeDuplicateUser      = "duplicate_user"
@@ -45,13 +46,15 @@ const (
 
 	// Client errors
 	ErrCodeInvalidClient          = "invalid_client"
-	ErrCodeInvalidGrantType       = "invalid_grant_type"
+	ErrCodeInvalidGrantType       = "invalid_grant"
 	ErrCodeInvalidRedirectURI     = "invalid_redirect_uri"
 	ErrCodeInvalidScope           = "invalid_scope"
 	ErrCodeClientSecretNotAllowed = "client_secret_not_allowed"
 	ErrCodeClientNotFound         = "client_not_found"
 	ErrCodeDuplicateClient        = "duplicate_client"
 	ErrCodeInvalidResponseType    = "invalid_response_type"
+	ErrCodeUnauthorizedClient     = "unauthorized_client"
+	ErrCodeUnsupportedGrantType   = "unsupported_grant_type"
 
 	// Middleware Errors
 	ErrCodeRequestLimitExceeded = "request_limit_exceeded"
@@ -60,7 +63,7 @@ const (
 	ErrCodeInternalServerError = "internal_server_error"
 )
 
-// HTTP status code mappings - stored as a variable to avoid recreating the map
+// HTTP status code mappings
 var statusCodeMap = map[string]int{
 	// 400 Bad Request
 	ErrCodeEmptyInput:                http.StatusBadRequest,
@@ -74,21 +77,24 @@ var statusCodeMap = map[string]int{
 	ErrCodeEmailTemplateParseFailed:  http.StatusBadRequest,
 	ErrCodeUnsupportedEncryptionType: http.StatusBadRequest,
 	ErrCodeMissingHeader:             http.StatusBadRequest,
-	ErrCodeInvalidClient:             http.StatusBadRequest,
-	ErrCodeInvalidGrantType:          http.StatusBadRequest,
 	ErrCodeInvalidRedirectURI:        http.StatusBadRequest,
-	ErrCodeInvalidScope:              http.StatusBadRequest,
 	ErrCodeClientSecretNotAllowed:    http.StatusBadRequest,
 	ErrCodeInvalidResponseType:       http.StatusBadRequest,
 	ErrCodeInvalidContentType:        http.StatusBadRequest,
+	ErrCodeUnsupportedGrantType:      http.StatusBadRequest,
+	ErrCodeInvalidRequest:            http.StatusBadRequest,
 
 	// 401 Unauthorized
+	ErrCodeInvalidScope:             http.StatusUnauthorized,
+	ErrCodeInvalidGrantType:         http.StatusUnauthorized,
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
+	ErrCodeInvalidClient:            http.StatusUnauthorized,
 	ErrCodeUnauthorized:             http.StatusUnauthorized,
 	ErrCodeExpiredToken:             http.StatusUnauthorized,
 	ErrCodeInvalidToken:             http.StatusUnauthorized,
 	ErrCodeSMTPAuthenticationFailed: http.StatusUnauthorized,
 	ErrCodeTokenParsing:             http.StatusUnauthorized,
+	ErrCodeUnauthorizedClient:       http.StatusUnauthorized,
 
 	// 404 Not Found
 	ErrCodeUserNotFound:   http.StatusNotFound,

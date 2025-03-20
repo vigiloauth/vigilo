@@ -90,7 +90,7 @@ func (s *SessionService) InvalidateSession(w http.ResponseWriter, r *http.Reques
 
 	expiration := time.Unix(claims.ExpiresAt, 0)
 	if expiration.After(time.Now()) {
-		s.tokenBlacklist.AddToken(tokenString, claims.Subject, expiration)
+		s.tokenBlacklist.SaveToken(tokenString, claims.Subject, expiration)
 	}
 
 	s.setHTTPCookie(&w, "", -time.Hour)

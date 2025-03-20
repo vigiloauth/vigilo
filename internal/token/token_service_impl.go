@@ -47,6 +47,7 @@ func NewTokenService(tokenStore TokenStore) *TokenServiceImpl {
 func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Duration) (string, error) {
 	claims := &jwt.StandardClaims{
 		Subject:   subject,
+		Issuer:    "vigilo-auth-server",
 		ExpiresAt: time.Now().Add(expirationTime).Unix(),
 		IssuedAt:  time.Now().Unix(),
 	}
@@ -103,30 +104,30 @@ func (ts *TokenServiceImpl) IsTokenBlacklisted(token string) bool {
 	return ts.tokenStore.IsTokenBlacklisted(token)
 }
 
-// AddToken adds a token to the token store.
+// SaveToken adds a token to the token store.
 //
 // Parameters:
 //
 //	token string: The token string to add.
-//	email string: The email associated with the token.
+//	id string: The id associated with the token.
 //	expirationTime time.Time: The token's expiration time.
-func (ts *TokenServiceImpl) AddToken(token string, email string, expirationTime time.Time) {
-	ts.tokenStore.AddToken(token, email, expirationTime)
+func (ts *TokenServiceImpl) SaveToken(token string, id string, expirationTime time.Time) {
+	ts.tokenStore.SaveToken(token, id, expirationTime)
 }
 
 // GetToken retrieves a token from the token store and validates it.
 //
 // Parameters:
 //
-//	email string: The email to validate against.
+//	id string: The id to validate against.
 //	token string: The token string to retrieve.
 //
 // Returns:
 //
 //	*TokenData: The TokenData if the token is valid, or nil if not found or invalid.
-//	error: An error if the token is not found, expired, or the email doesn't match.
-func (ts *TokenServiceImpl) GetToken(email string, token string) (*TokenData, error) {
-	retrievedToken, err := ts.tokenStore.GetToken(token, email)
+//	error: An error if the token is not found, expired, or the id doesn't match.
+func (ts *TokenServiceImpl) GetToken(id string, token string) (*TokenData, error) {
+	retrievedToken, err := ts.tokenStore.GetToken(token, id)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrCodeTokenNotFound, "failed to retrieve token")
 	}

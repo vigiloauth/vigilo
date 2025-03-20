@@ -16,7 +16,7 @@ func TestTokenStore_AddToken(t *testing.T) {
 	tokenStore := GetInMemoryTokenStore()
 	expiration := time.Now().Add(1 * time.Hour)
 
-	tokenStore.AddToken(token, email, expiration)
+	tokenStore.SaveToken(token, email, expiration)
 
 	tokenStore.mu.Lock()
 	defer tokenStore.mu.Unlock()
@@ -27,7 +27,7 @@ func TestTokenStore_IsTokenBlacklisted(t *testing.T) {
 	tokenStore := GetInMemoryTokenStore()
 	expiration := time.Now().Add(1 * time.Hour)
 
-	tokenStore.AddToken(token, email, expiration)
+	tokenStore.SaveToken(token, email, expiration)
 	isBlacklisted := tokenStore.IsTokenBlacklisted(token)
 
 	assert.True(t, isBlacklisted)
@@ -37,7 +37,7 @@ func TestTokenStore_TokenExpires(t *testing.T) {
 	tokenStore := GetInMemoryTokenStore()
 	expiration := time.Now().Add(-1 * time.Hour) // Token already expired
 
-	tokenStore.AddToken(token, email, expiration)
+	tokenStore.SaveToken(token, email, expiration)
 	isBlacklisted := tokenStore.IsTokenBlacklisted(token)
 
 	assert.False(t, isBlacklisted)
@@ -50,7 +50,7 @@ func TestTokenStore_DeleteToken(t *testing.T) {
 	tokenStore := GetInMemoryTokenStore()
 	expiration := time.Now().Add(1 * time.Hour)
 
-	tokenStore.AddToken(token, email, expiration)
+	tokenStore.SaveToken(token, email, expiration)
 	_, err := tokenStore.GetToken(token, email)
 	assert.NoError(t, err)
 
