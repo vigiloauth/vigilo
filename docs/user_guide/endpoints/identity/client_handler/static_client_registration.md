@@ -21,7 +21,8 @@ POST https://localhost:<port>/<uri>/clients
 | scopes               | string array  | No       | The scopes associated with the client. Supported values: `read`, `write`       |
 | response_types       | string array  | Yes      | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
 | token_auth_endpoint  | string        | No       | The token authentication endpoint for client credentials flow. Required for `client_credentials` grant type. |
-
+---
+### Example Request
 ```json
 {
   "client_name": "Example Client",

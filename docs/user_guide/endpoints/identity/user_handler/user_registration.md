@@ -17,11 +17,12 @@ POST https://localhost:<port>/<uri>/auth/signup
 | username  | string  | Yes       | The user's username.
 | email     | string  | Yes       | The user's email address.      |
 | password  | string  | Yes       | The password for the account.  |
-
+---
+### Example Request
 ```json
 {
-    "username": "test",
-    "email": "email@vigilo.com",
+    "username": "John",
+    "email": "john.doe@mail.com",
     "password": "Pas$_w0rds"
 }
 

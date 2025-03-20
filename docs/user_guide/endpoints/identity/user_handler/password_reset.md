@@ -18,10 +18,11 @@ PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
 |:------------|:--------|:----------|:----------------------------------|
 | email       | string  | Yes       | The user's email address.         |
 | newPassword | string  | Yes       | The new password for the account. |
-
+---
+### Example Request
 ```json
 {
-    "email": "email@vigilo.com",
+    "email": "john.doe@gmail.com",
     "new_password": "Pas$_w0rds"
 }
 ```

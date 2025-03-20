@@ -11,17 +11,17 @@ POST https://localhost:<port>/<uri>/auth/login
 | Content-Type    | application/json              | Indicates that the request body is JSON.  |
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.   |
 | Content-Length  | [Content-Length]              | The length of the request body in bytes.  |
-
 ---
 ### Request Body
 | Field     | Type    | Required  | Description                    |
 |:----------|:--------|:----------|:-------------------------------|
 | email     | string  | Yes       | The user's email address.      |
 | password  | string  | Yes       | The password for the account.  |
-
+---
+### Example Request
 ```json
 {
-    "email": "email@vigilo.com",
+    "email": "john.doe@email.com",
     "password": "Pas$_w0rds"
 }
 ```

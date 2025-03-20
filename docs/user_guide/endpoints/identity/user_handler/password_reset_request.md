@@ -16,9 +16,11 @@ POST https://localhost:<port>/<uri>/auth/reset-password
 | Field      | Type    | Required  | Description                    |
 | :----------|:--------|:----------|:-------------------------------|
 | email      | string  | Yes          | The user's email address.     |
+---
+### Example Request
 ```json
 {
-    "email": "email@vigilo.com",
+    "email": "john.doe@mail.com",
 }
 ```
 ---
