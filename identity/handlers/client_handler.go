@@ -65,6 +65,10 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 
 // write integration tests
 // clean up integration tests
+// 	- client
+//	- user
+//	- auth
+//	- create reusable methods
 // Send message when secret is regenerated
 // Write docs
 
