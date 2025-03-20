@@ -16,6 +16,7 @@ type VigiloIdentityServer struct {
 	router        chi.Router
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
+	authHandler   *handlers.AuthHandler
 	serverConfig  *config.ServerConfig
 	tlsConfig     *tls.Config
 	httpServer    *http.Server
@@ -31,6 +32,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 		router:        chi.NewRouter(),
 		userHandler:   container.userHandler,
 		clientHandler: container.clientHandler,
+		authHandler:   container.authHandler,
 		serverConfig:  serverConfig,
 		tlsConfig:     container.tlsConfig,
 		httpServer:    container.httpServer,
@@ -68,6 +70,7 @@ func (s *VigiloIdentityServer) setupRoutes() {
 		r.Post(utils.ClientEndpoints.Registration, s.clientHandler.RegisterClient)
 	})
 
+	s.router.Post(utils.AuthEndpoints.GenerateToken, s.authHandler.GenerateToken)
 	s.router.Post(utils.ClientEndpoints.RegenerateSecret, s.clientHandler.RegenerateSecret)
 
 	s.router.Group(func(r chi.Router) {
