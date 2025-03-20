@@ -15,7 +15,6 @@ import (
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/client"
 	store "github.com/vigiloauth/vigilo/internal/client/store"
-	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
@@ -168,14 +167,15 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 	testClient := createTestClient()
 	testClient.ID = testClientID
 	testClient.Secret = testClientSecret
+	testClient.Type = client.Confidential
 
 	s := store.GetInMemoryClientStore()
 	s.DeleteClientByID(testClientID)
 	_ = s.SaveClient(testClient)
 
 	// Generate a token for authentication
-	expirationTime := int64(30 * time.Minute.Seconds())
-	tokenStr := generateToken(expirationTime, t)
+	expirationDuration := 30 * time.Minute
+	tokenStr := generateToken(expirationDuration, t)
 
 	// Create server and test HTTP request
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
@@ -239,10 +239,11 @@ func createTestClient() *client.Client {
 	}
 }
 
-func generateToken(expirationTime int64, t *testing.T) string {
+func generateToken(expirationDuration time.Duration, t *testing.T) string {
+	expiration := time.Now().Add(expirationDuration)
 	claims := &jwt.StandardClaims{
 		Subject:   testClientID,
-		ExpiresAt: expirationTime,
+		ExpiresAt: expiration.Unix(),
 		IssuedAt:  time.Now().Unix(),
 		Issuer:    "vigilo-auth-server",
 	}
@@ -251,7 +252,5 @@ func generateToken(expirationTime int64, t *testing.T) string {
 	tokenString, err := jwtToken.SignedString([]byte(config.GetServerConfig().JWTConfig().Secret()))
 	assert.NoError(t, err)
 
-	token.GetInMemoryTokenStore().
-		SaveToken(tokenString, testClientID, time.Now().Add(time.Duration(expirationTime)))
 	return tokenString
 }
