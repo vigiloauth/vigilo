@@ -85,8 +85,9 @@ const (
 	PasswordGrant     GrantType = "password_grant"
 
 	// Predefined scopes.
-	Read  Scope = "read"
-	Write Scope = "write"
+	ClientRead   Scope = "client:read"
+	ClientWrite  Scope = "client:write"
+	ClientManage Scope = "client:manage"
 
 	// Predefined client types.
 	Confidential ClientType = "confidential"
@@ -109,6 +110,16 @@ func (s Scope) String() string { return string(s) }
 
 // String converts a ResponseType to its string representation.
 func (r ResponseType) String() string { return string(r) }
+
+// HasGrantType checks to see if the client has a required grant type.
+func (c *Client) HasGrantType(requiredGrantType GrantType) bool {
+	return slices.Contains(c.GrantTypes, requiredGrantType)
+}
+
+// HasScope checks to see if the client has a required scope.
+func (c *Client) HasScope(requiredScope Scope) bool { return slices.Contains(c.Scopes, requiredScope) }
+
+func (c *Client) IsConfidential() bool { return c.Type == Confidential }
 
 // Validate checks if the ClientRegistrationRequest contains valid values.
 func (req *ClientRegistrationRequest) Validate() error {
@@ -245,8 +256,8 @@ func (req *ClientRegistrationRequest) validateScopes(errorCollection *errors.Err
 	}
 
 	validScopes := map[Scope]bool{
-		Read:  true,
-		Write: true,
+		ClientRead:  true,
+		ClientWrite: true,
 	}
 
 	for _, scope := range req.Scopes {
