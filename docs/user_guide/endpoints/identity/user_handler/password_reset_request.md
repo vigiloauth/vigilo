@@ -46,31 +46,30 @@ The email will include a link with the format: [Base URL]?requestId=[Reset Token
 #### Response Body:
 ```json
 {
-    "error_code": "EMPTY_FIELD",
-    "description": "Base URL cannot be empty",
-    "field": "Base URL"
+    "error": "empty_field",
+    "error_description": "Base URL cannot be empty",
 }
 ```
 
 ### 2. Failed to Generate Reset Token
 #### HTTP Status Code: `500 Internal Server Error`
-**Description:** Occurs when there is an interal error generating the reset token.
+**Description:** Occurs when there is an internal error generating the reset token.
 #### Response Body:
 ```json
 {
-    "error_code": "INTERNAL_SERVER_ERROR",
-    "description": "Failed to generate reset token"
+    "error": "internal_server_error",
+    "error_description": "Failed to generate reset token"
 }
 ```
 
 ### 3. Failed to Construct Reset URL
 #### HTTP Status Code: `500 Internal Server Error`
 **Description:** Occurs when there is an error constructing the password reset URL.
-#### Respone Body:
+#### Response Body:
 ```json
 {
-    "error_code": "INTERNAL_SERVER_ERROR",
-    "description": "Failed to construct reset URL"
+    "error": "internal_server_error",
+    "error_description": "Failed to construct reset URL"
 }
 ```
 
@@ -80,8 +79,8 @@ The email will include a link with the format: [Base URL]?requestId=[Reset Token
 #### Response Body:
 ```json
 {
-    "error_code": "EMAIL_DELIVERY_ERROR",
-    "description": "Failed to send email"
+    "error": "email_delivery_error",
+    "error_description": "Failed to send email"
 }
 ```
 
@@ -91,9 +90,8 @@ The email will include a link with the format: [Base URL]?requestId=[Reset Token
 #### Response Body:
 ```json
 {
-    "error_code": "EMPTY_FIELD",
-    "description": "email template cannot be empty",
-    "field": "email template"
+    "error": "empty_field",
+    "error_description": "email template cannot be empty",
 }
 ```
 
@@ -103,8 +101,8 @@ The email will include a link with the format: [Base URL]?requestId=[Reset Token
 #### Response Body:
 ```json
 {
-    "error_code": "TEMPLATE_RENDERING_FAILED",
-    "description": "Failed to render the email template"
+    "error": "template_rendering_error",
+    "error_description": "Failed to render the email template"
 }
 ```
 
@@ -114,9 +112,8 @@ The email will include a link with the format: [Base URL]?requestId=[Reset Token
 #### Response Body:
 ```json
 {
-    "error_code": "INVALID_FORMAT",
-    "description": "failed to parse email template: <error message>",
-    "field": "template"
+    "error": "invalid_format",
+    "error_description": "failed to parse email template: <error message>",
 }
 ```
 
@@ -126,8 +123,8 @@ The email will include a link with the format: [Base URL]?requestId=[Reset Token
 #### Response Body:
 ```json
 {
-    "error_code": "INTERNAL_SERVER_ERROR",
-    "description": "Failed to parse default email template"
+    "error": "internal_server_error",
+    "error_description": "Failed to parse default email template"
 }
 ```
 

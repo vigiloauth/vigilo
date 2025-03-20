@@ -3,9 +3,9 @@ package integration_tests
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,17 +25,26 @@ const (
 
 func setupAuthHandlerTest(auth string, includeAuth bool) *httptest.ResponseRecorder {
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
+	formData := "grant_type=client_credentials"
 
-	req := httptest.NewRequest(http.MethodPost, utils.AuthEndpoints.GenerateToken, nil)
+	req := httptest.NewRequest(
+		http.MethodPost,
+		utils.AuthEndpoints.GenerateToken,
+		strings.NewReader(formData),
+	)
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if includeAuth {
 		req.Header.Set("Authorization", "Basic "+auth)
 	}
+
 	rr := httptest.NewRecorder()
 	vigiloIdentityServer.Router().ServeHTTP(rr, req)
 
 	return rr
 }
-func TestAuthHandler_GenerateToken_Success(t *testing.T) {
+
+func TestAuthHandler_IssueClientCredentialsToken_Success(t *testing.T) {
 	setupClientStore(client.ClientManage, client.ClientCredentials)
 	auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
 	rr := setupAuthHandlerTest(auth, true)
@@ -54,7 +63,7 @@ func TestAuthHandler_GenerateToken_Success(t *testing.T) {
 	assert.Equal(t, tokenResponse.ExpiresIn, int(expectedTokenDuration.Seconds()))
 }
 
-func TestAuthHandler_GenerateToken_AuthenticationFailures(t *testing.T) {
+func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testing.T) {
 	t.Run("Missing Authorization Header", func(t *testing.T) {
 		rr := setupAuthHandlerTest("", false)
 
@@ -62,9 +71,6 @@ func TestAuthHandler_GenerateToken_AuthenticationFailures(t *testing.T) {
 
 		var errResp errors.VigiloAuthError
 		err := json.NewDecoder(rr.Body).Decode(&errResp)
-
-		prettyJSON, _ := json.MarshalIndent(errResp, "", "  ")
-		fmt.Println(string(prettyJSON))
 
 		assert.NoError(t, err)
 		assert.Equal(t, errResp.ErrorCode, errors.ErrCodeInvalidRequest)
@@ -120,13 +126,10 @@ func TestAuthHandler_GenerateToken_AuthenticationFailures(t *testing.T) {
 		auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
 		rr := setupAuthHandlerTest(auth, true)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 
 		var errResp errors.VigiloAuthError
 		err := json.NewDecoder(rr.Body).Decode(&errResp)
-
-		prettyJSON, _ := json.MarshalIndent(errResp, "", "  ")
-		fmt.Println(string(prettyJSON))
 
 		assert.NoError(t, err)
 		assert.Equal(t, errResp.ErrorCode, errors.ErrCodeInvalidGrantType)
@@ -138,7 +141,7 @@ func TestAuthHandler_GenerateToken_AuthenticationFailures(t *testing.T) {
 		auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
 		rr := setupAuthHandlerTest(auth, true)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 
 		var errResp errors.VigiloAuthError
 		err := json.NewDecoder(rr.Body).Decode(&errResp)

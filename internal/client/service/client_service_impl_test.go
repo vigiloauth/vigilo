@@ -84,7 +84,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 		}
 
 		cs := NewClientService(mockClientStore)
-		result, err := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+		result, err := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.NotNil(t, result)
 		assert.NoError(t, err)
@@ -94,7 +94,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
 		cs := NewClientService(mockClientStore)
-		result, expected := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
 		assert.Error(t, expected)
@@ -112,7 +112,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 		}
 
 		cs := NewClientService(mockClientStore)
-		result, expected := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
 		assert.Error(t, expected)
@@ -131,7 +131,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 
 		cs := NewClientService(mockClientStore)
 		actual := errors.New(errors.ErrCodeInvalidGrantType, "client does not have required grant type `client_credentials`")
-		result, expected := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
 		assert.Error(t, expected)
@@ -150,7 +150,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 
 		cs := NewClientService(mockClientStore)
 		actual := errors.New(errors.ErrCodeInvalidGrantType, "client does not have required scope `client:manage`")
-		result, expected := cs.AuthenticateAndAuthorizeClient(testClientID, testClientSecret)
+		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
 		assert.Error(t, expected)
@@ -160,7 +160,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 	t.Run("Empty Parameters Returns an Error", func(t *testing.T) {
 		cs := NewClientService(mockClientStore)
 		expected := errors.New(errors.ErrCodeEmptyInput, "missing required parameter")
-		_, actual := cs.AuthenticateAndAuthorizeClient("", "")
+		_, actual := cs.AuthenticateClientForCredentialsGrant("", "")
 
 		assert.Error(t, actual)
 		assert.Equal(t, actual.Error(), expected.Error())

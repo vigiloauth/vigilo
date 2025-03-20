@@ -100,12 +100,12 @@ POST https://localhost:<port>/<uri>/clients
 #### Response Body:
 ```json
 {
-    "error_code": "validation_error",
-    "message": "One or more validation errors occurred",
+    "error": "validation_error",
+    "error_description": "One or more validation errors occurred",
     "errors": [
         {
-            "error_code": "invalid_redirect_uri",
-            "message": "public clients must use HTTPS"
+            "error": "invalid_redirect_uri",
+            "error_description": "public clients must use HTTPS"
         }
     ]
 }
@@ -116,16 +116,16 @@ POST https://localhost:<port>/<uri>/clients
 #### Response Body:
 ```json
 {
-    "error_code": "validation_error",
-    "message": "One or more validation errors occurred",
+    "code": "validation_error",
+    "error_description": "One or more validation errors occurred",
     "errors": [
         {
-            "error_code": "invalid_grant_type",
-            "message": "grant type `invalid-grant` is not supported"
+            "error": "invalid_grant_type",
+            "error_description": "grant type `invalid-grant` is not supported"
         },
         {
-            "error_code": "invalid_response_type",
-            "message": "`id_token` response type is only allowed with `authorization_code`, `device_code`, or `implicit` grant types"
+            "error": "invalid_response_type",
+            "error_description": "`id_token` response type is only allowed with `authorization_code`, `device_code`, or `implicit` grant types"
         }
     ]
 }

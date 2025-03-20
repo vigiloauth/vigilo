@@ -85,8 +85,6 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidRequest:            http.StatusBadRequest,
 
 	// 401 Unauthorized
-	ErrCodeInvalidScope:             http.StatusUnauthorized,
-	ErrCodeInvalidGrantType:         http.StatusUnauthorized,
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
 	ErrCodeInvalidClient:            http.StatusUnauthorized,
 	ErrCodeUnauthorized:             http.StatusUnauthorized,
@@ -94,12 +92,16 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidToken:             http.StatusUnauthorized,
 	ErrCodeSMTPAuthenticationFailed: http.StatusUnauthorized,
 	ErrCodeTokenParsing:             http.StatusUnauthorized,
-	ErrCodeUnauthorizedClient:       http.StatusUnauthorized,
 
 	// 404 Not Found
 	ErrCodeUserNotFound:   http.StatusNotFound,
 	ErrCodeTokenNotFound:  http.StatusNotFound,
 	ErrCodeClientNotFound: http.StatusNotFound,
+
+	// 403 Forbidden
+	ErrCodeUnauthorizedClient: http.StatusForbidden,
+	ErrCodeInvalidGrantType:   http.StatusForbidden,
+	ErrCodeInvalidScope:       http.StatusForbidden,
 
 	// 409 Conflict
 	ErrCodeDuplicateUser:   http.StatusConflict,

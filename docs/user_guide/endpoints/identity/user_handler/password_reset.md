@@ -32,7 +32,7 @@ PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
 #### Response Body:
 ```json
 {
-    "message": "Password has been reset successfully"
+    "message": "password has been reset successfully"
 }
 ```
 ---
@@ -42,8 +42,8 @@ PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
 #### Response Body:
 ```json
 {
-    "error_code": "EMPTY_FIELD",
-    "description": "password cannot be empty"
+    "error": "empty_field",
+    "error_description": "password cannot be empty"
 }
 ```
 
@@ -52,28 +52,24 @@ PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
 #### Response Body:
 ```json
 {
-  "error_code": "VALIDATION_ERROR",
-  "description": "One or more validation errors occurred.",
+  "error": "validation_error",
+  "error_description": "one or more validation errors occurred.",
   "errors": [
     {
-      "error_code": "INVALID_LENGTH",
-      "message": "Password must be at least 10 characters",
-      "field": "password"
+      "error": "invalid_password_length",
+      "error_description": "password must be at least 10 characters",
     },
     {
-      "error_code": "MISSING_UPPERCASE",
-      "message": "Password must contain at least one uppercase letter",
-      "field": "password"
+      "error": "missing_required_uppercase",
+      "error_description": "password must contain at least one uppercase letter",
     },
     {
-      "error_code": "MISSING_NUMBER",
-      "message": "Password must contain at least one numeric digit",
-      "field": "password"
+      "error": "missing_required_number",
+      "error_description": "password must contain at least one numeric digit",
     },
     {
-      "error_code": "MISSING_SYMBOL",
-      "message": "Password must contain at least one symbol",
-      "field": "password"
+      "error": "missing_required_symbol",
+      "error_description": "password must contain at least one symbol",
     }
   ]
 }
@@ -81,11 +77,11 @@ PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
 
 ### 3. Invalid Reset Token
 #### HTTP Status Code: `401 Unauthorized`
-#### Respone Body:
+#### Response Body:
 ```json
 {
-    "error_code": "INVALID_TOKEN",
-    "description": "Invalid Token"
+    "error": "invalid_token",
+    "error_description": "invalid Token"
 }
 ```
 
@@ -94,8 +90,8 @@ PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
 #### Response Body:
 ```json
 {
-    "error_code": "INTERNAL_SERVER_ERROR",
-    "description": "Failed to encrypt password"
+    "error": "internal_server_error",
+    "error_description": "failed to encrypt password"
 }
 ```
 
@@ -104,9 +100,8 @@ PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
 #### Response Body:
 ```json
 {
-    "error_code": "USER_NOT_FOUND",
-    "description": "User not found",
-    "field": "email"
+    "error": "user_not_found",
+    "error_description": "user not found",
 }
 ```
 
@@ -115,7 +110,7 @@ PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
 #### Response Body:
 ```json
 {
-    "error_code": "TOKEN_DELETION"
-    "description": "Token not found"
+    "error": "internal_server_error"
+    "error_description": "failed to delete token"
 }
 ```

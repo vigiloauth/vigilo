@@ -35,18 +35,26 @@ func NewAuthHandler(tokenService token.TokenService, clientService client.Client
 	}
 }
 
-// Need docs
-// Need tests
+// IssueClientCredentialsToken is the handler responsible for generating new tokens.
+func (h *AuthHandler) IssueClientCredentialsToken(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		utils.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "invalid request format"))
+		return
+	}
 
-// GenerateToken is the handler responsible for generating new tokens.
-func (h *AuthHandler) GenerateToken(w http.ResponseWriter, r *http.Request) {
+	grantType := r.Form.Get("grant_type")
+	if grantType != "client_credentials" {
+		utils.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "unsupported grant type"))
+		return
+	}
+
 	clientID, clientSecret, err := extractBasicAuth(r)
 	if err != nil {
 		utils.WriteError(w, err)
 		return
 	}
 
-	if _, err := h.clientService.AuthenticateAndAuthorizeClient(clientID, clientSecret); err != nil {
+	if _, err := h.clientService.AuthenticateClientForCredentialsGrant(clientID, clientSecret); err != nil {
 		utils.WriteError(w, errors.Wrap(err, "", "invalid client credentials"))
 		return
 	}

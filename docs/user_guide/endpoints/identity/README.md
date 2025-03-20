@@ -10,8 +10,9 @@ This documentation provides a comprehensive guide to configuring and utilizing t
 - **User Management:**
     - [User Registration](user_handler/user_registration.md)
     - [User Login](user_handler/user_login.md)
-    - [User Logout](uuser_handler/ser_logout.md)
+    - [User Logout](user_handler/user_logout.md)
     - [Password Reset](user_handler/password_reset.md)
     - [Password Reset Email Request](user_handler/password_reset_request.md)
 - **Client Management:**
     - [Static Client Registration](client_handler/static_client_registration.md)
+    - [OAuth 2.0 Client Credentials Flow](auth_handler/client_credentials_grant.md)

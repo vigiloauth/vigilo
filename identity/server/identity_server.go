@@ -11,6 +11,11 @@ import (
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
+const (
+	contentTypeJSON string = "application/json"
+	contentTypeForm string = "application/x-www-form-urlencoded"
+)
+
 // VigiloIdentityServer represents the identity library's functionality.
 type VigiloIdentityServer struct {
 	router        chi.Router
@@ -58,7 +63,7 @@ func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Use(s.middleware.RateLimit)
 
 	s.router.Group(func(r chi.Router) {
-		r.Use(s.middleware.RequiresContentType("application/json"))
+		r.Use(s.middleware.RequiresContentType(contentTypeJSON))
 
 		// User related routes
 		r.Post(utils.UserEndpoints.Registration, s.userHandler.Register)
@@ -70,7 +75,11 @@ func (s *VigiloIdentityServer) setupRoutes() {
 		r.Post(utils.ClientEndpoints.Registration, s.clientHandler.RegisterClient)
 	})
 
-	s.router.Post(utils.AuthEndpoints.GenerateToken, s.authHandler.GenerateToken)
+	s.router.Group(func(r chi.Router) {
+		r.Use(s.middleware.RequiresContentType(contentTypeForm))
+		r.Post(utils.AuthEndpoints.GenerateToken, s.authHandler.IssueClientCredentialsToken)
+	})
+
 	s.router.Post(utils.ClientEndpoints.RegenerateSecret, s.clientHandler.RegenerateSecret)
 
 	s.router.Group(func(r chi.Router) {

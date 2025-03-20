@@ -44,13 +44,12 @@ POST https://localhost:<port>/<uri>/auth/signup
 #### Response Body:
 ```json
 {
-    "error_code": "VALIDATION_ERROR",
-    "description": "One or more validation errors occurred.",
+    "error": "validation_error",
+    "error_description": "one or more validation errors occurred.",
     "errors": [
         {
-            "error_code": "EMPTY_FIELD",
-            "message": "username cannot be empty",
-            "field": "username"
+            "error": "empty_field",
+            "error_description": "username cannot be empty",
         }
     ]
 }
@@ -61,13 +60,12 @@ POST https://localhost:<port>/<uri>/auth/signup
 #### Response Body:
 ```json
 {
-  "error_code": "VALIDATION_ERROR",
-  "description": "One or more validation errors occurred.",
+  "error": "validation_error",
+  "error_description": "one or more validation errors occurred.",
   "errors": [
     {
-      "error_code": "INVALID_EMAIL_FORMAT",
-      "message": "Invalid email format: emailil.com",
-      "field": "email"
+      "error": "invalid_email_format",
+      "error_description": "invalid email format: emailil.com",
     }
   ]
 }
@@ -78,28 +76,24 @@ POST https://localhost:<port>/<uri>/auth/signup
 #### Response Body:
 ```json
 {
-  "error_code": "VALIDATION_ERROR",
-  "description": "One or more validation errors occurred.",
+  "error": "validation_error",
+  "error_description": "one or more validation errors occurred.",
   "errors": [
     {
-      "error_code": "INVALID_LENGTH",
-      "message": "Password must be at least 10 characters",
-      "field": "password"
+      "error": "invalid_password_length",
+      "error_description": "Password must be at least 10 characters",
     },
     {
-      "error_code": "MISSING_UPPERCASE",
-      "message": "Password must contain at least one uppercase letter",
-      "field": "password"
+      "error": "missing_required_uppercase",
+      "error_description": "Password must contain at least one uppercase letter",
     },
     {
-      "error_code": "MISSING_NUMBER",
-      "message": "Password must contain at least one numeric digit",
-      "field": "password"
+      "error": "missing_required_number",
+      "error_description": "Password must contain at least one numeric digit",
     },
     {
-      "error_code": "MISSING_SYMBOL",
-      "message": "Password must contain at least one symbol",
-      "field": "password"
+      "error": "missing_required_symbol",
+      "error_description": "Password must contain at least one symbol",
     }
   ]
 }
@@ -110,9 +104,8 @@ POST https://localhost:<port>/<uri>/auth/signup
 #### Response Body:
 ```json
 {
-    "error_code": "DUPLICATE_USER",
-    "description": "User already exists with identifier: email",
-    "error": "User already exists with identifier: email"
+    "error": "duplicate_user",
+    "error_description": "user already exists with identifier: email",
 }
 ```
 

@@ -28,8 +28,8 @@ POST https://localhost:<port>/<uri>/logout
 #### Response Body:
 ```json
 {
-    "error_code": "INVALID_CREDENTIALS",
-    "description": "Invalid credentials"
+    "error": "invalid_credentials",
+    "error_description": "invalid credentials"
 }
 ```
 
@@ -38,7 +38,7 @@ POST https://localhost:<port>/<uri>/logout
 #### Response Body:
 ```json
 {
-    "error_code": "INVALID_CREDENTIALS",
-    "description": "Invalid credentials"
+    "error": "invalid_credentials",
+    "error_description": "invalid credentials"
 }
 ```

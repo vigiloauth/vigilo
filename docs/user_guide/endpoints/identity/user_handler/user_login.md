@@ -31,7 +31,7 @@ POST https://localhost:<port>/<uri>/auth/login
 #### Response Body:
 ```json
 {
-    "token": "jwt_token"
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
 }
 ```
 ---
@@ -41,8 +41,8 @@ POST https://localhost:<port>/<uri>/auth/login
 #### Response Body:
 ```json
 {
-    "error_code": "USER_NOT_FOUND",
-    "description": "User not found."
+    "error": "user_not_found",
+    "error_description": "user not found."
 }
 ```
 
@@ -51,7 +51,7 @@ POST https://localhost:<port>/<uri>/auth/login
 #### Response Body:
 ```json
 {
-    "error_code": "INVALID_CREDENTIALS",
-    "description": "Invalid Credentials"
+    "error": "invalid_credentials",
+    "error_description": "invalid Credentials"
 }
 ```

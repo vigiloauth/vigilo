@@ -8,7 +8,7 @@ import (
 type VigiloAuthError struct {
 	ErrorCode        string   `json:"error"`
 	ErrorDescription string   `json:"error_description"`
-	Details          string   `json:"details,omitempty"`
+	Details          string   `json:"error_details,omitempty"`
 	WrappedErr       error    `json:"-"`
 	Errors           *[]error `json:"errors,omitempty"`
 }
