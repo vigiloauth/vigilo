@@ -78,7 +78,7 @@ func (s *SessionService) CreateSession(w http.ResponseWriter, email string, sess
 //
 //	error: An error if token parsing or blacklist addition fails.
 func (s *SessionService) InvalidateSession(w http.ResponseWriter, r *http.Request) error {
-	tokenString, err := s.parseToken(r)
+	tokenString, err := s.parseTokenFromAuthzHeader(r)
 	if tokenString == "" || err != nil {
 		return errors.Wrap(err, "", "failed to parse token from request headers")
 	}
@@ -97,7 +97,7 @@ func (s *SessionService) InvalidateSession(w http.ResponseWriter, r *http.Reques
 	return nil
 }
 
-// parseToken parses the token from the Authorization header.
+// parseTokenFromAuthzHeader parses the token from the Authorization header.
 //
 // Parameters:
 //
@@ -107,7 +107,7 @@ func (s *SessionService) InvalidateSession(w http.ResponseWriter, r *http.Reques
 //
 //	string: The token string.
 //	error: An error if the token is invalid or missing.
-func (s *SessionService) parseToken(r *http.Request) (string, error) {
+func (s *SessionService) parseTokenFromAuthzHeader(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		return "", errors.New(errors.ErrCodeMissingHeader, "authorization header is missing")

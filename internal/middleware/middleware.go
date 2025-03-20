@@ -11,6 +11,8 @@ import (
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
+const maxRequestsForStrictRateLimiting int = 3
+
 // Middleware encapsulates middleware functionalities.
 type Middleware struct {
 	serverConfig *config.ServerConfig // Server configuration.
@@ -91,6 +93,20 @@ func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !m.rateLimiter.Allow() {
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "too many requests")
+			utils.WriteError(w, err)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// StrictRateLimit applies stricter rate limiting for sensitive operations.
+func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
+	strictLimiter := NewRateLimiter(maxRequestsForStrictRateLimiting)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strictLimiter.Allow() {
+			err := errors.New(errors.ErrCodeRequestLimitExceeded, "rate limit exceeded for sensitive operations")
 			utils.WriteError(w, err)
 			return
 		}

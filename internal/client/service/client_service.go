@@ -26,7 +26,7 @@ type ClientService interface {
 	//
 	//  *client.ClientSecretRegenerationResponse: If successful
 	//  error: An error if the regeneration fails.
-	RegenerateClientSecret(clientID string) (*client.ClientSecretRegenerateResponse, error)
+	RegenerateClientSecret(clientID string) (*client.ClientSecretRegenerationResponse, error)
 
 	// AuthenticateClientForCredentialsGrant authenticates the client using provided credentials
 	// and authorizes access by validating required grant types and scopes.

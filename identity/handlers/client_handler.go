@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/vigiloauth/vigilo/internal/client"
 	service "github.com/vigiloauth/vigilo/internal/client/service"
@@ -62,7 +63,32 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusCreated, response)
 }
 
+// write integration tests
+// clean up integration tests
+// Send message when secret is regenerated
+// Write docs
+
 // RegenerateSecret is the HTTP handler for regenerating client secrets.
 func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request) {
+	clientID := h.extractClientIDFromURL(w, r)
+	if clientID == "" {
+		utils.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "missing 'client_id' in request"))
+	}
 
+	response, err := h.clientService.RegenerateClientSecret(clientID)
+	if err != nil {
+		utils.WriteError(w, errors.Wrap(err, "", "failed to regenerate client_secret"))
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *ClientHandler) extractClientIDFromURL(w http.ResponseWriter, r *http.Request) string {
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 3 {
+		utils.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "invalid URL"))
+		return ""
+	}
+	return parts[len(parts)-2]
 }

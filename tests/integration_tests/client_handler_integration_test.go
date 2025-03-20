@@ -5,12 +5,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/client"
+	store "github.com/vigiloauth/vigilo/internal/client/store"
+	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
@@ -159,6 +164,54 @@ func TestClientHandler_RegisterClient_RateLimitingExceeded(t *testing.T) {
 	assert.Equal(t, http.StatusTooManyRequests, rr.Code, "Request should be rate limited")
 }
 
+func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
+	testClient := createTestClient()
+	testClient.ID = testClientID
+	testClient.Secret = testClientSecret
+
+	s := store.GetInMemoryClientStore()
+	s.DeleteClientByID(testClientID)
+	_ = s.SaveClient(testClient)
+
+	// Generate a token for authentication
+	expirationTime := int64(30 * time.Minute.Seconds())
+	tokenStr := generateToken(expirationTime, t)
+
+	// Create server and test HTTP request
+	vigiloIdentityServer := server.NewVigiloIdentityServer()
+
+	endpoint := strings.Replace(utils.ClientEndpoints.RegenerateSecret, "{client_id}", testClientID, 1)
+	req := httptest.NewRequest(http.MethodPost, endpoint, nil)
+
+	// Add authorization header
+	req.Header.Set("Authorization", "Bearer "+tokenStr)
+
+	w := httptest.NewRecorder()
+	vigiloIdentityServer.Router().ServeHTTP(w, req)
+
+	resp := w.Result()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var response client.ClientSecretRegenerationResponse
+	err := json.NewDecoder(resp.Body).Decode(&response)
+	assert.NoError(t, err)
+
+	assert.Equal(t, testClientID, response.ClientID)
+	assert.NotEmpty(t, response.ClientSecret)
+	assert.NotEqual(t, testClientSecret, response.ClientSecret)
+	assert.NotZero(t, response.UpdatedAt)
+}
+
+func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsError(t *testing.T) {}
+
+func TestClientHandler_RegenerateClientSecret_PublicClientReturnsError(t *testing.T) {}
+
+func TestClientHandler_RegenerateClientSecret_InvalidScopes_ReturnsError(t *testing.T) {}
+
+func TestClientHandler_RegenerateClientSecret_RateLimitingExceeded(t *testing.T) {}
+
+func TestClientHandler_RegenerateClientSecret_ExpiredToken(t *testing.T) {}
+
 func sendRequest(server *server.VigiloIdentityServer, requestBody []byte) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodPost, utils.ClientEndpoints.Registration, bytes.NewBuffer(requestBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -175,4 +228,30 @@ func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 		Scopes:        []client.Scope{client.ClientRead, client.ClientWrite},
 		ResponseTypes: []client.ResponseType{client.CodeResponseType, client.IDTokenResponseType},
 	}
+}
+
+func createTestClient() *client.Client {
+	return &client.Client{
+		Name:         "Test Name",
+		RedirectURIS: []string{"https://localhost/callback"},
+		GrantTypes:   []client.GrantType{client.AuthorizationCode, client.ClientCredentials},
+		Scopes:       []client.Scope{client.ClientRead, client.ClientWrite, client.ClientManage},
+	}
+}
+
+func generateToken(expirationTime int64, t *testing.T) string {
+	claims := &jwt.StandardClaims{
+		Subject:   testClientID,
+		ExpiresAt: expirationTime,
+		IssuedAt:  time.Now().Unix(),
+		Issuer:    "vigilo-auth-server",
+	}
+
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := jwtToken.SignedString([]byte(config.GetServerConfig().JWTConfig().Secret()))
+	assert.NoError(t, err)
+
+	token.GetInMemoryTokenStore().
+		SaveToken(tokenString, testClientID, time.Now().Add(time.Duration(expirationTime)))
+	return tokenString
 }

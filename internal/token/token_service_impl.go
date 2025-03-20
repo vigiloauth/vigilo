@@ -33,7 +33,7 @@ func NewTokenService(tokenStore TokenStore) *TokenServiceImpl {
 	}
 }
 
-// GenerateToken generates a JWT token for the given subject and expiration time.
+// GenerateToken generates and saves a JWT token for the given subject and expiration time.
 //
 // Parameters:
 //
@@ -58,6 +58,7 @@ func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Du
 		return "", errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to retrieve the signed token")
 	}
 
+	ts.SaveToken(tokenString, subject, time.Now().Add(expirationTime))
 	return tokenString, nil
 }
 

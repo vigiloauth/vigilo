@@ -80,10 +80,13 @@ func (s *VigiloIdentityServer) setupRoutes() {
 		r.Post(utils.AuthEndpoints.GenerateToken, s.authHandler.IssueClientCredentialsToken)
 	})
 
-	s.router.Post(utils.ClientEndpoints.RegenerateSecret, s.clientHandler.RegenerateSecret)
-
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())
 		r.Post(utils.UserEndpoints.Logout, s.userHandler.Logout)
+
+		r.Group(func(sr chi.Router) {
+			sr.Use(s.middleware.StrictRateLimit)
+			sr.Post(utils.ClientEndpoints.RegenerateSecret, s.clientHandler.RegenerateSecret)
+		})
 	})
 }

@@ -98,8 +98,43 @@ func (cs *ClientServiceImpl) SaveClient(newClient *client.Client) (*client.Clien
 //
 //	*client.ClientSecretRegenerationResponse: If successful.
 //	error: An error if the regeneration fails.
-func (cs *ClientServiceImpl) RegenerateClientSecret(clientID string) (*client.ClientSecretRegenerateResponse, error) {
-	return nil, nil
+func (cs *ClientServiceImpl) RegenerateClientSecret(clientID string) (*client.ClientSecretRegenerationResponse, error) {
+	if clientID == "" {
+		return nil, errors.New(errors.ErrCodeEmptyInput, "missing required parameter: 'client_id'")
+	}
+
+	retrievedClient := cs.clientStore.GetClientByID(clientID)
+	if retrievedClient == nil {
+		return nil, errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
+	}
+	if !retrievedClient.HasScope(client.ClientManage) {
+		return nil, errors.New(errors.ErrCodeInvalidScope, "client does not have required scope 'client:manage'")
+	}
+	if !retrievedClient.IsConfidential() {
+		return nil, errors.New(errors.ErrCodeUnauthorizedClient, "client is not type 'confidential'")
+	}
+
+	clientSecret, err := cs.generateClientSecret()
+	if err != nil {
+		return nil, errors.Wrap(err, "", "error generating 'client_secret'")
+	}
+
+	retrievedClient.Secret, err = utils.HashString(clientSecret)
+	if err != nil {
+		return nil, errors.Wrap(err, "", "failed to encrypt 'client_secret")
+	}
+
+	updatedAt := time.Now()
+	retrievedClient.UpdatedAt = updatedAt
+	if err := cs.clientStore.UpdateClient(retrievedClient); err != nil {
+		return nil, errors.Wrap(err, "", "failed to update client")
+	}
+
+	return &client.ClientSecretRegenerationResponse{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		UpdatedAt:    updatedAt,
+	}, nil
 }
 
 // AuthenticateClientForCredentialsGrant authenticates the client using provided credentials
@@ -170,7 +205,6 @@ func (cs *ClientServiceImpl) generateUniqueClientID() (string, error) {
 //	error: An error if the client secret fails after multiple retries.
 func (cs *ClientServiceImpl) generateClientSecret() (string, error) {
 	bytes := make([]byte, 32)
-
 	if _, err := rand.Read(bytes); err != nil {
 		return "", errors.NewInternalServerError()
 	}

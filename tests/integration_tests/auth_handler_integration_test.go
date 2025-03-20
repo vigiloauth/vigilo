@@ -18,11 +18,6 @@ import (
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
-const (
-	testClientID     string = "testClientID"
-	testClientSecret string = "testSecret"
-)
-
 func setupAuthHandlerTest(auth string, includeAuth bool) *httptest.ResponseRecorder {
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
 	formData := "grant_type=client_credentials"
@@ -118,7 +113,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		assert.NoError(t, err)
 		assert.Equal(t, errResp.ErrorCode, errors.ErrCodeInvalidClient)
-		assert.Contains(t, errResp.Details, "invalid `client_secret` provided")
+		assert.Contains(t, errResp.Details, "invalid 'client_secret' provided")
 	})
 
 	t.Run("Client is missing required grant types", func(t *testing.T) {
@@ -133,7 +128,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		assert.NoError(t, err)
 		assert.Equal(t, errResp.ErrorCode, errors.ErrCodeInvalidGrantType)
-		assert.Contains(t, errResp.Details, "client does not have required grant type `client_credentials`")
+		assert.Contains(t, errResp.Details, "client does not have required grant type 'client_credentials'")
 	})
 
 	t.Run("Client is missing required scope", func(t *testing.T) {
@@ -148,7 +143,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		assert.NoError(t, err)
 		assert.Equal(t, errResp.ErrorCode, errors.ErrCodeInvalidScope)
-		assert.Contains(t, errResp.Details, "client does not have required scope `client:manage`")
+		assert.Contains(t, errResp.Details, "client does not have required scope 'client:manage'")
 	})
 }
 

@@ -167,11 +167,98 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 	})
 }
 
+func TestClientService_RegenerateClientSecret(t *testing.T) {
+	t.Run("Successful Client Secret Regeneration", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Type = client.Confidential
+		testClient.ID = testClientID
+		testClient.Secret = testClientSecret
+
+		mockClientStore := &mocks.MockClientStore{}
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockClientStore.UpdateClientFunc = func(client *client.Client) error { return nil }
+
+		cs := NewClientService(mockClientStore)
+		response, err := cs.RegenerateClientSecret(testClientID)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+		assert.Equal(t, response.ClientID, testClientID)
+		assert.NotEqual(t, response.ClientSecret, testClientSecret)
+		assert.NotNil(t, response.UpdatedAt)
+	})
+
+	t.Run("Error is returned when 'client_id' is invalid", func(t *testing.T) {
+		mockClientStore := &mocks.MockClientStore{}
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
+
+		cs := NewClientService(mockClientStore)
+		expected := errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
+		response, actual := cs.RegenerateClientSecret(testClientID)
+
+		assert.Error(t, actual)
+		assert.Nil(t, response)
+		assert.Equal(t, actual.Error(), expected.Error())
+	})
+
+	t.Run("Error is returned when client does not have required scope", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.ID = testClientID
+		testClient.Secret = testClientSecret
+		testClient.Scopes = []client.Scope{}
+
+		mockClientStore := &mocks.MockClientStore{}
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+
+		cs := NewClientService(mockClientStore)
+		expected := errors.New(errors.ErrCodeInvalidScope, "client does not have required scope 'client:manage'")
+		response, actual := cs.RegenerateClientSecret(testClientID)
+
+		assert.Error(t, actual)
+		assert.Nil(t, response)
+		assert.Equal(t, actual.Error(), expected.Error())
+	})
+
+	t.Run("Error is returned when there is an error updating the client", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.ID = testClientID
+		testClient.Secret = testClientSecret
+
+		mockClientStore := &mocks.MockClientStore{}
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockClientStore.UpdateClientFunc = func(client *client.Client) error {
+			return errors.New(errors.ErrCodeClientNotFound, "client doest exist with the given ID")
+		}
+
+		cs := NewClientService(mockClientStore)
+		response, err := cs.RegenerateClientSecret(testClientID)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+	})
+
+	t.Run("Error is returned when the client is 'public'", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.ID = testClientID
+
+		mockClientStore := &mocks.MockClientStore{}
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+
+		cs := NewClientService(mockClientStore)
+		expected := errors.New(errors.ErrCodeUnauthorizedClient, "client is not type 'confidential'")
+		response, actual := cs.RegenerateClientSecret(testClientID)
+
+		assert.Error(t, actual)
+		assert.Equal(t, actual.Error(), expected.Error())
+		assert.Nil(t, response)
+	})
+}
+
 func createTestClient() *client.Client {
 	return &client.Client{
 		Name:         "Test Name",
 		RedirectURIS: []string{"https://localhost/callback"},
-		GrantTypes:   []client.GrantType{client.AuthorizationCode},
-		Scopes:       []client.Scope{client.ClientRead, client.ClientWrite},
+		GrantTypes:   []client.GrantType{client.AuthorizationCode, client.ClientCredentials},
+		Scopes:       []client.Scope{client.ClientRead, client.ClientWrite, client.ClientManage},
 	}
 }
