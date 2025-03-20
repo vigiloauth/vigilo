@@ -31,7 +31,7 @@ type ServiceContainer struct {
 	passwordResetEmailService email.EmailService
 	emailNotificationService  email.EmailService
 
-	tokenManager         token.TokenService
+	tokenService         token.TokenService
 	sessionService       session.Session
 	registrationService  registration.Registration
 	authService          auth.Authentication
@@ -40,6 +40,7 @@ type ServiceContainer struct {
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
+	authHandler   *handlers.AuthHandler
 
 	middleware *middleware.Middleware
 	tlsConfig  *tls.Config
@@ -66,18 +67,18 @@ func (c *ServiceContainer) initializeInMemoryStores() {
 	c.tokenStore = token.GetInMemoryTokenStore()
 	c.userStore = users.GetInMemoryUserStore()
 	c.loginAttemptStore = login.NewInMemoryLoginAttemptStore()
-	c.clientStore = clientStore.NewInMemoryClientStore()
+	c.clientStore = clientStore.GetInMemoryClientStore()
 }
 
 // initializeServices initializes the various services used by the service container.
 func (c *ServiceContainer) initializeServices() {
 	c.passwordResetEmailService, _ = email.NewPasswordResetEmailService()
 	c.emailNotificationService, _ = email.NewEmailNotificationService()
-	c.tokenManager = token.NewTokenService(c.tokenStore)
-	c.sessionService = session.NewSessionService(c.tokenManager, c.tokenStore)
-	c.passwordResetService = password.NewPasswordResetService(c.tokenManager, c.userStore, c.passwordResetEmailService)
-	c.registrationService = registration.NewRegistrationService(c.userStore, c.tokenManager)
-	c.authService = auth.NewAuthenticationService(c.userStore, c.loginAttemptStore, c.tokenManager)
+	c.tokenService = token.NewTokenService(c.tokenStore)
+	c.sessionService = session.NewSessionService(c.tokenService, c.tokenStore)
+	c.passwordResetService = password.NewPasswordResetService(c.tokenService, c.userStore, c.passwordResetEmailService)
+	c.registrationService = registration.NewRegistrationService(c.userStore, c.tokenService)
+	c.authService = auth.NewAuthenticationService(c.userStore, c.loginAttemptStore, c.tokenService)
 	c.clientService = client.NewClientService(c.clientStore)
 }
 
@@ -85,12 +86,13 @@ func (c *ServiceContainer) initializeServices() {
 func (c *ServiceContainer) initializeHandlers() {
 	c.userHandler = handlers.NewUserHandler(c.registrationService, c.authService, c.passwordResetService, c.sessionService)
 	c.clientHandler = handlers.NewClientHandler(c.clientService)
+	c.authHandler = handlers.NewAuthHandler(c.tokenService, c.clientService)
 }
 
 // initializeServerConfigs initializes the server-related configurations,
 // including middleware, TLS configuration, and the HTTP server.
 func (c *ServiceContainer) initializeServerConfigs() {
-	c.middleware = middleware.NewMiddleware(c.tokenManager, c.tokenManager)
+	c.middleware = middleware.NewMiddleware(c.tokenService, c.tokenService)
 	c.tlsConfig = initializeTLSConfig()
 	c.httpServer = initializeHTTPServer(c.tlsConfig)
 }
