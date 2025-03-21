@@ -1,7 +1,7 @@
 # Static Client Registration
 ## Endpoint
 ```
-POST https://localhost:<port>/<uri>/clients
+POST https://localhost:<port>/<uri>/auth/clients
 ```
 ---
 ### Headers

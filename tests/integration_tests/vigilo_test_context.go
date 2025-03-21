@@ -15,6 +15,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/client"
 	clientStore "github.com/vigiloauth/vigilo/internal/client/store"
+	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/token"
 	"github.com/vigiloauth/vigilo/internal/users"
 	"github.com/vigiloauth/vigilo/internal/utils"
@@ -212,6 +213,16 @@ func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Re
 	tc.addHeaderAuth(req, headers)
 
 	return tc.HttpClient.Do(req)
+}
+
+// AssertErrorResponse checks to see if the test returns a correct error.
+func (tc *VigiloTestContext) AssertErrorResponse(rr *httptest.ResponseRecorder) {
+	var errResp errors.VigiloAuthError
+	err := json.NewDecoder(rr.Body).Decode(&errResp)
+	assert.NoError(tc.T, err)
+
+	assert.NoError(tc.T, err, "Failed to unmarshal response body")
+	assert.Contains(tc.T, errResp, "error", "Expected error in response, got none")
 }
 
 // TearDown performs cleanup operations.

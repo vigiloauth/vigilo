@@ -167,7 +167,7 @@ func (p *PasswordResetService) constructResetURL(resetToken string) (string, err
 //	error: An error if sending the email fails.
 func (p *PasswordResetService) generateAndSendEmail(userEmail, resetURL, resetToken string) error {
 	emailRequest := email.NewPasswordResetRequest(userEmail, resetURL, resetToken, time.Now().Add(tokenDuration))
-	emailRequest = *p.emailService.GenerateEmail(emailRequest)
+	emailRequest = *p.emailService.GenerateEmailRequest(emailRequest)
 	if err := p.emailService.SendEmail(emailRequest); err != nil {
 		return errors.Wrap(err, "", "failed to send email")
 	}

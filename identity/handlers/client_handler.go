@@ -63,16 +63,6 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSON(w, http.StatusCreated, response)
 }
 
-// write integration tests
-// clean up integration tests
-// 	- client
-//	- user
-//	- auth
-//	- create reusable methods
-// Refactor service layer to return object rather than DTO
-// Send message when secret is regenerated
-// Write docs
-
 // RegenerateSecret is the HTTP handler for regenerating client secrets.
 func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request) {
 	clientID := h.extractClientIDFromURL(w, r)

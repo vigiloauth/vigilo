@@ -100,7 +100,7 @@ func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
 			}
 
 			mockEmailService := &mocks.MockEmailService{
-				GenerateEmailFunc: func(request email.EmailRequest) *email.EmailRequest {
+				GenerateEmailRequestFunc: func(request email.EmailRequest) *email.EmailRequest {
 					return &request
 				},
 				SendEmailFunc: tc.mockEmailSendFunc,

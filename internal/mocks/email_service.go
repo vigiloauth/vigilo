@@ -12,7 +12,7 @@ type MockEmailService struct {
 	SendEmailFunc func(request email.EmailRequest) error
 
 	// GenerateEmailFunc is a mock function for the GenerateEmail method.
-	GenerateEmailFunc func(request email.EmailRequest) *email.EmailRequest
+	GenerateEmailRequestFunc func(request email.EmailRequest) *email.EmailRequest
 
 	// SetTemplateFunc is a mock function for the SetTemplate method.
 	SetTemplateFunc func(template string) error
@@ -31,6 +31,12 @@ type MockEmailService struct {
 
 	// ClearQueueFunc is a mock function for the ClearQueue method.
 	ClearQueueFunc func()
+
+	// GetDefaultTemplateFunc is a mock function for the GetDefaultTemplate method.
+	GetDefaultTemplateFunc func() string
+
+	// ShouldRetryEmailFunc is a mock function for the ShouldRetryEmail method.
+	ShouldRetryEmailFunc func(now time.Time, request email.EmailRequest) bool
 }
 
 // SendEmail calls the mock SendEmailFunc.
@@ -39,8 +45,8 @@ func (m *MockEmailService) SendEmail(request email.EmailRequest) error {
 }
 
 // GenerateEmail calls the mock GenerateEmailFunc.
-func (m *MockEmailService) GenerateEmail(request email.EmailRequest) *email.EmailRequest {
-	return m.GenerateEmailFunc(request)
+func (m *MockEmailService) GenerateEmailRequest(request email.EmailRequest) *email.EmailRequest {
+	return m.GenerateEmailRequestFunc(request)
 }
 
 // SetTemplate calls the mock SetTemplateFunc.

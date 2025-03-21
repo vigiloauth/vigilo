@@ -13,42 +13,50 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
-// Ensure EmailNotificationService implements the EmailService interface.
-var _ EmailService = (*EmailNotificationService)(nil)
+var _ EmailService = (*BaseEmailService)(nil)
 
-// EmailNotificationService handles email sending and queue processing.
-type EmailNotificationService struct {
-	smtpConfig   *config.SMTPConfig // SMTP server configuration.
-	template     *template.Template // Email template.
-	requests     []EmailRequest     // Queue of email requests.
-	requestMutex sync.Mutex         // Mutex for protecting the requests queue.
+// BaseEmailService provides common email functionality.
+type BaseEmailService struct {
+	smtpConfig      *config.SMTPConfig                 // SMTP server configuration.
+	template        *template.Template                 // Email template.
+	requests        []EmailRequest                     // Queue of email requests.
+	requestMutex    sync.Mutex                         // Mutex for protecting the requests queue.
+	getTemplateFunc func() string                      // Function pointer for getting the default template
+	shouldRetryFunc func(time.Time, EmailRequest) bool // Function pointer for retry logic
 }
 
-// NewEmailNotificationService creates a new EmailNotificationService instance.
+// Initialize sets up the base email service.
 //
 // Returns:
 //
-//	*EmailNotificationService: A new EmailNotificationService instance.
-//	error: An error if SMTP configuration is invalid or template loading fails.
-func NewEmailNotificationService() (*EmailNotificationService, error) {
+//	error: If an error occurs initializing the email service.
+func (es *BaseEmailService) Initialize() error {
 	smtpConfig := config.GetServerConfig().SMTPConfig()
 	if smtpConfig == nil {
-		return nil, errors.New(errors.ErrCodeEmptyInput, "SMTP Configuration is nil")
+		return errors.New(errors.ErrCodeEmptyInput, "SMTP configuration has not been provided")
 	}
 
 	if err := validateSMTPConfig(smtpConfig); err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeValidationError, "failed to validate SMTP Credentials")
+		return errors.Wrap(err, errors.ErrCodeValidationError, "failed to validate SMTP Credentials")
 	}
 
-	es := &EmailNotificationService{smtpConfig: smtpConfig}
+	if es.getTemplateFunc == nil {
+		es.getTemplateFunc = es.getDefaultTemplate
+	}
+
+	if es.shouldRetryFunc == nil {
+		es.shouldRetryFunc = es.shouldRetryEmail
+	}
+
+	es.smtpConfig = smtpConfig
 	if err := es.loadEmailTemplate(); err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeEmailTemplateParseFailed, "Failed to load email template")
+		return errors.Wrap(err, errors.ErrCodeEmailTemplateParseFailed, "failed to load email template")
 	}
 
-	return es, nil
+	return nil
 }
 
-// SendEmail sends an email or adds it to the retry queue if sending fails.
+// SendEmail sends an email based on the provided EmailRequest.
 //
 // Parameters:
 //
@@ -57,51 +65,36 @@ func NewEmailNotificationService() (*EmailNotificationService, error) {
 // Returns:
 //
 //	error: An error if sending the email fails.
-func (es *EmailNotificationService) SendEmail(request EmailRequest) error {
-	err := es.sendEmail(request)
-	if err != nil {
+func (es *BaseEmailService) SendEmail(request EmailRequest) error {
+	if err := es.sendEmail(request); err != nil {
 		es.requestMutex.Lock()
 		defer es.requestMutex.Unlock()
 		es.retryEmail(&request)
-		return errors.Wrap(err, errors.ErrCodeEmailDeliveryFailed, "email delivery failed, added to retry queue")
+		return errors.Wrap(
+			err, errors.ErrCodeEmailDeliveryFailed,
+			"failed to deliver email, added to retry queue",
+		)
 	}
 
 	return nil
 }
 
-// GenerateEmail generates an EmailRequest for account locked notifications.
+// SetTemplate sets the email template to be used for sending emails.
 //
 // Parameters:
 //
-//	request EmailRequest: The base email request.
+//	template string: The path to the email template.
 //
 // Returns:
 //
-//	*EmailRequest: The generated email request.
-func (es *EmailNotificationService) GenerateEmail(request EmailRequest) *EmailRequest {
-	return &EmailRequest{
-		Recipient: request.Recipient,
-		Subject:   fmt.Sprintf("[%s] Account Locked Notification", request.ApplicationID),
-		TemplateData: TemplateData{
-			AppName:   request.ApplicationID,
-			UserEmail: request.Recipient,
-		},
-	}
-}
-
-// SetTemplate sets the email template from a string.
-//
-// Parameters:
-//
-//	tmplContent string: The template content.
-//
-// Returns:
-//
-//	error: An error if parsing the template fails.
-func (es *EmailNotificationService) SetTemplate(tmplContent string) error {
+//	error: An error if setting the template fails.
+func (es *BaseEmailService) SetTemplate(tmplContent string) error {
 	tmpl, err := template.New("email").Parse(tmplContent)
 	if err != nil {
-		return errors.Wrap(err, errors.ErrCodeEmailTemplateParseFailed, "failed to parse email template")
+		return errors.Wrap(
+			err, errors.ErrCodeEmailTemplateParseFailed,
+			"failed to parse email template",
+		)
 	}
 
 	es.template = tmpl
@@ -113,17 +106,20 @@ func (es *EmailNotificationService) SetTemplate(tmplContent string) error {
 // Returns:
 //
 //	error: An error if the connection test fails.
-func (es *EmailNotificationService) TestConnection() error {
+func (es *BaseEmailService) TestConnection() error {
 	client, err := es.createClient()
 	if err != nil {
-		return errors.Wrap(err, errors.ErrCodeSMTPServerConnectionFailed, "failed to create SMTP Client")
+		return errors.Wrap(
+			err, errors.ErrCodeSMTPServerConnectionFailed,
+			"failed to create SMTP Client",
+		)
 	}
 	defer client.Quit()
 	return nil
 }
 
 // ProcessQueue processes the email retry queue.
-func (es *EmailNotificationService) ProcessQueue() {
+func (es *BaseEmailService) ProcessQueue() {
 	es.requestMutex.Lock()
 	defer es.requestMutex.Unlock()
 
@@ -131,10 +127,13 @@ func (es *EmailNotificationService) ProcessQueue() {
 	now := time.Now()
 
 	for _, request := range es.requests {
-		if es.shouldRetryEmail(now, request) {
+		if es.shouldRetryFunc(now, request) {
 			if err := es.sendEmail(request); err != nil {
-				request.RetryCount++
-				request.LastAttempt = now
+				es.retryEmail(&request)
+				remainingRequests = append(remainingRequests, request)
+			}
+		} else {
+			if request.RetryCount < es.smtpConfig.MaxRetries() {
 				remainingRequests = append(remainingRequests, request)
 			}
 		}
@@ -148,7 +147,7 @@ func (es *EmailNotificationService) ProcessQueue() {
 // Parameters:
 //
 //	interval time.Duration: The interval between queue processing.
-func (es *EmailNotificationService) StartQueueProcessor(interval time.Duration) {
+func (es *BaseEmailService) StartQueueProcessor(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	go func() {
 		for range ticker.C {
@@ -157,20 +156,14 @@ func (es *EmailNotificationService) StartQueueProcessor(interval time.Duration) 
 	}()
 }
 
-// ClearQueue clears the email retry queue.
-func (es *EmailNotificationService) ClearQueue() {
-	es.requestMutex.Lock()
-	defer es.requestMutex.Unlock()
-	es.requests = []EmailRequest{}
-}
-
-// GetQueueStatus returns the current status of the email queue.
+// GetQueueStatus returns the current status of the email queue, including queue length and retry counts.
 //
 // Returns:
 //
-//	int: The number of emails in the queue.
-//	map[string]int: A map of recipient email addresses to retry counts.
-func (es *EmailNotificationService) GetQueueStatus() (int, map[string]int) {
+//	int: The current length of the email queue.
+//
+//	map[string]int: A map of application IDs to retry counts.
+func (es *BaseEmailService) GetQueueStatus() (int, map[string]int) {
 	es.requestMutex.Lock()
 	defer es.requestMutex.Unlock()
 
@@ -182,6 +175,13 @@ func (es *EmailNotificationService) GetQueueStatus() (int, map[string]int) {
 	return len(es.requests), recipients
 }
 
+// ClearQueue clears the email queue.
+func (es *BaseEmailService) ClearQueue() {
+	es.requestMutex.Lock()
+	defer es.requestMutex.Unlock()
+	es.requests = []EmailRequest{}
+}
+
 // sendEmail sends an email using the configured SMTP settings.
 //
 // Parameters:
@@ -191,17 +191,20 @@ func (es *EmailNotificationService) GetQueueStatus() (int, map[string]int) {
 // Returns:
 //
 //	error: An error if sending the email fails.
-func (es *EmailNotificationService) sendEmail(request EmailRequest) error {
+func (es *BaseEmailService) sendEmail(request EmailRequest) error {
 	if es.template == nil {
-		return errors.New(errors.ErrCodeEmptyInput, "`email template` cannot be nil")
+		return errors.New(errors.ErrCodeEmptyInput, "'email template' cannot be empty")
 	}
 
-	var body bytes.Buffer
-	if err := es.template.Execute(&body, request.TemplateData); err != nil {
-		return errors.Wrap(err, errors.ErrCodeTemplateRenderingFailed, "failed to render email template")
+	var emailBody bytes.Buffer
+	if err := es.template.Execute(&emailBody, request.TemplateData); err != nil {
+		return errors.Wrap(
+			err, errors.ErrCodeTemplateRenderingFailed,
+			"failed to render email template",
+		)
 	}
 
-	message := es.buildMessage(request, body)
+	message := es.buildMessage(request, emailBody)
 	return es.sendWithEncryption(request.Recipient, message)
 }
 
@@ -215,7 +218,8 @@ func (es *EmailNotificationService) sendEmail(request EmailRequest) error {
 // Returns:
 //
 //	string: The formatted email message.
-func (es *EmailNotificationService) buildMessage(request EmailRequest, body bytes.Buffer) string {
+func (es *BaseEmailService) buildMessage(request EmailRequest, emailBody bytes.Buffer) string {
+	// Create header
 	from := es.smtpConfig.FromAddress()
 	if es.smtpConfig.Credentials() != nil && es.smtpConfig.Credentials().Username() != "" {
 		from = fmt.Sprintf("%s <%s>", es.smtpConfig.FromName(), es.smtpConfig.FromAddress())
@@ -231,7 +235,7 @@ func (es *EmailNotificationService) buildMessage(request EmailRequest, body byte
 		message += fmt.Sprintf("Reply-To: %s\r\n", es.smtpConfig.ReplyTo())
 	}
 
-	message += "\r\n" + body.String()
+	message += "\r\n" + emailBody.String()
 	return message
 }
 
@@ -245,7 +249,7 @@ func (es *EmailNotificationService) buildMessage(request EmailRequest, body byte
 // Returns:
 //
 //	error: An error if sending the email fails.
-func (es *EmailNotificationService) sendWithEncryption(recipient, message string) error {
+func (es *BaseEmailService) sendWithEncryption(recipient, message string) error {
 	serverAddress := fmt.Sprintf("%s:%d", es.smtpConfig.Server(), es.smtpConfig.Port())
 	fromAddress := es.smtpConfig.FromAddress()
 	recipients := []string{recipient}
@@ -322,16 +326,15 @@ func (es *EmailNotificationService) sendWithEncryption(recipient, message string
 // Returns:
 //
 //	error: An error if authentication fails.
-func (es *EmailNotificationService) authenticateClient(client *smtp.Client) error {
-	if es.smtpConfig.Credentials() != nil && es.smtpConfig.Credentials().Username() != "" {
-		auth := smtp.PlainAuth(
-			"",
+func (es *BaseEmailService) authenticateClient(smtpClient *smtp.Client) error {
+	if es.smtpConfig.Credentials() != nil &&
+		es.smtpConfig.Credentials().Username() != "" {
+		auth := smtp.PlainAuth("",
 			es.smtpConfig.Credentials().Username(),
 			es.smtpConfig.Credentials().Password(),
 			es.smtpConfig.Server(),
 		)
-
-		if err := client.Auth(auth); err != nil {
+		if err := smtpClient.Auth(auth); err != nil {
 			return errors.Wrap(
 				err, errors.ErrCodeSMTPAuthenticationFailed,
 				"failed to authenticate SMTP client",
@@ -342,13 +345,74 @@ func (es *EmailNotificationService) authenticateClient(client *smtp.Client) erro
 	return nil
 }
 
+func (es *BaseEmailService) loadEmailTemplate() error {
+	var err error
+	if es.smtpConfig.TemplatePath() != "" {
+		es.template, err = template.ParseFiles(es.smtpConfig.TemplatePath())
+		if err != nil {
+			return errors.Wrap(err, errors.ErrCodeEmailTemplateParseFailed, "failed to parse email template(s)")
+		}
+	} else {
+		defaultTemplate := es.getTemplateFunc()
+		if defaultTemplate == "" {
+			return errors.New(errors.ErrCodeEmptyInput, "default template not provided")
+		}
+
+		es.template, err = template.New("default").Parse(defaultTemplate)
+		if err != nil {
+			return errors.Wrap(err, errors.ErrCodeEmailTemplateParseFailed, "failed to parse default template")
+		}
+	}
+	return nil
+}
+
+// validateSMTP config validates the servers SMTP configuration
+//
+// Parameters:
+//
+//	smtpConfig *config.SMTPConfig: The SMTP configuration.
+//
+// Returns:
+//
+//	error: If there is an error validating the configuration, otherwise nil.
+func validateSMTPConfig(smtpConfig *config.SMTPConfig) error {
+	if smtpConfig.Server() == "" {
+		return errors.New(errors.ErrCodeEmptyInput, "invalid or empty `SMTP Server`")
+	}
+
+	if smtpConfig.Port() == 0 {
+		smtpConfig.SetPort(config.DefaultSMTPPort)
+	}
+
+	if smtpConfig.Encryption() == "" {
+		smtpConfig.SetEncryption(config.StartTLS)
+	}
+
+	if smtpConfig.FromAddress() == "" {
+		return errors.New(errors.ErrCodeEmptyInput, "invalid or empty 'from_address'")
+	}
+
+	return nil
+}
+
+// retryEmail increments the retry count and adds the email request to the retry queue.
+//
+// Parameters:
+//
+//	request *EmailRequest: The email request to retry.
+func (es *BaseEmailService) retryEmail(request *EmailRequest) {
+	request.RetryCount++
+	request.LastAttempt = time.Now()
+	es.requests = append(es.requests, *request)
+}
+
 // createClient creates an SMTP client based on the configured encryption type.
 //
 // Returns:
 //
 //	*smtp.Client: The created SMTP client.
 //	error: An error if client creation fails.
-func (es *EmailNotificationService) createClient() (*smtp.Client, error) {
+func (es *BaseEmailService) createClient() (*smtp.Client, error) {
 	serverAddress := fmt.Sprintf("%s:%d", es.smtpConfig.Server(), es.smtpConfig.Port())
 
 	var client *smtp.Client
@@ -395,6 +459,26 @@ func (es *EmailNotificationService) createClient() (*smtp.Client, error) {
 	return client, nil
 }
 
+// Template methods that should be overridden by concrete implementations
+
+// GenerateEmailRequest generates an email request (to be implemented by subclasses).
+func (es *BaseEmailService) GenerateEmailRequest(request EmailRequest) *EmailRequest {
+	// This should be overridden by concrete implementations
+	return nil
+}
+
+// getDefaultTemplate returns the default email template as a string.
+//
+// Returns:
+//
+//	string: The default email template.
+func (es *BaseEmailService) getDefaultTemplate() string {
+	if es.getTemplateFunc != nil {
+		return es.getTemplateFunc()
+	}
+	return ""
+}
+
 // shouldRetryEmail determines if an email should be retried based on retry count and delay.
 //
 // Parameters:
@@ -405,7 +489,7 @@ func (es *EmailNotificationService) createClient() (*smtp.Client, error) {
 // Returns:
 //
 //	bool: True if the email should be retried, false otherwise.
-func (es *EmailNotificationService) shouldRetryEmail(now time.Time, request EmailRequest) bool {
+func (es *BaseEmailService) shouldRetryEmail(now time.Time, request EmailRequest) bool {
 	if request.RetryCount >= es.smtpConfig.MaxRetries() {
 		return false
 	}
@@ -415,50 +499,4 @@ func (es *EmailNotificationService) shouldRetryEmail(now time.Time, request Emai
 	}
 
 	return true
-}
-
-// loadEmailTemplate loads the email template from the configured path or uses the default template.
-//
-// Returns:
-//
-//	error: An error if loading the template fails.
-func (es *EmailNotificationService) loadEmailTemplate() error {
-	var err error
-	if es.smtpConfig.TemplatePath() != "" {
-		es.template, err = template.ParseFiles(es.smtpConfig.TemplatePath())
-		if err != nil {
-			return errors.Wrap(err, errors.ErrCodeEmailTemplateParseFailed, "failed to parse email template(s)")
-		}
-	} else {
-		es.template, err = template.New("default").Parse(es.getDefaultTemplate())
-		if err != nil {
-			return errors.Wrap(err, errors.ErrCodeEmailTemplateParseFailed, "failed to parse default template")
-		}
-	}
-	return nil
-}
-
-// retryEmail increments the retry count and adds the email request to the retry queue.
-//
-// Parameters:
-//
-//	request *EmailRequest: The email request to retry.
-func (es *EmailNotificationService) retryEmail(request *EmailRequest) {
-	request.RetryCount++
-	request.LastAttempt = time.Now()
-	es.requests = append(es.requests, *request)
-}
-
-// getDefaultTemplate returns the default email template as a string.
-//
-// Returns:
-//
-//	string: The default email template.
-func (es *EmailNotificationService) getDefaultTemplate() string {
-	return `
-	<p>Hello,</p>
-	<p>Your account has been locked due to too many failed login attempts. Please reset
-	your password to unlock your account</p>
-	<p>Sincerely,<br>{{.AppName}}</p>
-	`
 }

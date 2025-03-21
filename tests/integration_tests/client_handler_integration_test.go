@@ -4,25 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/identity/server"
 	"github.com/vigiloauth/vigilo/internal/client"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
-
-func setupTest(requestBody []byte) *httptest.ResponseRecorder {
-	vigiloIdentityServer := server.NewVigiloIdentityServer()
-	req := httptest.NewRequest(http.MethodPost, utils.ClientEndpoints.Registration, bytes.NewBuffer(requestBody))
-	req.Header.Set("Content-Type", "application/json")
-	rr := httptest.NewRecorder()
-	vigiloIdentityServer.Router().ServeHTTP(rr, req)
-	return rr
-}
 
 func TestClientHandler_RegisterClient(t *testing.T) {
 	tests := []struct {
@@ -196,7 +185,6 @@ func TestClientHandler_RegisterClient_RateLimitingExceeded(t *testing.T) {
 			bytes.NewReader(requestBody),
 			nil,
 		)
-
 		assert.Equal(t, http.StatusCreated, rr.Code, "Request %d should succeed", i+1)
 	}
 
@@ -232,15 +220,19 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 	assert.NotZero(t, response.UpdatedAt)
 }
 
-func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsError(t *testing.T) {}
+func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsError(t *testing.T) {
+	testContext := NewVigiloTestContext(t)
+	testContext.WithClient(
+		client.Confidential,
+		[]client.Scope{client.ClientManage},
+		[]client.GrantType{client.ClientCredentials},
+	).WithClientCredentialsToken()
 
-func TestClientHandler_RegenerateClientSecret_PublicClientReturnsError(t *testing.T) {}
+	endpoint := strings.Replace(utils.ClientEndpoints.RegenerateSecret, "{client_id}", "", 1)
+	rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, nil)
 
-func TestClientHandler_RegenerateClientSecret_InvalidScopes_ReturnsError(t *testing.T) {}
-
-func TestClientHandler_RegenerateClientSecret_RateLimitingExceeded(t *testing.T) {}
-
-func TestClientHandler_RegenerateClientSecret_ExpiredToken(t *testing.T) {}
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
 
 func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 	return &client.ClientRegistrationRequest{
