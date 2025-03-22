@@ -78,7 +78,7 @@ func (h *AuthHandler) IssueClientCredentialsToken(w http.ResponseWriter, r *http
 func extractBasicAuth(r *http.Request) (string, string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Basic ") {
-		return "", "", errors.New(errors.ErrCodeInvalidRequest, "invalid authorization header")
+		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid authorization header")
 	}
 
 	credentials, err := base64.StdEncoding.DecodeString(authHeader[6:])

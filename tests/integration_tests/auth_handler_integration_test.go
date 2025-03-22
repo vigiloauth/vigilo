@@ -43,13 +43,13 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 		rr := sendTokenGenerationRequest(testContext, headers)
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 		var errResp errors.VigiloAuthError
 		err := json.NewDecoder(rr.Body).Decode(&errResp)
 		assert.NoError(t, err)
 
-		assert.Equal(t, errors.ErrCodeInvalidRequest, errResp.ErrorCode)
+		assert.Equal(t, errors.ErrCodeInvalidClient, errResp.ErrorCode)
 		assert.Contains(t, errResp.ErrorDescription, "invalid authorization header")
 	})
 
