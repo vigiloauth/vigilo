@@ -1,0 +1,66 @@
+package domain
+
+// ClientService defines the interface for managing client registration.
+type ClientService interface {
+	// SaveClient registers a new public client.
+	//
+	// Parameters:
+	//
+	//   newClient *Client: The client to be registered.
+	//
+	// Returns:
+	//
+	//   *ClientRegistrationResponse: The response containing client details.
+	//   error: An error if the registration fails.
+	SaveClient(newClient *Client) (*ClientRegistrationResponse, error)
+
+	// RegenerateClientSecret regenerates a client secret.
+	//
+	// Parameters
+	//
+	//	clientID string: The ID of the client.
+	//
+	// Returns:
+	//
+	//  *ClientSecretRegenerationResponse: If successful
+	//  error: An error if the regeneration fails.
+	RegenerateClientSecret(clientID string) (*ClientSecretRegenerationResponse, error)
+
+	// AuthenticateClientForCredentialsGrant authenticates the client using provided credentials
+	// and authorizes access by validating required grant types and scopes.
+	//
+	// Parameters:
+	//
+	//	clientID string: The ID of the client.
+	//	clientSecret string: The client secret.
+	//
+	// Returns:
+	//
+	//	*Client: The authenticated client if successful.
+	//	error: An error if authentication or authorization fails.
+	AuthenticateClientForCredentialsGrant(clientID, clientSecret string) (*Client, error)
+
+	// GetClientByID retrieves a client by the given ID.
+	//
+	// Parameters:
+	//
+	//	clientID string: The ID of the client.
+	//
+	// Returns:
+
+	//	client *Client: Returns the client if they exist, otherwise nil.
+	GetClientByID(clientID string) *Client
+
+	// ValidateClientRedirectURI checks to see if the redirectURI exists based on
+	// an existing client's saved redirectURIs
+	//
+	// Parameters:
+	//
+	//	redirectURI string: The redirectURI to validate against.
+	//	client *Client: The existing client.
+	//
+	// Returns:
+	//
+	//	error: Returns an error if the client does not contain the given redirectURI.
+	ValidateClientRedirectURI(redirectURI string, existingClient *Client) error
+}

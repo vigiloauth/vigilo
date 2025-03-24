@@ -1,11 +1,16 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/vigiloauth/vigilo/internal/web"
+)
 
 // LoginConfig holds the configuration for login attempt throttling.
 type LoginConfig struct {
 	maxFailedAttempts int           // Maximum number of failed login attempts allowed.
 	delay             time.Duration // Delay duration after exceeding max failed attempts.
+	loginURL          string
 }
 
 // LoginConfigOptions is a function type used to configure LoginConfig options.
@@ -29,6 +34,7 @@ func NewLoginConfig(opts ...LoginConfigOptions) *LoginConfig {
 	lc := &LoginConfig{
 		maxFailedAttempts: defaultMaxFailedAttempts,
 		delay:             defaultDelay,
+		loginURL:          web.UserEndpoints.Login,
 	}
 
 	for _, opt := range opts {
@@ -79,6 +85,30 @@ func WithDelay(delay time.Duration) LoginConfigOptions {
 //	int: The maximum number of failed login attempts.
 func (lc *LoginConfig) MaxFailedAttempts() int {
 	return lc.maxFailedAttempts
+}
+
+// WithLoginURL allows the user to define their own login URL.
+//
+// Parameters:
+//
+//	url string: The login url
+//
+// Returns:
+//
+// LoginConfigOptions: A function that configures the login url.
+func WithLoginURL(url string) LoginConfigOptions {
+	return func(lc *LoginConfig) {
+		lc.loginURL = url
+	}
+}
+
+// LoginURL returns the predefined login URL.
+//
+// Returns:
+//
+//	string: The predefined login URL.
+func (lc *LoginConfig) LoginURL() string {
+	return lc.loginURL
 }
 
 // Delay returns the delay duration from the LoginConfig.

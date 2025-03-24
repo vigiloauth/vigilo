@@ -1,24 +1,23 @@
 package handlers
 
 import (
-	"encoding/base64"
 	"net/http"
-	"strings"
 	"time"
 
-	client "github.com/vigiloauth/vigilo/internal/client/service"
+	"github.com/vigiloauth/vigilo/internal/common"
+	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/token"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/internal/web"
 )
 
-// AuthHandler handles HTTP requests related to authentication.
-type AuthHandler struct {
+// AuthenticationHandler handles HTTP requests related to authentication.
+type AuthenticationHandler struct {
 	tokenService  token.TokenService
 	clientService client.ClientService
 }
 
-// NewAuthHandler creates a new instance of AuthHandler.
+// NewAuthenticationHandler creates a new instance of AuthHandler.
 //
 // Parameters:
 //
@@ -27,69 +26,49 @@ type AuthHandler struct {
 //
 // Returns:
 //
-//	*AuthHandler: A new NewAuthHandler instance.
-func NewAuthHandler(tokenService token.TokenService, clientService client.ClientService) *AuthHandler {
-	return &AuthHandler{
+//	*AuthHandler: A new AuthHandler instance.
+func NewAuthenticationHandler(tokenService token.TokenService, clientService client.ClientService) *AuthenticationHandler {
+	return &AuthenticationHandler{
 		tokenService:  tokenService,
 		clientService: clientService,
 	}
 }
 
 // IssueClientCredentialsToken is the handler responsible for generating new tokens.
-func (h *AuthHandler) IssueClientCredentialsToken(w http.ResponseWriter, r *http.Request) {
+func (h *AuthenticationHandler) IssueClientCredentialsToken(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		utils.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "invalid request format"))
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "invalid request format"))
 		return
 	}
 
-	grantType := r.Form.Get("grant_type")
-	if grantType != "client_credentials" {
-		utils.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "unsupported grant type"))
+	grantType := r.Form.Get(common.GrantType)
+	if grantType != common.ClientCredentials {
+		web.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "unsupported grant type"))
 		return
 	}
 
-	clientID, clientSecret, err := extractBasicAuth(r)
+	clientID, clientSecret, err := web.ExtractBasicAuth(r)
 	if err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
 	if _, err := h.clientService.AuthenticateClientForCredentialsGrant(clientID, clientSecret); err != nil {
-		utils.WriteError(w, errors.Wrap(err, "", "invalid client credentials"))
+		web.WriteError(w, errors.Wrap(err, "", "invalid client credentials"))
 		return
 	}
 
 	tokenExpirationTime := 30 * time.Minute
 	accessToken, err := h.tokenService.GenerateToken(clientID, tokenExpirationTime)
 	if err != nil {
-		utils.WriteError(w, errors.NewInternalServerError())
+		web.WriteError(w, errors.NewInternalServerError())
 		return
 	}
 
 	w.Header().Set("Cache-Control", "no-store")
-	utils.WriteJSON(w, http.StatusOK, &token.TokenResponse{
-		TokenType:   token.BearerToken,
+	web.WriteJSON(w, http.StatusOK, &token.TokenResponse{
 		AccessToken: accessToken,
+		TokenType:   token.BearerToken,
 		ExpiresIn:   int(tokenExpirationTime.Seconds()),
 	})
-}
-
-// extractBasicAuth extracts and validates Basic Auth credentials from a request
-func extractBasicAuth(r *http.Request) (string, string, error) {
-	authHeader := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Basic ") {
-		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid authorization header")
-	}
-
-	credentials, err := base64.StdEncoding.DecodeString(authHeader[6:])
-	if err != nil {
-		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
-	}
-
-	parts := strings.SplitN(string(credentials), ":", 2)
-	if len(parts) != 2 {
-		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid credentials format")
-	}
-
-	return parts[0], parts[1], nil
 }

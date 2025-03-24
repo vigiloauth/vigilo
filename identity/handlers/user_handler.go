@@ -1,26 +1,21 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/vigiloauth/vigilo/identity/config"
-	auth "github.com/vigiloauth/vigilo/internal/auth/authentication"
-	login "github.com/vigiloauth/vigilo/internal/auth/loginattempt"
-	password "github.com/vigiloauth/vigilo/internal/auth/passwordreset"
-	registration "github.com/vigiloauth/vigilo/internal/auth/registration"
-	session "github.com/vigiloauth/vigilo/internal/auth/session"
+	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
+	session "github.com/vigiloauth/vigilo/internal/domain/session"
+	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/users"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/internal/web"
 )
 
 // UserHandler handles HTTP requests related to user operations.
 type UserHandler struct {
-	registrationService  registration.Registration
-	authService          auth.Authentication
-	passwordResetService password.PasswordReset
-	sessionService       session.Session
+	userService          users.UserService
+	passwordResetService password.PasswordResetService
+	sessionService       session.SessionService
 	jwtConfig            *config.JWTConfig
 }
 
@@ -28,22 +23,19 @@ type UserHandler struct {
 //
 // Parameters:
 //
-//	registrationService registration.Registration: The registration service.
-//	authService auth.Authentication: The authentication service.
-//	passwordResetService password.PasswordReset: The password reset service.
-//	sessionService session.Session: The session service.
+//	userService UserService: The user service.
+//	passwordResetService PasswordResetService: The password reset service.
+//	sessionService Session: The session service.
 //
 // Returns:
 // *UserHandler: A new UserHandler instance.
 func NewUserHandler(
-	registrationService registration.Registration,
-	authService auth.Authentication,
-	passwordResetService password.PasswordReset,
-	sessionService session.Session,
+	userService users.UserService,
+	passwordResetService password.PasswordResetService,
+	sessionService session.SessionService,
 ) *UserHandler {
 	return &UserHandler{
-		registrationService:  registrationService,
-		authService:          authService,
+		userService:          userService,
 		passwordResetService: passwordResetService,
 		sessionService:       sessionService,
 		jwtConfig:            config.GetServerConfig().JWTConfig(),
@@ -54,31 +46,31 @@ func NewUserHandler(
 // It processes incoming HTTP requests for user registration, validates the input,
 // registers the user, and sends an appropriate response including a JWT token.
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var request users.UserRegistrationRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	request, err := web.DecodeJSONRequest[users.UserRegistrationRequest](w, r)
+	if err != nil {
 		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
 	if err := request.Validate(); err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
 	user := users.NewUser(request.Username, request.Email, request.Password)
-	response, err := h.registrationService.RegisterUser(user)
+	response, err := h.userService.CreateUser(user)
 	if err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, user.Email, h.jwtConfig.ExpirationTime()); err != nil {
-		utils.WriteError(w, err)
+	if err := h.sessionService.CreateSession(w, r, user.ID, h.jwtConfig.ExpirationTime()); err != nil {
+		web.WriteError(w, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, response)
+	web.WriteJSON(w, http.StatusCreated, response)
 }
 
 // Login is the HTTP handler for user login.
@@ -86,37 +78,42 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 // logs in the user, and returns a JWT token if successful or a generic error
 // message for failed attempts.
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var request users.UserLoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
+	if err != nil {
 		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
 	if err := request.Validate(); err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
-	user := users.NewUser("", request.Email, request.Password)
-	loginAttempt := login.NewLoginAttempt(
-		r.RemoteAddr,
-		r.Header.Get("X-Forwarded-For"),
-		"", r.UserAgent(),
-	)
+	user := &users.User{
+		ID:       request.ID,
+		Email:    request.Email,
+		Password: request.Password,
+	}
 
-	response, err := h.authService.AuthenticateUser(user, loginAttempt)
+	loginAttempt := &users.UserLoginAttempt{
+		IPAddress:       r.RemoteAddr,
+		RequestMetadata: r.Header.Get("X-Forwarded-For"),
+		UserAgent:       r.UserAgent(),
+	}
+
+	response, err := h.userService.AuthenticateUser(user, loginAttempt)
 	if err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, user.Email, h.jwtConfig.ExpirationTime()); err != nil {
-		utils.WriteError(w, err)
+	if err := h.sessionService.CreateSession(w, r, response.UserID, h.jwtConfig.ExpirationTime()); err != nil {
+		web.WriteError(w, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, response)
+	web.WriteJSON(w, http.StatusOK, response)
 }
 
 // Logout is the HTTP handler for user logout.
@@ -125,7 +122,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 // If the Authorization header is missing or the token is invalid, it returns an error.
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.sessionService.InvalidateSession(w, r); err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
@@ -136,41 +133,40 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // It process the incoming request and sends a password reset email to the user if they
 // exist with the provided email.
 func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
-	var request users.UserPasswordResetRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
+	if err != nil {
 		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
 	if request.Email == "" {
 		err := errors.New(errors.ErrCodeInvalidFormat, "email is either malformed or missing")
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
 	response, err := h.passwordResetService.SendPasswordResetEmail(request.Email)
 	if err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, response)
+	web.WriteJSON(w, http.StatusOK, response)
 }
 
 // ResetPassword handles the password reset request.
 // It decodes the request body into a UserPasswordResetRequest, validates the request,
 // and then calls the passwordResetService to reset the user's password.
 func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	var request users.UserPasswordResetRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
+	if err != nil {
 		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
-
 	if err := request.Validate(); err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
@@ -181,9 +177,9 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		utils.WriteError(w, err)
+		web.WriteError(w, err)
 		return
 	}
 
-	utils.WriteJSON(w, http.StatusOK, response)
+	web.WriteJSON(w, http.StatusOK, response)
 }

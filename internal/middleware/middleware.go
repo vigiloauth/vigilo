@@ -6,19 +6,18 @@ import (
 	"strings"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/token"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	web "github.com/vigiloauth/vigilo/internal/web"
 )
 
 const maxRequestsForStrictRateLimiting int = 3
 
 // Middleware encapsulates middleware functionalities.
 type Middleware struct {
-	serverConfig *config.ServerConfig // Server configuration.
-	tokenManager token.TokenService   // Token manager for JWT operations.
-	tokenStore   token.TokenStore     // Token store for blacklisted tokens.
-	rateLimiter  *RateLimiter         // Rate limiter for request rate limiting.
+	serverConfig *config.ServerConfig
+	tokenService token.TokenService
+	rateLimiter  *RateLimiter
 }
 
 // NewMiddleware creates a new Middleware instance.
@@ -31,12 +30,11 @@ type Middleware struct {
 // Returns:
 //
 //	*Middleware: A new Middleware instance.
-func NewMiddleware(tokenManager token.TokenService, tokenStore token.TokenStore) *Middleware {
+func NewMiddleware(tokenService token.TokenService) *Middleware {
 	serverConfig := config.GetServerConfig()
 	return &Middleware{
 		serverConfig: serverConfig,
-		tokenStore:   tokenStore,
-		tokenManager: tokenManager,
+		tokenService: tokenService,
 		rateLimiter:  NewRateLimiter(serverConfig.MaxRequestsPerMinute()),
 	}
 }
@@ -48,27 +46,27 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				err := errors.New(errors.ErrCodeMissingHeader, "authorization header is missing")
-				utils.WriteError(w, err)
+				web.WriteError(w, err)
 				return
 			}
 
 			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-			if m.tokenStore.IsTokenBlacklisted(tokenString) {
+			if m.tokenService.IsTokenBlacklisted(tokenString) {
 				err := errors.New(errors.ErrCodeUnauthorized, "token is blacklisted")
-				utils.WriteError(w, err)
+				web.WriteError(w, err)
 				return
 			}
 
-			if m.tokenManager.IsTokenExpired(tokenString) {
+			if m.tokenService.IsTokenExpired(tokenString) {
 				err := errors.New(errors.ErrCodeExpiredToken, "token is expired")
-				utils.WriteError(w, err)
+				web.WriteError(w, err)
 				return
 			}
 
-			_, err := m.tokenManager.ParseToken(tokenString)
+			_, err := m.tokenService.ParseToken(tokenString)
 			if err != nil {
 				wrappedErr := errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse token")
-				utils.WriteError(w, wrappedErr)
+				web.WriteError(w, wrappedErr)
 				return
 			}
 
@@ -93,7 +91,7 @@ func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !m.rateLimiter.Allow() {
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "too many requests")
-			utils.WriteError(w, err)
+			web.WriteError(w, err)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -107,7 +105,7 @@ func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strictLimiter.Allow() {
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "rate limit exceeded for sensitive operations")
-			utils.WriteError(w, err)
+			web.WriteError(w, err)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -132,7 +130,7 @@ func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) 
 			ct := r.Header.Get("Content-Type")
 			if ct == "" {
 				err := errors.New(errors.ErrCodeInvalidContentType, "Content-Type header is required")
-				utils.WriteError(w, err)
+				web.WriteError(w, err)
 				return
 			}
 
@@ -141,7 +139,7 @@ func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) 
 					errors.ErrCodeInvalidContentType,
 					fmt.Sprintf("unsupported Content-Type, expected: %s", contentType),
 				)
-				utils.WriteError(w, err)
+				web.WriteError(w, err)
 				return
 			}
 
