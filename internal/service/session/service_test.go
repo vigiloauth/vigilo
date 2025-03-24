@@ -40,7 +40,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/", nil)
 
-	jwtConfig := config.NewJWTConfig()
+	jwtConfig := config.NewTokenConfig()
 	err := sessionService.CreateSession(w, r, testID, jwtConfig.ExpirationTime())
 	assert.NoError(t, err)
 
@@ -57,7 +57,7 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 	mockTokenService := &mTokenService.MockTokenService{}
 	mockSessionRepo := &mSessionRepo.MockSessionRepository{}
 
-	config.NewJWTConfig()
+	config.NewTokenConfig()
 
 	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
 		return testToken, nil

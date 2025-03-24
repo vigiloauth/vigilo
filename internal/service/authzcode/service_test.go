@@ -107,6 +107,9 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return createAuthzCodeData(), true, nil
 		}
 		mockAuthzCodeRepo.DeleteAuthorizationCodeFunc = func(code string) error { return nil }
+		mockAuthzCodeRepo.UpdateAuthorizationCodeFunc = func(code string, authData *authz.AuthorizationCodeData) error {
+			return nil
+		}
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
 		data, err := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
@@ -121,7 +124,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 		}
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
-		expected := errors.New(errors.ErrCodeInvalidGrantType, "authorization code not found or expired")
+		expected := errors.New(errors.ErrCodeInvalidGrant, "authorization code not found or expired")
 		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
 
 		assert.Nil(t, code)
@@ -200,7 +203,7 @@ func createTestClient() *client.Client {
 		RedirectURIS:  []string{testRedirectURI},
 		Scopes:        []string{client.ClientManage, client.ClientRead, client.ClientWrite},
 		ResponseTypes: []client.ResponseType{client.CodeResponseType, client.TokenResponseType},
-		GrantTypes:    []client.GrantType{client.AuthorizationCode},
+		GrantTypes:    []string{client.AuthorizationCode},
 	}
 }
 

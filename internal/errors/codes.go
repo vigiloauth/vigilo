@@ -50,7 +50,7 @@ const (
 
 	// Client errors
 	ErrCodeInvalidClient          = "invalid_client"
-	ErrCodeInvalidGrantType       = "invalid_grant"
+	ErrCodeInvalidGrant           = "invalid_grant"
 	ErrCodeInvalidRedirectURI     = "invalid_redirect_uri"
 	ErrCodeInvalidScope           = "invalid_scope"
 	ErrCodeClientSecretNotAllowed = "client_secret_not_allowed"
@@ -113,7 +113,7 @@ var statusCodeMap = map[string]int{
 
 	// 403 Forbidden
 	ErrCodeUnauthorizedClient: http.StatusForbidden,
-	ErrCodeInvalidGrantType:   http.StatusForbidden,
+	ErrCodeInvalidGrant:       http.StatusForbidden,
 	ErrCodeInvalidScope:       http.StatusForbidden,
 	ErrCodeAccessDenied:       http.StatusForbidden,
 

@@ -130,7 +130,7 @@ func TestClientHandler_RegisterClient_InvalidRedirectURIS(t *testing.T) {
 func TestClientHandler_RegisterClient_InvalidGrantTypes(t *testing.T) {
 	req := createClientRegistrationRequest()
 	req.Type = client.Public
-	req.GrantTypes = []client.GrantType{"invalid-grant"}
+	req.GrantTypes = []string{"invalid-grant"}
 
 	testContext := NewVigiloTestContext(t)
 	requestBody, err := json.Marshal(req)
@@ -203,7 +203,7 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage},
-		[]client.GrantType{client.ClientCredentials},
+		[]string{client.ClientCredentials},
 	).WithClientCredentialsToken()
 
 	endpoint := strings.Replace(web.ClientEndpoints.RegenerateSecret, "{client_id}", testClientID, 1)
@@ -225,7 +225,7 @@ func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsEr
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage},
-		[]client.GrantType{client.ClientCredentials},
+		[]string{client.ClientCredentials},
 	).WithClientCredentialsToken()
 
 	endpoint := strings.Replace(web.ClientEndpoints.RegenerateSecret, "{client_id}", "", 1)
@@ -238,7 +238,7 @@ func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 	return &client.ClientRegistrationRequest{
 		Name:          "Test Name",
 		RedirectURIS:  []string{"https://loaclhost/callback"},
-		GrantTypes:    []client.GrantType{client.AuthorizationCode, client.PKCE},
+		GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
 		Scopes:        []string{client.ClientRead, client.ClientWrite},
 		ResponseTypes: []client.ResponseType{client.CodeResponseType, client.IDTokenResponseType},
 	}

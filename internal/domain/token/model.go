@@ -1,6 +1,11 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	"github.com/vigiloauth/vigilo/internal/errors"
+)
 
 // TokenData represents the data associated with a token.
 type TokenData struct {
@@ -19,4 +24,24 @@ type TokenResponse struct {
 	Scope        string `json:"scope,omitempty"`
 }
 
+type TokenRequest struct {
+	GrantType    string `json:"grant_type"`
+	Code         string `json:"code"`
+	RedirectURI  string `json:"redirect_uri"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	State        string `json:"state"`
+}
+
 const BearerToken string = "Bearer"
+
+func (t *TokenRequest) Validate() error {
+	if t.GrantType != client.AuthorizationCode {
+		return errors.New(errors.ErrCodeInvalidGrant, "invalid grant_type")
+	}
+	if t.Code == "" || t.RedirectURI == "" || t.ClientID == "" || t.ClientSecret == "" || t.State == "" {
+		return errors.New(errors.ErrCodeInvalidRequest, "missing required parameters")
+	}
+
+	return nil
+}

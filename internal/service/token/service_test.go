@@ -148,3 +148,5 @@ func TestTokenService_DeleteToken(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, tokenData)
 }
+
+func TestTokenService_GenerateTokens(t *testing.T) {}

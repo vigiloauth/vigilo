@@ -11,6 +11,7 @@ type MockAuthorizationCodeService struct {
 	ValidateAuthorizationCodeFunc    func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error)
 	RevokeAuthorizationCodeFunc      func(code string) error
 	SetAuthorizationCodeLifeTimeFunc func(lifetime time.Duration)
+	GetAuthorizationCodeFunc         func(code string) *authzCode.AuthorizationCodeData
 }
 
 func (m *MockAuthorizationCodeService) GenerateAuthorizationCode(userID, clientID, redirectURI, scope string) (string, error) {
@@ -27,4 +28,8 @@ func (m *MockAuthorizationCodeService) RevokeAuthorizationCode(code string) erro
 
 func (m *MockAuthorizationCodeService) SetAuthorizationCodeLifeTime(lieftime time.Duration) {
 	m.SetAuthorizationCodeLifeTimeFunc(lieftime)
+}
+
+func (m *MockAuthorizationCodeService) GetAuthorizationCode(code string) *authzCode.AuthorizationCodeData {
+	return m.GetAuthorizationCodeFunc(code)
 }

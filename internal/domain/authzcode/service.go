@@ -49,4 +49,15 @@ type AuthorizationCodeService interface {
 	//
 	//   lifetime time.Duration: The validity period for new codes.
 	SetAuthorizationCodeLifeTime(lifetime time.Duration)
+
+	// GetAuthorizationCode retrieves the authorization code data for a given code.
+	//
+	// Parameters:
+	//
+	//	code string: The authorization code to retrieve.
+	//
+	// Returns:
+	//
+	//	*AuthorizationCodeData: The authorization code data if found, or nil if no matching code exists.
+	GetAuthorizationCode(code string) *AuthorizationCodeData
 }

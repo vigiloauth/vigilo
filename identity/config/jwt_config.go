@@ -6,22 +6,26 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-// JWTConfig holds the configuration for JWT token generation and validation.
-type JWTConfig struct {
-	secret         string            // Secret key used for signing and verifying JWT tokens.
-	expirationTime time.Duration     // Expiration time for JWT tokens.
-	signingMethod  jwt.SigningMethod // Signing method used for JWT tokens.
+// TokenConfig holds the configuration for JWT token generation and validation.
+type TokenConfig struct {
+	secret               string            // Secret key used for signing and verifying JWT tokens.
+	expirationTime       time.Duration     // Expiration time for JWT tokens.
+	signingMethod        jwt.SigningMethod // Signing method used for JWT tokens.
+	accessTokenDuration  time.Duration
+	refreshTokenDuration time.Duration
 }
 
-// JWTOption is a function type used to configure JWTConfig options.
-type JWTOption func(*JWTConfig)
+// TokenOption is a function type used to configure JWTConfig options.
+type TokenOption func(*TokenConfig)
 
 const (
-	defaultSecret         string        = "fallback_secure_default_key" // Default secret key (should be overridden in production).
-	defaultExpirationTime time.Duration = 24 * time.Hour                // Default expiration time for JWT tokens (24 hours).
+	defaultSecret               string        = "fallback_secure_default_key" // Default secret key (should be overridden in production).
+	defaultExpirationTime       time.Duration = 24 * time.Hour                // Default expiration time for JWT tokens (24 hours).
+	defaultAccessTokenDuration  time.Duration = 30 * time.Minute
+	defaultRefreshTokenDuration time.Duration = 30 * 24 * time.Hour
 )
 
-// NewJWTConfig creates a new JWTConfig with default values and applies provided options.
+// NewTokenConfig creates a new JWTConfig with default values and applies provided options.
 //
 // Parameters:
 //
@@ -30,8 +34,8 @@ const (
 // Returns:
 //
 //	*JWTConfig: A new JWTConfig instance.
-func NewJWTConfig(opts ...JWTOption) *JWTConfig {
-	config := &JWTConfig{
+func NewTokenConfig(opts ...TokenOption) *TokenConfig {
+	config := &TokenConfig{
 		secret:         defaultSecret,
 		expirationTime: defaultExpirationTime,
 		signingMethod:  jwt.SigningMethodHS256,
@@ -53,8 +57,8 @@ func NewJWTConfig(opts ...JWTOption) *JWTConfig {
 // Returns:
 //
 //	JWTOption: A function that configures the secret key.
-func WithSecret(secret string) JWTOption {
-	return func(c *JWTConfig) {
+func WithSecret(secret string) TokenOption {
+	return func(c *TokenConfig) {
 		c.secret = secret
 	}
 }
@@ -68,9 +72,21 @@ func WithSecret(secret string) JWTOption {
 // Returns:
 //
 //	JWTOption: A function that configures the expiration time.
-func WithExpirationTime(duration time.Duration) JWTOption {
-	return func(c *JWTConfig) {
+func WithExpirationTime(duration time.Duration) TokenOption {
+	return func(c *TokenConfig) {
 		c.expirationTime = duration
+	}
+}
+
+func WithAccessTokenTime(duration time.Duration) TokenOption {
+	return func(c *TokenConfig) {
+		c.accessTokenDuration = duration
+	}
+}
+
+func WithRefreshTokenExpiration(duration time.Duration) TokenOption {
+	return func(c *TokenConfig) {
+		c.refreshTokenDuration = duration
 	}
 }
 
@@ -83,8 +99,8 @@ func WithExpirationTime(duration time.Duration) JWTOption {
 // Returns:
 //
 //	JWTOption: A function that configures the signing method.
-func WithSigningMethod(method jwt.SigningMethod) JWTOption {
-	return func(c *JWTConfig) {
+func WithSigningMethod(method jwt.SigningMethod) TokenOption {
+	return func(c *TokenConfig) {
 		c.signingMethod = method
 	}
 }
@@ -94,7 +110,7 @@ func WithSigningMethod(method jwt.SigningMethod) JWTOption {
 // Returns:
 //
 //	string: The secret key.
-func (j *JWTConfig) Secret() string {
+func (j *TokenConfig) Secret() string {
 	return j.secret
 }
 
@@ -103,8 +119,16 @@ func (j *JWTConfig) Secret() string {
 // Returns:
 //
 //	time.Duration: The expiration time.
-func (j *JWTConfig) ExpirationTime() time.Duration {
+func (j *TokenConfig) ExpirationTime() time.Duration {
 	return j.expirationTime
+}
+
+func (j *TokenConfig) RefreshTokenDuration() time.Duration {
+	return j.refreshTokenDuration
+}
+
+func (j *TokenConfig) AccessTokenDuration() time.Duration {
+	return j.accessTokenDuration
 }
 
 // SigningMethod returns the signing method from the JWTConfig.
@@ -112,6 +136,6 @@ func (j *JWTConfig) ExpirationTime() time.Duration {
 // Returns:
 //
 //	jwt.SigningMethod: The signing method.
-func (j *JWTConfig) SigningMethod() jwt.SigningMethod {
+func (j *TokenConfig) SigningMethod() jwt.SigningMethod {
 	return j.signingMethod
 }

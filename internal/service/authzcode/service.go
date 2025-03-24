@@ -86,6 +86,7 @@ func (c *AuthorizationCodeServiceImpl) GenerateAuthorizationCode(userID, clientI
 		Scope:       scope,
 		CreatedAt:   time.Now(),
 		Code:        code,
+		Used:        false,
 	}
 
 	expiresAt := authData.CreatedAt.Add(c.codeLifeTime.Load().(time.Duration))
@@ -120,25 +121,25 @@ func (c *AuthorizationCodeServiceImpl) ValidateAuthorizationCode(
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to retrieve the authorization code")
 	}
 	if !exists {
-		return nil, errors.New(errors.ErrCodeInvalidGrantType, "authorization code not found or expired")
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code not found or expired")
+	}
+
+	if authData.Used {
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code already used")
 	}
 
 	if authData.ClientID != clientID {
-		if err := c.authzCodeRepo.DeleteAuthorizationCode(code); err != nil {
-			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to invalidate authorization code")
-		}
-		return nil, errors.New(errors.ErrCodeInvalidGrantType, "client ID mismatch")
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "client ID mismatch")
 	}
 
 	if authData.RedirectURI != redirectURI {
-		if err := c.authzCodeRepo.DeleteAuthorizationCode(code); err != nil {
-			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to invalidate authorization code")
-		}
-		return nil, errors.New(errors.ErrCodeInvalidGrantType, "redirect URI mismatch")
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "redirect URI mismatch")
 	}
 
-	if err := c.authzCodeRepo.DeleteAuthorizationCode(code); err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to invalidate authorization code")
+	// Mark the code as used
+	authData.Used = true
+	if err := c.authzCodeRepo.UpdateAuthorizationCode(code, authData); err != nil {
+		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to update authorization code")
 	}
 
 	return authData, nil
@@ -164,6 +165,20 @@ func (c *AuthorizationCodeServiceImpl) RevokeAuthorizationCode(code string) erro
 //	lifetime time.Duration: The validity period for new codes.
 func (c *AuthorizationCodeServiceImpl) SetAuthorizationCodeLifeTime(lifetime time.Duration) {
 	c.codeLifeTime.Store(lifetime)
+}
+
+// GetAuthorizationCode retrieves the authorization code data for a given code.
+//
+// Parameters:
+//
+//	code string: The authorization code to retrieve.
+//
+// Returns:
+//
+//	*AuthorizationCodeData: The authorization code data if found, or nil if no matching code exists.
+func (c *AuthorizationCodeServiceImpl) GetAuthorizationCode(code string) *authz.AuthorizationCodeData {
+	retrievedCode, _, _ := c.authzCodeRepo.GetAuthorizationCode(code)
+	return retrievedCode
 }
 
 func (c AuthorizationCodeServiceImpl) validateClient(redirectURI, clientID, scope string) error {

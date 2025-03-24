@@ -151,7 +151,7 @@ func (c *ServiceContainer) initializeServices() {
 		return authzCodeService.NewAuthorizationCodeServiceImpl(c.authzCodeRepo, c.getUserService(), c.getClientService())
 	}
 	c.authorizationServiceInit = func() authz.AuthorizationService {
-		return authzService.NewAuthorizationServiceImpl(c.getAuthzCodeService(), c.getConsentService())
+		return authzService.NewAuthorizationServiceImpl(c.getAuthzCodeService(), c.getConsentService(), c.getTokenService(), c.getClientService())
 	}
 	c.passwordResetEmailServiceInit = func() email.EmailService {
 		service, err := emailService.NewPasswordResetEmailService()

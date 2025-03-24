@@ -167,7 +167,7 @@ func (cs *ClientServiceImpl) AuthenticateClientForCredentialsGrant(clientID, cli
 	}
 
 	if !existingClient.HasGrantType(client.ClientCredentials) {
-		return nil, errors.New(errors.ErrCodeInvalidGrantType, "client does not have required grant type 'client_credentials'")
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "client does not have required grant type 'client_credentials'")
 	}
 
 	if !existingClient.HasScope(client.ClientManage) {

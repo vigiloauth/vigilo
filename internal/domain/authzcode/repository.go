@@ -40,6 +40,8 @@ type AuthorizationCodeRepository interface {
 	//   error: An error if removal fails, nil otherwise.
 	DeleteAuthorizationCode(code string) error
 
+	UpdateAuthorizationCode(code string, authData *AuthorizationCodeData) error
+
 	// CleanupExpiredAuthorizationCodes removes all expired authorization codes.
 	//
 	// Returns:

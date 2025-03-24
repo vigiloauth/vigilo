@@ -12,10 +12,12 @@ import (
 // Ensure TokenService implements the TokenManager interface.
 var _ token.TokenService = (*TokenServiceImpl)(nil)
 
+const tokenIssuer string = "vigilo-auth-server"
+
 // TokenServiceImpl implements the TokenManager interface using JWT.
 type TokenServiceImpl struct {
-	jwtConfig *config.JWTConfig
-	tokenRepo token.TokenRepository
+	tokenConfig *config.TokenConfig
+	tokenRepo   token.TokenRepository
 }
 
 // NewTokenServiceImpl creates a new TokenService instance.
@@ -29,8 +31,8 @@ type TokenServiceImpl struct {
 //	*TokenService: A new TokenService instance.
 func NewTokenServiceImpl(tokenRepo token.TokenRepository) *TokenServiceImpl {
 	return &TokenServiceImpl{
-		jwtConfig: config.GetServerConfig().JWTConfig(),
-		tokenRepo: tokenRepo,
+		tokenConfig: config.GetServerConfig().TokenConfig(),
+		tokenRepo:   tokenRepo,
 	}
 }
 
@@ -46,22 +48,38 @@ func NewTokenServiceImpl(tokenRepo token.TokenRepository) *TokenServiceImpl {
 //	string: The generated JWT token string.
 //	error: An error if token generation fails.
 func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Duration) (string, error) {
-	claims := &jwt.StandardClaims{
-		Subject:   subject,
-		Issuer:    "vigilo-auth-server",
-		ExpiresAt: time.Now().Add(expirationTime).Unix(),
-		IssuedAt:  time.Now().Unix(),
-	}
-
-	token := jwt.NewWithClaims(ts.jwtConfig.SigningMethod(), claims)
-	tokenString, err := token.SignedString([]byte(ts.jwtConfig.Secret()))
+	tokenString, err := ts.generateToken(subject, "", expirationTime)
 	if err != nil {
-		return "", errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to retrieve the signed token")
+		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
 	}
-
-	ts.tokenRepo.SaveToken(tokenString, subject, time.Now().Add(expirationTime))
 
 	return tokenString, nil
+}
+
+// GenerateTokens generates an access & refresh token.
+//
+// Parameters:
+//
+//	userID string: The ID of the user. Will be used as the subject.
+//	clientID string: The ID of the client. Will be used as the audience.
+//
+// Returns:
+//
+//	string: The access token.
+//	string: The refresh token.
+//	error: An error if an error occurs while generating the tokens.
+func (ts *TokenServiceImpl) GenerateTokens(userID, clientID string) (string, string, error) {
+	accessToken, err := ts.generateToken(userID, clientID, ts.tokenConfig.AccessTokenDuration())
+	if err != nil {
+		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access token")
+	}
+
+	refreshToken, err := ts.generateToken(userID, clientID, ts.tokenConfig.RefreshTokenDuration())
+	if err != nil {
+		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate refresh token")
+	}
+
+	return accessToken, refreshToken, nil
 }
 
 // ParseToken parses and validates a JWT token string.
@@ -79,7 +97,7 @@ func (ts *TokenServiceImpl) ParseToken(tokenString string) (*jwt.StandardClaims,
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New(errors.ErrCodeTokenCreation, "failed to generate token")
 		}
-		return []byte(ts.jwtConfig.Secret()), nil
+		return []byte(ts.tokenConfig.Secret()), nil
 	})
 
 	if err != nil {
@@ -168,4 +186,38 @@ func (ts *TokenServiceImpl) IsTokenExpired(token string) bool {
 		return true
 	}
 	return time.Now().Unix() > claims.ExpiresAt
+}
+
+// generateToken creates a signed JWT (JSON Web Token) with standard claims.
+//
+// Parameters:
+//
+//	subject string: The subject (typically user ID) for whom the token is generated.
+//	audience string: The intended recipient of the token (usually client ID).
+//
+// Returns:
+//
+//	string: A signed JWT token string.
+//	error: An error if token generation or signing fails.
+func (ts *TokenServiceImpl) generateToken(subject, audience string, duration time.Duration) (string, error) {
+	tokenExpiration := time.Now().Add(duration)
+	claims := &jwt.StandardClaims{
+		Subject:   subject,
+		Issuer:    tokenIssuer,
+		IssuedAt:  time.Now().Unix(),
+		ExpiresAt: tokenExpiration.Unix(),
+	}
+
+	if audience != "" {
+		claims.Audience = audience
+	}
+
+	token := jwt.NewWithClaims(ts.tokenConfig.SigningMethod(), claims)
+	signedToken, err := token.SignedString([]byte(ts.tokenConfig.Secret()))
+	if err != nil {
+		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
+	}
+
+	ts.tokenRepo.SaveToken(signedToken, subject, tokenExpiration)
+	return signedToken, nil
 }

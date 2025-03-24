@@ -62,8 +62,6 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 	return s.router
 }
 
-// setupRoutes configures the HTTP routes for the VigiloIdentityServer.
-// It applies middleware, sets up user-related endpoints, and groups authenticated routes.
 func (s *VigiloIdentityServer) setupRoutes() {
 	// Apply Global Middleware
 	s.router.Use(s.middleware.RateLimit)
@@ -72,38 +70,55 @@ func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.RequiresContentType(contentTypeJSON))
 
-		// OAuth Authorization & Consent
-		r.Get(web.OAuthEndpoints.Authorize, s.authzHandler.AuthorizeClient)
-		r.HandleFunc(web.OAuthEndpoints.Login, s.oauthHandler.OAuthLogin)
-		r.HandleFunc(web.OAuthEndpoints.Consent, s.oauthHandler.UserConsent)
+		// GET Routes
+		r.Group(func(gr chi.Router) {
+			gr.Use(s.middleware.RequireRequestMethod(http.MethodGet))
+			gr.Get(web.OAuthEndpoints.Authorize, s.authzHandler.AuthorizeClient)
+		})
 
-		// User Registration & Authentication
-		r.Post(web.UserEndpoints.Registration, s.userHandler.Register)
-		r.Post(web.UserEndpoints.Login, s.userHandler.Login)
-		r.Post(web.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
-		r.Patch(web.UserEndpoints.ResetPassword, s.userHandler.ResetPassword)
+		// POST Routes
+		r.Group(func(pr chi.Router) {
+			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
+			pr.Post(web.OAuthEndpoints.Login, s.oauthHandler.OAuthLogin)
+			pr.Post(web.OAuthEndpoints.Consent, s.oauthHandler.UserConsent)
+			pr.Post(web.OAuthEndpoints.Token, s.authzHandler.GenerateToken)
+			pr.Post(web.UserEndpoints.Registration, s.userHandler.Register)
+			pr.Post(web.UserEndpoints.Login, s.userHandler.Login)
+			pr.Post(web.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
+			pr.Post(web.ClientEndpoints.Registration, s.clientHandler.RegisterClient)
+		})
 
-		// Client Registration
-		r.Post(web.ClientEndpoints.Registration, s.clientHandler.RegisterClient)
+		// PATCH Routes
+		r.Group(func(pr chi.Router) {
+			pr.Use(s.middleware.RequireRequestMethod(http.MethodPatch))
+			pr.Patch(web.UserEndpoints.ResetPassword, s.userHandler.ResetPassword)
+		})
 	})
 
 	// OAuth Token Exchange (Form Data Required)
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.RequiresContentType(contentTypeForm))
-		r.Post(web.OAuthEndpoints.GenerateToken, s.authHandler.IssueClientCredentialsToken)
+
+		r.Group(func(pr chi.Router) {
+			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
+			pr.Post(web.OAuthEndpoints.ClientCredentialsToken, s.authHandler.IssueClientCredentialsToken)
+		})
 	})
 
 	// Protected Routes (Auth Required)
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())
 
-		// User Logout
-		r.Post(web.UserEndpoints.Logout, s.userHandler.Logout)
+		// POST Routes
+		r.Group(func(pr chi.Router) {
+			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
+			pr.Post(web.UserEndpoints.Logout, s.userHandler.Logout)
 
-		// Client Secret Management (Stricter Rate Limit)
-		r.Group(func(sr chi.Router) {
-			sr.Use(s.middleware.StrictRateLimit)
-			sr.Post(web.ClientEndpoints.RegenerateSecret, s.clientHandler.RegenerateSecret)
+			// Client Secret Management (Stricter Rate Limit)
+			r.Group(func(sr chi.Router) {
+				sr.Use(s.middleware.StrictRateLimit)
+				sr.Post(web.ClientEndpoints.RegenerateSecret, s.clientHandler.RegenerateSecret)
+			})
 		})
 	})
 }

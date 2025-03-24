@@ -18,7 +18,7 @@ type UserServiceImpl struct {
 	tokenService token.TokenService
 	loginService login.LoginAttemptService
 
-	jwtConfig       *config.JWTConfig
+	jwtConfig       *config.TokenConfig
 	artificialDelay time.Duration
 }
 
@@ -40,7 +40,7 @@ func NewUserServiceImpl(
 		userRepo:        userRepo,
 		tokenService:    tokenService,
 		loginService:    loginAttemptRepository,
-		jwtConfig:       config.GetServerConfig().JWTConfig(),
+		jwtConfig:       config.GetServerConfig().TokenConfig(),
 		artificialDelay: config.GetServerConfig().LoginConfig().Delay(),
 	}
 }

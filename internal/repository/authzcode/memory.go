@@ -4,11 +4,11 @@ import (
 	"sync"
 	"time"
 
-	domain "github.com/vigiloauth/vigilo/internal/domain/authzcode"
+	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 )
 
 var (
-	_        domain.AuthorizationCodeRepository = (*InMemoryAuthorizationCodeRepository)(nil)
+	_        authz.AuthorizationCodeRepository = (*InMemoryAuthorizationCodeRepository)(nil)
 	instance *InMemoryAuthorizationCodeRepository
 	once     sync.Once
 )
@@ -21,7 +21,7 @@ type InMemoryAuthorizationCodeRepository struct {
 
 // codeEntry represents a stored authorization code with expiration.
 type codeEntry struct {
-	Data      *domain.AuthorizationCodeData
+	Data      *authz.AuthorizationCodeData
 	ExpiresAt time.Time
 }
 
@@ -53,7 +53,7 @@ func GetInMemoryAuthorizationCodeRepository() *InMemoryAuthorizationCodeReposito
 //	error: An error if storing fails, nil otherwise.
 func (s *InMemoryAuthorizationCodeRepository) StoreAuthorizationCode(
 	code string,
-	data *domain.AuthorizationCodeData,
+	data *authz.AuthorizationCodeData,
 	expiresAt time.Time,
 ) error {
 	s.mu.Lock()
@@ -78,7 +78,7 @@ func (s *InMemoryAuthorizationCodeRepository) StoreAuthorizationCode(
 //	*AuthorizationData: The associated data if found.
 //	bool: Whether the code exists and is valid.
 //	error: An error if retrieval fails.
-func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(code string) (*domain.AuthorizationCodeData, bool, error) {
+func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -126,6 +126,17 @@ func (s *InMemoryAuthorizationCodeRepository) CleanupExpiredAuthorizationCodes()
 		if now.After(entry.ExpiresAt) {
 			delete(s.codes, code)
 		}
+	}
+
+	return nil
+}
+
+func (s *InMemoryAuthorizationCodeRepository) UpdateAuthorizationCode(code string, authData *authz.AuthorizationCodeData) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.codes[code] = codeEntry{
+		Data: authData,
 	}
 
 	return nil

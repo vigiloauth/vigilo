@@ -107,7 +107,7 @@ func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 func (tc *VigiloTestContext) WithClient(
 	clientType client.ClientType,
 	scopes []string,
-	grantTypes []client.GrantType,
+	grantTypes []string,
 ) *VigiloTestContext {
 	c := &client.Client{
 		ID:            testClientID,
@@ -165,7 +165,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 		tc.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage},
-			[]client.GrantType{client.ClientCredentials},
+			[]string{client.ClientCredentials},
 		)
 	}
 
@@ -174,7 +174,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 
 	req := httptest.NewRequest(
 		http.MethodPost,
-		web.OAuthEndpoints.GenerateToken,
+		web.OAuthEndpoints.ClientCredentialsToken,
 		strings.NewReader(formData),
 	)
 

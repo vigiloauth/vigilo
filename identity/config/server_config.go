@@ -16,7 +16,7 @@ type ServerConfig struct {
 	requestsPerMinute int             // Maximum requests allowed per minute.
 	readTimeout       time.Duration   // Read timeout for HTTP requests.
 	writeTimeout      time.Duration   // Write timeout for HTTP responses.
-	jwtConfig         *JWTConfig      // JWT configuration.
+	tokenConfig       *TokenConfig    // JWT configuration.
 	loginConfig       *LoginConfig    // Login configuration.
 	smtpConfig        *SMTPConfig     // SMTP configuration.
 	passwordConfig    *PasswordConfig // Password configuration.
@@ -67,7 +67,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		forceHTTPS:        defaultHTTPSRequirement,
 		readTimeout:       defaultReadTimeout,
 		writeTimeout:      defaultWriteTimeout,
-		jwtConfig:         NewJWTConfig(),
+		tokenConfig:       NewTokenConfig(),
 		loginConfig:       NewLoginConfig(),
 		passwordConfig:    NewPasswordConfig(),
 		requestsPerMinute: defaultRequestsPerMinute,
@@ -195,9 +195,9 @@ func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 // Returns:
 //
 //	ServerConfigOptions: A function that configures the JWT configuration.
-func WithJWTConfig(jwtConfig *JWTConfig) ServerConfigOptions {
+func WithJWTConfig(jwtConfig *TokenConfig) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		sc.jwtConfig = jwtConfig
+		sc.tokenConfig = jwtConfig
 	}
 }
 
@@ -324,13 +324,13 @@ func (sc *ServerConfig) WriteTimeout() time.Duration {
 	return sc.writeTimeout
 }
 
-// JWTConfig returns the JWT configuration.
+// TokenConfig returns the Token configuration.
 //
 // Returns:
 //
-//	*JWTConfig: The JWT configuration.
-func (sc *ServerConfig) JWTConfig() *JWTConfig {
-	return sc.jwtConfig
+//	*TokenConfig: The Token configuration.
+func (sc *ServerConfig) TokenConfig() *TokenConfig {
+	return sc.tokenConfig
 }
 
 // LoginConfig returns the login configuration.

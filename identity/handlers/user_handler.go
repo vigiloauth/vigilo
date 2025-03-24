@@ -16,7 +16,7 @@ type UserHandler struct {
 	userService          users.UserService
 	passwordResetService password.PasswordResetService
 	sessionService       session.SessionService
-	jwtConfig            *config.JWTConfig
+	jwtConfig            *config.TokenConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
@@ -38,7 +38,7 @@ func NewUserHandler(
 		userService:          userService,
 		passwordResetService: passwordResetService,
 		sessionService:       sessionService,
-		jwtConfig:            config.GetServerConfig().JWTConfig(),
+		jwtConfig:            config.GetServerConfig().TokenConfig(),
 	}
 }
 

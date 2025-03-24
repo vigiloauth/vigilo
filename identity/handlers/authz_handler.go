@@ -8,6 +8,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/common"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
+	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
@@ -31,18 +32,22 @@ func NewAuthorizationHandler(
 }
 
 // TODO:
-// - Create OAuth token endpoint.
-// - Test
-//		- test OAuth login
-//		- test consent endpoint
+// - Unit tests:
+//		- authorization_service
+//		- token_service
+// - Integration Tests
+//		- oauth_handler.Login
+//		- oauth_handler.Consent
+//		- authz_handler.GenerateTokens
 //	- Refactor:
-//		- OAuth login endpoint
-//		- consent endpoint
+//		- oauth_handler.Login
+//		- oauth_handler.Consent
 // - Update docs:
-//		- authorizeClient endpoint
-//		- OAuth login
-//		- consent endpoint
-//		- OAuth token endpoint
+//		- authz_handler.AuthorizeClient
+//		- authz_handler.GenerateToken
+//		- oauth_handler.Login
+//		- oauth_handler.Consent
+//		- JWTTokenConfig
 // - End to end test for entire flow
 
 // AuthorizeClient is the HTTP handler responsible for the authorization code flow.
@@ -50,6 +55,7 @@ func NewAuthorizationHandler(
 // and delegates the authorization logic to the AuthorizationService.
 //
 // Parameters:
+//
 //   - w: http.ResponseWriter for writing the HTTP response.
 //   - r: *http.Request containing the authorization request parameters.
 //
@@ -79,6 +85,46 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	}
 
 	http.Redirect(w, r, redirectURL, http.StatusFound)
+}
+
+// GenerateToken handles the token endpoint for OAuth 2.0 authorization code grant.
+//
+// It decodes the token request, validates it, authorizes the token exchange,
+// generates access and refresh tokens, and writes the token response as JSON.
+//
+// Parameters:
+//
+//	w http.ResponseWriter: The HTTP response writer.
+//	r *http.Request: The HTTP request.
+func (h *AuthorizationHandler) GenerateToken(w http.ResponseWriter, r *http.Request) {
+	tokenRequest, err := web.DecodeJSONRequest[token.TokenRequest](w, r)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, errors.ErrCodeBadRequest, "failed to decode request")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	if err := tokenRequest.Validate(); err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to validate request")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	authzCodeData, err := h.authorizationService.AuthorizeTokenExchange(tokenRequest)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, "", "authorization failed for token exchange")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	response, err := h.authorizationService.GenerateTokens(authzCodeData)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to generate access & refresh tokens")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	web.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state string) string {

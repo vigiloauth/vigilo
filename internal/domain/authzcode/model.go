@@ -10,4 +10,5 @@ type AuthorizationCodeData struct {
 	Scope       string
 	Code        string
 	CreatedAt   time.Time
+	Used        bool
 }

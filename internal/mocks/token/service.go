@@ -12,6 +12,9 @@ type MockTokenService struct {
 	// GenerateTokenFunc is a mock function for the GenerateToken method.
 	GenerateTokenFunc func(id string, duration time.Duration) (string, error)
 
+	// GenerateTokenFunc is a mock function for the GenerateTokens method.
+	GenerateTokensFunc func(userID, clientID string) (string, string, error)
+
 	// SaveTokenFunc is a mock function for the AddToken method.
 	SaveTokenFunc func(token, id string, expiry time.Time)
 
@@ -34,6 +37,11 @@ type MockTokenService struct {
 // GenerateToken calls the mock GenerateTokenFunc.
 func (m *MockTokenService) GenerateToken(id string, duration time.Duration) (string, error) {
 	return m.GenerateTokenFunc(id, duration)
+}
+
+// GenerateTokens calls the mock GenerateTokensFunc
+func (m *MockTokenService) GenerateTokens(userID, clientID string) (string, string, error) {
+	return m.GenerateTokensFunc(userID, clientID)
 }
 
 // AddToken calls the mock AddTokenFunc.

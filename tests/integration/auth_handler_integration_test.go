@@ -20,7 +20,7 @@ func TestAuthHandler_IssueClientCredentialsToken_Success(t *testing.T) {
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage},
-		[]client.GrantType{client.ClientCredentials},
+		[]string{client.ClientCredentials},
 	)
 
 	headers := generateHeaderWithCredentials(testClientID, testClientSecret)
@@ -77,7 +77,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage},
-			[]client.GrantType{client.ClientCredentials},
+			[]string{client.ClientCredentials},
 		)
 
 		headers := generateHeaderWithCredentials("non-existing-id", testClientSecret)
@@ -97,7 +97,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage},
-			[]client.GrantType{client.ClientCredentials},
+			[]string{client.ClientCredentials},
 		)
 
 		headers := generateHeaderWithCredentials(testClientID, "invalid-secret")
@@ -117,7 +117,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage},
-			[]client.GrantType{}, // No grant types
+			[]string{}, // No grant types
 		)
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
@@ -128,7 +128,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		err := json.NewDecoder(rr.Body).Decode(&errResp)
 
 		assert.NoError(t, err)
-		assert.Equal(t, errors.ErrCodeInvalidGrantType, errResp.ErrorCode)
+		assert.Equal(t, errors.ErrCodeInvalidGrant, errResp.ErrorCode)
 		assert.Contains(t, errResp.Details, "client does not have required grant type 'client_credentials'")
 	})
 
@@ -137,7 +137,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		testContext.WithClient(
 			client.Confidential,
 			[]string{}, // No scopes
-			[]client.GrantType{client.ClientCredentials},
+			[]string{client.ClientCredentials},
 		)
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
@@ -156,7 +156,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 func sendTokenGenerationRequest(testContext *VigiloTestContext, headers map[string]string) *httptest.ResponseRecorder {
 	return testContext.SendHTTPRequest(
 		http.MethodPost,
-		web.OAuthEndpoints.GenerateToken,
+		web.OAuthEndpoints.ClientCredentialsToken,
 		strings.NewReader("grant_type=client_credentials"),
 		headers,
 	)

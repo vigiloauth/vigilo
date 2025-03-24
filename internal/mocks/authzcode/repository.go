@@ -20,6 +20,8 @@ type MockAuthorizationCodeRepository struct {
 	// CleanupExpiredAuthorizationCodesFunc is a mock function for the CleanupExpiredAuthorizationCodes method.
 	CleanupExpiredAuthorizationCodesFunc func() error
 
+	UpdateAuthorizationCodeFunc func(code string, authData *authz.AuthorizationCodeData) error
+
 	// CloseFunc is a mock function for the Close method.
 	CloseFunc func()
 }
@@ -46,6 +48,10 @@ func (m *MockAuthorizationCodeRepository) DeleteAuthorizationCode(code string) e
 // CleanupExpiredAuthorizationCodes calls the mock CleanupExpiredAuthorizationCodesFunc.
 func (m *MockAuthorizationCodeRepository) CleanupExpiredAuthorizationCodes() error {
 	return m.CleanupExpiredAuthorizationCodesFunc()
+}
+
+func (m *MockAuthorizationCodeRepository) UpdateAuthorizationCode(code string, authData *authz.AuthorizationCodeData) error {
+	return m.UpdateAuthorizationCodeFunc(code, authData)
 }
 
 // Close calls the mock CloseFunc.

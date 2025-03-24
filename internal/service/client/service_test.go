@@ -126,14 +126,14 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 		testClient.ID = testClientID
 		testClient.Type = client.Confidential
 		testClient.Scopes = append(testClient.Scopes, client.ClientManage)
-		testClient.GrantTypes = []client.GrantType{client.PKCE}
+		testClient.GrantTypes = []string{client.PKCE}
 
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client {
 			return testClient
 		}
 
 		cs := NewClientService(mockClientStore)
-		actual := errors.New(errors.ErrCodeInvalidGrantType, "client does not have required grant type 'client_credentials'")
+		actual := errors.New(errors.ErrCodeInvalidGrant, "client does not have required grant type 'client_credentials'")
 		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
@@ -154,7 +154,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 		}
 
 		cs := NewClientService(mockClientStore)
-		actual := errors.New(errors.ErrCodeInvalidGrantType, "client does not have required scope 'client:manage'")
+		actual := errors.New(errors.ErrCodeInvalidGrant, "client does not have required scope 'client:manage'")
 		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
@@ -336,7 +336,7 @@ func createTestClient() *client.Client {
 	return &client.Client{
 		Name:         "Test Name",
 		RedirectURIS: []string{testRedirectURI},
-		GrantTypes:   []client.GrantType{client.AuthorizationCode, client.ClientCredentials},
+		GrantTypes:   []string{client.AuthorizationCode, client.ClientCredentials},
 		Scopes:       []string{client.ClientRead, client.ClientWrite, client.ClientManage},
 	}
 }

@@ -101,7 +101,6 @@ func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 // StrictRateLimit applies stricter rate limiting for sensitive operations.
 func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 	strictLimiter := NewRateLimiter(maxRequestsForStrictRateLimiting)
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strictLimiter.Allow() {
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "rate limit exceeded for sensitive operations")
@@ -110,6 +109,20 @@ func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != requestMethod {
+				err := errors.New(errors.ErrCodeMethodNotAllowed, fmt.Sprintf("method '%s' not allowed for this request", r.Method))
+				web.WriteError(w, err)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // RequiresContentType creates middleware that validates the request Content-Type header

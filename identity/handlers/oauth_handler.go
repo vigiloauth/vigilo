@@ -25,7 +25,7 @@ type OAuthHandler struct {
 	clientService  client.ClientService
 	consentService consent.ConsentService
 	codeService    authz.AuthorizationCodeService
-	jwtConfig      *config.JWTConfig
+	jwtConfig      *config.TokenConfig
 }
 
 // NewUserHandler creates a new instance of UserHandler.
@@ -53,7 +53,7 @@ func NewOAuthHandler(
 		clientService:  clientService,
 		consentService: consentService,
 		codeService:    codeService,
-		jwtConfig:      config.GetServerConfig().JWTConfig(),
+		jwtConfig:      config.GetServerConfig().TokenConfig(),
 	}
 }
 

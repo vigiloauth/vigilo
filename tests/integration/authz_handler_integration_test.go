@@ -17,7 +17,7 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
-		[]client.GrantType{client.AuthorizationCode},
+		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
 	testContext.WithSession()
@@ -48,7 +48,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
-		[]client.GrantType{client.AuthorizationCode},
+		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
 	testContext.WithSession()
@@ -76,7 +76,7 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
-		[]client.GrantType{client.AuthorizationCode},
+		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
 	testContext.WithUserConsent()
@@ -104,7 +104,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
-		[]client.GrantType{client.AuthorizationCode},
+		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
 	testContext.WithSession()
@@ -135,7 +135,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
-		[]client.GrantType{client.AuthorizationCode},
+		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
 	testContext.WithSession()

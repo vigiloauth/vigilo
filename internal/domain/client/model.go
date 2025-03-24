@@ -20,7 +20,7 @@ type Client struct {
 	Secret                  string
 	Type                    ClientType
 	RedirectURIS            []string
-	GrantTypes              []GrantType
+	GrantTypes              []string
 	Scopes                  []string
 	ResponseTypes           []ResponseType
 	CreatedAt               time.Time
@@ -34,7 +34,7 @@ type ClientRegistrationRequest struct {
 	RedirectURIS            []string       `json:"redirect_uris"`
 	Type                    ClientType     `json:"client_type"`
 	Secret                  string         `json:"client_secret,omitempty"`
-	GrantTypes              []GrantType    `json:"grant_types"`
+	GrantTypes              []string       `json:"grant_types"`
 	Scopes                  []string       `json:"scopes,omitempty"`
 	ResponseTypes           []ResponseType `json:"response_types"`
 	TokenEndpointAuthMethod string         `json:"token_endpoint_auth_method,omitempty"`
@@ -47,7 +47,7 @@ type ClientRegistrationResponse struct {
 	Secret                  string         `json:"client_secret,omitempty"`
 	Type                    ClientType     `json:"client_type"`
 	RedirectURIS            []string       `json:"redirect_uris"`
-	GrantTypes              []GrantType    `json:"grant_types"`
+	GrantTypes              []string       `json:"grant_types"`
 	Scopes                  []string       `json:"scopes,omitempty"`
 	ResponseTypes           []ResponseType `json:"response_types"`
 	CreatedAt               time.Time      `json:"created_at"`
@@ -87,13 +87,13 @@ type ResponseType string
 
 const (
 	// Predefined grant types.
-	AuthorizationCode GrantType = "authorization_code"
-	PKCE              GrantType = "pkce"
-	ClientCredentials GrantType = "client_credentials"
-	DeviceCode        GrantType = "device_code"
-	RefreshToken      GrantType = "refresh_token"
-	ImplicitFlow      GrantType = "implicit_flow"
-	PasswordGrant     GrantType = "password_grant"
+	AuthorizationCode string = "authorization_code"
+	PKCE              string = "pkce"
+	ClientCredentials string = "client_credentials"
+	DeviceCode        string = "device_code"
+	RefreshToken      string = "refresh_token"
+	ImplicitFlow      string = "implicit_flow"
+	PasswordGrant     string = "password_grant"
 
 	// Predefined scopes.
 	ClientRead   string = "client:read"
@@ -116,14 +116,11 @@ const (
 // String converts a ClientType to its string representation.
 func (ct ClientType) String() string { return string(ct) }
 
-// String converts a GrantType to its string representation.
-func (gt GrantType) String() string { return string(gt) }
-
 // String converts a ResponseType to its string representation.
 func (r ResponseType) String() string { return string(r) }
 
 // HasGrantType checks to see if the client has the required grant type.
-func (c *Client) HasGrantType(requiredGrantType GrantType) bool {
+func (c *Client) HasGrantType(requiredGrantType string) bool {
 	return slices.Contains(c.GrantTypes, requiredGrantType)
 }
 
@@ -157,7 +154,7 @@ func (req *ClientRegistrationRequest) Validate() error {
 	}
 
 	if req.TokenEndpointAuthMethod != "" && !slices.Contains(req.GrantTypes, ClientCredentials) {
-		err := errors.New(errors.ErrCodeInvalidGrantType, "`token_endpoint_auth` is required for `client_credentials` grant")
+		err := errors.New(errors.ErrCodeInvalidGrant, "`token_endpoint_auth` is required for `client_credentials` grant")
 		errorCollection.Add(err)
 	}
 
@@ -194,21 +191,21 @@ func (req *ClientRegistrationRequest) validateGrantType(errorCollection *errors.
 	for _, grantType := range req.GrantTypes {
 		if _, ok := validGrantTypes[grantType]; !ok {
 			err := errors.New(
-				errors.ErrCodeInvalidGrantType,
-				fmt.Sprintf("grant type `%s` is not supported", grantType.String()))
+				errors.ErrCodeInvalidGrant,
+				fmt.Sprintf("grant type `%s` is not supported", grantType))
 			errorCollection.Add(err)
 			continue
 		}
 		if req.Type == Public {
 			if grantType == ClientCredentials || grantType == PasswordGrant {
 				err := errors.New(
-					errors.ErrCodeInvalidGrantType,
-					fmt.Sprintf("grant type `%s` is not supported for public clients", grantType.String()))
+					errors.ErrCodeInvalidGrant,
+					fmt.Sprintf("grant type `%s` is not supported for public clients", grantType))
 				errorCollection.Add(err)
 			}
 		}
 		if grantType == RefreshToken && len(req.GrantTypes) == 0 {
-			err := errors.New(errors.ErrCodeInvalidGrantType, fmt.Sprintf("`%s` requires another grant type", grantType.String()))
+			err := errors.New(errors.ErrCodeInvalidGrant, fmt.Sprintf("`%s` requires another grant type", grantType))
 			errorCollection.Add(err)
 		}
 	}
@@ -374,8 +371,8 @@ func isLoopbackIP(host string) bool {
 }
 
 // getValidGrantTypes returns a map of available grant types.
-func getValidGrantTypes() map[GrantType]bool {
-	return map[GrantType]bool{
+func getValidGrantTypes() map[string]bool {
+	return map[string]bool{
 		AuthorizationCode: true,
 		PKCE:              true,
 		ClientCredentials: true,
