@@ -110,6 +110,19 @@ func (h *AuthorizationHandler) GenerateToken(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	sessionData, err := h.sessionService.GetSessionData(r)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to get session data")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	if sessionData.State != tokenRequest.State {
+		err := errors.New(errors.ErrCodeInvalidRequest, "state mismatch")
+		web.WriteError(w, err)
+		return
+	}
+
 	authzCodeData, err := h.authorizationService.AuthorizeTokenExchange(tokenRequest)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "authorization failed for token exchange")
@@ -120,6 +133,13 @@ func (h *AuthorizationHandler) GenerateToken(w http.ResponseWriter, r *http.Requ
 	response, err := h.authorizationService.GenerateTokens(authzCodeData)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to generate access & refresh tokens")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	sessionData.State = ""
+	if err := h.sessionService.UpdateSession(r, sessionData); err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to update state")
 		web.WriteError(w, wrappedErr)
 		return
 	}
