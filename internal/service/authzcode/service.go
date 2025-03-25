@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -181,18 +182,21 @@ func (c *AuthorizationCodeServiceImpl) GetAuthorizationCode(code string) *authz.
 	return retrievedCode
 }
 
-func (c AuthorizationCodeServiceImpl) validateClient(redirectURI, clientID, scope string) error {
+func (c AuthorizationCodeServiceImpl) validateClient(redirectURI, clientID, scopesString string) error {
 	client := c.clientService.GetClientByID(clientID)
 	if client == nil {
 		return errors.New(errors.ErrCodeUnauthorizedClient, "invalid client_id")
 	}
 
-	if !client.IsConfidential() {
-		return errors.New(errors.ErrCodeUnauthorizedClient, "client must be confidential")
+	scopes := strings.Split(scopesString, " ")
+	for _, scope := range scopes {
+		if !client.HasScope(scope) {
+			return errors.New(errors.ErrCodeInvalidScope, "missing required scopes")
+		}
 	}
 
-	if !client.HasScope(scope) {
-		return errors.New(errors.ErrCodeInvalidScope, "missing required scopes")
+	if !client.IsConfidential() {
+		return errors.New(errors.ErrCodeUnauthorizedClient, "client must be confidential")
 	}
 
 	if err := c.clientService.ValidateClientRedirectURI(redirectURI, client); err != nil {

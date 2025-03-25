@@ -43,6 +43,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 		clientHandler: container.clientHandler,
 		authHandler:   container.authHandler,
 		authzHandler:  container.authzHandler,
+		oauthHandler:  container.oauthHandler,
 		serverConfig:  serverConfig,
 		tlsConfig:     container.tlsConfig,
 		httpServer:    container.httpServer,
@@ -81,7 +82,7 @@ func (s *VigiloIdentityServer) setupRoutes() {
 		// POST Routes
 		r.Group(func(pr chi.Router) {
 			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
-			pr.Post(web.OAuthEndpoints.Token, s.authzHandler.GenerateToken)
+			pr.Post(web.OAuthEndpoints.TokenExchange, s.authzHandler.TokenExchange)
 			pr.Post(web.OAuthEndpoints.Login, s.oauthHandler.OAuthLogin)
 			pr.Post(web.UserEndpoints.Registration, s.userHandler.Register)
 			pr.Post(web.UserEndpoints.Login, s.userHandler.Login)

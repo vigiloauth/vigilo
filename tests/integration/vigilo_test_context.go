@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -14,10 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/server"
+	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
+	userConsent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	sessionRepo "github.com/vigiloauth/vigilo/internal/repository/session"
 	tokenRepo "github.com/vigiloauth/vigilo/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
 	tokenService "github.com/vigiloauth/vigilo/internal/service/token"
@@ -39,8 +43,10 @@ const (
 	testUserID          string = "test-user-id"
 	testClientSecret    string = "a-string-secret-at-least-256-bits-long"
 	testScope           string = "client:manage user:manage"
+	encodedTestScope    string = "client%3Amanage%20user%3Amanage"
 	testRedirectURI     string = "https://localhost/callback"
 	testConsentApproved string = "true"
+	testAuthzCode       string = "valid-auth-code"
 )
 
 // VigiloTestContext encapsulates common testing functionality across all test types
@@ -231,6 +237,30 @@ func (tc *VigiloTestContext) SendHTTPRequest(method, endpoint string, body io.Re
 	return rr
 }
 
+func (tc *VigiloTestContext) WithOAuthLogin() {
+	loginRequest := users.UserLoginRequest{
+		ID:       testUserID,
+		Email:    testEmail,
+		Password: testPassword1,
+	}
+
+	requestBody, err := json.Marshal(loginRequest)
+	assert.NoError(tc.T, err)
+
+	queryParams := url.Values{}
+	queryParams.Add(common.ClientID, testClientID)
+	queryParams.Add(common.RedirectURI, testRedirectURI)
+	endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
+
+	rr := tc.SendHTTPRequest(
+		http.MethodPost,
+		endpoint,
+		bytes.NewReader(requestBody), nil,
+	)
+
+	assert.Equal(tc.T, http.StatusOK, rr.Code)
+}
+
 // SendLiveRequest sends a request to the live test server
 func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Reader, headers map[string]string) (*http.Response, error) {
 	if tc.TestServer == nil {
@@ -262,6 +292,29 @@ func (tc *VigiloTestContext) WithSession() {
 	assert.Equal(tc.T, http.StatusOK, rr.Code)
 }
 
+func (tc *VigiloTestContext) GetStateFromSession() string {
+	queryParams := url.Values{}
+	queryParams.Add(common.ClientID, testClientID)
+	queryParams.Add(common.RedirectURI, testRedirectURI)
+	queryParams.Add(common.Scope, testScope)
+	getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
+
+	sessionCookie := tc.GetSessionCookie()
+	headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
+
+	rr := tc.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
+	assert.Equal(tc.T, http.StatusOK, rr.Code)
+
+	// Parse the response to extract the state
+	var consentResponse userConsent.UserConsentResponse
+	err := json.Unmarshal(rr.Body.Bytes(), &consentResponse)
+	assert.NoError(tc.T, err)
+	state := consentResponse.State
+	assert.NotEmpty(tc.T, state)
+
+	return state
+}
+
 // AssertErrorResponse checks to see if the test returns a correct error.
 func (tc *VigiloTestContext) AssertErrorResponse(
 	rr *httptest.ResponseRecorder,
@@ -272,7 +325,7 @@ func (tc *VigiloTestContext) AssertErrorResponse(
 	assert.NoError(tc.T, err, "Failed to unmarshal response body")
 
 	assert.Equal(tc.T, expectedErrCode, errResp.ErrorCode)
-	assert.Equal(tc.T, expectedDescription, errResp.Details)
+	assert.Equal(tc.T, expectedDescription, errResp.ErrorDescription)
 }
 
 // TearDown performs cleanup operations.
@@ -280,6 +333,7 @@ func (tc *VigiloTestContext) TearDown() {
 	if tc.TestServer != nil {
 		tc.TestServer.Close()
 	}
+	resetInMemoryStores()
 }
 
 func (tc *VigiloTestContext) addHeaderAuth(req *http.Request, headers map[string]string) {
@@ -303,4 +357,5 @@ func resetInMemoryStores() {
 	tokenRepo.ResetInMemoryTokenRepository()
 	clientRepo.ResetInMemoryClientRepository()
 	consentRepo.ResetInMemoryUserConsentRepository()
+	sessionRepo.ResetInMemorySessionRepository()
 }

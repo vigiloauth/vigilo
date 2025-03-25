@@ -118,7 +118,7 @@ func (s *AuthorizationServiceImpl) AuthorizeClient(
 //	*AuthorizationCodeData: The authorization code data if authorization is successful.
 //	error: An error if the token exchange request is invalid or fails authorization checks.
 func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
-	authzCodeData, err := s.authzCodeService.ValidateAuthorizationCode(tokenRequest.Code, tokenRequest.ClientID, tokenRequest.RedirectURI)
+	authzCodeData, err := s.authzCodeService.ValidateAuthorizationCode(tokenRequest.AuthorizationCode, tokenRequest.ClientID, tokenRequest.RedirectURI)
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
@@ -176,7 +176,7 @@ func (s *AuthorizationServiceImpl) validateClient(tokenRequest token.TokenReques
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client credentials")
 	}
 
-	code := s.authzCodeService.GetAuthorizationCode(tokenRequest.Code)
+	code := s.authzCodeService.GetAuthorizationCode(tokenRequest.AuthorizationCode)
 	if code.ClientID != tokenRequest.ClientID {
 		return errors.New(errors.ErrCodeInvalidGrant, "client_id mismatch")
 	}

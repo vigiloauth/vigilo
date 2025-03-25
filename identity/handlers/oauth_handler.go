@@ -82,7 +82,7 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := users.NewUser("", request.Email, request.Password)
+	user := &users.User{ID: request.ID, Email: request.Email, Password: request.Password}
 	loginAttempt := users.NewUserLoginAttempt(
 		r.RemoteAddr,
 		r.Header.Get(common.XForwardedHeader),
@@ -125,7 +125,6 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	clientID := query.Get(common.ClientID)
 	redirectURI := query.Get(common.RedirectURI)
 	scope := query.Get(common.Scope)
-	state := crypto.GenerateUUID()
 
 	if clientID == "" || redirectURI == "" || scope == "" {
 		web.WriteError(w, errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters"))
@@ -134,15 +133,13 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 
 	userID := h.sessionService.GetUserIDFromSession(r)
 	if userID == "" {
-		oauthLoginURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s",
+		state := crypto.GenerateUUID()
+		oauthLoginURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
 			web.OAuthEndpoints.Login,
 			url.QueryEscape(clientID),
 			url.QueryEscape(redirectURI),
-			url.QueryEscape(scope))
-
-		if state != "" {
-			oauthLoginURL = fmt.Sprintf("%s&state=%s", oauthLoginURL, url.QueryEscape(state))
-		}
+			url.QueryEscape(scope),
+			url.QueryEscape(state))
 
 		web.WriteError(w, errors.NewLoginRequiredError(oauthLoginURL))
 		return
@@ -156,15 +153,7 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		scopeList := strings.Split(scope, " ")
-		response := &consent.ConsentResponse{
-			ClientID:        clientID,
-			ClientName:      client.Name,
-			RedirectURI:     redirectURI,
-			Scopes:          scopeList,
-			ConsentEndpoint: web.OAuthEndpoints.UserConsent,
-		}
-
+		state := crypto.GenerateUUID()
 		sessionData, err := h.sessionService.GetSessionData(r)
 		if err != nil {
 			wrappedErr := errors.Wrap(err, "", "failed to get session data")
@@ -182,6 +171,16 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		scopeList := strings.Split(scope, " ")
+		response := &consent.UserConsentResponse{
+			ClientID:        clientID,
+			ClientName:      client.Name,
+			RedirectURI:     redirectURI,
+			Scopes:          scopeList,
+			ConsentEndpoint: web.OAuthEndpoints.UserConsent,
+			State:           state,
+		}
+
 		web.WriteJSON(w, http.StatusOK, response)
 		return
 	}
@@ -193,13 +192,21 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	consentRequest, err := web.DecodeJSONRequest[consent.ConsentRequest](w, r)
+	consentRequest, err := web.DecodeJSONRequest[consent.UserConsentRequest](w, r)
 	if err != nil {
-		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
+		err = errors.Wrap(err, errors.ErrCodeInvalidRequest, "failed to decode request body")
 		web.WriteError(w, err)
 		return
 	}
 
+	sessionData, err := h.sessionService.GetSessionData(r)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to get session data")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	state := sessionData.State
 	if query.Get(common.State) != state {
 		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "state mismatch"))
 		return
@@ -214,7 +221,7 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 			errorURL = fmt.Sprintf("%s&state=%s", errorURL, url.QueryEscape(state))
 		}
 
-		denialResponse := &consent.ConsentDenialResponse{
+		denialResponse := &consent.UserConsentDenialResponse{
 			Error:       errors.ErrCodeAccessDenied,
 			RedirectURL: errorURL,
 		}
@@ -243,13 +250,6 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionData, err := h.sessionService.GetSessionData(r)
-	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to get session data")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
 	sessionData.State = ""
 	if err := h.sessionService.UpdateSession(r, sessionData); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to update session")
@@ -263,10 +263,10 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 		redirectURL = fmt.Sprintf("%s&state=%s", redirectURL, url.QueryEscape(state))
 	}
 
-	successReponse := &consent.ConsentSuccessResponse{
+	successResponse := &consent.UserConsentSuccessResponse{
 		Success:     true,
 		RedirectURL: redirectURL,
 	}
 
-	web.WriteJSON(w, http.StatusOK, successReponse)
+	web.WriteJSON(w, http.StatusOK, successResponse)
 }

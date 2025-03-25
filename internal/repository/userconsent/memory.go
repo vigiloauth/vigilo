@@ -17,7 +17,7 @@ var (
 
 // InMemoryUserConsentRepository implements the ConsentStore interface using an in-memory map.
 type InMemoryUserConsentRepository struct {
-	data map[string]*consent.ConsentRecord
+	data map[string]*consent.UserConsentRecord
 	mu   sync.RWMutex
 }
 
@@ -28,7 +28,7 @@ type InMemoryUserConsentRepository struct {
 //	*InMemoryConsentStore: The singleton instance of InMemoryConsentRepository.
 func GetInMemoryUserConsentRepository() *InMemoryUserConsentRepository {
 	once.Do(func() {
-		instance = &InMemoryUserConsentRepository{data: make(map[string]*consent.ConsentRecord)}
+		instance = &InMemoryUserConsentRepository{data: make(map[string]*consent.UserConsentRecord)}
 	})
 	return instance
 }
@@ -37,7 +37,7 @@ func GetInMemoryUserConsentRepository() *InMemoryUserConsentRepository {
 func ResetInMemoryUserConsentRepository() {
 	if instance != nil {
 		instance.mu.Lock()
-		instance.data = make(map[string]*consent.ConsentRecord)
+		instance.data = make(map[string]*consent.UserConsentRecord)
 		instance.mu.Unlock()
 	}
 }
@@ -103,7 +103,7 @@ func (c *InMemoryUserConsentRepository) SaveConsent(userID, clientID, scope stri
 	defer c.mu.Unlock()
 
 	key := createConsentKey(userID, clientID)
-	c.data[key] = &consent.ConsentRecord{
+	c.data[key] = &consent.UserConsentRecord{
 		UserID:    userID,
 		ClientID:  clientID,
 		Scope:     scope,

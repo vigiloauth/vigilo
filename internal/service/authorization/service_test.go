@@ -145,7 +145,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 func TestAuthorizationService_GenerateTokens(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensFunc: func(userID string, clientID string) (string, string, error) {
+			GenerateTokenPairFunc: func(userID string, clientID string) (string, string, error) {
 				return testAccessToken, testRefreshToken, nil
 			},
 		}
@@ -168,7 +168,7 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 
 	t.Run("Error is returned generating access token", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensFunc: func(userID string, clientID string) (string, string, error) {
+			GenerateTokenPairFunc: func(userID string, clientID string) (string, string, error) {
 				return "", "", errors.NewInternalServerError()
 			},
 		}
@@ -202,10 +202,10 @@ func getTestClient() *client.Client {
 
 func getTestTokenRequest() *token.TokenRequest {
 	return &token.TokenRequest{
-		GrantType:    client.AuthorizationCode,
-		Code:         testAuthzCode,
-		RedirectURI:  testRedirectURI,
-		ClientID:     testClientID,
-		ClientSecret: testClientSecret,
+		GrantType:         client.AuthorizationCode,
+		AuthorizationCode: testAuthzCode,
+		RedirectURI:       testRedirectURI,
+		ClientID:          testClientID,
+		ClientSecret:      testClientSecret,
 	}
 }

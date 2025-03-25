@@ -32,10 +32,6 @@ func NewAuthorizationHandler(
 }
 
 // TODO:
-// - Integration Tests
-//		- oauth_handler.Login
-//		- oauth_handler.Consent
-//		- authz_handler.GenerateTokens
 //	- Refactor:
 //		- oauth_handler.Login
 //		- oauth_handler.Consent
@@ -84,7 +80,7 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-// GenerateToken handles the token endpoint for OAuth 2.0 authorization code grant.
+// TokenExchange handles the token endpoint for OAuth 2.0 authorization code grant.
 //
 // It decodes the token request, validates it, authorizes the token exchange,
 // generates access and refresh tokens, and writes the token response as JSON.
@@ -93,7 +89,7 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 //
 //	w http.ResponseWriter: The HTTP response writer.
 //	r *http.Request: The HTTP request.
-func (h *AuthorizationHandler) GenerateToken(w http.ResponseWriter, r *http.Request) {
+func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Request) {
 	tokenRequest, err := web.DecodeJSONRequest[token.TokenRequest](w, r)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, errors.ErrCodeBadRequest, "failed to decode request")
