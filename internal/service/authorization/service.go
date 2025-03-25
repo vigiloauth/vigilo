@@ -108,7 +108,7 @@ func (s *AuthorizationServiceImpl) AuthorizeClient(
 func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.TokenRequest) (*authz.AuthorizationCodeData, error) {
 	authzCodeData, err := s.codeService.ValidateAuthorizationCode(tokenRequest.Code, tokenRequest.ClientID, tokenRequest.RedirectURI)
 	if err != nil {
-		return nil, errors.Wrap(err, "", "failed validate authorization code")
+		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
 
 	if err := s.validateClient(*tokenRequest); err != nil {
