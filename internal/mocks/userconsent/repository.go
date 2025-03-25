@@ -1,7 +1,7 @@
 package mocks
 
-// MockConsentRepository is a mock implementation of the consent.ConsentStore interface.
-type MockConsentRepository struct {
+// MockUserConsentRepository is a mock implementation of the consent.ConsentStore interface.
+type MockUserConsentRepository struct {
 	// HasConsentFunc is a mock function for the HasConsent method.
 	HasConsentFunc func(userID, clientID, scope string) (bool, error)
 
@@ -13,16 +13,16 @@ type MockConsentRepository struct {
 }
 
 // HasConsent calls the mock HasConsentFunc.
-func (m *MockConsentRepository) HasConsent(userID, clientID, scope string) (bool, error) {
+func (m *MockUserConsentRepository) HasConsent(userID, clientID, scope string) (bool, error) {
 	return m.HasConsentFunc(userID, clientID, scope)
 }
 
 // SaveConsent calls the mock SaveConsentFunc.
-func (m *MockConsentRepository) SaveConsent(userID, clientID, scope string) error {
+func (m *MockUserConsentRepository) SaveConsent(userID, clientID, scope string) error {
 	return m.SaveConsentFunc(userID, clientID, scope)
 }
 
 // RevokeConsent calls the mock RevokeConsentFunc.
-func (m *MockConsentRepository) RevokeConsent(userID, clientID string) error {
+func (m *MockUserConsentRepository) RevokeConsent(userID, clientID string) error {
 	return m.RevokeConsentFunc(userID, clientID)
 }

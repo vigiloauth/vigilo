@@ -46,7 +46,7 @@ func TestAuthorizationCodeService_GenerateAuhtorizationCode(t *testing.T) {
 		assert.NotEqual(t, "", code)
 	})
 
-	t.Run("Error is returned when missing a required paramaters", func(t *testing.T) {
+	t.Run("Error is returned when missing a required parameters", func(t *testing.T) {
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
 
 		expected := errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")

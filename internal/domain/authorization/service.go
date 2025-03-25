@@ -20,16 +20,15 @@ type AuthorizationService interface {
 	//
 	// Returns:
 	//
-	//   - bool: A boolean indicating whether authorization was successful.
 	//   - string: The redirect URL, or an empty string if authorization failed.
-	//   - string: An error message, or an empty string if authorization was successful.
+	//   - error: An error message, if any.
 	//
 	// This method performs the following steps:
-	//   1. Checks if the user is authenticated.
-	//   2. Verifies user consent if required or if already approved.
-	//   3. Generates an authorization code if authorization is successful.
-	//   4. Constructs the redirect URL with the authorization code or error parameters.
-	//   5. Returns the success status, redirect URL and any error messages.
+	//  1. Checks if the user is authenticated.
+	//  2. Verifies user consent if required or if already approved.
+	//  3. Generates an authorization code if authorization is successful.
+	//  4. Constructs the redirect URL with the authorization code or error parameters.
+	//  5. Returns the success status, redirect URL and any error messages.
 	//
 	// Errors:
 	//

@@ -32,9 +32,6 @@ func NewAuthorizationHandler(
 }
 
 // TODO:
-// - Unit tests:
-//		- authorization_service
-//		- token_service
 // - Integration Tests
 //		- oauth_handler.Login
 //		- oauth_handler.Consent

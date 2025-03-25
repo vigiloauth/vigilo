@@ -46,7 +46,7 @@ type ServiceContainer struct {
 	loginAttemptRepo login.LoginAttemptRepository
 	userRepo         users.UserRepository
 	clientRepo       client.ClientRepository
-	consentRepo      userConsent.ConsentRepository
+	consentRepo      userConsent.UserConsentRepository
 	authzCodeRepo    authzCode.AuthorizationCodeRepository
 	sessionRepo      session.SessionRepository
 
@@ -70,7 +70,7 @@ type ServiceContainer struct {
 	userService               users.UserService
 	passwordResetService      password.PasswordResetService
 	clientService             client.ClientService
-	consentService            userConsent.ConsentService
+	consentService            userConsent.UserConsentService
 	authzCodeService          authzCode.AuthorizationCodeService
 	loginAttemptService       login.LoginAttemptService
 	authorizationService      authz.AuthorizationService
@@ -82,7 +82,7 @@ type ServiceContainer struct {
 	userServiceInit               func() users.UserService
 	passwordResetServiceInit      func() password.PasswordResetService
 	clientServiceInit             func() client.ClientService
-	consentServiceInit            func() userConsent.ConsentService
+	consentServiceInit            func() userConsent.UserConsentService
 	authzCodeServiceInit          func() authzCode.AuthorizationCodeService
 	loginAttemptServiceInit       func() login.LoginAttemptService
 	authorizationServiceInit      func() authz.AuthorizationService
@@ -119,7 +119,7 @@ func (c *ServiceContainer) initializeInMemoryStores() {
 	c.userRepo = userRepo.GetInMemoryUserRepository()
 	c.loginAttemptRepo = loginRepo.GetInMemoryLoginRepository()
 	c.clientRepo = clientRepo.GetInMemoryClientRepository()
-	c.consentRepo = consentRepo.GetInMemoryConsentRepository()
+	c.consentRepo = consentRepo.GetInMemoryUserConsentRepository()
 	c.authzCodeRepo = authzCodeRepo.GetInMemoryAuthorizationCodeRepository()
 	c.sessionRepo = sessionRepo.GetInMemorySessionRepository()
 }
@@ -144,7 +144,7 @@ func (c *ServiceContainer) initializeServices() {
 	c.clientServiceInit = func() client.ClientService {
 		return clientService.NewClientService(c.clientRepo)
 	}
-	c.consentServiceInit = func() userConsent.ConsentService {
+	c.consentServiceInit = func() userConsent.UserConsentService {
 		return consentService.NewConsentServiceImpl(c.consentRepo, c.userRepo)
 	}
 	c.authzCodeServiceInit = func() authzCode.AuthorizationCodeService {
@@ -248,7 +248,7 @@ func (c *ServiceContainer) getClientService() client.ClientService {
 	return c.clientService
 }
 
-func (c *ServiceContainer) getConsentService() userConsent.ConsentService {
+func (c *ServiceContainer) getConsentService() userConsent.UserConsentService {
 	c.consentServiceOnce.Do(func() { c.consentService = c.consentServiceInit() })
 	return c.consentService
 }

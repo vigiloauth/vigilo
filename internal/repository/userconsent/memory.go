@@ -10,31 +10,31 @@ import (
 )
 
 var (
-	_        consent.ConsentRepository = (*InMemoryConsentRepository)(nil)
-	instance *InMemoryConsentRepository
+	_        consent.UserConsentRepository = (*InMemoryUserConsentRepository)(nil)
+	instance *InMemoryUserConsentRepository
 	once     sync.Once
 )
 
-// InMemoryConsentRepository implements the ConsentStore interface using an in-memory map.
-type InMemoryConsentRepository struct {
+// InMemoryUserConsentRepository implements the ConsentStore interface using an in-memory map.
+type InMemoryUserConsentRepository struct {
 	data map[string]*consent.ConsentRecord
 	mu   sync.RWMutex
 }
 
-// GetInMemoryConsentRepository returns the singleton instance of InMemoryConsentRepository.
+// GetInMemoryUserConsentRepository returns the singleton instance of InMemoryConsentRepository.
 //
 // Returns:
 //
 //	*InMemoryConsentStore: The singleton instance of InMemoryConsentRepository.
-func GetInMemoryConsentRepository() *InMemoryConsentRepository {
+func GetInMemoryUserConsentRepository() *InMemoryUserConsentRepository {
 	once.Do(func() {
-		instance = &InMemoryConsentRepository{data: make(map[string]*consent.ConsentRecord)}
+		instance = &InMemoryUserConsentRepository{data: make(map[string]*consent.ConsentRecord)}
 	})
 	return instance
 }
 
-// ResetInMemoryConsentRepository resets the in-memory user store for testing purposes.
-func ResetInMemoryConsentRepository() {
+// ResetInMemoryUserConsentRepository resets the in-memory user store for testing purposes.
+func ResetInMemoryUserConsentRepository() {
 	if instance != nil {
 		instance.mu.Lock()
 		instance.data = make(map[string]*consent.ConsentRecord)
@@ -54,7 +54,7 @@ func ResetInMemoryConsentRepository() {
 //
 //	bool: True if consent exists, false otherwise.
 //	error: An error if the check fails, or nil if successful.
-func (c *InMemoryConsentRepository) HasConsent(userID, clientID, requestedScope string) (bool, error) {
+func (c *InMemoryUserConsentRepository) HasConsent(userID, clientID, requestedScope string) (bool, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -98,7 +98,7 @@ func (c *InMemoryConsentRepository) HasConsent(userID, clientID, requestedScope 
 // Returns:
 //
 //	error: An error if the consent cannot be saved, or nil if successful.
-func (c *InMemoryConsentRepository) SaveConsent(userID, clientID, scope string) error {
+func (c *InMemoryUserConsentRepository) SaveConsent(userID, clientID, scope string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -123,7 +123,7 @@ func (c *InMemoryConsentRepository) SaveConsent(userID, clientID, scope string) 
 // Returns:
 //
 //	error: An error if the consent cannot be revoked, or nil if successful.
-func (c *InMemoryConsentRepository) RevokeConsent(userID, clientID string) error {
+func (c *InMemoryUserConsentRepository) RevokeConsent(userID, clientID string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

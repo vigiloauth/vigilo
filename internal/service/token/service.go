@@ -56,7 +56,7 @@ func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Du
 	return tokenString, nil
 }
 
-// GenerateTokens generates an access & refresh token.
+// GenerateTokenPair generates an access & refresh token.
 //
 // Parameters:
 //
@@ -68,7 +68,7 @@ func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Du
 //	string: The access token.
 //	string: The refresh token.
 //	error: An error if an error occurs while generating the tokens.
-func (ts *TokenServiceImpl) GenerateTokens(userID, clientID string) (string, string, error) {
+func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID string) (string, string, error) {
 	accessToken, err := ts.generateToken(userID, clientID, ts.tokenConfig.AccessTokenDuration())
 	if err != nil {
 		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access token")

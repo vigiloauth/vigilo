@@ -5,8 +5,8 @@ import (
 	"net/url"
 
 	"github.com/vigiloauth/vigilo/identity/config"
-	domain "github.com/vigiloauth/vigilo/internal/domain/authorization"
-	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
+	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
+	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
@@ -14,26 +14,39 @@ import (
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
-var _ domain.AuthorizationService = (*AuthorizationServiceImpl)(nil)
+// Compile-time interface implementation check
+var _ authz.AuthorizationService = (*AuthorizationServiceImpl)(nil)
 
+// AuthorizationServiceImpl implements the AuthorizationService interface
+// and coordinates authorization-related operations across multiple services.
 type AuthorizationServiceImpl struct {
-	codeService    authz.AuthorizationCodeService
-	consentService consent.ConsentService
-	tokenService   token.TokenService
-	clientService  client.ClientService
+	authzCodeService   authzCode.AuthorizationCodeService
+	userConsentService consent.UserConsentService
+	tokenService       token.TokenService
+	clientService      client.ClientService
 }
 
+// NewAuthorizationServiceImpl creates a new instance of AuthorizationServiceImpl.
+//
+// Parameters:
+//   - codeService AuthorizationCodeService: Handles authorization code-related operations
+//   - consentService UserConsentService: Manages user consent for authorization requests
+//   - tokenService TokenService: Responsible for token generation and management
+//   - clientService ClientService: Provides client-related functionality
+//
+// Returns:
+//   - A configured AuthorizationServiceImpl instance
 func NewAuthorizationServiceImpl(
-	codeService authz.AuthorizationCodeService,
-	consentService consent.ConsentService,
+	authzCodeService authzCode.AuthorizationCodeService,
+	userConsentService consent.UserConsentService,
 	tokenService token.TokenService,
 	clientService client.ClientService,
 ) *AuthorizationServiceImpl {
 	return &AuthorizationServiceImpl{
-		codeService:    codeService,
-		consentService: consentService,
-		tokenService:   tokenService,
-		clientService:  clientService,
+		authzCodeService:   authzCodeService,
+		userConsentService: userConsentService,
+		tokenService:       tokenService,
+		clientService:      clientService,
 	}
 }
 
@@ -50,9 +63,8 @@ func NewAuthorizationServiceImpl(
 //
 // Returns:
 //
-//   - bool: A boolean indicating whether authorization was successful.
 //   - string: The redirect URL, or an empty string if authorization failed.
-//   - string: An error message, or an empty string if authorization was successful.
+//   - error: An error message, if any.
 //
 // This method performs the following steps:
 //  1. Checks if the user is authenticated.
@@ -72,7 +84,7 @@ func (s *AuthorizationServiceImpl) AuthorizeClient(
 	state string,
 	consentApproved bool,
 ) (string, error) {
-	consentRequired, err := s.consentService.CheckUserConsent(userID, clientID, scope)
+	consentRequired, err := s.userConsentService.CheckUserConsent(userID, clientID, scope)
 	if err != nil {
 		return "", errors.NewAccessDeniedError()
 	}
@@ -86,7 +98,7 @@ func (s *AuthorizationServiceImpl) AuthorizeClient(
 		return "", errors.NewAccessDeniedError()
 	}
 
-	code, err := s.codeService.GenerateAuthorizationCode(userID, clientID, redirectURI, scope)
+	code, err := s.authzCodeService.GenerateAuthorizationCode(userID, clientID, redirectURI, scope)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to generate authorization code")
 		return "", wrappedErr
@@ -99,14 +111,14 @@ func (s *AuthorizationServiceImpl) AuthorizeClient(
 //
 // Parameters:
 //
-//	tokenRequest token.TokenRequest: The token exchange request containing client and authorization code details.
+//	tokenRequest *TokenRequest: The token exchange request containing client and authorization code details.
 //
 // Returns:
 //
 //	*AuthorizationCodeData: The authorization code data if authorization is successful.
 //	error: An error if the token exchange request is invalid or fails authorization checks.
-func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.TokenRequest) (*authz.AuthorizationCodeData, error) {
-	authzCodeData, err := s.codeService.ValidateAuthorizationCode(tokenRequest.Code, tokenRequest.ClientID, tokenRequest.RedirectURI)
+func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
+	authzCodeData, err := s.authzCodeService.ValidateAuthorizationCode(tokenRequest.Code, tokenRequest.ClientID, tokenRequest.RedirectURI)
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
@@ -122,14 +134,14 @@ func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.To
 //
 // Parameters:
 //
-//	authCodeData *authz.AuthorizationCodeData: The authorization code data.
+//	authCodeData *AuthorizationCodeData: The authorization code data.
 //
 // Returns:
 //
 //	*token.TokenResponse: A fully formed token response with access and refresh tokens.
 //	error: An error if token generation fails.
-func (s *AuthorizationServiceImpl) GenerateTokens(authCodeData *authz.AuthorizationCodeData) (*token.TokenResponse, error) {
-	accessToken, refreshToken, err := s.tokenService.GenerateTokens(authCodeData.UserID, authCodeData.ClientID)
+func (s *AuthorizationServiceImpl) GenerateTokens(authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
+	accessToken, refreshToken, err := s.tokenService.GenerateTokenPair(authCodeData.UserID, authCodeData.ClientID)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate tokens")
 	}
@@ -145,6 +157,15 @@ func (s *AuthorizationServiceImpl) GenerateTokens(authCodeData *authz.Authorizat
 	return response, nil
 }
 
+// validateClient performs client validation for token requests.
+//
+// Parameters:
+//
+//   - tokenRequest TokenRequest: The token request containing client details
+//
+// Returns:
+//
+//   - error: An error if client validation fails, nil otherwise
 func (s *AuthorizationServiceImpl) validateClient(tokenRequest token.TokenRequest) error {
 	client := s.clientService.GetClientByID(tokenRequest.ClientID)
 	if client == nil {
@@ -155,7 +176,7 @@ func (s *AuthorizationServiceImpl) validateClient(tokenRequest token.TokenReques
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client credentials")
 	}
 
-	code := s.codeService.GetAuthorizationCode(tokenRequest.Code)
+	code := s.authzCodeService.GetAuthorizationCode(tokenRequest.Code)
 	if code.ClientID != tokenRequest.ClientID {
 		return errors.New(errors.ErrCodeInvalidGrant, "client_id mismatch")
 	}
@@ -163,9 +184,21 @@ func (s *AuthorizationServiceImpl) validateClient(tokenRequest token.TokenReques
 	return nil
 }
 
+// buildConsentURL constructs a URL for user consent during the OAuth flow.
+//
+// Parameters:
+//
+//   - clientID string: The ID of the OAuth client
+//   - redirectURI string: The URI to redirect after consent
+//   - scope string: The requested authorization scope
+//   - state string: An optional state parameter for CSRF protection
+//
+// Returns:
+//
+//   - string: A fully constructed consent URL
 func (s *AuthorizationServiceImpl) buildConsentURL(clientID, redirectURI, scope, state string) string {
 	URL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s",
-		web.OAuthEndpoints.Consent,
+		web.OAuthEndpoints.UserConsent,
 		url.QueryEscape(clientID),
 		url.QueryEscape(redirectURI),
 		url.QueryEscape(scope),
@@ -178,6 +211,17 @@ func (s *AuthorizationServiceImpl) buildConsentURL(clientID, redirectURI, scope,
 	return URL
 }
 
+// buildRedirectURL creates a redirect URL with authorization code and optional state.
+//
+// Parameters:
+//
+//   - redirectURI string: The base redirect URI
+//   - code string: The authorization code
+//   - state string: An optional state parameter for CSRF protection
+//
+// Returns:
+//
+//   - string: A fully constructed redirect URL
 func (s *AuthorizationServiceImpl) buildRedirectURL(redirectURI, code, state string) string {
 	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, url.QueryEscape(code))
 	if state != "" {

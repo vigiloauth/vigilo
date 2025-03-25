@@ -21,7 +21,7 @@ type TokenService interface {
 	//   error: An error if token generation fails.
 	GenerateToken(subject string, expirationTime time.Duration) (string, error)
 
-	// GenerateTokens generates an access & refresh token.
+	// GenerateTokenPair generates an access & refresh token.
 	//
 	// Parameters:
 	//
@@ -33,7 +33,7 @@ type TokenService interface {
 	//	string: The access token.
 	//	string: The refresh token.
 	//	error: An error if an error occurs while generating the tokens.
-	GenerateTokens(userID, clientID string) (string, string, error)
+	GenerateTokenPair(userID, clientID string) (string, string, error)
 
 	// ParseToken parses and validates a JWT token string.
 	//

@@ -1,7 +1,7 @@
 package domain
 
-// ConsentRepository defines the interface for storing and managing user consent data.
-type ConsentRepository interface {
+// UserConsentRepository defines the interface for storing and managing user consent data.
+type UserConsentRepository interface {
 	// HasConsent checks if a user has granted consent to a client for specific scopes.
 	//
 	// Parameters:

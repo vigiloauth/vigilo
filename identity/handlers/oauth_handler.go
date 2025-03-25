@@ -23,7 +23,7 @@ type OAuthHandler struct {
 	userService    users.UserService
 	sessionService session.SessionService
 	clientService  client.ClientService
-	consentService consent.ConsentService
+	consentService consent.UserConsentService
 	codeService    authz.AuthorizationCodeService
 	jwtConfig      *config.TokenConfig
 }
@@ -44,7 +44,7 @@ func NewOAuthHandler(
 	userService users.UserService,
 	sessionService session.SessionService,
 	clientService client.ClientService,
-	consentService consent.ConsentService,
+	consentService consent.UserConsentService,
 	codeService authz.AuthorizationCodeService,
 ) *OAuthHandler {
 	return &OAuthHandler{
@@ -162,7 +162,7 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 			ClientName:      client.Name,
 			RedirectURI:     redirectURI,
 			Scopes:          scopeList,
-			ConsentEndpoint: web.OAuthEndpoints.Consent,
+			ConsentEndpoint: web.OAuthEndpoints.UserConsent,
 		}
 
 		sessionData, err := h.sessionService.GetSessionData(r)

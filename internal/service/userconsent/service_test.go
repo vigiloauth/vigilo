@@ -17,7 +17,7 @@ const (
 )
 
 func TestConsentService_CheckUserConsent(t *testing.T) {
-	mockConsentRepo := &mConsentRepo.MockConsentRepository{}
+	mockConsentRepo := &mConsentRepo.MockUserConsentRepository{}
 	mockUserRepo := &mUserRepo.MockUserRepository{}
 
 	t.Run("Returns true when user has consent", func(t *testing.T) {
@@ -65,7 +65,7 @@ func TestConsentService_CheckUserConsent(t *testing.T) {
 }
 
 func TestConsentService_SaveUserConsent(t *testing.T) {
-	mockConsentRepo := &mConsentRepo.MockConsentRepository{}
+	mockConsentRepo := &mConsentRepo.MockUserConsentRepository{}
 	mockUserRepo := &mUserRepo.MockUserRepository{}
 
 	t.Run("Success", func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestConsentService_SaveUserConsent(t *testing.T) {
 }
 
 func TestConsentService_RevokeUserConsent(t *testing.T) {
-	mockConsentRepo := &mConsentRepo.MockConsentRepository{}
+	mockConsentRepo := &mConsentRepo.MockUserConsentRepository{}
 	mockUserRepo := &mUserRepo.MockUserRepository{}
 
 	t.Run("Consent is successfully revoked", func(t *testing.T) {

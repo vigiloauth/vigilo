@@ -6,16 +6,33 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
-var _ consent.ConsentService = (*ConsentServiceImpl)(nil)
+// Compile-time interface implementation check
+var _ consent.UserConsentService = (*UserConsentServiceImpl)(nil)
 
-type ConsentServiceImpl struct {
-	consentRepo consent.ConsentRepository
+// UserConsentServiceImpl implements the UserConsentService interface
+// and manages user consent-related operations by coordinating
+// between consent and user repositories.
+type UserConsentServiceImpl struct {
+	consentRepo consent.UserConsentRepository
 	userRepo    users.UserRepository
 }
 
-func NewConsentServiceImpl(consentStore consent.ConsentRepository, userRepo users.UserRepository) *ConsentServiceImpl {
-	return &ConsentServiceImpl{
-		consentRepo: consentStore,
+// NewConsentServiceImpl creates a new instance of UserConsentServiceImpl.
+//
+// Parameters:
+//
+//   - consentStore: Repository for managing consent-related data
+//   - userRepo: Repository for accessing user information
+//
+// Returns:
+//
+//   - A configured UserConsentServiceImpl instance
+func NewConsentServiceImpl(
+	consentRepo consent.UserConsentRepository,
+	userRepo users.UserRepository,
+) *UserConsentServiceImpl {
+	return &UserConsentServiceImpl{
+		consentRepo: consentRepo,
 		userRepo:    userRepo,
 	}
 }
@@ -33,7 +50,7 @@ func NewConsentServiceImpl(consentStore consent.ConsentRepository, userRepo user
 //
 //	bool: True if consent exists, false if consent is needed.
 //	error: An error if the consent check operation fails.
-func (c *ConsentServiceImpl) CheckUserConsent(userID, clientID, scope string) (bool, error) {
+func (c *UserConsentServiceImpl) CheckUserConsent(userID, clientID, scope string) (bool, error) {
 	if user := c.userRepo.GetUserByID(userID); user == nil {
 		return false, errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
 	}
@@ -53,7 +70,7 @@ func (c *ConsentServiceImpl) CheckUserConsent(userID, clientID, scope string) (b
 // Returns:
 //
 //	error: An error if the consent cannot be saved, or nil if successful.
-func (c *ConsentServiceImpl) SaveUserConsent(userID, clientID, scope string) error {
+func (c *UserConsentServiceImpl) SaveUserConsent(userID, clientID, scope string) error {
 	if user := c.userRepo.GetUserByID(userID); user == nil {
 		return errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
 	}
@@ -71,7 +88,7 @@ func (c *ConsentServiceImpl) SaveUserConsent(userID, clientID, scope string) err
 // Returns:
 //
 //	error: An error if the consent cannot be revoked, or nil if successful.
-func (c *ConsentServiceImpl) RevokeConsent(userID, clientID string) error {
+func (c *UserConsentServiceImpl) RevokeConsent(userID, clientID string) error {
 	if user := c.userRepo.GetUserByID(userID); user == nil {
 		return errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
 	}

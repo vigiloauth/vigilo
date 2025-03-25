@@ -1,8 +1,8 @@
 package domain
 
-// ConsentService defines the interface for managing user consent operations
+// UserConsentService defines the interface for managing user consent operations
 // in the OAuth2 authorization flow.
-type ConsentService interface {
+type UserConsentService interface {
 	// CheckUserConsent verifies if a user has previously granted consent to a client
 	// for the requested scope.
 	//

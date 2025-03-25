@@ -13,6 +13,7 @@ const (
 	testToken        string = "test-token"
 	testID           string = "test-id"
 	testInvalidToken string = "invalidToken"
+	testClientID     string = "client-id"
 )
 
 func TestTokenService_GenerateToken(t *testing.T) {
@@ -149,4 +150,12 @@ func TestTokenService_DeleteToken(t *testing.T) {
 	assert.Nil(t, tokenData)
 }
 
-func TestTokenService_GenerateTokens(t *testing.T) {}
+func TestTokenService_GenerateTokenPair(t *testing.T) {
+	tokenService := NewTokenServiceImpl(token.GetInMemoryTokenRepository())
+
+	accessToken, refreshToken, err := tokenService.GenerateTokenPair(testID, testClientID)
+
+	assert.NoError(t, err)
+	assert.NotEqual(t, "", accessToken)
+	assert.NotEqual(t, "", refreshToken)
+}

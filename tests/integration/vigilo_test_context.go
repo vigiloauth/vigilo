@@ -91,7 +91,7 @@ func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
 }
 
 func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
-	consentRepo.GetInMemoryConsentRepository().
+	consentRepo.GetInMemoryUserConsentRepository().
 		SaveConsent(testUserID, testClientID, testScope)
 
 	return tc
@@ -302,5 +302,5 @@ func resetInMemoryStores() {
 	userRepo.ResetInMemoryUserRepository()
 	tokenRepo.ResetInMemoryTokenRepository()
 	clientRepo.ResetInMemoryClientRepository()
-	consentRepo.ResetInMemoryConsentRepository()
+	consentRepo.ResetInMemoryUserConsentRepository()
 }
