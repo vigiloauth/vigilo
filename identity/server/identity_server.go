@@ -65,11 +65,12 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 func (s *VigiloIdentityServer) setupRoutes() {
 	// Apply Global Middleware
 	s.router.Use(s.middleware.RateLimit)
+	s.router.HandleFunc(web.OAuthEndpoints.Login, s.oauthHandler.OAuthLogin)
+	s.router.HandleFunc(web.OAuthEndpoints.Consent, s.oauthHandler.UserConsent)
 
 	// Public Routes (No Auth Required)
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.RequiresContentType(contentTypeJSON))
-
 		// GET Routes
 		r.Group(func(gr chi.Router) {
 			gr.Use(s.middleware.RequireRequestMethod(http.MethodGet))
@@ -79,8 +80,6 @@ func (s *VigiloIdentityServer) setupRoutes() {
 		// POST Routes
 		r.Group(func(pr chi.Router) {
 			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
-			pr.Post(web.OAuthEndpoints.Login, s.oauthHandler.OAuthLogin)
-			pr.Post(web.OAuthEndpoints.Consent, s.oauthHandler.UserConsent)
 			pr.Post(web.OAuthEndpoints.Token, s.authzHandler.GenerateToken)
 			pr.Post(web.UserEndpoints.Registration, s.userHandler.Register)
 			pr.Post(web.UserEndpoints.Login, s.userHandler.Login)
