@@ -92,8 +92,7 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Request) {
 	tokenRequest, err := web.DecodeJSONRequest[token.TokenRequest](w, r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, errors.ErrCodeBadRequest, "failed to decode request")
-		web.WriteError(w, wrappedErr)
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
 

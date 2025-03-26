@@ -39,3 +39,7 @@ func ExtractIDFromURL(w http.ResponseWriter, r *http.Request) (string, error) {
 	}
 	return parts[len(parts)-2], nil
 }
+
+func SetNoStoreHeader(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", "no-store")
+}

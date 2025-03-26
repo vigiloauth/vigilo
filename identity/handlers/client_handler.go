@@ -30,13 +30,12 @@ func NewClientHandler(clientService client.ClientService) *ClientHandler {
 func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 	req, err := web.DecodeJSONRequest[client.ClientRegistrationRequest](w, r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		web.WriteError(w, wrappedErr)
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
 
 	if err := req.Validate(); err != nil {
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestValidationError(err))
 		return
 	}
 
@@ -54,7 +53,8 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 
 	response, err := h.clientService.SaveClient(newClient)
 	if err != nil {
-		web.WriteError(w, err)
+		wrappedErr := errors.Wrap(err, "", "failed to save client")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
@@ -65,8 +65,8 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request) {
 	clientID, err := web.ExtractIDFromURL(w, r)
 	if err != nil {
-		err = errors.New(errors.ErrCodeInvalidRequest, "'client_id' is missing in the request")
-		web.WriteError(w, err)
+		wrappedErr := errors.Wrap(err, "", "'client_id' is missing in the request")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 

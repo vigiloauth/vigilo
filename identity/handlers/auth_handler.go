@@ -41,15 +41,15 @@ func (h *AuthenticationHandler) IssueClientCredentialsToken(w http.ResponseWrite
 		return
 	}
 
-	grantType := r.Form.Get(common.GrantType)
-	if grantType != common.ClientCredentials {
+	if h.isRequestGrantTypeClientCredentials(r) {
 		web.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "unsupported grant type"))
 		return
 	}
 
 	clientID, clientSecret, err := web.ExtractBasicAuth(r)
 	if err != nil {
-		web.WriteError(w, err)
+		wrappedErr := errors.Wrap(err, "", "failed to extract auth from header")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
@@ -61,14 +61,19 @@ func (h *AuthenticationHandler) IssueClientCredentialsToken(w http.ResponseWrite
 	tokenExpirationTime := 30 * time.Minute
 	accessToken, err := h.tokenService.GenerateToken(clientID, tokenExpirationTime)
 	if err != nil {
-		web.WriteError(w, errors.NewInternalServerError())
+		wrappedErr := errors.Wrap(err, "", "failed to generate token")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	w.Header().Set("Cache-Control", "no-store")
+	web.SetNoStoreHeader(w)
 	web.WriteJSON(w, http.StatusOK, &token.TokenResponse{
 		AccessToken: accessToken,
 		TokenType:   token.BearerToken,
 		ExpiresIn:   int(tokenExpirationTime.Seconds()),
 	})
+}
+
+func (h *AuthenticationHandler) isRequestGrantTypeClientCredentials(r *http.Request) bool {
+	return r.Form.Get(common.GrantType) == common.ClientCredentials
 }

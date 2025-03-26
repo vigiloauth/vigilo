@@ -1,8 +1,6 @@
 package errors
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // VigiloAuthError represents a standardized error structure
 type VigiloAuthError struct {
@@ -69,6 +67,22 @@ func NewAccessDeniedError() *VigiloAuthError {
 		ErrorCode:        ErrCodeAccessDenied,
 		ErrorDescription: "the resource owner denied the request",
 	}
+}
+
+func NewSessionCreationError(err error) error {
+	return Wrap(err, "", "failed to create new session")
+}
+
+func NewRequestValidationError(err error) error {
+	return Wrap(err, "", "failed to validate request parameters")
+}
+
+func NewRequestBodyDecodingError(err error) error {
+	return Wrap(err, ErrCodeInternalServerError, "failed to decode request body")
+}
+
+func NewMethodNotAllowedError(method string) error {
+	return New(ErrCodeMethodNotAllowed, fmt.Sprintf("method not allowed: %s", method))
 }
 
 // Wrap wraps an existing error with additional context

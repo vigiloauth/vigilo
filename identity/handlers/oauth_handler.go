@@ -66,28 +66,30 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 
 	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
 	if err != nil {
-		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
 
 	if err := request.Validate(); err != nil {
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestValidationError(err))
 		return
 	}
 
 	response, err := h.userService.HandleOAuthLogin(
-		request, clientID, redirectURI, r.RemoteAddr,
-		r.Header.Get(common.XForwardedHeader), r.UserAgent(),
+		request, clientID,
+		redirectURI, r.RemoteAddr,
+		r.Header.Get(common.XForwardedHeader),
+		r.UserAgent(),
 	)
 
 	if err != nil {
-		web.WriteError(w, err)
+		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
 	if err := h.sessionService.CreateSession(w, r, response.UserID, h.jwtConfig.ExpirationTime()); err != nil {
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}
 
@@ -129,7 +131,7 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope)
 	default:
-		web.WriteError(w, errors.New(errors.ErrCodeMethodNotAllowed, "method not allowed"))
+		web.WriteError(w, errors.NewMethodNotAllowedError(r.Method))
 	}
 }
 
@@ -149,7 +151,7 @@ func (h *OAuthHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, 
 func (h *OAuthHandler) handlePostConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
 	consentRequest, err := web.DecodeJSONRequest[consent.UserConsentRequest](w, r)
 	if err != nil {
-		err = errors.Wrap(err, errors.ErrCodeInvalidRequest, "failed to decode request body")
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		web.WriteError(w, err)
 		return
 	}

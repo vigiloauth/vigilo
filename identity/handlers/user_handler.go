@@ -49,20 +49,20 @@ func NewUserHandler(
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	request, err := web.DecodeJSONRequest[users.UserRegistrationRequest](w, r)
 	if err != nil {
-		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
 
 	if err := request.Validate(); err != nil {
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestValidationError(err))
 		return
 	}
 
 	user := users.NewUser(request.Username, request.Email, request.Password)
 	response, err := h.userService.CreateUser(user)
 	if err != nil {
-		web.WriteError(w, err)
+		wrappedEerr := errors.Wrap(err, "", "failed to create user")
+		web.WriteError(w, wrappedEerr)
 		return
 	}
 
@@ -81,28 +81,29 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
 	if err != nil {
-		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
 
 	if err := request.Validate(); err != nil {
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestValidationError(err))
 		return
 	}
 
 	response, err := h.userService.AuthenticateUserWithRequest(
 		request, r.RemoteAddr,
-		r.Header.Get(common.XForwardedHeader), r.UserAgent(),
+		r.Header.Get(common.XForwardedHeader),
+		r.UserAgent(),
 	)
 
 	if err != nil {
-		web.WriteError(w, err)
+		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
 	if err := h.sessionService.CreateSession(w, r, response.UserID, h.jwtConfig.ExpirationTime()); err != nil {
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}
 
@@ -115,7 +116,8 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 // If the Authorization header is missing or the token is invalid, it returns an error.
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.sessionService.InvalidateSession(w, r); err != nil {
-		web.WriteError(w, err)
+		wrappedErr := errors.Wrap(err, "", "failed to invalidate session")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
@@ -128,8 +130,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
 	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
 	if err != nil {
-		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
 
@@ -141,7 +142,8 @@ func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.R
 
 	response, err := h.passwordResetService.SendPasswordResetEmail(request.Email)
 	if err != nil {
-		web.WriteError(w, err)
+		wrappedErr := errors.Wrap(err, "", "failed to send password reset email")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
@@ -154,12 +156,12 @@ func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.R
 func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
 	if err != nil {
-		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
+
 	if err := request.Validate(); err != nil {
-		web.WriteError(w, err)
+		web.WriteError(w, errors.NewRequestValidationError(err))
 		return
 	}
 
