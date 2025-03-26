@@ -5,7 +5,7 @@ The **VigiloAuth** Identity Management service is a core component responsible f
 
 This documentation provides a comprehensive guide to configuring and utilizing the VigiloAuth Identity Management server, covering both user and client management aspects.
 
-## Docs
+## Documentation
 - [Configuration Guide](../../configuration.md)
 - **User Management:**
     - [User Registration](user_handler/user_registration.md)

@@ -1,28 +1,44 @@
 # Regenerate Client Secret
+
 ## Endpoint
 ```
 POST /client/{client_id}/regenerate-secret
 ```
 ---
-### Headers
+
+## Notes for Developers
+- Ensure the `client_id` matches the one registered with the authorization server.
+- Confidential clients must securely store their `client_secret` and avoid exposing it in client-side code.
+- This endpoint is restricted to clients with the `client:manage` scope.
+
+---
+
+## Headers
 | Key             | Value                         | Description                              |
 | :-------------- | :---------------------------- | :----------------------------------------|
 | Content-Type    | application/json              | Indicates that the request body is JSON. |
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.  |
 | Content-Length  | [Content-Length]              | The length of the request body in bytes. |
+
 ---
-### URL Parameters
-| Parameter | Type   | Required | Description                           |
-| :---------|:-------| :--------| :-------------------------------------|
-| client_id | string | Yes      | The ID of the client to regenerate secret for. |
+
+## URL Parameters
+| Parameter | Type   | Required | Description                                                                 |
+| :-------- | :----- | :------- | :-------------------------------------------------------------------------- |
+| client_id | string | Yes      | The unique identifier of the client application. This must match the client ID registered with the authorization server. |
+
 ---
----
-### Example Request
+
+## Example Request
 ```
-POST https://localhost:8080/clients/{client_id}/regenerate-secret
+POST https://localhost:8080/client/{client_id}/regenerate-secret
 ```
+
 ---
+
 ## Responses
+
+### Success Response
 #### HTTP Status Code: `200 OK`
 #### Response Body:
 ```json
@@ -36,14 +52,16 @@ POST https://localhost:8080/clients/{client_id}/regenerate-secret
 **Note:** This endpoint can only be used with `confidential` client types, as `public` clients do not have a client secret.
 
 ---
-## Error Responses:
+
+## Error Responses
+
 ### 1. Missing Client ID
 #### HTTP Status Code: `400 Bad Request`
 #### Response Body:
 ```json
 {
-    "error": "invalid_request",
-    "error_description": "missing 'client_id' in request"
+    "error_code": "invalid_request",
+    "message": "The 'client_id' parameter is missing from the request."
 }
 ```
 
@@ -52,8 +70,8 @@ POST https://localhost:8080/clients/{client_id}/regenerate-secret
 #### Response Body:
 ```json
 {
-    "error": "invalid_client",
-    "error_description": "client does not exist with the given ID"
+    "error_code": "invalid_client",
+    "message": "The provided client ID does not match any registered client."
 }
 ```
 
@@ -62,27 +80,27 @@ POST https://localhost:8080/clients/{client_id}/regenerate-secret
 #### Response Body:
 ```json
 {
-    "error": "unauthorized_client",
-    "error_description": "client is not type 'confidential'"
+    "error_code": "unauthorized_client",
+    "message": "The client type must be 'confidential' to regenerate a client secret. Public clients do not have a client secret."
 }
 ```
 
-### 4. Internal Server Error
-#### HTTP Status Code: `500 Internal Server Error`
-#### Response Body:
-```json
-{
-    "error": "internal_server_error",
-    "error_description": "failed to regenerate client_secret"
-}
-```
-
-### 5. Client Missing Required Scopes
+### 4. Client Missing Required Scopes
 #### HTTP Status Code: `403 Forbidden`
 #### Response Body:
 ```json
 {
-    "error": "invalid_scope",
-    "error_description": "client does not have required scope 'client:manage'"
+    "error_code": "invalid_scope",
+    "message": "The client does not have the required scope 'client:manage' to perform this operation."
+}
+```
+
+### 5. Internal Server Error
+#### HTTP Status Code: `500 Internal Server Error`
+#### Response Body:
+```json
+{
+    "error_code": "internal_server_error",
+    "message": "An unexpected error occurred while regenerating the client secret."
 }
 ```

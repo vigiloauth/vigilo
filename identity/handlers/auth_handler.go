@@ -37,31 +37,31 @@ func NewAuthenticationHandler(tokenService token.TokenService, clientService cli
 // IssueClientCredentialsToken is the handler responsible for generating new tokens.
 func (h *AuthenticationHandler) IssueClientCredentialsToken(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "invalid request format"))
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "the request body format is invalid"))
 		return
 	}
 
 	if h.isRequestGrantTypeClientCredentials(r) {
-		web.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "unsupported grant type"))
+		web.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "the provided grant type is not supported"))
 		return
 	}
 
 	clientID, clientSecret, err := web.ExtractBasicAuth(r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to extract auth from header")
+		wrappedErr := errors.Wrap(err, "", "the authorization header is invalid or missing")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
 	if _, err := h.clientService.AuthenticateClientForCredentialsGrant(clientID, clientSecret); err != nil {
-		web.WriteError(w, errors.Wrap(err, "", "invalid client credentials"))
+		web.WriteError(w, errors.Wrap(err, "", "the client credentials are invalid or incorrectly formatted"))
 		return
 	}
 
 	tokenExpirationTime := 30 * time.Minute
 	accessToken, err := h.tokenService.GenerateToken(clientID, tokenExpirationTime)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to generate token")
+		wrappedErr := errors.Wrap(err, "", "failed to generate access token")
 		web.WriteError(w, wrappedErr)
 		return
 	}

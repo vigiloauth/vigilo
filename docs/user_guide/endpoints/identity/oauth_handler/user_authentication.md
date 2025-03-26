@@ -1,39 +1,50 @@
 # User Authentication
+
 ## Endpoint
 ```
 POST /oauth/login
 ```
-**Description:** Handles user authentication specifically for the OAuth authorization code flow, with additional context parameters to support the ongoing authorization process.
 
-### Headers
+---
+
+**Description:**  
+This endpoint handles user authentication for the OAuth authorization code flow. It validates user credentials and preserves the original OAuth request context, redirecting the user to the consent or authorization endpoint upon successful authentication.
+
+---
+
+## Headers
 | Key             | Value                         | Description                               |
-| :-------------- | :---------------------------- | :-----------------------------------------|
+| :-------------- | :---------------------------- | :---------------------------------------- |
 | Content-Type    | application/json              | Indicates that the request body is JSON.  |
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.   |
 | Content-Length  | [Content-Length]              | The length of the request body in bytes.  |
+
 ---
 
-### Query Parameters
-| Paramater            | Type          | Required | Description                                                  |
-| :--------------------| :-------------| :--------| :------------------------------------------------------------|
-| client_id            | string        | Yes      | The unique identifier of the OAuth client.                   |
-| redirect_uri         | string        | Yes      | The URI to redirect after authorization.                     |
+## Query Parameters
+| Parameter        | Type    | Required | Description                                                                 |
+| :--------------- | :------ | :------- | :-------------------------------------------------------------------------- |
+| client_id        | string  | Yes      | The unique identifier of the OAuth client. Must match the registered client.|
+| redirect_uri     | string  | Yes      | The URI to redirect after authorization. Must match the registered URI.     |
+
 ---
 
-### Request Body Parameters
+## Request Body Parameters
 | Field     | Type    | Required  | Description                    |
-|:----------|:--------|:----------|:-------------------------------|
+| :-------- | :------ | :-------- | :----------------------------- |
 | user_id   | string  | Yes       | The user's ID.                 |
 | email     | string  | Yes       | The user's email address.      |
 | password  | string  | Yes       | The password for the account.  |
+
 ---
 
-### Login Flow
-1. Client redirects user to login page with OAuth context parameters.
-2. User enters credentials.
-3. Server validates credentials.
-4. If successfu, redirects to consent or authorization endpoint.
-5. Presevers original OAuth request context.
+## Login Flow
+
+1. The client redirects the user to the login page with OAuth context parameters.
+2. The user enters their credentials.
+3. The server validates the credentials.
+4. If successful, the server redirects the user to the consent or authorization endpoint.
+5. Preserves the original OAuth request context.
 
 ---
 
@@ -45,12 +56,15 @@ POST /oauth/login?client_id=abc123&redirect_uri=https://client.example.com/callb
 {
     "user_id": "abc123",
     "email": "john.doe@mail.com",
-    "password": "password",
+    "password": "password"
 }
 ```
-___
+
+---
 
 ## Responses
+
+### Success Response
 #### HTTP Status Code: `200 OK`
 #### Response Body:
 ```json
@@ -62,16 +76,18 @@ ___
     "last_failed_login": "2024-03-15T14:30:22.843541-07:00"
 }
 ```
-___
+
+---
 
 ## Error Responses
+
 ### 1. Request Body Validation Error
 #### HTTP Status Code: `400 Bad Request`
 #### Response Body:
 ```json
 {
     "error": "validation_error",
-    "error_description": "One or more validation errors occurred",
+    "error_description": "One or more validation errors occurred.",
     "errors": [
         {
             "error": "empty_input",
@@ -79,18 +95,19 @@ ___
         },
         {
             "error": "invalid_email_format",
-            "error_description": "provided email is invalid"
+            "error_description": "The provided email is invalid."
         }
     ]
 }
 ```
+
 ### 2. Missing Required OAuth Parameters
 #### HTTP Status Code: `400 Bad Request`
 #### Response Body:
 ```json
 {
     "error": "bad_request",
-    "error_description": "missing one or more required parameters"
+    "error_description": "Missing one or more required parameters."
 }
 ```
 
@@ -100,9 +117,9 @@ ___
 ```json
 {
     "error": "unauthorized",
-    "error_description": "failed to authenticate user",
-    "error_details": "invalid credentials"
-}   
+    "error_description": "Failed to authenticate user.",
+    "error_details": "Invalid credentials."
+}
 ```
 
 ### 4. Account is Locked
@@ -111,18 +128,7 @@ ___
 ```json
 {
     "error": "unauthorized",
-    "error_description": "failed to authenticate user",
-    "error_details": "account is locked due to too many failed login attempts"
-}   
-```
-
-### 5. Invalid Credentials
-#### HTTP Status Code: `401 Unauthorized`
-#### Response Body:
-```json
-{
-    "error": "unauthorized",
-    "error_description": "failed to authenticate user",
-    "error_details": "invalid credentials"
-}   
+    "error_description": "Failed to authenticate user.",
+    "error_details": "The account is locked due to too many failed login attempts."
+}
 ```

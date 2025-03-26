@@ -1,28 +1,35 @@
 # Static Client Registration
+
 ## Endpoint
 ```
 POST /oauth/register
 ```
+
 ---
-### Headers
+
+## Headers
 | Key             | Value                         | Description                              |
 | :-------------- | :---------------------------- | :----------------------------------------|
 | Content-Type    | application/json              | Indicates that the request body is JSON. |
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.  |
 | Content-Length  | [Content-Length]              | The length of the request body in bytes. |
+
 ---
-### Request Body
-| Field                | Type          | Required | Description                                         |
-| :--------------------| :-------------| :--------| :---------------------------------------------------|
-| client_name          | string        | Yes      | The client's name.                                  |
-| redirect_uris        | string array  | Yes      | The list of redirect URIs. Public clients **must** use HTTPS. |
-| client_type          | string        | Yes      | The type of client. Must be either `public` or `confidential`. |
+
+## Request Body
+| Field                | Type          | Required | Description                                                                 |
+| :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
+| client_name          | string        | Yes      | The name of the client application being registered.                       |
+| redirect_uris        | string array  | Yes      | A list of URIs to which the authorization server will redirect the user after successful authorization. Public clients must use HTTPS. |
+| client_type          | string        | Yes      | The type of client. Must be either `public` or `confidential`.             |
 | grant_types          | string array  | Yes      | The grant types associated with the client. Supported values: `authorization_code`, `client_credentials`, `password`, `refresh_token`, `implicit`, `device_code`. |
-| scopes               | string array  | No       | The scopes associated with the client. Supported values: `read`, `write`       |
+| scopes               | string array  | No       | The scopes associated with the client. Supported values: `read`, `write`.  |
 | response_types       | string array  | Yes      | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
-| token_auth_endpoint  | string        | No       | The token authentication endpoint for client credentials flow. Required for `client_credentials` grant type. |
+| token_auth_endpoint  | string        | No       | The token authentication endpoint for the client credentials flow. Required for `client_credentials` grant type. |
+
 ---
-### Example Request
+
+## Example Request
 ```json
 {
   "client_name": "Example Client",
@@ -46,8 +53,12 @@ POST /oauth/register
   "token_auth_endpoint": "https://example.com/token"
 }
 ```
+
 ---
+
 ## Responses
+
+### Success Response
 #### HTTP Status Code: `201 Created`
 #### Response Body:
 ```json
@@ -74,22 +85,24 @@ POST /oauth/register
 **Note:** When registering as a `confidential` client, the `client_secret` will be included in the response.
 
 ---
-## Error Responses:
+
+## Error Responses
+
 ### 1. Missing One or More Required Fields
 #### HTTP Status Code: `400 Bad Request`
 #### Response Body:
 ```json
 {
     "error_code": "validation_error",
-    "message": "One or more validation errors occurred",
+    "message": "One or more validation errors occurred.",
     "errors": [
         {
             "error_code": "invalid_client",
-            "message": "client must be `public` or `confidential`"
+            "message": "The client type must be either 'public' or 'confidential'."
         },
         {
             "error_code": "empty_field",
-            "message": "`redirect_uris` is empty"
+            "message": "The 'redirect_uris' field is empty."
         }
     ]
 }
@@ -100,12 +113,12 @@ POST /oauth/register
 #### Response Body:
 ```json
 {
-    "error": "validation_error",
-    "error_description": "One or more validation errors occurred",
+    "error_code": "validation_error",
+    "message": "One or more validation errors occurred.",
     "errors": [
         {
-            "error": "invalid_redirect_uri",
-            "error_description": "public clients must use HTTPS"
+            "error_code": "invalid_redirect_uri",
+            "message": "The provided redirect URI is invalid. Public clients must use HTTPS."
         }
     ]
 }
@@ -116,18 +129,17 @@ POST /oauth/register
 #### Response Body:
 ```json
 {
-    "code": "validation_error",
-    "error_description": "One or more validation errors occurred",
+    "error_code": "validation_error",
+    "message": "One or more validation errors occurred.",
     "errors": [
         {
-            "error": "invalid_grant_type",
-            "error_description": "grant type `invalid-grant` is not supported"
+            "error_code": "invalid_grant_type",
+            "message": "The grant type 'invalid-grant' is not supported."
         },
         {
-            "error": "invalid_response_type",
-            "error_description": "`id_token` response type is only allowed with `authorization_code`, `device_code`, or `implicit` grant types"
+            "error_code": "invalid_response_type",
+            "message": "The 'id_token' response type is only allowed with 'authorization_code', 'device_code', or 'implicit' grant types."
         }
     ]
 }
 ```
-

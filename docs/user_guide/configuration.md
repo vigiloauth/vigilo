@@ -77,8 +77,8 @@ func main() {
 		config.WithCertFilePath(certFilePath),
 		config.WithKeyFilePath(keyFilePath),
 		config.WithReadTimeout(readTimeout),
-		config.WithWriteTimeout(writeTimeout)
-		config.WithMaxRequestsPerMinute(requestsPerMinute)
+		config.WithWriteTimeout(writeTimeout),
+		config.WithMaxRequestsPerMinute(requestsPerMinute),
 	)
 
 	vigiloIdentityServer := server.NewVigiloIdentityServer()

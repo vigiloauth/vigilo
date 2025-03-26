@@ -1,35 +1,58 @@
 # OAuth 2.0 Client Credentials Grant
+
 ## Endpoint
 ```
 POST /oauth/client/token
 ```
----
-**Description:** This endpoint implements the OAuth 2.0 client credentials flow, allowing authenticated clients to obtain an access token for machine-to-machine communication.
 
-### Headers
-| Key             | Value                         |
-|:----------------|-------------------------------|
-| Content-Type    | application/x-www-form-urlencoded |
-| Authorization   | Basic {base64(client_id:client_secret)} |
-| Date            | Tue, 03 Dec 2024 19:38:16 GMT | 
-| Content-Length  | 29                            | 
 ---
-### Request Body
-| Field      | Type    | Required  | Description                    |
-| :----------|:--------|:----------|:-------------------------------|
-| grant_type | string  | Yes       | Must be "client_credentials"   |
+
+**Description:**  
+This endpoint implements the OAuth 2.0 client credentials flow, allowing authenticated clients to obtain an access token for machine-to-machine communication.
+
 ---
-### Example Request
+
+## Notes for Developers
+- This implementation follows the OAuth 2.0 specification (RFC 6749) for the client credentials grant type.
+- The client must be authenticated using HTTP Basic Authentication.
+- No refresh tokens are issued in this flow as it is designed for machine-to-machine communication.
+- The token is returned with `Cache-Control: no-store` to prevent caching of sensitive tokens.
+- All error responses follow the OAuth 2.0 error response format.
+
+---
+
+## Headers
+| Key             | Value                              | Description                                                                 |
+| :-------------- | :--------------------------------- | :--------------------------------------------------------------------------|
+| Content-Type    | application/x-www-form-urlencoded | Indicates that the request body is URL-encoded.                            |
+| Authorization   | Basic {base64(client_id:client_secret)} | HTTP Basic Authentication header containing the client ID and secret.      |
+| Date            | Tue, 03 Dec 2024 19:38:16 GMT     | The date and time the request was made.                                    |
+| Content-Length  | [Content-Length]                  | The length of the request body in bytes.                                   |
+
+---
+
+## Request Body
+| Field      | Type    | Required  | Description                                                                 |
+| :----------|:--------|:----------|:----------------------------------------------------------------------------|
+| grant_type | string  | Yes       | Specifies the type of grant being used. Must be set to `client_credentials`.|
+
+---
+
+## Example Request
 ```
-POST /auth/token HTTP/1.1
+POST /oauth/client/token HTTP/1.1
 Host: localhost:8080
 Content-Type: application/x-www-form-urlencoded
 Authorization: Basic dGVzdGNsaWVudDpzZWNyZXQ=
 
 grant_type=client_credentials
 ```
+
 ---
+
 ## Responses
+
+### Success Response
 #### HTTP Status Code: `200 OK`
 #### Response Headers:
 ```
@@ -44,19 +67,22 @@ Content-Type: application/json
     "expires_in": 1800
 }
 ```
-#### Note: 
+
+**Note:**  
 The access token is a JWT that can be used to access protected resources. The `expires_in` field indicates the token expiration time in seconds (30 minutes in this implementation).
 
 ---
+
 ## Error Responses
+
 ### 1. Invalid Grant Type
 #### HTTP Status Code: `400 Bad Request`
-**Description:** Occurs when the grant_type parameter is missing or not equal to "client_credentials".
+**Description:** Occurs when the `grant_type` parameter is missing or not equal to `client_credentials`.
 #### Response Body:
 ```json
 {
     "error": "unsupported_grant_type",
-    "error_description": "unsupported grant type"
+    "error_description": "the provided grant type is not supported"
 }
 ```
 
@@ -67,18 +93,18 @@ The access token is a JWT that can be used to access protected resources. The `e
 ```json
 {
     "error": "invalid_request",
-    "error_description": "invalid request format"
+    "error_description": "the request body format is invalid"
 }
 ```
 
 ### 3. Invalid Authorization Header
 #### HTTP Status Code: `400 Bad Request`
-**Description:** Occurs when the Authorization header is missing or not in Basic auth format.
+**Description:** Occurs when the `Authorization` header is missing or not in Basic auth format.
 #### Response Body:
 ```json
 {
     "error": "invalid_request",
-    "description": "invalid authorization header"
+    "error_description": "the authorization header is invalid or missing"
 }
 ```
 
@@ -89,7 +115,7 @@ The access token is a JWT that can be used to access protected resources. The `e
 ```json
 {
     "error": "invalid_client",
-    "error_description": "invalid credentials format"
+    "error_description": "the client credentials are invalid or incorrectly formatted"
 }
 ```
 
@@ -100,30 +126,29 @@ The access token is a JWT that can be used to access protected resources. The `e
 ```json
 {
     "error": "invalid_client",
-    "error_description": "invalid client credentials"
+    "error_description": "The client credentials are invalid."
 }
 ```
 
 ### 6. Unauthorized Client Type
 #### HTTP Status Code: `403 Forbidden`
-**Description:** Occurs when the client is not of type "confidential".
+**Description:** Occurs when the client is not of type `confidential`.
 #### Response Body:
 ```json
 {
     "error": "unauthorized_client",
-    "error_description": "client is not type `confidential`"
+    "error_description": "The client must be of type 'confidential' to use this grant type."
 }
 ```
 
 ### 7. Invalid Grant Type Permission
 #### HTTP Status Code: `403 Forbidden`
-**Description:** Occurs when the client does not have permission to use the client_credentials grant type.
+**Description:** Occurs when the client does not have permission to use the `client_credentials` grant type.
 #### Response Body:
 ```json
 {
     "error": "invalid_grant",
-    "error_description": "invalid client credentials",
-    "error_details": "client does not have required grant type 'client_credentials'"
+    "error_description": "The client does not have permission to use the 'client_credentials' grant type."
 }
 ```
 
@@ -134,8 +159,7 @@ The access token is a JWT that can be used to access protected resources. The `e
 ```json
 {
     "error": "invalid_scope",
-    "error_description": "invalid client credentials",
-    "error_details": "client does not have require scope 'client:manage'
+    "error_description": "The client does not have the required scope 'client:manage'."
 }
 ```
 
@@ -146,38 +170,6 @@ The access token is a JWT that can be used to access protected resources. The `e
 ```json
 {
     "error": "internal_server_error",
-    "error_description": "An internal server error occurred"
+    "error_description": "An internal server error occurred while generating the access token."
 }
 ```
-
-### 10. Client Does Not Exist
-#### HTTP Status Code: `401 Unauthorized`
-**Description:** Occurs when the client does not exist with the given `client_id`.
-#### Response Body:
-```json
-{
-    "error": "invalid_client",
-    "error_description": "invalid client credentials",
-    "error_details": "client does not exist with the given ID"
-}
-```
-
-### 11. Invalid Client Secret
-#### HTTP Status Code: `401 Unauthorized`
-**Description:** Occurs when the `client_secret` provided is invalid.
-#### Response Body:
-```json
-{
-    "error": "invalid_client",
-    "error_description": "invalid client credentials",
-    "error_details": "invalid `client_secret` provided"
-}
-```
-
----
-### Notes:
-- This implementation follows the OAuth 2.0 specification (RFC 6749) for the client credentials grant type.
-- The client must be authenticated using HTTP Basic Authentication.
-- No refresh tokens are issued in this flow as it is designed for machine-to-machine communication.
-- The token is returned with Cache-Control: no-store to prevent caching of sensitive tokens.
-- All error responses follow the OAuth 2.0 error response format.
