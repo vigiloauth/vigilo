@@ -2,6 +2,8 @@ package mocks
 
 import client "github.com/vigiloauth/vigilo/internal/domain/client"
 
+var _ client.ClientRepository = (*MockClientRepository)(nil)
+
 // MockClientRepository is a mock implementation of the client.ClientStore interface.
 type MockClientRepository struct {
 	// SaveClientFunc is a mock function for the CreateClient method.
@@ -15,6 +17,8 @@ type MockClientRepository struct {
 
 	// UpdateClientFunc is a mock function for the UpdateClient method.
 	UpdateClientFunc func(client *client.Client) error
+
+	IsExistingIDFunc func(clientID string) bool
 }
 
 // CreateClient calls the mock CreateClientFunc.
@@ -35,4 +39,8 @@ func (m *MockClientRepository) DeleteClientByID(clientID string) error {
 // UpdateClient calls the mock UpdateClientFunc.
 func (m *MockClientRepository) UpdateClient(client *client.Client) error {
 	return m.UpdateClientFunc(client)
+}
+
+func (m *MockClientRepository) IsExistingID(clientID string) bool {
+	return m.IsExistingIDFunc(clientID)
 }

@@ -2,7 +2,7 @@ package domain
 
 // ClientService defines the interface for managing client registration.
 type ClientService interface {
-	// SaveClient registers a new public client.
+	// Register registers a new public client.
 	//
 	// Parameters:
 	//
@@ -12,7 +12,7 @@ type ClientService interface {
 	//
 	//   *ClientRegistrationResponse: The response containing client details.
 	//   error: An error if the registration fails.
-	SaveClient(newClient *Client) (*ClientRegistrationResponse, error)
+	Register(newClient *Client) (*ClientRegistrationResponse, error)
 
 	// RegenerateClientSecret regenerates a client secret.
 	//

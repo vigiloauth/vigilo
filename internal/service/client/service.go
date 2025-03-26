@@ -34,7 +34,7 @@ func NewClientService(clientRepo client.ClientRepository) *ClientServiceImpl {
 	return &ClientServiceImpl{clientRepo: clientRepo}
 }
 
-// SaveClient registers a new public client.
+// Register registers a new public client.
 //
 // Parameters:
 //
@@ -44,7 +44,7 @@ func NewClientService(clientRepo client.ClientRepository) *ClientServiceImpl {
 //
 //	*client.ClientRegistrationResponse: The response containing client details.
 //	error: An error if registration fails.
-func (cs *ClientServiceImpl) SaveClient(newClient *client.Client) (*client.ClientRegistrationResponse, error) {
+func (cs *ClientServiceImpl) Register(newClient *client.Client) (*client.ClientRegistrationResponse, error) {
 	clientID, err := cs.generateUniqueClientID()
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to generate client ID")
@@ -108,11 +108,8 @@ func (cs *ClientServiceImpl) RegenerateClientSecret(clientID string) (*client.Cl
 	if retrievedClient == nil {
 		return nil, errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
 	}
-	if !retrievedClient.HasScope(client.ClientManage) {
-		return nil, errors.New(errors.ErrCodeInvalidScope, "client does not have required scope 'client:manage'")
-	}
-	if !retrievedClient.IsConfidential() {
-		return nil, errors.New(errors.ErrCodeUnauthorizedClient, "client is not type 'confidential'")
+	if err := cs.validateClientAuthorization(retrievedClient, "", client.ClientManage, client.ClientCredentials); err != nil {
+		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
 
 	clientSecret, err := cs.generateClientSecret()
@@ -159,19 +156,8 @@ func (cs *ClientServiceImpl) AuthenticateClientForCredentialsGrant(clientID, cli
 	if existingClient == nil {
 		return nil, errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
 	}
-	if !existingClient.IsConfidential() {
-		return nil, errors.New(errors.ErrCodeUnauthorizedClient, "client is not type 'confidential'")
-	}
-	if existingClient.Secret != clientSecret {
-		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid 'client_secret' provided")
-	}
-
-	if !existingClient.HasGrantType(client.ClientCredentials) {
-		return nil, errors.New(errors.ErrCodeInvalidGrant, "client does not have required grant type 'client_credentials'")
-	}
-
-	if !existingClient.HasScope(client.ClientManage) {
-		return nil, errors.New(errors.ErrCodeInvalidScope, "client does not have required scope 'client:manage'")
+	if err := cs.validateClientAuthorization(existingClient, clientSecret, client.ClientManage, client.ClientCredentials); err != nil {
+		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
 
 	return existingClient, nil
@@ -218,7 +204,35 @@ func (cs *ClientServiceImpl) ValidateClientRedirectURI(redirectURI string, exist
 	return nil
 }
 
+// validateClientAuthorization checks if the client is authorized to perform certain actions
+// based on its configuration, including its type, client secret, grant type, and scope.
+//
+// Parameters:
+//
+//	existingClient *Client: The client whose authorization is being validated.
+//	clientSecret string: The client secret to validate against the stored value.
+//
+// Returns:
+//
+//	error: An error indicating why the client is not authorized, or nil if the client is valid.
+func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.Client, clientSecret, scope, grantType string) error {
+	if !existingClient.IsConfidential() {
+		return errors.New(errors.ErrCodeUnauthorizedClient, "client is not type 'confidential'")
+	}
+	if !existingClient.SecretsMatch(clientSecret) {
+		return errors.New(errors.ErrCodeInvalidClient, "invalid 'client_secret' provided")
+	}
+	if !existingClient.HasScope(scope) {
+		return errors.New(errors.ErrCodeInvalidScope, "client does not have required scope")
+	}
+	if !existingClient.HasGrantType(grantType) {
+		return errors.New(errors.ErrCodeInvalidGrant, "client does not have required grant type")
+	}
+	return nil
+}
+
 // generateUniqueClientID generates a unique client ID, ensuring it is not already in use.
+// The method has a 100 Millisecond delay between each retry, and will retry max 5 times.
 //
 // Returns:
 //
@@ -230,13 +244,14 @@ func (cs *ClientServiceImpl) generateUniqueClientID() (string, error) {
 
 	for range maxRetries {
 		clientID := crypto.GenerateUUID()
-		if existingClient := cs.clientRepo.GetClientByID(clientID); existingClient == nil {
+		if !cs.clientRepo.IsExistingID(clientID) {
 			return clientID, nil
 		}
 		time.Sleep(retryDelay)
 	}
 
-	return "", errors.NewInternalServerError()
+	// Return a more specific error after retrying maxRetries
+	return "", errors.New(errors.ErrCodeInternalServerError, "failed to generate a unique client ID after multiple retries")
 }
 
 // generateClientSecret generates a unique client secret, making sure it is not already in use.
@@ -265,42 +280,109 @@ func (cs *ClientServiceImpl) generateClientSecret() (string, error) {
 //
 //	bool: True if URI is valid, otherwise false.
 //	error: If an error occurs while validating the URI.
-func (cs *ClientServiceImpl) isValidURIFormat(uri string, clientType client.ClientType) (bool, error) {
-	parsedURL, err := url.Parse(uri)
+func (cs *ClientServiceImpl) isValidURIFormat(uri string, clientType string) (bool, error) {
+	parsedURL, err := cs.parseURI(uri)
 	if err != nil {
-		return false, errors.New(errors.ErrCodeInvalidFormat, "invalid redirect URI format")
+		return false, errors.Wrap(err, "", "invalid redirect URI format")
 	}
 
-	if parsedURL.Scheme != "https" &&
-		parsedURL.Scheme != "http" &&
-		!strings.HasPrefix(parsedURL.Scheme, "custom") {
-		return false, errors.New(
+	if err := cs.validateRedirectURIScheme(parsedURL); err != nil {
+		return false, errors.Wrap(err, "", "failed to validate URL scheme")
+	}
+
+	switch clientType {
+	case client.Public:
+		if err := cs.validatePublicClientURIScheme(parsedURL); err != nil {
+			return false, errors.Wrap(err, "", "failed to valid public client URI")
+		}
+	case client.Confidential:
+		if err := cs.validateConfidentialClientURIScheme(parsedURL); err != nil {
+			return false, errors.Wrap(err, "", "failed to valid confidential client URI")
+		}
+	default:
+		return false, errors.New(errors.ErrCodeInvalidClient, "invalid client_type")
+	}
+
+	return true, nil
+}
+
+// parseURI parses the given URI string into a URL object and checks its validity.
+//
+// Parameters:
+//
+//	uri string: The URI to parse and validate.
+//
+// Returns:
+//
+//	*url.URL: A parsed URL object if successful.
+//	error: An error if the URI format is invalid or if fragments are present.
+func (cs *ClientServiceImpl) parseURI(uri string) (*url.URL, error) {
+	parsedURL, err := url.Parse(uri)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.ErrCodeInvalidRedirectURI, "invalid redirect URI format")
+	}
+
+	if parsedURL.Fragment != "" {
+		return nil, errors.New(errors.ErrCodeInvalidRedirectURI, "fragments are not allowed")
+	}
+
+	return parsedURL, nil
+}
+
+// validateRedirectURIScheme validates the scheme of a parsed URL to ensure it meets the required conditions.
+//
+// Parameters:
+//
+//	parsedURL *url.URL: The parsed URL to validate.
+//
+// Returns:
+//
+//	error: An error if the scheme is not valid, or nil if the scheme is valid.
+func (cs *ClientServiceImpl) validateRedirectURIScheme(parsedURL *url.URL) error {
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" && !strings.HasPrefix(parsedURL.Scheme, "custom") {
+		return errors.New(
 			errors.ErrCodeInvalidRedirectURI,
 			"invalid scheme, must be 'https' or 'http' for localhost or 'custom' for mobile",
 		)
 	}
+	return nil
+}
 
-	if clientType == client.Public {
-		if parsedURL.Scheme == "http" && parsedURL.Host != "localhost" {
-			return false, errors.New(errors.ErrCodeInvalidRedirectURI, "'http' scheme is only allowed for 'localhost'")
-		}
-		if parsedURL.Scheme == "https" && parsedURL.Host == "localhost" {
-			return false, errors.New(
-				errors.ErrCodeInvalidRedirectURI,
-				"'https' scheme is not allowed for for public clients using 'localhost'",
-			)
-		}
-	} else if clientType == client.Confidential {
-		if strings.Contains(parsedURL.Host, "*") {
-			return false, errors.New(errors.ErrCodeInvalidRedirectURI, "wildcards are not allowed for confidential clients")
-		}
-	} else {
-		return false, errors.New(errors.ErrCodeInvalidClient, fmt.Sprintf("invalid client_type: %s", clientType.String()))
+// validatePublicClientURIScheme validates the URL scheme for public clients.
+//
+// Parameters:
+//
+//	parsedURL *url.URL: The parsed URL to validate.
+//
+// Returns:
+//
+//	error: An error if the public client URL scheme is invalid, or nil if it is valid.
+func (cs *ClientServiceImpl) validatePublicClientURIScheme(parsedURL *url.URL) error {
+	if parsedURL.Scheme == "http" && parsedURL.Host != "localhost" {
+		return errors.New(errors.ErrCodeInvalidRedirectURI, "'http' scheme is only allowed for 'localhost'")
+	}
+	if parsedURL.Scheme == "https" && parsedURL.Host == "localhost" {
+		return errors.New(
+			errors.ErrCodeInvalidRedirectURI,
+			"'https' scheme is not allowed for for public clients using 'localhost'",
+		)
 	}
 
-	if parsedURL.Fragment != "" {
-		return false, errors.New(errors.ErrCodeInvalidRedirectURI, "fragments are not allowed in the redirectURI")
-	}
+	return nil
+}
 
-	return true, nil
+// validateConfidentialClientURIScheme validates the URL scheme for confidential clients.
+//
+// Parameters:
+//
+//	parsedURL *url.URL: The parsed URL to validate.
+//
+// Returns:
+//
+//	error: An error if the confidential client URL scheme is invalid, or nil if it is valid.
+func (cs *ClientServiceImpl) validateConfidentialClientURIScheme(parsedURL *url.URL) error {
+	if strings.Contains(parsedURL.Host, "*") {
+		return errors.New(errors.ErrCodeInvalidRedirectURI, "wildcards are not allowed for confidential clients")
+	}
+	return nil
 }

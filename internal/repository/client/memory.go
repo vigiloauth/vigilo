@@ -3,12 +3,12 @@ package repository
 import (
 	"sync"
 
-	domain "github.com/vigiloauth/vigilo/internal/domain/client"
+	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 var (
-	_        domain.ClientRepository = (*InMemoryClientRepository)(nil)
+	_        client.ClientRepository = (*InMemoryClientRepository)(nil)
 	instance *InMemoryClientRepository
 	once     sync.Once
 )
@@ -16,7 +16,7 @@ var (
 // InMemoryClientRepository provides an in-memory implementation of ClientStore.
 // It uses a map to store clients and a read-write mutex for concurrency control.
 type InMemoryClientRepository struct {
-	data map[string]*domain.Client
+	data map[string]*client.Client
 	mu   sync.RWMutex
 }
 
@@ -26,7 +26,7 @@ type InMemoryClientRepository struct {
 //
 //	*InMemoryClientStore: A new in-memory client store.
 func NewInMemoryClientRepository() *InMemoryClientRepository {
-	return &InMemoryClientRepository{data: make(map[string]*domain.Client)}
+	return &InMemoryClientRepository{data: make(map[string]*client.Client)}
 }
 
 // GetInMemoryClientRepository returns a singleton instance of InMemoryClientStore.
@@ -38,7 +38,7 @@ func NewInMemoryClientRepository() *InMemoryClientRepository {
 func GetInMemoryClientRepository() *InMemoryClientRepository {
 	once.Do(func() {
 		instance = &InMemoryClientRepository{
-			data: make(map[string]*domain.Client),
+			data: make(map[string]*client.Client),
 		}
 	})
 	return instance
@@ -48,7 +48,7 @@ func GetInMemoryClientRepository() *InMemoryClientRepository {
 func ResetInMemoryClientRepository() {
 	if instance != nil {
 		instance.mu.Lock()
-		instance.data = make(map[string]*domain.Client)
+		instance.data = make(map[string]*client.Client)
 		instance.mu.Unlock()
 	}
 }
@@ -62,7 +62,7 @@ func ResetInMemoryClientRepository() {
 // Returns:
 //
 //	error: An error if the client already exists, nil otherwise.
-func (cs *InMemoryClientRepository) SaveClient(client *domain.Client) error {
+func (cs *InMemoryClientRepository) SaveClient(client *client.Client) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
@@ -83,7 +83,7 @@ func (cs *InMemoryClientRepository) SaveClient(client *domain.Client) error {
 // Returns:
 //
 //	*client.Client: The client object if found, nil otherwise.
-func (cs *InMemoryClientRepository) GetClientByID(clientID string) *domain.Client {
+func (cs *InMemoryClientRepository) GetClientByID(clientID string) *client.Client {
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
 
@@ -120,7 +120,7 @@ func (cs *InMemoryClientRepository) DeleteClientByID(clientID string) error {
 // Returns:
 //
 //	error: An error if the client does not exist, nil otherwise.
-func (cs *InMemoryClientRepository) UpdateClient(client *domain.Client) error {
+func (cs *InMemoryClientRepository) UpdateClient(client *client.Client) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
@@ -130,4 +130,18 @@ func (cs *InMemoryClientRepository) UpdateClient(client *domain.Client) error {
 
 	cs.data[client.ID] = client
 	return nil
+}
+
+// IsExistingID checks to see if an ID already exists in the database.
+//
+// Parameters:
+//
+//	clientID string: The client ID to verify.
+//
+// Returns:
+//
+//	bool: True if it exists, otherwise false.
+func (cs *InMemoryClientRepository) IsExistingID(clientID string) bool {
+	_, clientExsits := cs.data[clientID]
+	return clientExsits
 }

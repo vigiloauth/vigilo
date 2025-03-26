@@ -237,9 +237,9 @@ func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsEr
 func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 	return &client.ClientRegistrationRequest{
 		Name:          "Test Name",
-		RedirectURIS:  []string{"https://loaclhost/callback"},
+		RedirectURIS:  []string{"https://localhost/callback"},
 		GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
 		Scopes:        []string{client.ClientRead, client.ClientWrite},
-		ResponseTypes: []client.ResponseType{client.CodeResponseType, client.IDTokenResponseType},
+		ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
 	}
 }

@@ -15,17 +15,17 @@ const (
 	testRedirectURI  string = "http://localhost/callback"
 )
 
-func TestClientService_SaveClient(t *testing.T) {
+func TestClientService_Register(t *testing.T) {
 	mockClientStore := &mockClient.MockClientRepository{}
 	testClient := createTestClient()
 
 	t.Run("Success When Saving Public Client", func(t *testing.T) {
 		testClient.Type = client.Public
-		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
+		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(client *client.Client) error { return nil }
 
 		cs := NewClientService(mockClientStore)
-		response, err := cs.SaveClient(testClient)
+		response, err := cs.Register(testClient)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -33,10 +33,10 @@ func TestClientService_SaveClient(t *testing.T) {
 
 	t.Run("Error When Generating Client ID", func(t *testing.T) {
 		testClient.Type = client.Public
-		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return true }
 
 		cs := NewClientService(mockClientStore)
-		response, err := cs.SaveClient(testClient)
+		response, err := cs.Register(testClient)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -44,11 +44,11 @@ func TestClientService_SaveClient(t *testing.T) {
 
 	t.Run("Success When Saving Confidential Client", func(t *testing.T) {
 		testClient.Type = client.Confidential
-		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
+		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(client *client.Client) error { return nil }
 
 		cs := NewClientService(mockClientStore)
-		response, err := cs.SaveClient(testClient)
+		response, err := cs.Register(testClient)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -57,20 +57,20 @@ func TestClientService_SaveClient(t *testing.T) {
 
 	t.Run("Database Error When Saving Client", func(t *testing.T) {
 		testClient.Type = client.Confidential
-		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
+		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(client *client.Client) error {
 			return errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
 		}
 
 		cs := NewClientService(mockClientStore)
-		response, err := cs.SaveClient(testClient)
+		response, err := cs.Register(testClient)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
 
-func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
+func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 	mockClientStore := &mockClient.MockClientRepository{}
 
 	t.Run("Success", func(t *testing.T) {
@@ -133,7 +133,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 		}
 
 		cs := NewClientService(mockClientStore)
-		actual := errors.New(errors.ErrCodeInvalidGrant, "client does not have required grant type 'client_credentials'")
+		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have required grant type")
 		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
@@ -154,7 +154,7 @@ func TestClientService_AuthenticateAndAuthorizeClient(t *testing.T) {
 		}
 
 		cs := NewClientService(mockClientStore)
-		actual := errors.New(errors.ErrCodeInvalidGrant, "client does not have required scope 'client:manage'")
+		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have required scope")
 		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
@@ -177,7 +177,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		testClient := createTestClient()
 		testClient.Type = client.Confidential
 		testClient.ID = testClientID
-		testClient.Secret = testClientSecret
+		testClient.Secret = ""
 
 		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
@@ -210,18 +210,19 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
 		testClient.Secret = testClientSecret
+		testClient.Type = client.Confidential
 		testClient.Scopes = []string{}
 
 		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 
 		cs := NewClientService(mockClientStore)
-		expected := errors.New(errors.ErrCodeInvalidScope, "client does not have required scope 'client:manage'")
+		expected := errors.New(errors.ErrCodeInvalidScope, "failed to validate client: invalid 'client_secret' provided")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
 		assert.Error(t, actual)
 		assert.Nil(t, response)
-		assert.Equal(t, actual.Error(), expected.Error())
+		assert.Equal(t, expected.Error(), actual.Error())
 	})
 
 	t.Run("Error is returned when there is an error updating the client", func(t *testing.T) {
@@ -250,11 +251,11 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 
 		cs := NewClientService(mockClientStore)
-		expected := errors.New(errors.ErrCodeUnauthorizedClient, "client is not type 'confidential'")
+		expected := errors.New(errors.ErrCodeUnauthorizedClient, "failed to validate client: client is not type 'confidential'")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
 		assert.Error(t, actual)
-		assert.Equal(t, actual.Error(), expected.Error())
+		assert.Equal(t, expected.Error(), actual.Error())
 		assert.Nil(t, response)
 	})
 }

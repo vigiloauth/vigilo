@@ -51,7 +51,7 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 		newClient.TokenEndpointAuthMethod = req.TokenEndpointAuthMethod
 	}
 
-	response, err := h.clientService.SaveClient(newClient)
+	response, err := h.clientService.Register(newClient)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to save client")
 		web.WriteError(w, wrappedErr)

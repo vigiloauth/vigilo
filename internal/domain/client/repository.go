@@ -45,4 +45,15 @@ type ClientRepository interface {
 	//
 	//	error: An error if the client does not exist, nil otherwise.
 	UpdateClient(client *Client) error
+
+	// IsExistingID checks to see if an ID already exists in the database.
+	//
+	// Parameters:
+	//
+	//	clientID string: The client ID to verify.
+	//
+	// Returns:
+	//
+	//	bool: True if it exists, otherwise false.
+	IsExistingID(clientID string) bool
 }

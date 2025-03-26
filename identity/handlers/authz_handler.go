@@ -32,9 +32,6 @@ func NewAuthorizationHandler(
 }
 
 // TODO:
-// - Test UserConsentService:
-//		- ProcessUserConsent
-//		- GetConsentDetails
 // - Update docs:
 //		- authz_handler.AuthorizeClient
 //		- authz_handler.GenerateToken

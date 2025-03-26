@@ -18,11 +18,11 @@ type Client struct {
 	Name                    string
 	ID                      string
 	Secret                  string
-	Type                    ClientType
+	Type                    string
 	RedirectURIS            []string
 	GrantTypes              []string
 	Scopes                  []string
-	ResponseTypes           []ResponseType
+	ResponseTypes           []string
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
 	TokenEndpointAuthMethod string
@@ -30,29 +30,29 @@ type Client struct {
 
 // ClientRegistrationRequest represents a request to register a new OAuth client.
 type ClientRegistrationRequest struct {
-	Name                    string         `json:"client_name"`
-	RedirectURIS            []string       `json:"redirect_uris"`
-	Type                    ClientType     `json:"client_type"`
-	Secret                  string         `json:"client_secret,omitempty"`
-	GrantTypes              []string       `json:"grant_types"`
-	Scopes                  []string       `json:"scopes,omitempty"`
-	ResponseTypes           []ResponseType `json:"response_types"`
-	TokenEndpointAuthMethod string         `json:"token_endpoint_auth_method,omitempty"`
+	Name                    string   `json:"client_name"`
+	RedirectURIS            []string `json:"redirect_uris"`
+	Type                    string   `json:"client_type"`
+	Secret                  string   `json:"client_secret,omitempty"`
+	GrantTypes              []string `json:"grant_types"`
+	Scopes                  []string `json:"scopes,omitempty"`
+	ResponseTypes           []string `json:"response_types"`
+	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method,omitempty"`
 }
 
 // ClientRegistrationResponse represents a response after registering an OAuth client.
 type ClientRegistrationResponse struct {
-	ID                      string         `json:"client_id"`
-	Name                    string         `json:"client_name"`
-	Secret                  string         `json:"client_secret,omitempty"`
-	Type                    ClientType     `json:"client_type"`
-	RedirectURIS            []string       `json:"redirect_uris"`
-	GrantTypes              []string       `json:"grant_types"`
-	Scopes                  []string       `json:"scopes,omitempty"`
-	ResponseTypes           []ResponseType `json:"response_types"`
-	CreatedAt               time.Time      `json:"created_at"`
-	UpdatedAt               time.Time      `json:"updated_at"`
-	TokenEndpointAuthMethod string         `json:"token_endpoint_auth_method,omitempty"`
+	ID                      string    `json:"client_id"`
+	Name                    string    `json:"client_name"`
+	Secret                  string    `json:"client_secret,omitempty"`
+	Type                    string    `json:"client_type"`
+	RedirectURIS            []string  `json:"redirect_uris"`
+	GrantTypes              []string  `json:"grant_types"`
+	Scopes                  []string  `json:"scopes,omitempty"`
+	ResponseTypes           []string  `json:"response_types"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
+	TokenEndpointAuthMethod string    `json:"token_endpoint_auth_method,omitempty"`
 }
 
 // ClientSecretRegenerationResponse represents the response when regenerating a client secret.
@@ -73,20 +73,8 @@ type ClientAuthorizationRequest struct {
 	CodeChallengeMethod string `schema:"code_challenge_method,omitempty"`
 }
 
-// ClientType represents the type of an OAuth client.
-type ClientType string
-
-// GrantType represents different types of OAuth grant mechanisms.
-type GrantType string
-
-// Scope represents the authorization scopes available to an OAuth client.
-type Scope string
-
-// ResponseType represents the response types available to an OAuth client.
-type ResponseType string
-
+// Predefined grant types.
 const (
-	// Predefined grant types.
 	AuthorizationCode string = "authorization_code"
 	PKCE              string = "pkce"
 	ClientCredentials string = "client_credentials"
@@ -94,30 +82,35 @@ const (
 	RefreshToken      string = "refresh_token"
 	ImplicitFlow      string = "implicit_flow"
 	PasswordGrant     string = "password_grant"
-
-	// Predefined scopes.
-	ClientRead   string = "client:read"
-	ClientWrite  string = "client:write"
-	ClientManage string = "client:manage"
-	UserRead     string = "user:read"
-	UserWrite    string = "user:write"
-	UserManage   string = "user:manage"
-
-	// Predefined client types.
-	Confidential ClientType = "confidential"
-	Public       ClientType = "public"
-
-	// Predefined response types.
-	CodeResponseType    ResponseType = "code"
-	TokenResponseType   ResponseType = "token"
-	IDTokenResponseType ResponseType = "id_token"
 )
 
-// String converts a ClientType to its string representation.
-func (ct ClientType) String() string { return string(ct) }
+// Predefined client types.
+const (
+	Confidential string = "confidential"
+	Public       string = "public"
+)
 
-// String converts a ResponseType to its string representation.
-func (r ResponseType) String() string { return string(r) }
+// Predefined response types.
+const (
+	CodeResponseType    string = "code"
+	TokenResponseType   string = "token"
+	IDTokenResponseType string = "id_token"
+)
+
+// Predefined Scopes.
+const (
+	// Client Management Scopes
+	ClientRead   string = "client:read"   // Read registered client details.
+	ClientWrite  string = "client:write"  // Modify client details (except 'client_id' & 'client_secret')
+	ClientDelete string = "client:delete" // Delete a registered client.
+	ClientManage string = "client:manage" // Full control over all clients (includes 'read', 'write', and 'delete')
+
+	// User Management Scopes
+	UserRead   string = "user:read"   // Read user details (e.g., profile, email, etc.).
+	UserWrite  string = "user:write"  // Modify user details.
+	UserDelete string = "user:delete" // Delete a user account.
+	UserManage string = "user:manage" // Full control over users ('read', 'write'. and 'delete').
+)
 
 // HasGrantType checks to see if the client has the required grant type.
 func (c *Client) HasGrantType(requiredGrantType string) bool {
@@ -137,6 +130,10 @@ func (c *Client) HasScope(requiredScope string) bool {
 // IsConfidentials checks to see if the client is public or confidentials.
 func (c *Client) IsConfidential() bool {
 	return c.Type == Confidential
+}
+
+func (c *Client) SecretsMatch(secret string) bool {
+	return c.Secret == secret
 }
 
 // Validate checks if the ClientRegistrationRequest contains valid values.
@@ -298,7 +295,7 @@ func (req *ClientRegistrationRequest) validateResponseTypes(errorCollection *err
 		return
 	}
 
-	validResponseTypes := map[ResponseType]bool{
+	validResponseTypes := map[string]bool{
 		CodeResponseType:    true,
 		TokenResponseType:   true,
 		IDTokenResponseType: true,
@@ -308,7 +305,7 @@ func (req *ClientRegistrationRequest) validateResponseTypes(errorCollection *err
 		if _, ok := validResponseTypes[responseType]; !ok {
 			err := errors.New(
 				errors.ErrCodeInvalidResponseType,
-				fmt.Sprintf("response type `%s` is not supported", responseType.String()))
+				fmt.Sprintf("response type `%s` is not supported", responseType))
 			errorCollection.Add(err)
 			continue
 		}

@@ -3,15 +3,15 @@ package mocks
 import client "github.com/vigiloauth/vigilo/internal/domain/client"
 
 type MockClientService struct {
-	SaveClientFunc                            func(newClient *client.Client) (*client.ClientRegistrationResponse, error)
+	RegisterFunc                              func(newClient *client.Client) (*client.ClientRegistrationResponse, error)
 	RegenerateClientSecretFunc                func(clientID string) (*client.ClientSecretRegenerationResponse, error)
 	AuthenticateClientForCredentialsGrantFunc func(clientID, clientSecret string) (*client.Client, error)
 	GetClientByIDFunc                         func(clientID string) *client.Client
 	ValidateClientRedirectURIFunc             func(redirectURI string, existingClient *client.Client) error
 }
 
-func (m *MockClientService) SaveClient(newClient *client.Client) (*client.ClientRegistrationResponse, error) {
-	return m.SaveClientFunc(newClient)
+func (m *MockClientService) Register(newClient *client.Client) (*client.ClientRegistrationResponse, error) {
+	return m.RegisterFunc(newClient)
 }
 
 func (m *MockClientService) RegenerateClientSecret(clientID string) (*client.ClientSecretRegenerationResponse, error) {

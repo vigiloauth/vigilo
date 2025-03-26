@@ -111,7 +111,7 @@ func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 // scopes []client.Scope: An array of scopes.
 // grantTypes []client.GrantType: An array of grantTypes.
 func (tc *VigiloTestContext) WithClient(
-	clientType client.ClientType,
+	clientType string,
 	scopes []string,
 	grantTypes []string,
 ) *VigiloTestContext {
@@ -122,7 +122,7 @@ func (tc *VigiloTestContext) WithClient(
 		RedirectURIS:  []string{testRedirectURI},
 		GrantTypes:    grantTypes,
 		Scopes:        scopes,
-		ResponseTypes: []client.ResponseType{client.CodeResponseType, client.IDTokenResponseType},
+		ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
 	}
 
 	if clientType == client.Confidential {
