@@ -1,5 +1,9 @@
 package domain
 
+import (
+	"net/http"
+)
+
 // UserConsentService defines the interface for managing user consent operations
 // in the OAuth2 authorization flow.
 type UserConsentService interface {
@@ -43,4 +47,44 @@ type UserConsentService interface {
 	//
 	//	error: An error if the consent cannot be revoked, or nil if successful.
 	RevokeConsent(userID, clientID string) error
+
+	// GetConsentDetails retrieves the details required for the user consent process.
+	//
+	// This method fetches information about the client application and the requested scopes,
+	// and prepares the response to be displayed to the user for consent.
+	//
+	// Parameters:
+	//
+	//   - userID string: The unique identifier of the user.
+	//   - clientID string: The identifier of the client application requesting access.
+	//   - redirectURI string: The redirect URI provided by the client application.
+	//   - scope string: The space-separated list of permissions being requested.
+	//   - r *http.Request: The HTTP request containing session and other metadata.
+	//
+	// Returns:
+	//
+	//   - *consent.UserConsentResponse: The response containing client and scope details for the consent process.
+	//   - error: An error if the details cannot be retrieved or prepared.
+	GetConsentDetails(userID, clientID, redirectURI, scope string, r *http.Request) (*UserConsentResponse, error)
+
+	// ProcessUserConsent processes the user's decision for the consent request.
+	//
+	// This method handles the user's approval or denial of the requested scopes,
+	// stores the consent decision if approved, and generates the appropriate response
+	// (e.g., an authorization code or an error redirect).
+	//
+	// Parameters:
+	//
+	//   - userID string: The unique identifier of the user.
+	//   - clientID string: The identifier of the client application requesting access.
+	//   - redirectURI string: The redirect URI provided by the client application.
+	//   - scope string: The space-separated list of permissions being requested.
+	//   - consentRequest *consent.UserConsentRequest: The user's consent decision and approved scopes.
+	//   - r *http.Request: The HTTP request containing session and other metadata.
+	//
+	// Returns:
+	//
+	//   - *consent.UserConsentResponse: The response containing the result of the consent process (e.g., success or denial).
+	//   - error: An error if the consent decision cannot be processed or stored.
+	ProcessUserConsent(userID, clientID, redirectURI, scope string, consentRequest *UserConsentRequest, r *http.Request) (*UserConsentResponse, error)
 }

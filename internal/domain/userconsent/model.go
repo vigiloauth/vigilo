@@ -17,19 +17,11 @@ type UserConsentResponse struct {
 	Scopes          []string `json:"scopes"`
 	ConsentEndpoint string   `json:"consent_endpoint"`
 	State           string   `json:"state"`
+	Error           string   `json:"error,omitempty"`
+	Success         bool     `json:"success,omitempty"`
 }
 
 type UserConsentRequest struct {
 	Approved bool     `json:"approved"`
 	Scopes   []string `json:"scopes,omitempty"`
-}
-
-type UserConsentDenialResponse struct {
-	Error       string `json:"error"`
-	RedirectURL string `json:"redirect_url"`
-}
-
-type UserConsentSuccessResponse struct {
-	Success     bool   `json:"success"`
-	RedirectURL string `json:"redirect_url"`
 }

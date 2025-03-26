@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -90,19 +91,11 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := &users.User{
-		ID:       request.ID,
-		Email:    request.Email,
-		Password: request.Password,
-	}
+	response, err := h.userService.AuthenticateUserWithRequest(
+		request, r.RemoteAddr,
+		r.Header.Get(common.XForwardedHeader), r.UserAgent(),
+	)
 
-	loginAttempt := &users.UserLoginAttempt{
-		IPAddress:       r.RemoteAddr,
-		RequestMetadata: r.Header.Get("X-Forwarded-For"),
-		UserAgent:       r.UserAgent(),
-	}
-
-	response, err := h.userService.AuthenticateUser(user, loginAttempt)
 	if err != nil {
 		web.WriteError(w, err)
 		return

@@ -13,19 +13,45 @@ type UserService interface {
 	//	error: An error if any occurred during the process.
 	CreateUser(user *User) (*UserRegistrationResponse, error)
 
-	// AuthenticateUser logs in a user and returns a token if successful.
-	// Each failed login attempt will be saved, and if the attempts exceed the threshold, the account will be locked.
+	// HandleOAuthLogin authenticates a user based on an OAuth login request.
+	//
+	// This method constructs a User object and a UserLoginAttempt object from the provided
+	// login request and request metadata, then delegates the authentication process
+	// to the AuthenticateUser method.
 	//
 	// Parameters:
 	//
-	//	loginUser *User: The user attempting to log in.
-	//	loginAttempt *LoginAttempt: The login attempt information.
+	//   - request *UserLoginRequest: The login request containing the user's email and password.
+	//   - clientID string: The client ID of the OAuth client making the request.
+	//   - redirectURI string: The redirect URI to use if authentication is successful.
+	//   - remoteAddr string: The remote address of the client making the request.
+	//   - forwardedFor string: The value of the "X-Forwarded-For" header, if present.
+	//   - userAgent string: The user agent string from the HTTP request.
 	//
 	// Returns:
 	//
-	//	*UserLoginResponse: The user login response containing user information and JWT token.
-	//	error: An error if authentication fails.
-	AuthenticateUser(loginUser *User, loginAttempt *UserLoginAttempt) (*UserLoginResponse, error)
+	//   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
+	//   - error: An error if authentication fails or if the input is invalid.
+	HandleOAuthLogin(request *UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*UserLoginResponse, error)
+
+	// AuthenticateUserWithRequest authenticates a user based on a login request and request metadata.
+	//
+	// This method constructs a User object and a UserLoginAttempt object from the provided
+	// login request and HTTP request metadata, then delegates the authentication process
+	// to the AuthenticateUser method.
+	//
+	// Parameters:
+	//
+	//   - request *UserLoginRequest: The login request containing the user's email and password.
+	//   - remoteAddr string: The remote address of the client making the request.
+	//   - forwardedFor string: The value of the "X-Forwarded-For" header, if present.
+	//   - userAgent string: The user agent string from the HTTP request.
+	//
+	// Returns:
+	//
+	//   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
+	//   - error: An error if authentication fails or if the input is invalid.
+	AuthenticateUserWithRequest(request *UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*UserLoginResponse, error)
 
 	// GetUserByID retrieves a user from the store using their ID.
 	//

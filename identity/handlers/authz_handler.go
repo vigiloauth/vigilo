@@ -32,9 +32,9 @@ func NewAuthorizationHandler(
 }
 
 // TODO:
-//	- Refactor:
-//		- oauth_handler.Login
-//		- oauth_handler.Consent
+// - Test UserConsentService:
+//		- ProcessUserConsent
+//		- GetConsentDetails
 // - Update docs:
 //		- authz_handler.AuthorizeClient
 //		- authz_handler.GenerateToken
@@ -93,12 +93,6 @@ func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Requ
 	tokenRequest, err := web.DecodeJSONRequest[token.TokenRequest](w, r)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, errors.ErrCodeBadRequest, "failed to decode request")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
-	if err := tokenRequest.Validate(); err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to validate request")
 		web.WriteError(w, wrappedErr)
 		return
 	}

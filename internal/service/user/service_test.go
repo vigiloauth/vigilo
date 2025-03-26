@@ -178,10 +178,9 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
-	loginUser := users.NewUser(testUsername, testEmail, testPassword1)
-	loginAttempt := createTestLoginAttempt()
+	userLoginAttempt := createTestUserLoginRequest()
 
-	_, err = userService.AuthenticateUser(loginUser, loginAttempt)
+	_, err = userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
 	assert.NoError(t, err, "unexpected error during login")
 }
 
@@ -201,11 +200,11 @@ func TestUserService_AuthenticateUserInvalidPassword(t *testing.T) {
 	}
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
-	loginUser := users.NewUser(testUsername, testEmail, testInvalidPassword)
-	loginAttempt := createTestLoginAttempt()
+	userLoginAttempt := createTestUserLoginRequest()
+	userLoginAttempt.Password = testInvalidPassword
 
 	expected := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
-	_, actual := userService.AuthenticateUser(loginUser, loginAttempt)
+	_, actual := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
 
 	assert.Error(t, actual, "expected error during authentication")
 	assert.Equal(t, actual, expected)
@@ -224,10 +223,10 @@ func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
 	loginUser.Password = encryptedPassword
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
-	loginAttempt := createTestLoginAttempt()
+	userLoginAttempt := createTestUserLoginRequest()
 
 	expected := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
-	_, actual := userService.AuthenticateUser(loginUser, loginAttempt)
+	_, actual := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
 
 	assert.Error(t, actual, "expected error during authentication")
 	assert.Equal(t, actual, expected)
@@ -260,11 +259,11 @@ func TestUserService_FailedUserAuthenticationAttempts(t *testing.T) {
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
 	user.Password = testInvalidPassword
-	loginAttempt := createTestLoginAttempt()
+	userLoginAttempt := createTestUserLoginRequest()
 
 	expectedAttempts := 5
 	for range expectedAttempts {
-		_, err := userService.AuthenticateUser(user, loginAttempt)
+		_, err := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
 		assert.NotNil(t, err, "expected error to not be nil during authentication")
 	}
 
@@ -290,12 +289,12 @@ func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
 	}
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
-	user.Password = testInvalidPassword
-	loginAttempt := createTestLoginAttempt()
+	userLoginAttempt := createTestUserLoginRequest()
+	userLoginAttempt.Password = testInvalidPassword
 
 	expected := 500 * time.Millisecond
 	startTime := time.Now()
-	_, err = userService.AuthenticateUser(user, loginAttempt)
+	_, err = userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
 	actual := time.Since(startTime)
 
 	assert.NotNil(t, err)
@@ -321,19 +320,19 @@ func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
 	}
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
-	user.Password = testInvalidPassword
+	userLoginAttempt := createTestUserLoginRequest()
+	userLoginAttempt.Password = testInvalidPassword
 
-	loginAttempt := createTestLoginAttempt()
 	maxFailedLoginAttempts := 5
 	for range maxFailedLoginAttempts {
-		_, err := userService.AuthenticateUser(user, loginAttempt)
+		_, err := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
 		assert.NotNil(t, err)
 	}
 
 	retrievedUser := mockUserRepo.GetUserByIDFunc(testEmail)
 	assert.True(t, retrievedUser.AccountLocked, "expected account to be locked")
 
-	_, err = userService.AuthenticateUser(user, loginAttempt)
+	_, err = userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
 	assert.Error(t, err, "expected error on login attempt with locked account")
 }
 
@@ -351,6 +350,14 @@ func configurePasswordPolicy() {
 	config.NewServerConfig(
 		config.WithPasswordConfig(pc),
 	)
+}
+
+func createTestUserLoginRequest() *users.UserLoginRequest {
+	return &users.UserLoginRequest{
+		ID:       testUserID,
+		Email:    testEmail,
+		Password: testPassword1,
+	}
 }
 
 func createTestLoginAttempt() *users.UserLoginAttempt {

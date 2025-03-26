@@ -79,7 +79,96 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 	return users.NewUserRegistrationResponse(user, jwtToken), nil
 }
 
-// AuthenticateUser logs in a user and returns a token if successful.
+// HandleOAuthLogin authenticates a user based on an OAuth login request.
+//
+// This method constructs a User object and a UserLoginAttempt object from the provided
+// login request and request metadata, then delegates the authentication process
+// to the AuthenticateUser method.
+//
+// Parameters:
+//
+//   - request *UserLoginRequest: The login request containing the user's email and password.
+//   - clientID string: The client ID of the OAuth client making the request.
+//   - redirectURI string: The redirect URI for the OAuth client.
+//   - remoteAddr string: The remote address of the client making the request.
+//   - forwardedFor string: The value of the "X-Forwarded-For" header, if present.
+//   - userAgent string: The user agent string from the HTTP request.
+//
+// Returns:
+//
+//   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
+//   - error: An error if authentication fails or if the input is invalid.
+func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
+	if clientID == "" || redirectURI == "" {
+		return nil, errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters")
+	}
+
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+
+	response, err := u.AuthenticateUserWithRequest(request, remoteAddr, forwardedFor, userAgent)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.ErrCodeUnauthorized, "authentication failed")
+	}
+
+	return response, nil
+}
+
+// AuthenticateUserWithRequest authenticates a user based on a login request and request metadata.
+//
+// This method constructs a User object and a UserLoginAttempt object from the provided
+// login request and HTTP request metadata, then delegates the authentication process
+// to the AuthenticateUser method.
+//
+// Parameters:
+//
+//   - request *UserLoginRequest: The login request containing the user's email and password.
+//   - remoteAddr string: The remote address of the client making the request.
+//   - forwardedFor string: The value of the "X-Forwarded-For" header, if present.
+//   - userAgent string: The user agent string from the HTTP request.
+//
+// Returns:
+//
+//   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
+//   - error: An error if authentication fails or if the input is invalid.
+func (u *UserServiceImpl) AuthenticateUserWithRequest(request *users.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
+	user := &users.User{
+		ID:       request.ID,
+		Email:    request.Email,
+		Password: request.Password,
+	}
+
+	loginAttempt := users.NewUserLoginAttempt(remoteAddr, forwardedFor, "", userAgent)
+	return u.authenticateUser(user, loginAttempt)
+}
+
+// GetUserByID retrieves a user from the store using their ID.
+//
+// Parameters:
+//
+//	userID string: The ID used to retrieve the user.
+//
+// Returns:
+//
+//	*User: The User object if found, or nil if not found.
+func (u *UserServiceImpl) GetUserByID(userID string) *users.User {
+	return u.userRepo.GetUserByID(userID)
+}
+
+// applyArtificialDelay applies an artificial delay to normalize response times.
+//
+// Parameters:
+//
+//	startTime time.Time: The start time of the login attempt.
+func (u *UserServiceImpl) applyArtificialDelay(startTime time.Time) {
+	elapsed := time.Since(startTime)
+	if elapsed < u.artificialDelay {
+		time.Sleep(u.artificialDelay - elapsed)
+	}
+}
+
+// authenticateUser logs in a user and returns a token if successful.
 // Each failed login attempt will be saved, and if the attempts exceed the threshold, the account will be locked.
 //
 // Parameters:
@@ -91,7 +180,7 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 //
 //	*users.UserLoginResponse: The user login response containing user information and JWT token.
 //	error: An error if authentication fails.
-func (u *UserServiceImpl) AuthenticateUser(
+func (u *UserServiceImpl) authenticateUser(
 	loginUser *users.User,
 	loginAttempt *users.UserLoginAttempt,
 ) (*users.UserLoginResponse, error) {
@@ -130,29 +219,4 @@ func (u *UserServiceImpl) AuthenticateUser(
 	}
 
 	return users.NewUserLoginResponse(retrievedUser, jwtToken), nil
-}
-
-// GetUserByID retrieves a user from the store using their ID.
-//
-// Parameters:
-//
-//	userID string: The ID used to retrieve the user.
-//
-// Returns:
-//
-//	*User: The User object if found, or nil if not found.
-func (u *UserServiceImpl) GetUserByID(userID string) *users.User {
-	return u.userRepo.GetUserByID(userID)
-}
-
-// applyArtificialDelay applies an artificial delay to normalize response times.
-//
-// Parameters:
-//
-//	startTime time.Time: The start time of the login attempt.
-func (u *UserServiceImpl) applyArtificialDelay(startTime time.Time) {
-	elapsed := time.Since(startTime)
-	if elapsed < u.artificialDelay {
-		time.Sleep(u.artificialDelay - elapsed)
-	}
 }

@@ -53,7 +53,7 @@ type SessionService interface {
 	//
 	// Returns:
 	//
-	//	error: If an erroor occurs during the update.
+	//	error: If an error occurs during the update.
 	UpdateSession(r *http.Request, sessionData *SessionData) error
 
 	// GetSessionData retrieves the current session.

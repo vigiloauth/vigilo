@@ -145,7 +145,7 @@ func (c *ServiceContainer) initializeServices() {
 		return clientService.NewClientService(c.clientRepo)
 	}
 	c.consentServiceInit = func() userConsent.UserConsentService {
-		return consentService.NewConsentServiceImpl(c.consentRepo, c.userRepo)
+		return consentService.NewConsentServiceImpl(c.consentRepo, c.userRepo, c.getSessionService(), c.getClientService(), c.getAuthzCodeService())
 	}
 	c.authzCodeServiceInit = func() authzCode.AuthorizationCodeService {
 		return authzCodeService.NewAuthorizationCodeServiceImpl(c.authzCodeRepo, c.getUserService(), c.getClientService())

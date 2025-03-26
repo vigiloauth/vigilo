@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
@@ -65,11 +64,6 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	clientID := query.Get(common.ClientID)
 	redirectURI := query.Get(common.RedirectURI)
 
-	if clientID == "" || redirectURI == "" {
-		web.WriteError(w, errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters"))
-		return
-	}
-
 	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
 	if err != nil {
 		err = errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to decode request body")
@@ -82,14 +76,11 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := &users.User{ID: request.ID, Email: request.Email, Password: request.Password}
-	loginAttempt := users.NewUserLoginAttempt(
-		r.RemoteAddr,
-		r.Header.Get(common.XForwardedHeader),
-		"", r.UserAgent(),
+	response, err := h.userService.HandleOAuthLogin(
+		request, clientID, redirectURI, r.RemoteAddr,
+		r.Header.Get(common.XForwardedHeader), r.UserAgent(),
 	)
 
-	response, err := h.userService.AuthenticateUser(user, loginAttempt)
 	if err != nil {
 		web.WriteError(w, err)
 		return
@@ -100,22 +91,7 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oauthRedirectURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s",
-		web.OAuthEndpoints.Authorize,
-		url.QueryEscape(clientID),
-		url.QueryEscape(redirectURI))
-
-	state := query.Get(common.State)
-	if state != "" {
-		oauthRedirectURL = fmt.Sprintf("%s&state=%s", oauthRedirectURL, url.QueryEscape(state))
-	}
-
-	scope := query.Get(common.Scope)
-	if scope != "" {
-		oauthRedirectURL = fmt.Sprintf("%s&scope=%s", oauthRedirectURL, url.QueryEscape(scope))
-	}
-
-	response.OAuthRedirectURL = oauthRedirectURL
+	response.OAuthRedirectURL = h.buildOAuthRedirectURL(query)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -126,11 +102,13 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	redirectURI := query.Get(common.RedirectURI)
 	scope := query.Get(common.Scope)
 
+	// Validate required parameters
 	if clientID == "" || redirectURI == "" || scope == "" {
 		web.WriteError(w, errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters"))
 		return
 	}
 
+	// Check if the user is logged in
 	userID := h.sessionService.GetUserIDFromSession(r)
 	if userID == "" {
 		state := crypto.GenerateUUID()
@@ -145,53 +123,30 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For GET requests, return client and scope information
-	if r.Method == http.MethodGet {
-		client := h.clientService.GetClientByID(clientID)
-		if client == nil {
-			web.WriteError(w, errors.New(errors.ErrCodeInvalidClient, "invalid client_id"))
-			return
-		}
+	switch r.Method {
+	case http.MethodGet:
+		h.handleGetConsent(w, r, userID, clientID, redirectURI, scope)
+	case http.MethodPost:
+		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope)
+	default:
+		web.WriteError(w, errors.New(errors.ErrCodeMethodNotAllowed, "method not allowed"))
+	}
+}
 
-		state := crypto.GenerateUUID()
-		sessionData, err := h.sessionService.GetSessionData(r)
-		if err != nil {
-			wrappedErr := errors.Wrap(err, "", "failed to get session data")
-			web.WriteError(w, wrappedErr)
-			return
-		}
-
-		sessionData.State = state
-		sessionData.ClientID = clientID
-		sessionData.RedirectURI = redirectURI
-
-		if err := h.sessionService.UpdateSession(r, sessionData); err != nil {
-			wrappedErr := errors.Wrap(err, "", "failed to update session")
-			web.WriteError(w, wrappedErr)
-			return
-		}
-
-		scopeList := strings.Split(scope, " ")
-		response := &consent.UserConsentResponse{
-			ClientID:        clientID,
-			ClientName:      client.Name,
-			RedirectURI:     redirectURI,
-			Scopes:          scopeList,
-			ConsentEndpoint: web.OAuthEndpoints.UserConsent,
-			State:           state,
-		}
-
-		web.WriteJSON(w, http.StatusOK, response)
+// handleGetConsent handles GET requests for user consent
+func (h *OAuthHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
+	response, err := h.consentService.GetConsentDetails(userID, clientID, redirectURI, scope, r)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to get consent details")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	// For POST requests, process consent decision
-	if r.Method != http.MethodPost {
-		err := errors.New(errors.ErrCodeMethodNotAllowed, "method not allowed")
-		web.WriteError(w, err)
-		return
-	}
+	web.WriteJSON(w, http.StatusOK, response)
+}
 
+// handlePostConsent handles POST requests for user consent
+func (h *OAuthHandler) handlePostConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
 	consentRequest, err := web.DecodeJSONRequest[consent.UserConsentRequest](w, r)
 	if err != nil {
 		err = errors.Wrap(err, errors.ErrCodeInvalidRequest, "failed to decode request body")
@@ -199,74 +154,31 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionData, err := h.sessionService.GetSessionData(r)
+	response, err := h.consentService.ProcessUserConsent(userID, clientID, redirectURI, scope, consentRequest, r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to get session data")
+		wrappedErr := errors.Wrap(err, "", "failed to process user consent")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	state := sessionData.State
-	if query.Get(common.State) != state {
-		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "state mismatch"))
-		return
-	}
+	web.WriteJSON(w, http.StatusOK, response)
+}
 
-	if !consentRequest.Approved {
-		errorURL := fmt.Sprintf("%s?error=access_denied&error_description=%s",
-			redirectURI,
-			url.QueryEscape("User denied access to the requested scope"))
+func (h *OAuthHandler) buildOAuthRedirectURL(query url.Values) string {
+	redirectURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s",
+		web.OAuthEndpoints.Authorize,
+		url.QueryEscape(common.ClientID),
+		url.QueryEscape(common.RedirectURI))
 
-		if state != "" {
-			errorURL = fmt.Sprintf("%s&state=%s", errorURL, url.QueryEscape(state))
-		}
-
-		denialResponse := &consent.UserConsentDenialResponse{
-			Error:       errors.ErrCodeAccessDenied,
-			RedirectURL: errorURL,
-		}
-
-		web.WriteJSON(w, http.StatusOK, denialResponse)
-		return
-	}
-
-	// Process approved scopes
-	approvedScope := scope
-	if len(consentRequest.Scopes) > 0 {
-		// User approved specific scopes
-		approvedScope = strings.Join(consentRequest.Scopes, " ")
-	}
-
-	// Store user consent using your ConsentService
-	if err := h.consentService.SaveUserConsent(userID, clientID, approvedScope); err != nil {
-		web.WriteError(w, errors.Wrap(err, "", "failed to store user consent"))
-		return
-	}
-
-	// Generate authorization code
-	code, err := h.codeService.GenerateAuthorizationCode(userID, clientID, redirectURI, approvedScope)
-	if err != nil {
-		web.WriteError(w, errors.Wrap(err, "", "failed to generate authorization code"))
-		return
-	}
-
-	sessionData.State = ""
-	if err := h.sessionService.UpdateSession(r, sessionData); err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to update session")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
-	// Create redirect URL with authorization code
-	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, url.QueryEscape(code))
+	state := query.Get(common.State)
 	if state != "" {
 		redirectURL = fmt.Sprintf("%s&state=%s", redirectURL, url.QueryEscape(state))
 	}
 
-	successResponse := &consent.UserConsentSuccessResponse{
-		Success:     true,
-		RedirectURL: redirectURL,
+	scope := query.Get(common.Scope)
+	if scope != "" {
+		redirectURL = fmt.Sprintf("%s&scope=%s", redirectURL, url.QueryEscape(scope))
 	}
 
-	web.WriteJSON(w, http.StatusOK, successResponse)
+	return redirectURL
 }
