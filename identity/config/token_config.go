@@ -78,13 +78,13 @@ func WithExpirationTime(duration time.Duration) TokenOption {
 	}
 }
 
-func WithAccessTokenTime(duration time.Duration) TokenOption {
+func WithAccessTokenDuration(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
 		c.accessTokenDuration = duration
 	}
 }
 
-func WithRefreshTokenExpiration(duration time.Duration) TokenOption {
+func WithRefreshTokenDuration(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
 		c.refreshTokenDuration = duration
 	}

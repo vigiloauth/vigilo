@@ -32,8 +32,6 @@ func NewAuthorizationHandler(
 }
 
 // TODO:
-// - Update docs:
-//		- JWTTokenConfig
 // - End to end test for entire flow
 
 // AuthorizeClient is the HTTP handler responsible for the authorization code flow.

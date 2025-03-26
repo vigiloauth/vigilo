@@ -206,7 +206,7 @@ func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 	}
 }
 
-// WithJWTConfig configures the JWT configuration.
+// WithTokenConfig configures the JWT configuration.
 //
 // Parameters:
 //
@@ -215,7 +215,7 @@ func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 // Returns:
 //
 //	ServerConfigOptions: A function that configures the JWT configuration.
-func WithJWTConfig(jwtConfig *TokenConfig) ServerConfigOptions {
+func WithTokenConfig(jwtConfig *TokenConfig) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.tokenConfig = jwtConfig
 	}
