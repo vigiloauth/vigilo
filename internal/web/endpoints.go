@@ -24,7 +24,7 @@ var ClientEndpoints = struct {
 	Registration     string
 	RegenerateSecret string
 }{
-	Registration:     defaultAuthEndpoint + "/" + defaultClientEndpoint,
+	Registration:     defaultOAuthEndpoint + "/register",
 	RegenerateSecret: defaultAuthEndpoint + defaultClientEndpoint + "/{client_id}/regenerate-secret",
 }
 

@@ -16,4 +16,5 @@ This documentation provides a comprehensive guide to configuring and utilizing t
 - **Client Management:**
     - [Static Client Registration](client_handler/static_client_registration.md)
     - [OAuth 2.0 Client Credentials Flow](auth_handler/client_credentials_grant.md)
-    - [Cient Secret Regeneration](client_handler/client_secret_regeneration.md)
+    - [Client Secret Regeneration](client_handler/client_secret_regeneration.md)
+    - [OAuth 2.0 Client Authorization](authz_handler/authorize_client.md)

@@ -9,7 +9,7 @@ type VigiloAuthError struct {
 	Details            string   `json:"error_details,omitempty"`
 	WrappedErr         error    `json:"-"`
 	Errors             *[]error `json:"errors,omitempty"`
-	OAuthLoginEndpoint string   `json:"login_endpoint,omitempty"`
+	OAuthLoginEndpoint string   `json:"login_url,omitempty"`
 	ConsentURL         string   `json:"consent_url,omitempty"`
 }
 

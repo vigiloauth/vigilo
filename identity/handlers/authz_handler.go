@@ -33,9 +33,11 @@ func NewAuthorizationHandler(
 
 // TODO:
 // - Update docs:
-//		- authz_handler.AuthorizeClient
+//		- include new flows:
+//			- client credentials flow
+//			- authorization code flow
 //		- authz_handler.GenerateToken
-//		- oauth_handler.Login
+//		- oauth_handler.OAuthLogin
 //		- oauth_handler.Consent
 //		- JWTTokenConfig
 // - End to end test for entire flow

@@ -1,7 +1,7 @@
 # Static Client Registration
 ## Endpoint
 ```
-POST https://localhost:<port>/<uri>/auth/clients
+POST /oauth/register
 ```
 ---
 ### Headers

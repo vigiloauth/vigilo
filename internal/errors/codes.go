@@ -86,7 +86,6 @@ var statusCodeMap = map[string]int{
 	ErrCodeEmailTemplateParseFailed:  http.StatusBadRequest,
 	ErrCodeUnsupportedEncryptionType: http.StatusBadRequest,
 	ErrCodeMissingHeader:             http.StatusBadRequest,
-	ErrCodeInvalidRedirectURI:        http.StatusBadRequest,
 	ErrCodeClientSecretNotAllowed:    http.StatusBadRequest,
 	ErrCodeInvalidResponseType:       http.StatusBadRequest,
 	ErrCodeInvalidContentType:        http.StatusBadRequest,
@@ -112,6 +111,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeSessionNotFound: http.StatusNotFound,
 
 	// 403 Forbidden
+	ErrCodeInvalidRedirectURI: http.StatusForbidden,
 	ErrCodeUnauthorizedClient: http.StatusForbidden,
 	ErrCodeInvalidGrant:       http.StatusForbidden,
 	ErrCodeInvalidScope:       http.StatusForbidden,

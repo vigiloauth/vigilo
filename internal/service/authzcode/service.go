@@ -185,22 +185,22 @@ func (c *AuthorizationCodeServiceImpl) GetAuthorizationCode(code string) *authz.
 func (c AuthorizationCodeServiceImpl) validateClient(redirectURI, clientID, scopesString string) error {
 	client := c.clientService.GetClientByID(clientID)
 	if client == nil {
-		return errors.New(errors.ErrCodeUnauthorizedClient, "invalid client_id")
+		return errors.New(errors.ErrCodeUnauthorizedClient, "invalid client ID")
 	}
 
 	scopes := strings.Split(scopesString, " ")
 	for _, scope := range scopes {
 		if !client.HasScope(scope) {
-			return errors.New(errors.ErrCodeInvalidScope, "missing required scopes")
+			return errors.New(errors.ErrCodeInvalidScope, "client is missing required scopes")
 		}
 	}
 
 	if !client.IsConfidential() {
-		return errors.New(errors.ErrCodeUnauthorizedClient, "client must be confidential")
+		return errors.New(errors.ErrCodeUnauthorizedClient, "client must be confidential to process the request")
 	}
 
 	if err := c.clientService.ValidateClientRedirectURI(redirectURI, client); err != nil {
-		return errors.Wrap(err, errors.ErrCodeInvalidRedirectURI, "invalid redirect_uri")
+		return errors.Wrap(err, errors.ErrCodeInvalidRedirectURI, "invalid redirect URI")
 	}
 
 	return nil
