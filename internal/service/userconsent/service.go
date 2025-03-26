@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	clients "github.com/vigiloauth/vigilo/internal/domain/client"
@@ -31,7 +30,7 @@ type UserConsentServiceImpl struct {
 	authzCodeService authz.AuthorizationCodeService
 }
 
-// NewConsentServiceImpl creates a new instance of UserConsentServiceImpl.
+// NewUserConsentServiceImpl creates a new instance of UserConsentServiceImpl.
 //
 // Parameters:
 //
@@ -41,7 +40,7 @@ type UserConsentServiceImpl struct {
 // Returns:
 //
 //   - A configured UserConsentServiceImpl instance
-func NewConsentServiceImpl(
+func NewUserConsentServiceImpl(
 	consentRepo consent.UserConsentRepository,
 	userRepo users.UserRepository,
 	sessionService session.SessionService,
@@ -134,8 +133,8 @@ func (c *UserConsentServiceImpl) RevokeConsent(userID, clientID string) error {
 //   - *consent.UserConsentResponse: The response containing client and scope details for the consent process.
 //   - error: An error if the details cannot be retrieved or prepared.
 func (c *UserConsentServiceImpl) GetConsentDetails(userID, clientID, redirectURI, scope string, r *http.Request) (*consent.UserConsentResponse, error) {
-	if clientID == "" || redirectURI == "" || scope == "" {
-		return nil, errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters")
+	if err := c.validateRequest(userID, clientID, redirectURI, scope); err != nil {
+		return nil, errors.Wrap(err, "", "invalid request parameters")
 	}
 
 	client := c.clientService.GetClientByID(clientID)
@@ -149,15 +148,11 @@ func (c *UserConsentServiceImpl) GetConsentDetails(userID, clientID, redirectURI
 		return nil, errors.Wrap(err, "", "failed to get session data")
 	}
 
-	sessionData.State = state
-	sessionData.ClientID = clientID
-	sessionData.RedirectURI = redirectURI
-
-	if err := c.sessionService.UpdateSession(r, sessionData); err != nil {
-		return nil, errors.Wrap(err, "", "failed to update session")
+	if err := c.updateSessionWithConsentDetails(r, sessionData, state, clientID, redirectURI); err != nil {
+		return nil, err
 	}
 
-	scopeList := strings.Split(scope, " ")
+	scopeList := c.parseScopes(scope)
 	return &consent.UserConsentResponse{
 		ClientID:        clientID,
 		ClientName:      client.Name,
@@ -166,7 +161,6 @@ func (c *UserConsentServiceImpl) GetConsentDetails(userID, clientID, redirectURI
 		ConsentEndpoint: web.OAuthEndpoints.UserConsent,
 		State:           state,
 	}, nil
-
 }
 
 // ProcessUserConsent processes the user's decision for the consent request.
@@ -192,40 +186,57 @@ func (c *UserConsentServiceImpl) ProcessUserConsent(
 	userID, clientID, redirectURI, scope string,
 	consentRequest *consent.UserConsentRequest, r *http.Request,
 ) (*consent.UserConsentResponse, error) {
-	if clientID == "" || redirectURI == "" || scope == "" || consentRequest == nil {
-		return nil, errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters")
+	if err := c.validateRequest(userID, clientID, redirectURI, scope); err != nil {
+		return nil, errors.Wrap(err, "", "invalid request parameters")
 	}
 
-	sessionData, err := c.sessionService.GetSessionData(r)
+	sessionData, err := c.sessionService.ValidateSessionState(r)
 	if err != nil {
-		return nil, errors.Wrap(err, "", "failed to get session data")
-	}
-
-	state := sessionData.State
-	if r.URL.Query().Get(common.State) != state {
-		return nil, errors.New(errors.ErrCodeInvalidRequest, "state mismatch")
+		return nil, errors.Wrap(err, "", "failed to validate session state")
 	}
 
 	if !consentRequest.Approved {
-		errorURL := fmt.Sprintf("%s?error=access_denied&error_description=%s",
-			redirectURI, url.QueryEscape("User denied access to the requested scope"))
-
-		if state != "" {
-			errorURL = fmt.Sprintf("%s&state=%s", errorURL, url.QueryEscape(state))
-		}
-
-		return &consent.UserConsentResponse{
-			Error:       errors.ErrCodeAccessDenied,
-			RedirectURI: errorURL,
-		}, nil
+		return c.handleDeniedConsent(sessionData.State, redirectURI), nil
 	}
 
-	approvedScopes := scope
-	if len(consentRequest.Scopes) > 0 {
-		approvedScopes = strings.Join(consentRequest.Scopes, " ")
+	return c.processApprovedConsent(userID, clientID, redirectURI, scope, consentRequest, sessionData)
+}
+
+func (c *UserConsentServiceImpl) handleDeniedConsent(state, redirectURI string) *consent.UserConsentResponse {
+	errorURL := fmt.Sprintf("%s?error=access_denied&error_description=%s",
+		redirectURI, url.QueryEscape("User denied access to the requested scope"))
+
+	if state != "" {
+		errorURL = fmt.Sprintf("%s&state=%s", errorURL, url.QueryEscape(state))
 	}
 
-	if err := c.SaveUserConsent(userID, clientID, approvedScopes); err != nil {
+	return &consent.UserConsentResponse{
+		Error:       errors.ErrCodeAccessDenied,
+		RedirectURI: errorURL,
+	}
+}
+
+func (c *UserConsentServiceImpl) validateRequest(userID, clientID, redirectURI, scope string) error {
+	if userID == "" || clientID == "" || redirectURI == "" || scope == "" {
+		return errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters")
+	}
+	return nil
+}
+
+func (c *UserConsentServiceImpl) getApprovedScopes(defaultScopes string, requestScopes []string) string {
+	if len(requestScopes) > 0 {
+		return strings.Join(requestScopes, " ")
+	}
+	return defaultScopes
+}
+
+func (c *UserConsentServiceImpl) processApprovedConsent(
+	userID, clientID, redirectURI, scope string,
+	consentRequest *consent.UserConsentRequest,
+	sessionData *session.SessionData,
+) (*consent.UserConsentResponse, error) {
+	approvedScopes := c.getApprovedScopes(scope, consentRequest.Scopes)
+	if err := c.consentRepo.SaveConsent(userID, clientID, approvedScopes); err != nil {
 		return nil, errors.Wrap(err, "", "failed to save user consent")
 	}
 
@@ -234,18 +245,39 @@ func (c *UserConsentServiceImpl) ProcessUserConsent(
 		return nil, errors.Wrap(err, "", "failed to generate authorization code")
 	}
 
-	sessionData.State = ""
-	if err := c.sessionService.UpdateSession(r, sessionData); err != nil {
-		return nil, errors.Wrap(err, "", "failed to update session")
+	if err := c.sessionService.ClearStateFromSession(sessionData); err != nil {
+		return nil, errors.Wrap(err, "", "failed to clear state from session")
 	}
 
+	return c.buildSuccessResponse(redirectURI, code, sessionData.State), nil
+}
+
+func (c *UserConsentServiceImpl) buildSuccessResponse(redirectURI, code, state string) *consent.UserConsentResponse {
 	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, url.QueryEscape(code))
 	if state != "" {
 		redirectURL = fmt.Sprintf("%s&state=%s", redirectURL, url.QueryEscape(state))
 	}
 
-	return &consent.UserConsentResponse{
+	response := &consent.UserConsentResponse{
 		Success:     true,
 		RedirectURI: redirectURL,
-	}, nil
+	}
+
+	return response
+}
+
+func (c *UserConsentServiceImpl) updateSessionWithConsentDetails(r *http.Request, sessionData *session.SessionData, state, clientID, redirectURI string) error {
+	sessionData.State = state
+	sessionData.ClientID = clientID
+	sessionData.RedirectURI = redirectURI
+
+	if err := c.sessionService.UpdateSession(r, sessionData); err != nil {
+		return errors.Wrap(err, "", "failed to update session")
+	}
+
+	return nil
+}
+
+func (c *UserConsentServiceImpl) parseScopes(scope string) []string {
+	return strings.Split(scope, " ")
 }

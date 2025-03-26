@@ -10,6 +10,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/handlers"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
 	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
@@ -31,6 +32,7 @@ import (
 	authzService "github.com/vigiloauth/vigilo/internal/service/authorization"
 	authzCodeService "github.com/vigiloauth/vigilo/internal/service/authzcode"
 	clientService "github.com/vigiloauth/vigilo/internal/service/client"
+	cookieService "github.com/vigiloauth/vigilo/internal/service/cookies"
 	emailService "github.com/vigiloauth/vigilo/internal/service/email"
 	loginService "github.com/vigiloauth/vigilo/internal/service/login"
 	passwordService "github.com/vigiloauth/vigilo/internal/service/passwordreset"
@@ -62,6 +64,7 @@ type ServiceContainer struct {
 	authzCodeServiceOnce     sync.Once
 	loginAttemptServiceOnce  sync.Once
 	authorizationServiceOnce sync.Once
+	httpCookieServiceOnce    sync.Once
 
 	passwordResetEmailService email.EmailService
 	emailNotificationService  email.EmailService
@@ -74,6 +77,7 @@ type ServiceContainer struct {
 	authzCodeService          authzCode.AuthorizationCodeService
 	loginAttemptService       login.LoginAttemptService
 	authorizationService      authz.AuthorizationService
+	httpCookieService         cookie.HTTPCookieService
 
 	passwordResetEmailServiceInit func() email.EmailService
 	emailNotificationServiceInit  func() email.EmailService
@@ -86,6 +90,7 @@ type ServiceContainer struct {
 	authzCodeServiceInit          func() authzCode.AuthorizationCodeService
 	loginAttemptServiceInit       func() login.LoginAttemptService
 	authorizationServiceInit      func() authz.AuthorizationService
+	httpCookieServiceInit         func() cookie.HTTPCookieService
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
@@ -126,11 +131,14 @@ func (c *ServiceContainer) initializeInMemoryStores() {
 
 // initializeServices defines getter methods for lazy service initialization**
 func (c *ServiceContainer) initializeServices() {
+	c.httpCookieServiceInit = func() cookie.HTTPCookieService {
+		return cookieService.NewHTTPCookieServiceImpl()
+	}
 	c.tokenServiceInit = func() token.TokenService {
 		return tokenService.NewTokenServiceImpl(c.tokenRepo)
 	}
 	c.sessionServiceInit = func() session.SessionService {
-		return sessionService.NewSessionServiceImpl(c.getTokenService(), c.sessionRepo)
+		return sessionService.NewSessionServiceImpl(c.getTokenService(), c.sessionRepo, c.getHTTPSessionCookieService())
 	}
 	c.loginAttemptServiceInit = func() login.LoginAttemptService {
 		return loginService.NewLoginAttemptServiceImpl(c.userRepo, c.loginAttemptRepo)
@@ -145,7 +153,7 @@ func (c *ServiceContainer) initializeServices() {
 		return clientService.NewClientService(c.clientRepo)
 	}
 	c.consentServiceInit = func() userConsent.UserConsentService {
-		return consentService.NewConsentServiceImpl(c.consentRepo, c.userRepo, c.getSessionService(), c.getClientService(), c.getAuthzCodeService())
+		return consentService.NewUserConsentServiceImpl(c.consentRepo, c.userRepo, c.getSessionService(), c.getClientService(), c.getAuthzCodeService())
 	}
 	c.authzCodeServiceInit = func() authzCode.AuthorizationCodeService {
 		return authzCodeService.NewAuthorizationCodeServiceImpl(c.authzCodeRepo, c.getUserService(), c.getClientService())
@@ -276,4 +284,9 @@ func (c *ServiceContainer) getPasswordResetEmailService() email.EmailService {
 func (c *ServiceContainer) getEmailNotificationService() email.EmailService {
 	c.emailNotificationOnce.Do(func() { c.emailNotificationService = c.emailNotificationServiceInit() })
 	return c.emailNotificationService
+}
+
+func (c *ServiceContainer) getHTTPSessionCookieService() cookie.HTTPCookieService {
+	c.httpCookieServiceOnce.Do(func() { c.httpCookieService = c.httpCookieServiceInit() })
+	return c.httpCookieService
 }

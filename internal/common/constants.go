@@ -9,4 +9,7 @@ const (
 	Approved          string = "approved"
 	GrantType         string = "grant_type"
 	ClientCredentials string = "client_credentials"
+	Bearer            string = "Bearer "
+	Authorization     string = "Authorization"
+	SessionToken      string = "vigilo-auth-session-token"
 )

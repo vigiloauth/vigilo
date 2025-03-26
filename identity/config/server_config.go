@@ -8,18 +8,21 @@ import (
 
 // ServerConfig holds the configuration for the server.
 type ServerConfig struct {
-	port              int             // Port number the server listens on.
-	certFilePath      string          // Path to the SSL certificate file.
-	keyFilePath       string          // Path to the SSL key file.
-	baseURL           string          // Base URL of the server.
-	forceHTTPS        bool            // Whether to force HTTPS connections.
-	requestsPerMinute int             // Maximum requests allowed per minute.
-	readTimeout       time.Duration   // Read timeout for HTTP requests.
-	writeTimeout      time.Duration   // Write timeout for HTTP responses.
-	tokenConfig       *TokenConfig    // JWT configuration.
-	loginConfig       *LoginConfig    // Login configuration.
-	smtpConfig        *SMTPConfig     // SMTP configuration.
-	passwordConfig    *PasswordConfig // Password configuration.
+	certFilePath      string // Path to the SSL certificate file.
+	keyFilePath       string // Path to the SSL key file.
+	baseURL           string // Base URL of the server.
+	sessionCookieName string // Name of the session cookie.
+
+	forceHTTPS        bool // Whether to force HTTPS connections.
+	port              int  // Port number the server listens on.
+	requestsPerMinute int  // Maximum requests allowed per minute.
+
+	readTimeout    time.Duration   // Read timeout for HTTP requests.
+	writeTimeout   time.Duration   // Write timeout for HTTP responses.
+	tokenConfig    *TokenConfig    // JWT configuration.
+	loginConfig    *LoginConfig    // Login configuration.
+	smtpConfig     *SMTPConfig     // SMTP configuration.
+	passwordConfig *PasswordConfig // Password configuration.
 }
 
 // ServerConfigOptions is a function type used to configure ServerConfig options.
@@ -31,11 +34,12 @@ var (
 )
 
 const (
-	defaultPort              int           = 8443             // Default port number.
-	defaultHTTPSRequirement  bool          = false            // Default HTTPS requirement.
-	defaultReadTimeout       time.Duration = 15 * time.Second // Default read timeout.
-	defaultWriteTimeout      time.Duration = 15 * time.Second // Default write timeout.
-	defaultRequestsPerMinute int           = 100              // Default maximum requests per minute.
+	defaultPort              int           = 8443                         // Default port number.
+	defaultHTTPSRequirement  bool          = false                        // Default HTTPS requirement.
+	defaultReadTimeout       time.Duration = 15 * time.Second             // Default read timeout.
+	defaultWriteTimeout      time.Duration = 15 * time.Second             // Default write timeout.
+	defaultRequestsPerMinute int           = 100                          // Default maximum requests per minute.
+	defaultSessionCookieName string        = "vigilo-auth-session-cookie" // Default session cookie name.
 )
 
 // GetServerConfig returns the global server configuration instance (singleton).
@@ -71,6 +75,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		loginConfig:       NewLoginConfig(),
 		passwordConfig:    NewPasswordConfig(),
 		requestsPerMinute: defaultRequestsPerMinute,
+		sessionCookieName: defaultSessionCookieName,
 	}
 
 	for _, opt := range opts {
@@ -123,6 +128,21 @@ func WithCertFilePath(filePath string) ServerConfigOptions {
 func WithKeyFilePath(filePath string) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.keyFilePath = filePath
+	}
+}
+
+// WithSessionCookieName configures the session cookie name.
+//
+// Parameters:
+//
+//	cookieName string: The session cookie name.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function that configures the session cookie name.
+func WithSessionCookieName(cookieName string) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.sessionCookieName = cookieName
 	}
 }
 
@@ -363,6 +383,15 @@ func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
 //	*PasswordConfig: The password configuration.
 func (sc *ServerConfig) PasswordConfig() *PasswordConfig {
 	return sc.passwordConfig
+}
+
+// SessionCookieName returns the name of the session cookie.
+//
+// Returns:
+//
+//	string: The session cookie name.
+func (sc *ServerConfig) SessionCookieName() string {
+	return sc.sessionCookieName
 }
 
 // MaxRequestsPerMinute returns the maximum number of requests allowed per minute.

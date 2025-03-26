@@ -67,4 +67,27 @@ type SessionService interface {
 	//	*SessionData: The session data is successful.
 	//	error: An error if retrieval fails.
 	GetSessionData(r *http.Request) (*SessionData, error)
+
+	// ClearStateFromSession clears the state value from the session data.
+	//
+	// Parameters:
+	//
+	//	sessionData *SessionData: The session data to be updated.
+	//
+	// Returns:
+	//
+	//	error: An error if the session update fails, or nil if successful.
+	ClearStateFromSession(sessionData *SessionData) error
+
+	// ValidateSessionState retrieves session data and verifies that the state parameter in the request matches the stored session state.
+	//
+	// Parameters:
+	//
+	//	r *http.Request: The HTTP request containing the session information.
+	//
+	// Returns:
+	//
+	//	*SessionData: The retrieved session data if validation is successful.
+	//	error: An error if retrieving session data fails or if the state parameter does not match.
+	ValidateSessionState(r *http.Request) (*SessionData, error)
 }
