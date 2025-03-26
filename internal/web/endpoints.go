@@ -2,7 +2,7 @@ package web
 
 const (
 	defaultAuthEndpoint   string = "/auth"
-	defaultClientEndpoint string = "/clients"
+	defaultClientEndpoint string = "/client"
 	defaultOAuthEndpoint  string = "/oauth"
 )
 
@@ -25,7 +25,7 @@ var ClientEndpoints = struct {
 	RegenerateSecret string
 }{
 	Registration:     defaultOAuthEndpoint + "/register",
-	RegenerateSecret: defaultAuthEndpoint + defaultClientEndpoint + "/{client_id}/regenerate-secret",
+	RegenerateSecret: defaultClientEndpoint + "/{client_id}/regenerate-secret",
 }
 
 var OAuthEndpoints = struct {
@@ -35,9 +35,9 @@ var OAuthEndpoints = struct {
 	UserConsent            string
 	TokenExchange          string
 }{
-	ClientCredentialsToken: defaultOAuthEndpoint + "/token",
+	ClientCredentialsToken: defaultOAuthEndpoint + defaultClientEndpoint + "/token",
 	Authorize:              defaultOAuthEndpoint + "/authorize",
 	Login:                  defaultOAuthEndpoint + "/login",
 	UserConsent:            defaultOAuthEndpoint + "/consent",
-	TokenExchange:          "/token",
+	TokenExchange:          defaultOAuthEndpoint + "/token",
 }

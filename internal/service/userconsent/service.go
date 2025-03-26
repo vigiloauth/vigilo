@@ -139,7 +139,7 @@ func (c *UserConsentServiceImpl) GetConsentDetails(userID, clientID, redirectURI
 
 	client := c.clientService.GetClientByID(clientID)
 	if client == nil {
-		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid client_id")
+		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid client ID")
 	}
 
 	state := crypto.GenerateUUID()
@@ -204,7 +204,7 @@ func (c *UserConsentServiceImpl) ProcessUserConsent(
 
 func (c *UserConsentServiceImpl) handleDeniedConsent(state, redirectURI string) *consent.UserConsentResponse {
 	errorURL := fmt.Sprintf("%s?error=access_denied&error_description=%s",
-		redirectURI, url.QueryEscape("User denied access to the requested scope"))
+		redirectURI, url.QueryEscape("user denied access to the requested scope"))
 
 	if state != "" {
 		errorURL = fmt.Sprintf("%s&state=%s", errorURL, url.QueryEscape(state))

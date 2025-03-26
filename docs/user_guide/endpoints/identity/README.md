@@ -14,7 +14,11 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [Password Reset](user_handler/password_reset.md)
     - [Password Reset Email Request](user_handler/password_reset_request.md)
 - **Client Management:**
-    - [Static Client Registration](client_handler/static_client_registration.md)
-    - [OAuth 2.0 Client Credentials Flow](auth_handler/client_credentials_grant.md)
+    - [Client Registration](client_handler/static_client_registration.md)
+    - [Client Credentials Flow](auth_handler/client_credentials_grant.md)
     - [Client Secret Regeneration](client_handler/client_secret_regeneration.md)
-    - [OAuth 2.0 Client Authorization](authz_handler/authorize_client.md)
+- **Authorization Code Flow:**
+    - [Client Authorization](authz_handler/authorize_client.md)
+    - [User Authentication](oauth_handler/user_authentication.md)
+    - [User Consent](oauth_handler/user_consent.md)
+    - [Token Exchange](authz_handler/token_exchange.md)

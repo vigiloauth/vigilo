@@ -6,7 +6,6 @@ GET /oauth/authorize
 ---
 **Description:** This endpoint is used to handle the authorization request in the OAuth 2.0 Authorization Code Flow. It validates the client's authorization request, checks user session and consent, and redirects to the approrpriate URL.
 
----
 ### Query Parameters
 | Paramater            | Type          | Required | Description                                                  |
 | :--------------------| :-------------| :--------| :------------------------------------------------------------|
@@ -44,7 +43,7 @@ GET https://localhost:<port>/oauth/authorize?client_id=abc123&redirect_uri=https
 ---
 
 ## Error Responses
-### 1. No Active Session
+### 1. No Active User Session
 #### HTTP Status Code: `401 Unauthorized`
 #### Response Body:
 ```json
@@ -76,12 +75,12 @@ GET https://localhost:<port>/oauth/authorize?client_id=abc123&redirect_uri=https
 }
 ```
 
-### 4. Missing Required Parameters
-#### HTTP Status Code: `404 Bad Request`
+### 4. Missing Required OAuth Parameters
+#### HTTP Status Code: `400 Bad Request`
 #### Response Body:
 ```json
 {
-    "error": "empty_input",
+    "error": "bad_request",
     "error_description": "missing one or more required parameters"
 }
 ```

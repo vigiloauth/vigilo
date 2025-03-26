@@ -243,7 +243,7 @@ func (req *UserLoginRequest) Validate() error {
 	validateEmail(req.Email, errorCollection)
 
 	if req.Password == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "`password` is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "'password' is empty")
 		errorCollection.Add(err)
 	}
 

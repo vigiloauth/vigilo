@@ -85,6 +85,14 @@ func NewMethodNotAllowedError(method string) error {
 	return New(ErrCodeMethodNotAllowed, fmt.Sprintf("method not allowed: %s", method))
 }
 
+func NewInvalidSessionError() error {
+	return &VigiloAuthError{
+		ErrorCode:        ErrCodeInvalidSession,
+		ErrorDescription: "unable to retrieve session data",
+		Details:          "session not found or expired",
+	}
+}
+
 // Wrap wraps an existing error with additional context
 // If no code is provided, it will extract it from the wrapper error.
 func Wrap(err error, code string, message string) error {

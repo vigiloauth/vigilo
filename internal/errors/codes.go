@@ -64,6 +64,7 @@ const (
 	// Session errors
 	ErrCodeDuplicateSession = "duplicate_session"
 	ErrCodeSessionNotFound  = "session_not_found"
+	ErrCodeInvalidSession   = "invalid_session"
 
 	// Middleware Errors
 	ErrCodeRequestLimitExceeded = "request_limit_exceeded"
@@ -103,6 +104,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeTokenParsing:             http.StatusUnauthorized,
 	ErrCodeLoginRequired:            http.StatusUnauthorized,
 	ErrCodeConsentRequired:          http.StatusUnauthorized,
+	ErrCodeInvalidSession:           http.StatusUnauthorized,
 
 	// 404 Not Found
 	ErrCodeUserNotFound:    http.StatusNotFound,

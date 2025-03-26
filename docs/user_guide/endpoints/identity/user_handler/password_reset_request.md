@@ -1,7 +1,7 @@
 # Password Reset Email Request
 ## Endpoint
 ```
-POST https://localhost:<port>/<uri>/auth/reset-password
+POST /auth/reset-password
 ```
 ---
 **Description:** This endpoint is used to for a user to request a link to reset their password.

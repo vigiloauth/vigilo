@@ -1,7 +1,7 @@
 # User Logout
 ## Endpoint
 ```
-POST https://localhost:<port>/<uri>/logout
+POST /auth/logout
 ```
 ---
 **Description:** This is a protect endpoint used for users to logout.

@@ -33,12 +33,6 @@ func NewAuthorizationHandler(
 
 // TODO:
 // - Update docs:
-//		- include new flows:
-//			- client credentials flow
-//			- authorization code flow
-//		- authz_handler.GenerateToken
-//		- oauth_handler.OAuthLogin
-//		- oauth_handler.Consent
 //		- JWTTokenConfig
 // - End to end test for entire flow
 
@@ -97,13 +91,12 @@ func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Requ
 
 	sessionData, err := h.sessionService.GetSessionData(r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to get session data")
-		web.WriteError(w, wrappedErr)
+		web.WriteError(w, errors.NewInvalidSessionError())
 		return
 	}
 
 	if sessionData.State != tokenRequest.State {
-		err := errors.New(errors.ErrCodeInvalidRequest, "state mismatch")
+		err := errors.New(errors.ErrCodeInvalidRequest, "state mismatch between session and request")
 		web.WriteError(w, err)
 		return
 	}

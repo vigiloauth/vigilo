@@ -1,7 +1,7 @@
 # Regenerate Client Secret
 ## Endpoint
 ```
-POST https://localhost:<port>/auth/clients/{client_id}/regenerate-secret
+POST /client/{client_id}/regenerate-secret
 ```
 ---
 ### Headers
@@ -16,12 +16,10 @@ POST https://localhost:<port>/auth/clients/{client_id}/regenerate-secret
 | :---------|:-------| :--------| :-------------------------------------|
 | client_id | string | Yes      | The ID of the client to regenerate secret for. |
 ---
-### Request Body
-No request body is required for this endpoint.
 ---
 ### Example Request
 ```
-POST https://localhost:8080/auth/clients/{client_id}/regenerate-secret
+POST https://localhost:8080/clients/{client_id}/regenerate-secret
 ```
 ---
 ## Responses

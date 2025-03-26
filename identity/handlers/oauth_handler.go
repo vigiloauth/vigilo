@@ -139,7 +139,7 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 func (h *OAuthHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
 	response, err := h.consentService.GetConsentDetails(userID, clientID, redirectURI, scope, r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to get consent details")
+		wrappedErr := errors.Wrap(err, "", "failed to retrieve consent details")
 		web.WriteError(w, wrappedErr)
 		return
 	}

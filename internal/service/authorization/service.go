@@ -178,7 +178,7 @@ func (s *AuthorizationServiceImpl) validateClient(tokenRequest token.TokenReques
 
 	code := s.authzCodeService.GetAuthorizationCode(tokenRequest.AuthorizationCode)
 	if code.ClientID != tokenRequest.ClientID {
-		return errors.New(errors.ErrCodeInvalidGrant, "client_id mismatch")
+		return errors.New(errors.ErrCodeInvalidGrant, "authorization code client ID and request client ID do no match")
 	}
 
 	return nil

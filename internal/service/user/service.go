@@ -100,7 +100,7 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 //   - error: An error if authentication fails or if the input is invalid.
 func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
 	if clientID == "" || redirectURI == "" {
-		return nil, errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters")
+		return nil, errors.New(errors.ErrCodeBadRequest, "missing one or more required parameters")
 	}
 
 	if err := request.Validate(); err != nil {
@@ -109,7 +109,7 @@ func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clie
 
 	response, err := u.AuthenticateUserWithRequest(request, remoteAddr, forwardedFor, userAgent)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeUnauthorized, "authentication failed")
+		return nil, errors.Wrap(err, errors.ErrCodeUnauthorized, "failed to authenticate user")
 	}
 
 	return response, nil
@@ -210,7 +210,7 @@ func (u *UserServiceImpl) authenticateUser(
 
 	jwtToken, err := u.tokenService.GenerateToken(retrievedUser.ID, u.jwtConfig.ExpirationTime())
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeTokenCreation, "failed to create token")
+		return nil, errors.NewInternalServerError()
 	}
 
 	retrievedUser.LastFailedLogin = time.Time{}

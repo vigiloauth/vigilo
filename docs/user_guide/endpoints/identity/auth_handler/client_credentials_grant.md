@@ -1,7 +1,7 @@
 # OAuth 2.0 Client Credentials Grant
 ## Endpoint
 ```
-POST https://localhost:<port>/<uri>/auth/token
+POST /oauth/client/token
 ```
 ---
 **Description:** This endpoint implements the OAuth 2.0 client credentials flow, allowing authenticated clients to obtain an access token for machine-to-machine communication.

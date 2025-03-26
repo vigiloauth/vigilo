@@ -130,11 +130,11 @@ func (c *AuthorizationCodeServiceImpl) ValidateAuthorizationCode(
 	}
 
 	if authData.ClientID != clientID {
-		return nil, errors.New(errors.ErrCodeInvalidGrant, "client ID mismatch")
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code client ID and request client ID do no match")
 	}
 
 	if authData.RedirectURI != redirectURI {
-		return nil, errors.New(errors.ErrCodeInvalidGrant, "redirect URI mismatch")
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code redirect URI and request redirect URI do no match")
 	}
 
 	// Mark the code as used

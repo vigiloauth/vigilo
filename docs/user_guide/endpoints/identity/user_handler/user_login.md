@@ -1,7 +1,7 @@
 # User Login
 ## Endpoint
 ```
-POST https://localhost:<port>/<uri>/auth/login
+POST /auth/login
 ```
 ---
 **Description:** This endpoint is used for a user to login.

@@ -1,7 +1,7 @@
 # Password Reset
 ## Endpoint
 ```
-PATCH https://localhost:<port>/<uri>/auth/reset-password/confirm
+PATCH /auth/reset-password/confirm
 ```
 ---
 **Description:** This endpoint is used to confirm a password reset request and set a new password for the user's account.
