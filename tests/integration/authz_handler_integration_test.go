@@ -175,6 +175,7 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 			[]string{client.AuthorizationCode},
 		)
 		testContext.WithUserSession()
+		testContext.WithUserConsent()
 		defer testContext.TearDown()
 
 		// Simulate the authorization flow
