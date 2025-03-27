@@ -59,5 +59,5 @@ type AuthorizationCodeService interface {
 	// Returns:
 	//
 	//	*AuthorizationCodeData: The authorization code data if found, or nil if no matching code exists.
-	GetAuthorizationCode(code string) *AuthorizationCodeData
+	GetAuthorizationCode(code string) (*AuthorizationCodeData, error)
 }

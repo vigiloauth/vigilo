@@ -166,7 +166,31 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 
 func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 	t.Run("Valid Token Request - Success", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			[]string{client.ClientManage, client.UserManage},
+			[]string{client.AuthorizationCode},
+		)
+		testContext.WithUserConsent()
 
+		authzCode := testContext.GetAuthzCode()
+		tokenRequest := &token.TokenRequest{
+			AuthorizationCode: authzCode,
+			RedirectURI:       testRedirectURI,
+			State:             testContext.State,
+			ClientID:          testClientID,
+			ClientSecret:      testClientSecret,
+			GrantType:         client.AuthorizationCode,
+		}
+
+		requestBody, err := json.Marshal(tokenRequest)
+		assert.NoError(t, err)
+
+		headers := map[string]string{"Cookie": testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value}
+		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
+
+		assert.Equal(t, http.StatusOK, rr.Code, "Expected a successful token exchange")
 	})
 
 	t.Run("Missing or Invalid JSON in Request Body", func(t *testing.T) {
@@ -177,10 +201,6 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		testContext.AssertErrorResponse(rr, errors.ErrCodeBadRequest, "failed to decode request body")
-	})
-
-	t.Run("Invalid Token Request Validation", func(t *testing.T) {
-
 	})
 
 	t.Run("State Mismatch", func(t *testing.T) {

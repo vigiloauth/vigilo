@@ -120,7 +120,6 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 			url.QueryEscape(redirectURI),
 			url.QueryEscape(scope),
 			url.QueryEscape(state))
-
 		web.WriteError(w, errors.NewLoginRequiredError(oauthLoginURL))
 		return
 	}

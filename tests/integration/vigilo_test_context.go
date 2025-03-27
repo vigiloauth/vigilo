@@ -39,13 +39,14 @@ const (
 	testEmail           string = "test@email.com"
 	testPassword1       string = "Password123!@"
 	testPassword2       string = "NewPassword_$55"
+	testClientName      string = "Test App"
 	testInvalidPassword string = "weak"
 	testClientID        string = "test-client-id"
 	testUserID          string = "test-user-id"
 	testClientSecret    string = "a-string-secret-at-least-256-bits-long"
 	testScope           string = "client:manage user:manage"
 	encodedTestScope    string = "client%3Amanage%20user%3Amanage"
-	testRedirectURI     string = "https://localhost/callback"
+	testRedirectURI     string = "https://vigiloauth.com/callback"
 	testConsentApproved string = "true"
 	testAuthzCode       string = "valid-auth-code"
 )
@@ -61,20 +62,22 @@ type VigiloTestContext struct {
 	OAuthClient      *client.Client
 	JWTToken         string
 	ClientAuthToken  string
+	SessionCookie    *http.Cookie
+	State            string
 }
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
-	resetInMemoryStores()
-	vigiloServer := server.NewVigiloIdentityServer()
-	config.NewServerConfig()
-
-	return &VigiloTestContext{
-		T:                t,
-		VigiloServer:     vigiloServer,
-		ResponseRecorder: httptest.NewRecorder(),
-		HttpClient:       &http.Client{},
+	tc := &VigiloTestContext{
+		T:            t,
+		VigiloServer: server.NewVigiloIdentityServer(),
 	}
+
+	// Perform setup steps
+	tc.WithUser()
+	tc.WithUserSession()
+
+	return tc
 }
 
 // WithLiveServer adds a live test server to the context.
@@ -98,8 +101,7 @@ func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
 }
 
 func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
-	consentRepo.GetInMemoryUserConsentRepository().
-		SaveConsent(testUserID, testClientID, testScope)
+	consentRepo.GetInMemoryUserConsentRepository().SaveConsent(testUserID, testClientID, testScope)
 
 	return tc
 }
@@ -111,31 +113,18 @@ func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 // clientType client.ClientType: The type of client (public or confidential).
 // scopes []client.Scope: An array of scopes.
 // grantTypes []client.GrantType: An array of grantTypes.
-func (tc *VigiloTestContext) WithClient(
-	clientType string,
-	scopes []string,
-	grantTypes []string,
-) *VigiloTestContext {
-	c := &client.Client{
-		ID:            testClientID,
-		Type:          clientType,
-		Name:          "Test Client",
-		RedirectURIS:  []string{testRedirectURI},
-		GrantTypes:    grantTypes,
-		Scopes:        scopes,
-		ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
+func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, grantTypes []string) {
+	client := &client.Client{
+		Name:         testClientName,
+		ID:           testClientID,
+		Secret:       testClientSecret,
+		Type:         clientType,
+		Scopes:       scopes,
+		GrantTypes:   grantTypes,
+		RedirectURIS: []string{testRedirectURI},
 	}
 
-	if clientType == client.Confidential {
-		c.Secret = testClientSecret
-	}
-
-	s := clientRepo.GetInMemoryClientRepository()
-	err := s.SaveClient(c)
-	assert.NoError(tc.T, err)
-
-	tc.OAuthClient = c
-	return tc
+	clientRepo.GetInMemoryClientRepository().SaveClient(client)
 }
 
 // WithUserToken creates and adds a user JWT token to the system.
@@ -248,9 +237,13 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	requestBody, err := json.Marshal(loginRequest)
 	assert.NoError(tc.T, err)
 
+	state := tc.GetStateFromSession()
+	tc.State = state
+
 	queryParams := url.Values{}
 	queryParams.Add(common.ClientID, testClientID)
 	queryParams.Add(common.RedirectURI, testRedirectURI)
+	queryParams.Add(common.State, state)
 	endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
 
 	rr := tc.SendHTTPRequest(
@@ -259,6 +252,7 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 		bytes.NewReader(requestBody), nil,
 	)
 
+	tc.T.Log(rr.Body.String())
 	assert.Equal(tc.T, http.StatusOK, rr.Code)
 }
 
@@ -278,7 +272,6 @@ func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Re
 }
 
 func (tc *VigiloTestContext) WithUserSession() {
-	// Login to create session
 	loginRequest := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
 	body, err := json.Marshal(loginRequest)
 	assert.NoError(tc.T, err)
@@ -289,8 +282,18 @@ func (tc *VigiloTestContext) WithUserSession() {
 		bytes.NewBuffer(body), nil,
 	)
 
-	// assert response is 200 OK
 	assert.Equal(tc.T, http.StatusOK, rr.Code)
+
+	// Store the session cookie
+	cookies := rr.Result().Cookies()
+	for _, cookie := range cookies {
+		if cookie.Name == config.GetServerConfig().SessionCookieName() {
+			tc.SessionCookie = cookie
+			return
+		}
+	}
+
+	tc.T.Fatalf("Session cookie not found in login response")
 }
 
 func (tc *VigiloTestContext) GetStateFromSession() string {
@@ -300,8 +303,7 @@ func (tc *VigiloTestContext) GetStateFromSession() string {
 	queryParams.Add(common.Scope, testScope)
 	getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
-	sessionCookie := tc.GetSessionCookie()
-	headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
+	headers := map[string]string{"Cookie": tc.SessionCookie.Name + "=" + tc.SessionCookie.Value}
 
 	rr := tc.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
 	assert.Equal(tc.T, http.StatusOK, rr.Code)
@@ -314,6 +316,33 @@ func (tc *VigiloTestContext) GetStateFromSession() string {
 	assert.NotEmpty(tc.T, state)
 
 	return state
+}
+
+func (tc *VigiloTestContext) GetAuthzCode() string {
+	queryParams := url.Values{}
+	queryParams.Add(common.ResponseType, common.AuthzCode)
+	queryParams.Add(common.ClientID, testClientID)
+	queryParams.Add(common.RedirectURI, testRedirectURI)
+	queryParams.Add(common.Scope, testScope)
+	queryParams.Add(common.State, tc.State)
+	queryParams.Add(common.Approved, "true")
+
+	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
+	headers := map[string]string{"Cookie": tc.SessionCookie.Name + "=" + tc.SessionCookie.Value}
+
+	rr := tc.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
+	assert.Equal(tc.T, http.StatusFound, rr.Code)
+
+	location := rr.Header().Get(common.Location)
+	assert.NotEmpty(tc.T, location, "Redirect location should not be empty")
+
+	parsedURL, err := url.Parse(location)
+	assert.NoError(tc.T, err)
+
+	authzCode := parsedURL.Query().Get(common.AuthzCode)
+	assert.NotEmpty(tc.T, authzCode, "Authorization code should not be empty")
+
+	return authzCode
 }
 
 // AssertErrorResponse checks to see if the test returns a correct error.
@@ -346,6 +375,7 @@ func (tc *VigiloTestContext) addHeaderAuth(req *http.Request, headers map[string
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
+
 	if tc.JWTToken != "" && headers["Authorization"] == "" {
 		req.Header.Set("Authorization", "Bearer "+tc.JWTToken)
 	} else if tc.ClientAuthToken != "" && headers["Authorization"] == "" {

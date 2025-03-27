@@ -32,6 +32,7 @@ func NewAuthorizationHandler(
 }
 
 // TODO:
+// - Add logs
 // - End to end test for entire flow
 
 // AuthorizeClient is the HTTP handler responsible for the authorization code flow.
@@ -113,9 +114,8 @@ func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	sessionData.State = ""
-	if err := h.sessionService.UpdateSession(r, sessionData); err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to update state")
+	if err := h.sessionService.ClearStateFromSession(sessionData); err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to clear state from session")
 		web.WriteError(w, wrappedErr)
 		return
 	}

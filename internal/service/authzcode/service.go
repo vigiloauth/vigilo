@@ -110,9 +110,7 @@ func (c *AuthorizationCodeServiceImpl) GenerateAuthorizationCode(userID, clientI
 //
 //	*AuthorizationCodeData: The data associated with the code.
 //	error: An error if validation fails.
-func (c *AuthorizationCodeServiceImpl) ValidateAuthorizationCode(
-	code, clientID, redirectURI string,
-) (*authz.AuthorizationCodeData, error) {
+func (c *AuthorizationCodeServiceImpl) ValidateAuthorizationCode(code, clientID, redirectURI string) (*authz.AuthorizationCodeData, error) {
 	if code == "" || clientID == "" || redirectURI == "" {
 		return nil, errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")
 	}
@@ -177,9 +175,15 @@ func (c *AuthorizationCodeServiceImpl) SetAuthorizationCodeLifeTime(lifetime tim
 // Returns:
 //
 //	*AuthorizationCodeData: The authorization code data if found, or nil if no matching code exists.
-func (c *AuthorizationCodeServiceImpl) GetAuthorizationCode(code string) *authz.AuthorizationCodeData {
-	retrievedCode, _, _ := c.authzCodeRepo.GetAuthorizationCode(code)
-	return retrievedCode
+func (c *AuthorizationCodeServiceImpl) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, error) {
+	retrievedCode, isValid, err := c.authzCodeRepo.GetAuthorizationCode(code)
+	if !isValid {
+		return nil, errors.New(errors.ErrCodeUnauthorized, "the authorization code is no longer valid")
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "", "error retrieving the authorization code")
+	}
+	return retrievedCode, nil
 }
 
 func (c AuthorizationCodeServiceImpl) validateClient(redirectURI, clientID, scopesString string) error {

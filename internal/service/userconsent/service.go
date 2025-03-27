@@ -73,7 +73,6 @@ func (c *UserConsentServiceImpl) CheckUserConsent(userID, clientID, scope string
 	if user := c.userRepo.GetUserByID(userID); user == nil {
 		return false, errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
 	}
-
 	return c.consentRepo.HasConsent(userID, clientID, scope)
 }
 

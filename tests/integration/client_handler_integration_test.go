@@ -204,7 +204,8 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 		client.Confidential,
 		[]string{client.ClientManage},
 		[]string{client.ClientCredentials},
-	).WithClientCredentialsToken()
+	)
+	testContext.WithClientCredentialsToken()
 
 	endpoint := strings.Replace(web.ClientEndpoints.RegenerateSecret, "{client_id}", testClientID, 1)
 	rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, nil)
@@ -226,7 +227,8 @@ func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsEr
 		client.Confidential,
 		[]string{client.ClientManage},
 		[]string{client.ClientCredentials},
-	).WithClientCredentialsToken()
+	)
+	testContext.WithClientCredentialsToken()
 
 	endpoint := strings.Replace(web.ClientEndpoints.RegenerateSecret, "{client_id}", "", 1)
 	rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, nil)

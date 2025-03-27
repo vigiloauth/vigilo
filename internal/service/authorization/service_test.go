@@ -81,8 +81,8 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return getTestAuthzCodeData(), nil
 			},
-			GetAuthorizationCodeFunc: func(code string) *authzCode.AuthorizationCodeData {
-				return getTestAuthzCodeData()
+			GetAuthorizationCodeFunc: func(code string) (*authzCode.AuthorizationCodeData, error) {
+				return getTestAuthzCodeData(), nil
 			},
 		}
 

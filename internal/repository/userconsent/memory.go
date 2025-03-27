@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"slices"
+
 	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
@@ -68,14 +70,7 @@ func (c *InMemoryUserConsentRepository) HasConsent(userID, clientID, requestedSc
 	requestedScopes := strings.Fields(requestedScope)
 
 	for _, reqScope := range requestedScopes {
-		found := false
-		for _, grantedScope := range grantedScopes {
-			if reqScope == grantedScope {
-				found = true
-				break
-			}
-		}
-
+		found := slices.Contains(grantedScopes, reqScope)
 		if !found {
 			return false, errors.New(
 				errors.ErrCodeInvalidScope,

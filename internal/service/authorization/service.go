@@ -76,14 +76,7 @@ func NewAuthorizationServiceImpl(
 // Errors:
 //
 //   - Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
-func (s *AuthorizationServiceImpl) AuthorizeClient(
-	userID string,
-	clientID string,
-	redirectURI string,
-	scope string,
-	state string,
-	consentApproved bool,
-) (string, error) {
+func (s *AuthorizationServiceImpl) AuthorizeClient(userID, clientID, redirectURI, scope, state string, consentApproved bool) (string, error) {
 	consentRequired, err := s.userConsentService.CheckUserConsent(userID, clientID, scope)
 	if err != nil {
 		return "", errors.NewAccessDeniedError()
@@ -123,7 +116,7 @@ func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.To
 		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
 
-	if err := s.validateClient(*tokenRequest); err != nil {
+	if err := s.validateClient(authzCodeData, tokenRequest); err != nil {
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
 
@@ -166,18 +159,13 @@ func (s *AuthorizationServiceImpl) GenerateTokens(authCodeData *authzCode.Author
 // Returns:
 //
 //   - error: An error if client validation fails, nil otherwise
-func (s *AuthorizationServiceImpl) validateClient(tokenRequest token.TokenRequest) error {
+func (s *AuthorizationServiceImpl) validateClient(code *authzCode.AuthorizationCodeData, tokenRequest *token.TokenRequest) error {
 	client := s.clientService.GetClientByID(tokenRequest.ClientID)
 	if client == nil {
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client")
-	}
-
-	if client.Secret != tokenRequest.ClientSecret {
+	} else if client.Secret != tokenRequest.ClientSecret {
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client credentials")
-	}
-
-	code := s.authzCodeService.GetAuthorizationCode(tokenRequest.AuthorizationCode)
-	if code.ClientID != tokenRequest.ClientID {
+	} else if code.ClientID != tokenRequest.ClientID {
 		return errors.New(errors.ErrCodeInvalidGrant, "authorization code client ID and request client ID do no match")
 	}
 
