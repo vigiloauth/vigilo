@@ -77,3 +77,11 @@ func (c *HTTPCookieServiceImpl) GetSessionToken(r *http.Request) (string, error)
 	}
 	return cookie.Value, nil
 }
+
+func (c *HTTPCookieServiceImpl) GetSessionCookie(r *http.Request) (*http.Cookie, error) {
+	cookie, err := r.Cookie(c.sessionCookieName)
+	if err != nil {
+		return nil, errors.Wrap(err, errors.ErrCodeMissingHeader, "failed to retrieve cookie from request")
+	}
+	return cookie, nil
+}

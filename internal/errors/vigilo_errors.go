@@ -78,7 +78,7 @@ func NewRequestValidationError(err error) error {
 }
 
 func NewRequestBodyDecodingError(err error) error {
-	return Wrap(err, ErrCodeInternalServerError, "failed to decode request body")
+	return Wrap(err, ErrCodeBadRequest, "failed to decode request body")
 }
 
 func NewMethodNotAllowedError(method string) error {

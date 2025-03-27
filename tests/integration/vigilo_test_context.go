@@ -25,6 +25,7 @@ import (
 	tokenRepo "github.com/vigiloauth/vigilo/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
 	tokenService "github.com/vigiloauth/vigilo/internal/service/token"
+
 	"github.com/vigiloauth/vigilo/internal/web"
 
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -156,7 +157,7 @@ func (tc *VigiloTestContext) WithUserToken(duration time.Duration) *VigiloTestCo
 func (tc *VigiloTestContext) GetSessionCookie() *http.Cookie {
 	var sessionCookie *http.Cookie
 	for _, cookie := range tc.ResponseRecorder.Result().Cookies() {
-		if cookie.Name == "session_token" {
+		if cookie.Name == config.GetServerConfig().SessionCookieName() {
 			sessionCookie = cookie
 			break
 		}
@@ -276,7 +277,7 @@ func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Re
 	return tc.HttpClient.Do(req)
 }
 
-func (tc *VigiloTestContext) WithSession() {
+func (tc *VigiloTestContext) WithUserSession() {
 	// Login to create session
 	loginRequest := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
 	body, err := json.Marshal(loginRequest)

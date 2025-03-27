@@ -24,7 +24,7 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
-	testContext.WithSession()
+	testContext.WithUserSession()
 
 	// Call AuthorizeClient Endpoint
 	testContext.WithUserConsent()
@@ -55,7 +55,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
-	testContext.WithSession()
+	testContext.WithUserSession()
 
 	// Call AuthorizeClient Endpoint
 	testContext.WithUserConsent()
@@ -111,7 +111,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
-	testContext.WithSession()
+	testContext.WithUserSession()
 	testContext.WithUserConsent()
 
 	// Call AuthorizeClient Endpoint
@@ -142,7 +142,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 		[]string{client.AuthorizationCode},
 	)
 	testContext.WithUser()
-	testContext.WithSession()
+	testContext.WithUserSession()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
@@ -166,6 +166,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 
 func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 	t.Run("Valid Token Request - Success", func(t *testing.T) {
+		// Set up the test context
 		testContext := NewVigiloTestContext(t)
 		testContext.WithUser()
 		testContext.WithClient(
@@ -173,11 +174,36 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		testContext.WithSession()
+		testContext.WithUserSession()
 		defer testContext.TearDown()
 
+		// Simulate the authorization flow
+		queryParams := url.Values{}
+		queryParams.Add(common.ClientID, testClientID)
+		queryParams.Add(common.RedirectURI, testRedirectURI)
+		queryParams.Add(common.Scope, testScope)
+		queryParams.Add(common.Approved, "true")
+
+		sessionCookie := testContext.GetSessionCookie()
+		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
+		authEndpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
+
+		authResponse := testContext.SendHTTPRequest(http.MethodGet, authEndpoint, nil, headers)
+		assert.Equal(t, http.StatusFound, authResponse.Code)
+
+		// Extract the authorization code from the redirect URL
+		locationHeader := authResponse.Header().Get("Location")
+		assert.NotEmpty(t, locationHeader)
+
+		redirectURL, err := url.Parse(locationHeader)
+		assert.NoError(t, err)
+
+		authzCode := redirectURL.Query().Get("code")
+		assert.NotEmpty(t, authzCode)
+
+		// Prepare the token request
 		tokenRequest := &token.TokenRequest{
-			AuthorizationCode: testAuthzCode,
+			AuthorizationCode: authzCode,
 			RedirectURI:       testRedirectURI,
 			State:             testContext.GetStateFromSession(),
 		}
@@ -185,18 +211,20 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 		requestBody, err := json.Marshal(tokenRequest)
 		assert.NoError(t, err)
 
-		sessionCookie := testContext.GetSessionCookie()
-		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
+		// Send the token exchange request
+		tokenEndpoint := web.OAuthEndpoints.TokenExchange
+		tokenResponse := testContext.SendHTTPRequest(http.MethodPost, tokenEndpoint, bytes.NewReader(requestBody), headers)
 
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
+		// Assert the response
+		assert.Equal(t, http.StatusOK, tokenResponse.Code)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var tokenResponse token.TokenResponse
-		err = json.Unmarshal(rr.Body.Bytes(), &tokenResponse)
+		var response token.TokenResponse
+		err = json.Unmarshal(tokenResponse.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, tokenResponse.AccessToken)
-		assert.NotEmpty(t, tokenResponse.RefreshToken)
+		assert.NotEmpty(t, response.AccessToken)
+		assert.NotEmpty(t, response.RefreshToken)
+		assert.Equal(t, "Bearer", response.TokenType)
+		assert.Equal(t, testScope, response.Scope)
 	})
 
 	t.Run("Missing or Invalid JSON in Request Body", func(t *testing.T) {
@@ -206,7 +234,7 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader([]byte("invalid-json")), nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		testContext.AssertErrorResponse(rr, errors.ErrCodeBadRequest, "failed to decode request")
+		testContext.AssertErrorResponse(rr, errors.ErrCodeBadRequest, "failed to decode request body")
 	})
 
 	t.Run("Invalid Token Request Validation", func(t *testing.T) {
@@ -224,7 +252,6 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), nil)
 
-		// Assert the response
 		assert.Equal(t, http.StatusForbidden, rr.Code)
 		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidGrant, "failed to validate request")
 	})
@@ -237,7 +264,7 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		testContext.WithSession()
+		testContext.WithUserSession()
 		defer testContext.TearDown()
 
 		tokenRequest := &token.TokenRequest{
@@ -258,6 +285,6 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidRequest, "state mismatch")
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidRequest, "state mismatch between session and request")
 	})
 }

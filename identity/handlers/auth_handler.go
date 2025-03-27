@@ -41,14 +41,14 @@ func (h *AuthenticationHandler) IssueClientCredentialsToken(w http.ResponseWrite
 		return
 	}
 
-	if h.isRequestGrantTypeClientCredentials(r) {
+	if !h.isRequestGrantTypeClientCredentials(r) {
 		web.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "the provided grant type is not supported"))
 		return
 	}
 
-	clientID, clientSecret, err := web.ExtractBasicAuth(r)
+	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "the authorization header is invalid or missing")
+		wrappedErr := errors.Wrap(err, "", "invalid authorization header")
 		web.WriteError(w, wrappedErr)
 		return
 	}

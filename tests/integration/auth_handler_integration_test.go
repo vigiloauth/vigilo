@@ -43,33 +43,22 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 		rr := sendTokenGenerationRequest(testContext, headers)
+
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-
-		var errResp errors.VigiloAuthError
-		err := json.NewDecoder(rr.Body).Decode(&errResp)
-		assert.NoError(t, err)
-
-		assert.Equal(t, errors.ErrCodeInvalidClient, errResp.ErrorCode)
-		assert.Contains(t, errResp.ErrorDescription, "invalid authorization header")
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidClient, "invalid authorization header")
 	})
 
 	t.Run("Invalid Authorization Header format", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-
 		headers := map[string]string{
 			"Content-Type":  "application/x-www-form-urlencoded",
 			"Authorization": "Basic invalid_credentials",
 		}
 
 		rr := sendTokenGenerationRequest(testContext, headers)
+
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-
-		var errResp errors.VigiloAuthError
-		err := json.NewDecoder(rr.Body).Decode(&errResp)
-		assert.NoError(t, err)
-
-		assert.Equal(t, errors.ErrCodeInvalidClient, errResp.ErrorCode)
-		assert.Contains(t, errResp.ErrorDescription, "invalid credentials")
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidClient, "invalid authorization header")
 	})
 
 	t.Run("Invalid Client ID", func(t *testing.T) {
@@ -82,14 +71,9 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		headers := generateHeaderWithCredentials("non-existing-id", testClientSecret)
 		rr := sendTokenGenerationRequest(testContext, headers)
+
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-
-		var errResp errors.VigiloAuthError
-		err := json.NewDecoder(rr.Body).Decode(&errResp)
-		assert.NoError(t, err)
-
-		assert.Equal(t, errors.ErrCodeInvalidClient, errResp.ErrorCode)
-		assert.Contains(t, errResp.Details, "client does not exist with the given ID")
 	})
 
 	t.Run("Client Secrets do not match", func(t *testing.T) {
@@ -102,14 +86,9 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		headers := generateHeaderWithCredentials(testClientID, "invalid-secret")
 		rr := sendTokenGenerationRequest(testContext, headers)
+
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-
-		var errResp errors.VigiloAuthError
-		err := json.NewDecoder(rr.Body).Decode(&errResp)
-		assert.NoError(t, err)
-
-		assert.Equal(t, errors.ErrCodeInvalidClient, errResp.ErrorCode)
-		assert.Contains(t, errResp.Details, "invalid 'client_secret' provided")
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
 	})
 
 	t.Run("Client is missing required grant types", func(t *testing.T) {
@@ -122,14 +101,9 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := sendTokenGenerationRequest(testContext, headers)
+
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidGrant, "the client credentials are invalid or incorrectly formatted")
 		assert.Equal(t, http.StatusForbidden, rr.Code)
-
-		var errResp errors.VigiloAuthError
-		err := json.NewDecoder(rr.Body).Decode(&errResp)
-
-		assert.NoError(t, err)
-		assert.Equal(t, errors.ErrCodeInvalidGrant, errResp.ErrorCode)
-		assert.Contains(t, errResp.Details, "client does not have required grant type 'client_credentials'")
 	})
 
 	t.Run("Client is missing required scope", func(t *testing.T) {
@@ -142,14 +116,10 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := sendTokenGenerationRequest(testContext, headers)
+
 		assert.Equal(t, http.StatusForbidden, rr.Code)
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidScope, "the client credentials are invalid or incorrectly formatted")
 
-		var errResp errors.VigiloAuthError
-		err := json.NewDecoder(rr.Body).Decode(&errResp)
-		assert.NoError(t, err)
-
-		assert.Equal(t, errors.ErrCodeInvalidScope, errResp.ErrorCode)
-		assert.Contains(t, errResp.Details, "client does not have required scope 'client:manage'")
 	})
 }
 

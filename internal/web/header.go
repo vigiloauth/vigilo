@@ -8,23 +8,23 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
-// ExtractBasicAuth extracts the client ID and client secret from the Authorization
+// ExtractClientBasicAuth extracts the client ID and client secret from the Authorization
 // header of the request. The header must be in the form "Basic <base64 encoded
 // client_id:client_secret>". If the header is invalid, an error is returned.
-func ExtractBasicAuth(r *http.Request) (string, string, error) {
+func ExtractClientBasicAuth(r *http.Request) (string, string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Basic ") {
-		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid authorization header")
+		return "", "", errors.New(errors.ErrCodeInvalidClient, "the authorization header is invalid or missing")
 	}
 
 	credentials, err := base64.StdEncoding.DecodeString(authHeader[6:])
 	if err != nil {
-		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
+		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid credentials in the authorization header")
 	}
 
 	parts := strings.SplitN(string(credentials), ":", 2)
 	if len(parts) != 2 {
-		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid credentials format")
+		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid credentials format in the authorization header")
 	}
 
 	return parts[0], parts[1], nil

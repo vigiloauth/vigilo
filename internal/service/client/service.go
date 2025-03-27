@@ -217,16 +217,16 @@ func (cs *ClientServiceImpl) ValidateClientRedirectURI(redirectURI string, exist
 //	error: An error indicating why the client is not authorized, or nil if the client is valid.
 func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.Client, clientSecret, scope, grantType string) error {
 	if !existingClient.IsConfidential() {
-		return errors.New(errors.ErrCodeUnauthorizedClient, "client is not type 'confidential'")
+		return errors.New(errors.ErrCodeUnauthorizedClient, "client is not confidentials")
 	}
 	if !existingClient.SecretsMatch(clientSecret) {
-		return errors.New(errors.ErrCodeInvalidClient, "invalid 'client_secret' provided")
+		return errors.New(errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
 	}
 	if !existingClient.HasScope(scope) {
-		return errors.New(errors.ErrCodeInvalidScope, "client does not have required scope")
+		return errors.New(errors.ErrCodeInvalidScope, "client does not have the required scope(s)")
 	}
 	if !existingClient.HasGrantType(grantType) {
-		return errors.New(errors.ErrCodeInvalidGrant, "client does not have required grant type")
+		return errors.New(errors.ErrCodeInvalidGrant, "client does not have the required grant type")
 	}
 	return nil
 }

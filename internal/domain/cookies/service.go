@@ -33,4 +33,6 @@ type HTTPCookieService interface {
 	//   - string: The session token if found, otherwise an empty string.
 	//   - error: An error if retrieving the token fails.
 	GetSessionToken(r *http.Request) (string, error)
+
+	GetSessionCookie(r *http.Request) (*http.Cookie, error)
 }
