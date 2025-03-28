@@ -164,7 +164,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 	t.Run("Protected Route With Expired Token", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t).
 			WithUser().
-			WithExpiredUserToken()
+			WithExpiredToken()
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.UserEndpoints.Logout, nil, nil)
 
@@ -213,7 +213,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 	t.Run("Reset Password", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t).
 			WithUser().
-			WithUserToken(time.Hour)
+			WithAccessToken(testEmail, time.Hour)
 
 		testCases := []struct {
 			name           string
@@ -257,7 +257,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 	t.Run("Reset Password and Login With New Password", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t).
 			WithUser().
-			WithUserToken(time.Hour)
+			WithAccessToken(testEmail, time.Hour)
 
 		// Reset the password
 		resetRequest := users.UserPasswordResetRequest{

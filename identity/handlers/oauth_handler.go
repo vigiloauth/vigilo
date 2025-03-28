@@ -93,7 +93,7 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.OAuthRedirectURL = h.buildOAuthRedirectURL(query)
+	response.OAuthRedirectURL = h.buildOAuthRedirectURL(query, clientID, redirectURI)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -114,7 +114,9 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	userID := h.sessionService.GetUserIDFromSession(r)
 	if userID == "" {
 		state := crypto.GenerateUUID()
-		oauthLoginURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
+		baseURL := config.GetServerConfig().BaseURL()
+		oauthLoginURL := fmt.Sprintf("%s%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
+			baseURL,
 			web.OAuthEndpoints.Login,
 			url.QueryEscape(clientID),
 			url.QueryEscape(redirectURI),
@@ -138,7 +140,7 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 func (h *OAuthHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
 	response, err := h.consentService.GetConsentDetails(userID, clientID, redirectURI, scope, r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to retrieve consent details")
+		wrappedErr := errors.Wrap(err, "", "failed to retrieve user consent details")
 		web.WriteError(w, wrappedErr)
 		return
 	}
@@ -165,11 +167,8 @@ func (h *OAuthHandler) handlePostConsent(w http.ResponseWriter, r *http.Request,
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *OAuthHandler) buildOAuthRedirectURL(query url.Values) string {
-	redirectURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s",
-		web.OAuthEndpoints.Authorize,
-		url.QueryEscape(common.ClientID),
-		url.QueryEscape(common.RedirectURI))
+func (h *OAuthHandler) buildOAuthRedirectURL(query url.Values, clientID, redirectURI string) string {
+	redirectURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s", web.OAuthEndpoints.Authorize, clientID, redirectURI)
 
 	state := query.Get(common.State)
 	if state != "" {

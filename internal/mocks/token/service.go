@@ -32,6 +32,8 @@ type MockTokenService struct {
 
 	// IsTokenExpired is a mock function for the IsTokenExpired method
 	IsTokenExpiredFunc func(token string) bool
+
+	ValidateTokenFunc func(token string) error
 }
 
 // GenerateToken calls the mock GenerateTokenFunc.
@@ -72,4 +74,8 @@ func (m *MockTokenService) DeleteToken(token string) error {
 // IsTokenExpired calls the mock IsTokenExpiredFunc
 func (m *MockTokenService) IsTokenExpired(token string) bool {
 	return m.IsTokenExpiredFunc(token)
+}
+
+func (m *MockTokenService) ValidateToken(token string) error {
+	return m.ValidateTokenFunc(token)
 }

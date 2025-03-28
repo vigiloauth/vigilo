@@ -26,7 +26,7 @@ const (
 	testCode         string = "12314324code"
 )
 
-func TestAuthorizationCodeService_GenerateAuhtorizationCode(t *testing.T) {
+func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 	mockUserService := &mUserService.MockUserService{}
 	mockClientService := &mClientService.MockClientService{}
 	mockAuthzCodeRepo := &mAuthzRepository.MockAuthorizationCodeRepository{}

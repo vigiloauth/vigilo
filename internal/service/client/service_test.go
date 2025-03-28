@@ -2,40 +2,52 @@ package service
 
 import (
 	"testing"
+	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/identity/config"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	mockClient "github.com/vigiloauth/vigilo/internal/mocks/client"
+	mockToken "github.com/vigiloauth/vigilo/internal/mocks/token"
 )
 
 const (
 	testClientID     string = "client_id"
 	testClientSecret string = "client_secret"
 	testRedirectURI  string = "http://localhost/callback"
+	testToken        string = "test-token"
 )
 
 func TestClientService_Register(t *testing.T) {
 	mockClientStore := &mockClient.MockClientRepository{}
+	mockTokenService := &mockToken.MockTokenService{}
 	testClient := createTestClient()
+	config.NewServerConfig(config.WithBaseURL(testRedirectURI))
 
 	t.Run("Success When Saving Public Client", func(t *testing.T) {
 		testClient.Type = client.Public
 		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return false }
+		mockTokenService.GenerateTokenFunc = func(id string, duration time.Duration) (string, error) {
+			return testToken, nil
+		}
 		mockClientStore.SaveClientFunc = func(client *client.Client) error { return nil }
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
+		t.Log(response.ConfigurationEndpoint)
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
+		assert.NotEqual(t, "", response.ConfigurationEndpoint)
 	})
 
 	t.Run("Error When Generating Client ID", func(t *testing.T) {
 		testClient.Type = client.Public
 		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return true }
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
 		assert.Error(t, err)
@@ -46,8 +58,11 @@ func TestClientService_Register(t *testing.T) {
 		testClient.Type = client.Confidential
 		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(client *client.Client) error { return nil }
+		mockTokenService.GenerateTokenFunc = func(id string, duration time.Duration) (string, error) {
+			return testToken, nil
+		}
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
 		assert.NoError(t, err)
@@ -62,7 +77,22 @@ func TestClientService_Register(t *testing.T) {
 			return errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
 		}
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		response, err := cs.Register(testClient)
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+	})
+
+	t.Run("Error is returned when generating registration access token", func(t *testing.T) {
+		testClient.Type = client.Confidential
+		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return false }
+		mockClientStore.SaveClientFunc = func(client *client.Client) error { return nil }
+		mockTokenService.GenerateTokenFunc = func(id string, duration time.Duration) (string, error) {
+			return "", errors.NewInternalServerError()
+		}
+
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
 		assert.Error(t, err)
@@ -85,7 +115,7 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 			return testClient
 		}
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		result, err := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.NotNil(t, result)
@@ -95,7 +125,7 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 	t.Run("Client Does Not Exist", func(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
@@ -113,14 +143,14 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 			return testClient
 		}
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
 		assert.Error(t, expected)
 	})
 
-	t.Run("Missing `client_credentials` Grant Type", func(t *testing.T) {
+	t.Run("Missing 'client_credentials' Grant Type", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.Secret = testClientSecret
 		testClient.ID = testClientID
@@ -132,8 +162,8 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 			return testClient
 		}
 
-		cs := NewClientService(mockClientStore)
-		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have required grant type")
+		cs := NewClientServiceImpl(mockClientStore, nil)
+		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have the required grant type")
 		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
@@ -141,7 +171,7 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 		assert.Equal(t, expected.Error(), actual.Error())
 	})
 
-	t.Run("Missing `client:manage` Scope", func(t *testing.T) {
+	t.Run("Missing required scopes", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.Secret = testClientSecret
 		testClient.ID = testClientID
@@ -153,8 +183,8 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 			return testClient
 		}
 
-		cs := NewClientService(mockClientStore)
-		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have required scope")
+		cs := NewClientServiceImpl(mockClientStore, nil)
+		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have the required scope(s)")
 		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
 
 		assert.Nil(t, result)
@@ -163,7 +193,7 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 	})
 
 	t.Run("Empty Parameters Returns an Error", func(t *testing.T) {
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		expected := errors.New(errors.ErrCodeEmptyInput, "missing required parameter")
 		_, actual := cs.AuthenticateClientForCredentialsGrant("", "")
 
@@ -173,17 +203,18 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 }
 
 func TestClientService_RegenerateClientSecret(t *testing.T) {
+	mockClientStore := &mockClient.MockClientRepository{}
+
 	t.Run("Successful Client Secret Regeneration", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.Type = client.Confidential
 		testClient.ID = testClientID
 		testClient.Secret = ""
 
-		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 		mockClientStore.UpdateClientFunc = func(client *client.Client) error { return nil }
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		response, err := cs.RegenerateClientSecret(testClientID)
 
 		assert.NoError(t, err)
@@ -194,10 +225,9 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 	})
 
 	t.Run("Error is returned when 'client_id' is invalid", func(t *testing.T) {
-		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		expected := errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
@@ -216,8 +246,8 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 
-		cs := NewClientService(mockClientStore)
-		expected := errors.New(errors.ErrCodeInvalidScope, "failed to validate client: invalid 'client_secret' provided")
+		cs := NewClientServiceImpl(mockClientStore, nil)
+		expected := errors.New(errors.ErrCodeInvalidScope, "failed to validate client: the client credentials are invalid or incorrectly formatted")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
 		assert.Error(t, actual)
@@ -236,7 +266,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 			return errors.New(errors.ErrCodeClientNotFound, "client doest exist with the given ID")
 		}
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		response, err := cs.RegenerateClientSecret(testClientID)
 
 		assert.Error(t, err)
@@ -250,8 +280,8 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 
-		cs := NewClientService(mockClientStore)
-		expected := errors.New(errors.ErrCodeUnauthorizedClient, "failed to validate client: client is not type 'confidential'")
+		cs := NewClientServiceImpl(mockClientStore, nil)
+		expected := errors.New(errors.ErrCodeUnauthorizedClient, "failed to validate client: client is not confidential")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
 		assert.Error(t, actual)
@@ -271,7 +301,7 @@ func TestClientService_GetClientByID(t *testing.T) {
 			return expected
 		}
 
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		actual := cs.GetClientByID(testClientID)
 
 		assert.NotNil(t, actual)
@@ -281,55 +311,103 @@ func TestClientService_GetClientByID(t *testing.T) {
 
 	t.Run("Client does not exist with the given ID", func(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
-		cs := NewClientService(mockClientStore)
+		cs := NewClientServiceImpl(mockClientStore, nil)
 		response := cs.GetClientByID(testClientID)
 
 		assert.Nil(t, response)
 	})
 }
 
-func TestClientService_ValidateClientRedirectURI(t *testing.T) {
+func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 	mockClientStore := &mockClient.MockClientRepository{}
+	mockTokenService := &mockToken.MockTokenService{}
 
-	t.Run("Success", func(t *testing.T) {
+	t.Run("Success - response does not contain secret for public clients", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
 		testClient.Type = client.Public
 
-		cs := NewClientService(mockClientStore)
-		err := cs.ValidateClientRedirectURI(testRedirectURI, testClient)
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+			return &jwt.StandardClaims{Subject: testClientID}, nil
+		}
+
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
 
 		assert.NoError(t, err)
+		assert.NotEqual(t, "", clientInformation.ID)
+		assert.Equal(t, "", clientInformation.Secret)
+		assert.NotEqual(t, "", clientInformation.RegistrationAccessToken)
+		assert.NotEqual(t, "", clientInformation.RegistrationClientURI)
 	})
 
-	t.Run("Error is returned when parameters are empty", func(t *testing.T) {
-		expectedMessage := "one or more parameters are empty"
-		cs := NewClientService(mockClientStore)
-		err := cs.ValidateClientRedirectURI("", nil)
-
-		assert.Error(t, err)
-		assert.Contains(t, expectedMessage, err.Error())
-	})
-
-	t.Run("Error is returned when redirectURIs do not match", func(t *testing.T) {
+	t.Run("Success - response contains secret for confidential clients", func(t *testing.T) {
 		testClient := createTestClient()
-		testClient.Type = client.Public
-		invalidRedirectURI := "https://localhost/callback/2"
+		testClient.ID = testClientID
+		testClient.Type = client.Confidential
+		testClient.Secret = testClientSecret
 
-		cs := NewClientService(mockClientStore)
-		err := cs.ValidateClientRedirectURI(invalidRedirectURI, testClient)
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+			return &jwt.StandardClaims{Subject: testClientID}, nil
+		}
 
-		assert.Error(t, err)
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
+
+		assert.NoError(t, err)
+		assert.NotEqual(t, "", clientInformation.ID)
+		assert.NotEqual(t, "", clientInformation.Secret)
+		assert.NotEqual(t, "", clientInformation.RegistrationAccessToken)
+		assert.NotEqual(t, "", clientInformation.RegistrationClientURI)
 	})
 
-	t.Run("Error is returned when given an invalid redirect URI", func(t *testing.T) {
-		testClient := createTestClient()
-		invalidRedirectURI := "https/invalid/callback"
+	t.Run("Error is returned when the client does not exist", func(t *testing.T) {
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
+		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		cs := NewClientService(mockClientStore)
-		err := cs.ValidateClientRedirectURI(invalidRedirectURI, testClient)
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
 
 		assert.Error(t, err)
+		assert.Nil(t, clientInformation)
+	})
+
+	t.Run("Error is returned when the access token is invalid", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.ID = testClientID
+		testClient.Type = client.Confidential
+
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+			return &jwt.StandardClaims{}, nil
+		}
+		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
+
+		assert.Error(t, err)
+		assert.Nil(t, clientInformation)
+	})
+
+	t.Run("Error is returned when the client ID does not match the access token ID", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.ID = testClientID
+		testClient.Type = client.Confidential
+
+		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+			return &jwt.StandardClaims{Subject: "invalid-id"}, nil
+		}
+		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+
+		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
+
+		assert.Error(t, err)
+		assert.Nil(t, clientInformation)
 	})
 }
 

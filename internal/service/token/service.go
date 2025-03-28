@@ -48,7 +48,7 @@ func NewTokenServiceImpl(tokenRepo token.TokenRepository) *TokenServiceImpl {
 //	string: The generated JWT token string.
 //	error: An error if token generation fails.
 func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Duration) (string, error) {
-	tokenString, err := ts.generateToken(subject, "", expirationTime)
+	tokenString, err := ts.generateAndStoreToken(subject, "", expirationTime)
 	if err != nil {
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
 	}
@@ -69,12 +69,12 @@ func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Du
 //	string: The refresh token.
 //	error: An error if an error occurs while generating the tokens.
 func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID string) (string, string, error) {
-	accessToken, err := ts.generateToken(userID, clientID, ts.tokenConfig.AccessTokenDuration())
+	accessToken, err := ts.generateAndStoreToken(userID, clientID, ts.tokenConfig.AccessTokenDuration())
 	if err != nil {
 		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access token")
 	}
 
-	refreshToken, err := ts.generateToken(userID, clientID, ts.tokenConfig.RefreshTokenDuration())
+	refreshToken, err := ts.generateAndStoreToken(userID, clientID, ts.tokenConfig.RefreshTokenDuration())
 	if err != nil {
 		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate refresh token")
 	}
@@ -95,7 +95,7 @@ func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID string) (string, 
 func (ts *TokenServiceImpl) ParseToken(tokenString string) (*jwt.StandardClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New(errors.ErrCodeTokenCreation, "failed to generate token")
+			return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
 		}
 		return []byte(ts.tokenConfig.Secret()), nil
 	})
@@ -188,7 +188,27 @@ func (ts *TokenServiceImpl) IsTokenExpired(token string) bool {
 	return time.Now().Unix() > claims.ExpiresAt
 }
 
-// generateToken creates a signed JWT (JSON Web Token) with standard claims.
+// ValidateToken checks to see if a token is blacklisted or expired.
+//
+// Parameters:
+//
+//	token string: The token string to check.
+//
+// Returns:
+//
+//	error: An error if the token is blacklisted or expired.
+func (ts *TokenServiceImpl) ValidateToken(token string) error {
+	if ts.IsTokenBlacklisted(token) {
+		return errors.New(errors.ErrCodeUnauthorized, "the token is blacklisted")
+	}
+	if ts.IsTokenExpired(token) {
+		return errors.New(errors.ErrCodeExpiredToken, "the token is expired")
+	}
+	return nil
+}
+
+// generateAndStoreToken creates a signed JWT (JSON Web Token) with standard claims
+// and then saves it to the TokenRepository.
 //
 // Parameters:
 //
@@ -199,7 +219,7 @@ func (ts *TokenServiceImpl) IsTokenExpired(token string) bool {
 //
 //	string: A signed JWT token string.
 //	error: An error if token generation or signing fails.
-func (ts *TokenServiceImpl) generateToken(subject, audience string, duration time.Duration) (string, error) {
+func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience string, duration time.Duration) (string, error) {
 	tokenExpiration := time.Now().Add(duration)
 	claims := &jwt.StandardClaims{
 		Subject:   subject,

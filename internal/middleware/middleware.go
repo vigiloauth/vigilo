@@ -43,27 +43,20 @@ func NewMiddleware(tokenService token.TokenService) *Middleware {
 func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				err := errors.New(errors.ErrCodeMissingHeader, "authorization header is missing")
-				web.WriteError(w, err)
+			tokenString, err := web.ExtractBearerToken(r)
+			if err != nil {
+				wrappedErr := errors.Wrap(err, "", "failed to extract bearer token from authorization header")
+				web.WriteError(w, wrappedErr)
 				return
 			}
 
-			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-			if m.tokenService.IsTokenBlacklisted(tokenString) {
-				err := errors.New(errors.ErrCodeUnauthorized, "token is blacklisted")
-				web.WriteError(w, err)
+			if err := m.tokenService.ValidateToken(tokenString); err != nil {
+				wrappedErr := errors.Wrap(err, "", "an error occurred validating the access token")
+				web.WriteError(w, wrappedErr)
 				return
 			}
 
-			if m.tokenService.IsTokenExpired(tokenString) {
-				err := errors.New(errors.ErrCodeExpiredToken, "token is expired")
-				web.WriteError(w, err)
-				return
-			}
-
-			_, err := m.tokenService.ParseToken(tokenString)
+			_, err = m.tokenService.ParseToken(tokenString)
 			if err != nil {
 				wrappedErr := errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse token")
 				web.WriteError(w, wrappedErr)

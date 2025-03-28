@@ -150,7 +150,7 @@ func (c *ServiceContainer) initializeServices() {
 		return passwordService.NewPasswordResetService(c.getTokenService(), c.userRepo, c.getPasswordResetEmailService())
 	}
 	c.clientServiceInit = func() client.ClientService {
-		return clientService.NewClientService(c.clientRepo)
+		return clientService.NewClientServiceImpl(c.clientRepo, c.getTokenService())
 	}
 	c.consentServiceInit = func() userConsent.UserConsentService {
 		return consentService.NewUserConsentServiceImpl(c.consentRepo, c.userRepo, c.getSessionService(), c.getClientService(), c.getAuthzCodeService())

@@ -6,6 +6,8 @@ import (
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 )
 
+var _ token.TokenRepository = (*MockTokenRepository)(nil)
+
 // MockTokenRepository is a mock implementation of the token.TokenStore interface.
 type MockTokenRepository struct {
 	// SaveTokenFunc is a mock function for the AddToken method.

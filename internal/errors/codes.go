@@ -60,6 +60,7 @@ const (
 	ErrCodeUnauthorizedClient     = "unauthorized_client"
 	ErrCodeUnsupportedGrantType   = "unsupported_grant_type"
 	ErrCodeAccessDenied           = "access_denied"
+	ErrCodeInvalidClientMetadata  = "invalid_client_metadata"
 
 	// Session errors
 	ErrCodeDuplicateSession = "duplicate_session"
@@ -93,10 +94,10 @@ var statusCodeMap = map[string]int{
 	ErrCodeUnsupportedGrantType:      http.StatusBadRequest,
 	ErrCodeInvalidRequest:            http.StatusBadRequest,
 	ErrCodeBadRequest:                http.StatusBadRequest,
+	ErrCodeInvalidClientMetadata:     http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
-	ErrCodeInvalidClient:            http.StatusUnauthorized,
 	ErrCodeUnauthorized:             http.StatusUnauthorized,
 	ErrCodeExpiredToken:             http.StatusUnauthorized,
 	ErrCodeInvalidToken:             http.StatusUnauthorized,
@@ -105,6 +106,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeLoginRequired:            http.StatusUnauthorized,
 	ErrCodeConsentRequired:          http.StatusUnauthorized,
 	ErrCodeInvalidSession:           http.StatusUnauthorized,
+	ErrCodeInvalidClient:            http.StatusUnauthorized,
 
 	// 404 Not Found
 	ErrCodeUserNotFound:    http.StatusNotFound,

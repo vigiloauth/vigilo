@@ -1,9 +1,17 @@
-# Static Client Registration
+# Client Registration
 
 ## Endpoint
 ```
-POST /oauth/register
+POST /client/register
 ```
+
+---
+
+**Description**
+This endpoint is responsible for registering the client into the server. If the registration is successful, the response will include a client configuration endpoint and a registration access token which can be used to manage client configurations. 
+
+For information on how to use `client_configuration_endpoint` and `registration_access_token`, please read the following endpoints:
+- [Client Read Request](client_read_request.md)
 
 ---
 
@@ -79,7 +87,10 @@ POST /oauth/register
         "id_token"
     ],
     "created_at": "2025-03-18T17:55:40.843541-07:00",
-    "updated_at": "2025-03-18T17:55:40.843541-07:00"
+    "updated_at": "2025-03-18T17:55:40.843541-07:00",
+    "registration_access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyjasd...",
+    "client_configuration_endpoint": "https://localhost/oauth/client/register/c899a9e5-168b-4c85-81f9-1a4ee3b49431",
+    "client_id_issued_at": "2025-03-28T13:12:12.065756-04:00"
 }
 ```
 **Note:** When registering as a `confidential` client, the `client_secret` will be included in the response.

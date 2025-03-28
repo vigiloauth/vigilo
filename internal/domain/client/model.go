@@ -18,6 +18,7 @@ type Client struct {
 	Name                    string
 	ID                      string
 	Secret                  string
+	SecretExpiration        int
 	Type                    string
 	RedirectURIS            []string
 	GrantTypes              []string
@@ -45,6 +46,7 @@ type ClientRegistrationResponse struct {
 	ID                      string    `json:"client_id"`
 	Name                    string    `json:"client_name"`
 	Secret                  string    `json:"client_secret,omitempty"`
+	SecretExpiration        int       `json:"client_secret_expires_at,omitempty"`
 	Type                    string    `json:"client_type"`
 	RedirectURIS            []string  `json:"redirect_uris"`
 	GrantTypes              []string  `json:"grant_types"`
@@ -53,6 +55,22 @@ type ClientRegistrationResponse struct {
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
 	TokenEndpointAuthMethod string    `json:"token_endpoint_auth_method,omitempty"`
+	RegistrationAccessToken string    `json:"registration_access_token"`
+	ConfigurationEndpoint   string    `json:"client_configuration_endpoint"`
+	IDIssuedAt              time.Time `json:"client_id_issued_at"`
+}
+
+type ClientConfigurationEndpoint struct {
+	Name                    string    `json:"client_name"`
+	RedirectURIS            []string  `json:"redirect_uris"`
+	GrantTypes              []string  `json:"grant_types"`
+	Scopes                  []string  `json:"scopes,omitempty"`
+	ResponseTypes           []string  `json:"response_types"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
+	IDIssuedAt              time.Time `json:"client_id_issued_at"`
+	TokenEndpointAuthMethod string    `json:"token_endpoint_auth_method,omitempty"`
+	ConfigurationEndpoint   string    `json:"client_configuration_endpoint"`
 }
 
 // ClientSecretRegenerationResponse represents the response when regenerating a client secret.
@@ -71,6 +89,13 @@ type ClientAuthorizationRequest struct {
 	State               string `schema:"state,omitempty"`
 	CodeChallenge       string `schema:"code_challenge,omitempty"`
 	CodeChallengeMethod string `schema:"code_challenge_method,omitempty"`
+}
+
+type ClientInformationResponse struct {
+	ID                      string `json:"client_id"`
+	Secret                  string `json:"client_secret,omitempty"`
+	RegistrationClientURI   string `json:"registration_client_uri"`
+	RegistrationAccessToken string `json:"registration_access_token"`
 }
 
 // Predefined grant types.
@@ -127,7 +152,7 @@ func (c *Client) HasScope(requiredScope string) bool {
 	return slices.Contains(c.Scopes, requiredScope)
 }
 
-// IsConfidentials checks to see if the client is public or confidentials.
+// IsConfidential checks to see if the client is public or confidential.
 func (c *Client) IsConfidential() bool {
 	return c.Type == Confidential
 }
@@ -136,22 +161,36 @@ func (c *Client) SecretsMatch(secret string) bool {
 	return c.Secret == secret
 }
 
+func NewClientInformationResponse(clientID, clientSecret, registrationClientURI, registrationAccessToken string) *ClientInformationResponse {
+	clientInfo := &ClientInformationResponse{
+		ID:                      clientID,
+		RegistrationClientURI:   registrationAccessToken,
+		RegistrationAccessToken: registrationAccessToken,
+	}
+
+	if clientSecret != "" {
+		clientInfo.Secret = clientSecret
+	}
+
+	return clientInfo
+}
+
 // Validate checks if the ClientRegistrationRequest contains valid values.
 func (req *ClientRegistrationRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
 	if req.Name == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "`client_name` is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "'client_name' is empty")
 		errorCollection.Add(err)
 	}
 
 	if req.Type == Public && req.Secret != "" {
-		err := errors.New(errors.ErrCodeClientSecretNotAllowed, "`client_secret` must not be provided")
+		err := errors.New(errors.ErrCodeInvalidClientMetadata, "'client_secret' must not be provided for public clients")
 		errorCollection.Add(err)
 	}
 
 	if req.TokenEndpointAuthMethod != "" && !slices.Contains(req.GrantTypes, ClientCredentials) {
-		err := errors.New(errors.ErrCodeInvalidGrant, "`token_endpoint_auth` is required for `client_credentials` grant")
+		err := errors.New(errors.ErrCodeInvalidClientMetadata, "'token_endpoint_auth' is required for 'client_credentials' grant")
 		errorCollection.Add(err)
 	}
 
@@ -171,7 +210,7 @@ func (req *ClientRegistrationRequest) Validate() error {
 // validateClientType ensures the client type is either Confidential or Public.
 func (req *ClientRegistrationRequest) validateClientType(errorCollection *errors.ErrorCollection) {
 	if req.Type != Confidential && req.Type != Public {
-		err := errors.New(errors.ErrCodeInvalidClient, "client must be `public` or `confidential`")
+		err := errors.New(errors.ErrCodeInvalidClient, "client must be 'public' or 'confidential'")
 		errorCollection.Add(err)
 	}
 }
@@ -179,7 +218,7 @@ func (req *ClientRegistrationRequest) validateClientType(errorCollection *errors
 // validateGrantType checks if the provided grant types are valid.
 func (req *ClientRegistrationRequest) validateGrantType(errorCollection *errors.ErrorCollection) {
 	if len(req.GrantTypes) == 0 {
-		err := errors.New(errors.ErrCodeEmptyInput, "`grant_types` is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "'grant_types' is empty")
 		errorCollection.Add(err)
 		return
 	}
@@ -188,21 +227,21 @@ func (req *ClientRegistrationRequest) validateGrantType(errorCollection *errors.
 	for _, grantType := range req.GrantTypes {
 		if _, ok := validGrantTypes[grantType]; !ok {
 			err := errors.New(
-				errors.ErrCodeInvalidGrant,
-				fmt.Sprintf("grant type `%s` is not supported", grantType))
+				errors.ErrCodeInvalidClientMetadata,
+				fmt.Sprintf("grant type '%s' is not supported", grantType))
 			errorCollection.Add(err)
 			continue
 		}
 		if req.Type == Public {
 			if grantType == ClientCredentials || grantType == PasswordGrant {
 				err := errors.New(
-					errors.ErrCodeInvalidGrant,
-					fmt.Sprintf("grant type `%s` is not supported for public clients", grantType))
+					errors.ErrCodeInvalidClientMetadata,
+					fmt.Sprintf("grant type '%s' is not supported for public clients", grantType))
 				errorCollection.Add(err)
 			}
 		}
 		if grantType == RefreshToken && len(req.GrantTypes) == 0 {
-			err := errors.New(errors.ErrCodeInvalidGrant, fmt.Sprintf("`%s` requires another grant type", grantType))
+			err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("'%s' requires another grant type", grantType))
 			errorCollection.Add(err)
 		}
 	}
@@ -211,7 +250,7 @@ func (req *ClientRegistrationRequest) validateGrantType(errorCollection *errors.
 // validateRedirectURIS checks if redirect URIs are well-formed and secure.
 func (req *ClientRegistrationRequest) validateRedirectURIS(errorCollection *errors.ErrorCollection) {
 	if len(req.RedirectURIS) == 0 {
-		err := errors.New(errors.ErrCodeEmptyInput, "`redirect_uris` is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "'redirect_uris' is empty")
 		errorCollection.Add(err)
 		return
 	}
@@ -219,7 +258,7 @@ func (req *ClientRegistrationRequest) validateRedirectURIS(errorCollection *erro
 	mobileSchemePattern := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/`)
 	for _, uri := range req.RedirectURIS {
 		if uri == "" {
-			err := errors.New(errors.ErrCodeInvalidRedirectURI, "`redirect_uri` is empty")
+			err := errors.New(errors.ErrCodeInvalidRedirectURI, "'redirect_uri' is empty")
 			errorCollection.Add(err)
 			continue
 		}

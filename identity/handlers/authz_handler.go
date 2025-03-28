@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
@@ -124,7 +125,9 @@ func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state string) string {
-	URL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s",
+	baseURL := config.GetServerConfig().BaseURL()
+	loginURL := fmt.Sprintf("%s%s?client_id=%s&redirect_uri=%s&scope=%s",
+		baseURL,
 		web.OAuthEndpoints.Login,
 		url.QueryEscape(clientID),
 		url.QueryEscape(redirectURI),
@@ -132,8 +135,8 @@ func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state
 	)
 
 	if state != "" {
-		URL = fmt.Sprintf("%s&state=%s", URL, url.QueryEscape(state))
+		loginURL = fmt.Sprintf("%s&state=%s", loginURL, url.QueryEscape(state))
 	}
 
-	return URL
+	return loginURL
 }

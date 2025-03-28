@@ -47,7 +47,7 @@ type ClientService interface {
 	//	clientID string: The ID of the client.
 	//
 	// Returns:
-
+	//
 	//	client *Client: Returns the client if they exist, otherwise nil.
 	GetClientByID(clientID string) *Client
 
@@ -63,4 +63,20 @@ type ClientService interface {
 	//
 	//	error: Returns an error if the client does not contain the given redirectURI.
 	ValidateClientRedirectURI(redirectURI string, existingClient *Client) error
+
+	// ValidateAndRetrieveClient validates the provided registration access token, ensures the client exists,
+	// revokes the token if necessary, and compares the token value to the clientID. It returns an error if any
+	// validation fails or if the client cannot be retrieved.
+	//
+	// Parameters:
+	//
+	//	clientID: The ID of the client to validate and retrieve.
+	//	registrationAccessToken: The access token used for validation.
+	//
+	// Returns:
+	//
+	//
+	//	*CLientInformationResponse: If the the request is successful.
+	//	error: An error if validation fails or the client cannot be retrieved.
+	ValidateAndRetrieveClient(clientID, registrationAccessToken string) (*ClientInformationResponse, error)
 }

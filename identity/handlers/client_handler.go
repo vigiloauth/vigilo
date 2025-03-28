@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/web"
@@ -35,7 +38,7 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := req.Validate(); err != nil {
-		web.WriteError(w, errors.NewRequestValidationError(err))
+		web.WriteError(w, err)
 		return
 	}
 
@@ -63,13 +66,7 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 
 // RegenerateSecret is the HTTP handler for regenerating client secrets.
 func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request) {
-	clientID, err := web.ExtractIDFromURL(w, r)
-	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "'client_id' is missing in the request")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
+	clientID := chi.URLParam(r, common.ClientID)
 	response, err := h.clientService.RegenerateClientSecret(clientID)
 	if err != nil {
 		web.WriteError(w, errors.Wrap(err, "", "failed to regenerate client_secret"))
@@ -77,4 +74,58 @@ func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request)
 	}
 
 	web.WriteJSON(w, http.StatusOK, response)
+}
+
+// ManageClientConfiguration handles client configuration management requests.
+// It supports GET, PUT, and DELETE methods to retrieve, update, or delete client configurations.
+// The method validates the registration access token and extracts the client ID from the URL.
+func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http.Request) {
+	registrationAccessToken, err := web.ExtractBearerToken(r)
+	if err != nil {
+		wrappedErr := errors.Wrap(
+			err, errors.ErrCodeInvalidToken,
+			"registration access token is not present in the authorization header",
+		)
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	clientID := chi.URLParam(r, common.ClientID)
+	switch r.Method {
+	case http.MethodGet:
+		h.getClient(w, clientID, registrationAccessToken)
+	case http.MethodPut:
+		h.updateClient(w, clientID, registrationAccessToken)
+	case http.MethodDelete:
+		h.deleteClient(w, clientID, registrationAccessToken)
+	default:
+		err := errors.New(errors.ErrCodeMethodNotAllowed, fmt.Sprintf("method '%s' not allowed for this request", r.Method))
+		web.WriteError(w, err)
+		return
+	}
+}
+
+// getClient retrieves client information for the given client ID and registration access token.
+// It validates the token and client, then writes the client information as a JSON response.
+func (h *ClientHandler) getClient(w http.ResponseWriter, clientID, registrationAccessToken string) {
+	clientInformation, err := h.clientService.ValidateAndRetrieveClient(clientID, registrationAccessToken)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to validate and retrieve client information")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	web.WriteJSON(w, http.StatusOK, clientInformation)
+}
+
+// updateClient updates the client configuration for the given client ID and registration access token.
+// It uses the ValidateAndUpdateClient service method to perform the update.
+func (h *ClientHandler) updateClient(w http.ResponseWriter, clientID, registrationAccessToken string) {
+	// use ValidateAndUpdateClient
+}
+
+// deleteClient deletes the client configuration for the given client ID and registration access token.
+// It uses the ValidateAndDeleteClient service method to perform the deletion.
+func (h *ClientHandler) deleteClient(w http.ResponseWriter, clientID, registrationAccessToken string) {
+	// use ValidateAndDeleteClient
 }

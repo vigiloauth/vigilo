@@ -68,16 +68,10 @@ type VigiloTestContext struct {
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
-	tc := &VigiloTestContext{
+	return &VigiloTestContext{
 		T:            t,
 		VigiloServer: server.NewVigiloIdentityServer(),
 	}
-
-	// Perform setup steps
-	tc.WithUser()
-	tc.WithUserSession()
-
-	return tc
 }
 
 // WithLiveServer adds a live test server to the context.
@@ -114,31 +108,34 @@ func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 // scopes []client.Scope: An array of scopes.
 // grantTypes []client.GrantType: An array of grantTypes.
 func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, grantTypes []string) {
-	client := &client.Client{
+	c := &client.Client{
 		Name:         testClientName,
 		ID:           testClientID,
-		Secret:       testClientSecret,
 		Type:         clientType,
 		Scopes:       scopes,
 		GrantTypes:   grantTypes,
 		RedirectURIS: []string{testRedirectURI},
 	}
 
-	clientRepo.GetInMemoryClientRepository().SaveClient(client)
+	if clientType == client.Confidential {
+		c.Secret = testClientSecret
+	}
+
+	clientRepo.GetInMemoryClientRepository().SaveClient(c)
 }
 
-// WithUserToken creates and adds a user JWT token to the system.
-func (tc *VigiloTestContext) WithUserToken(duration time.Duration) *VigiloTestContext {
+// WithAccessToken creates and adds a user JWT token to the system.
+func (tc *VigiloTestContext) WithAccessToken(id string, duration time.Duration) *VigiloTestContext {
 	if tc.User == nil {
 		tc.WithUser()
 	}
 
 	tokenService := tokenService.NewTokenServiceImpl(tokenRepo.GetInMemoryTokenRepository())
-	userToken, err := tokenService.GenerateToken(tc.User.Email, duration)
+	token, err := tokenService.GenerateToken(id, duration)
 	assert.NoError(tc.T, err)
 
-	tc.JWTToken = userToken
-	tokenRepo.GetInMemoryTokenRepository().SaveToken(userToken, tc.User.Email, time.Now().Add(duration))
+	tc.JWTToken = token
+	tokenRepo.GetInMemoryTokenRepository().SaveToken(token, id, time.Now().Add(duration))
 
 	return tc
 }
@@ -153,6 +150,11 @@ func (tc *VigiloTestContext) GetSessionCookie() *http.Cookie {
 	}
 	assert.NotNil(tc.T, sessionCookie)
 	return sessionCookie
+}
+
+func (tc *VigiloTestContext) WithClientRegistrationAccessToken() string {
+
+	return ""
 }
 
 // WithClientCredentialsToken generates and adds a client credentials token
@@ -189,9 +191,9 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 	return tc
 }
 
-// WithExpiredUserToken generates an expired token for testing.
-func (tc *VigiloTestContext) WithExpiredUserToken() *VigiloTestContext {
-	return tc.WithUserToken(-1 * time.Hour)
+// WithExpiredToken generates an expired token for testing.
+func (tc *VigiloTestContext) WithExpiredToken() *VigiloTestContext {
+	return tc.WithAccessToken(testEmail, -1*time.Hour)
 }
 
 // WithPasswordResetToken generates a password reset token.
@@ -218,9 +220,7 @@ func (tc *VigiloTestContext) WithCustomConfig(options ...config.ServerConfigOpti
 // SendHTTPRequest sends an HTTP request using the test recorder
 func (tc *VigiloTestContext) SendHTTPRequest(method, endpoint string, body io.Reader, headers map[string]string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(method, endpoint, body)
-
 	tc.addHeaderAuth(req, headers)
-
 	rr := httptest.NewRecorder()
 	tc.VigiloServer.Router().ServeHTTP(rr, req)
 	tc.ResponseRecorder = rr

@@ -2,11 +2,13 @@ package server
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
+	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/middleware"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
@@ -15,6 +17,8 @@ const (
 	contentTypeJSON string = "application/json"
 	contentTypeForm string = "application/x-www-form-urlencoded"
 )
+
+var clientURLParam string = fmt.Sprintf("/{%s}", common.ClientID)
 
 // VigiloIdentityServer represents the identity library's functionality.
 type VigiloIdentityServer struct {
@@ -87,7 +91,7 @@ func (s *VigiloIdentityServer) setupRoutes() {
 			pr.Post(web.UserEndpoints.Registration, s.userHandler.Register)
 			pr.Post(web.UserEndpoints.Login, s.userHandler.Login)
 			pr.Post(web.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
-			pr.Post(web.ClientEndpoints.Registration, s.clientHandler.RegisterClient)
+			pr.Post(web.ClientEndpoints.Register, s.clientHandler.RegisterClient)
 		})
 
 		// PATCH Routes
@@ -111,6 +115,12 @@ func (s *VigiloIdentityServer) setupRoutes() {
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())
 
+		r.Route(web.ClientEndpoints.ClientConfiguration, func(cr chi.Router) {
+			cr.Get(clientURLParam, s.clientHandler.ManageClientConfiguration)
+			cr.Put(clientURLParam, s.clientHandler.ManageClientConfiguration)
+			cr.Delete(clientURLParam, s.clientHandler.ManageClientConfiguration)
+		})
+
 		// POST Routes
 		r.Group(func(pr chi.Router) {
 			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
@@ -119,7 +129,7 @@ func (s *VigiloIdentityServer) setupRoutes() {
 			// Client Secret Management (Stricter Rate Limit)
 			r.Group(func(sr chi.Router) {
 				sr.Use(s.middleware.StrictRateLimit)
-				sr.Post(web.ClientEndpoints.RegenerateSecret, s.clientHandler.RegenerateSecret)
+				sr.Post(web.ClientEndpoints.RegenerateSecret+clientURLParam, s.clientHandler.RegenerateSecret)
 			})
 		})
 	})

@@ -64,13 +64,12 @@ func (b *InMemoryTokenRepository) SaveToken(tokenStr string, id string, expirati
 //
 // Parameters:
 //
-//	token string: The token string.
-//	id string: The id to validate against.
+//	id string: The ID that the token is associated to (e.g. client_id, user_id)
 //
 // Returns:
 //
 //	*TokenData: The TokenData if the token is valid, or nil if not found or invalid.
-//	error: An error if the token is not found, expired, or the email doesn't match.
+//	error: An error if the token is not found, expired, or the id doesn't match.
 func (b *InMemoryTokenRepository) GetToken(token string, id string) (*domain.TokenData, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -82,11 +81,11 @@ func (b *InMemoryTokenRepository) GetToken(token string, id string) (*domain.Tok
 
 	if time.Now().After(data.ExpiresAt) {
 		delete(b.tokens, token)
-		return nil, errors.New(errors.ErrCodeTokenNotFound, "token not found")
+		return nil, errors.New(errors.ErrCodeTokenNotFound, "token is expired")
 	}
 
 	if data.ID != id {
-		return nil, errors.New(errors.ErrCodeInvalidFormat, "emails do no match")
+		return nil, errors.New(errors.ErrCodeInvalidFormat, "ID's do not match")
 	}
 
 	data.Token = token
@@ -108,15 +107,15 @@ func (b *InMemoryTokenRepository) IsTokenBlacklisted(token string) bool {
 
 	data, exists := b.tokens[token]
 	if !exists {
-		return false
+		return true
 	}
 
 	if time.Now().After(data.ExpiresAt) {
 		delete(b.tokens, token)
-		return false
+		return true
 	}
 
-	return true
+	return false
 }
 
 // DeleteToken removes a token from the store.
@@ -129,10 +128,8 @@ func (b *InMemoryTokenRepository) IsTokenBlacklisted(token string) bool {
 //
 //	error: An error if the token is not found.
 func (b *InMemoryTokenRepository) DeleteToken(token string) error {
-	if _, exists := b.tokens[token]; !exists {
-		return errors.New(errors.ErrCodeTokenNotFound, "token not found")
-	}
-
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	delete(b.tokens, token)
 	return nil
 }

@@ -8,9 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/web"
 )
 
 // Ensures that ClientServiceImpl implements the ClientService interface.
@@ -18,10 +21,11 @@ var _ client.ClientService = (*ClientServiceImpl)(nil)
 
 // ClientServiceImpl provides the implementation of ClientService.
 type ClientServiceImpl struct {
-	clientRepo client.ClientRepository
+	clientRepo   client.ClientRepository
+	tokenService token.TokenService
 }
 
-// NewClientService creates a new instance of ClientServiceImpl.
+// NewClientServiceImpl creates a new instance of ClientServiceImpl.
 //
 // Parameters:
 //
@@ -30,8 +34,14 @@ type ClientServiceImpl struct {
 // Returns:
 //
 //	*ClientServiceImpl: A new instance of ClientServiceImpl.
-func NewClientService(clientRepo client.ClientRepository) *ClientServiceImpl {
-	return &ClientServiceImpl{clientRepo: clientRepo}
+func NewClientServiceImpl(
+	clientRepo client.ClientRepository,
+	tokenService token.TokenService,
+) *ClientServiceImpl {
+	return &ClientServiceImpl{
+		clientRepo:   clientRepo,
+		tokenService: tokenService,
+	}
 }
 
 // Register registers a new public client.
@@ -62,11 +72,17 @@ func (cs *ClientServiceImpl) Register(newClient *client.Client) (*client.ClientR
 			return nil, errors.NewInternalServerError()
 		}
 		newClient.Secret = hashedSecret
+		newClient.SecretExpiration = 0
 	}
 
 	newClient.CreatedAt, newClient.UpdatedAt = time.Now(), time.Now()
 	if err := cs.clientRepo.SaveClient(newClient); err != nil {
 		return nil, errors.Wrap(err, "", "failed to create new client")
+	}
+
+	accessToken, err := cs.tokenService.GenerateToken(newClient.ID, config.GetServerConfig().TokenConfig().AccessTokenDuration())
+	if err != nil {
+		return nil, errors.Wrap(err, "", "failed to generate the registration access token")
 	}
 
 	response := &client.ClientRegistrationResponse{
@@ -80,6 +96,9 @@ func (cs *ClientServiceImpl) Register(newClient *client.Client) (*client.ClientR
 		CreatedAt:               newClient.CreatedAt,
 		UpdatedAt:               newClient.UpdatedAt,
 		TokenEndpointAuthMethod: newClient.TokenEndpointAuthMethod,
+		RegistrationAccessToken: accessToken,
+		ConfigurationEndpoint:   cs.buildClientConfigurationEndpoint(newClient.ID),
+		IDIssuedAt:              time.Now(),
 	}
 
 	if newClient.Type == client.Confidential {
@@ -204,24 +223,68 @@ func (cs *ClientServiceImpl) ValidateClientRedirectURI(redirectURI string, exist
 	return nil
 }
 
+// ValidateAndRetrieveClient validates the provided registration access token, ensures the client exists,
+// revokes the token if necessary, and compares the token value to the clientID. It returns an error if any
+// validation fails or if the client cannot be retrieved.
+//
+// Parameters:
+//
+//	clientID: The ID of the client to validate and retrieve.
+//	registrationAccessToken: The access token used for validation.
+//
+// Returns:
+//
+//	*CLientInformationResponse: If the the request is successful.
+//	error: An error if validation fails or the client cannot be retrieved.
+func (cs *ClientServiceImpl) ValidateAndRetrieveClient(clientID, registrationAccessToken string) (*client.ClientInformationResponse, error) {
+	if clientID == "" || registrationAccessToken == "" {
+		return nil, errors.New(errors.ErrCodeInvalidRequest, "missing one or more required parameters")
+	}
+
+	retrievedClient, err := cs.validateClientAndToken(clientID, registrationAccessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	registrationClientURI := config.GetServerConfig().BaseURL() + web.ClientEndpoints.Register
+	response := &client.ClientInformationResponse{
+		ID:                      retrievedClient.ID,
+		RegistrationClientURI:   registrationClientURI,
+		RegistrationAccessToken: registrationAccessToken,
+	}
+
+	if retrievedClient.IsConfidential() {
+		response.Secret = retrievedClient.Secret
+	}
+
+	return response, nil
+}
+
 // validateClientAuthorization checks if the client is authorized to perform certain actions
 // based on its configuration, including its type, client secret, grant type, and scope.
+// Note: If the client secret is not needed for validation, it can be passed as and empty string.
 //
 // Parameters:
 //
 //	existingClient *Client: The client whose authorization is being validated.
 //	clientSecret string: The client secret to validate against the stored value.
+//	scope string: The client scope(s) to validate against the stored value.
+//	grantType string: The client grant type to validate against the stored value.
 //
 // Returns:
 //
 //	error: An error indicating why the client is not authorized, or nil if the client is valid.
 func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.Client, clientSecret, scope, grantType string) error {
 	if !existingClient.IsConfidential() {
-		return errors.New(errors.ErrCodeUnauthorizedClient, "client is not confidentials")
+		return errors.New(errors.ErrCodeUnauthorizedClient, "client is not confidential")
 	}
-	if !existingClient.SecretsMatch(clientSecret) {
-		return errors.New(errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
+
+	if clientSecret != "" {
+		if !existingClient.SecretsMatch(clientSecret) {
+			return errors.New(errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
+		}
 	}
+
 	if !existingClient.HasScope(scope) {
 		return errors.New(errors.ErrCodeInvalidScope, "client does not have the required scope(s)")
 	}
@@ -229,6 +292,22 @@ func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.
 		return errors.New(errors.ErrCodeInvalidGrant, "client does not have the required grant type")
 	}
 	return nil
+}
+
+func (cs *ClientServiceImpl) validateClientAndToken(clientID, registrationAccessToken string) (*client.Client, error) {
+	retrievedClient := cs.GetClientByID(clientID)
+	if retrievedClient == nil {
+		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "client does not exist with the given ID")
+	}
+	tokenClaim, err := cs.tokenService.ParseToken(registrationAccessToken)
+	if err != nil {
+		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeInvalidToken, "failed to parse registration access token")
+	}
+	if tokenClaim.Subject != clientID {
+		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "the registration access token does not match the client ID")
+	}
+
+	return retrievedClient, nil
 }
 
 // generateUniqueClientID generates a unique client ID, ensuring it is not already in use.
@@ -250,7 +329,6 @@ func (cs *ClientServiceImpl) generateUniqueClientID() (string, error) {
 		time.Sleep(retryDelay)
 	}
 
-	// Return a more specific error after retrying maxRetries
 	return "", errors.New(errors.ErrCodeInternalServerError, "failed to generate a unique client ID after multiple retries")
 }
 
@@ -293,14 +371,14 @@ func (cs *ClientServiceImpl) isValidURIFormat(uri string, clientType string) (bo
 	switch clientType {
 	case client.Public:
 		if err := cs.validatePublicClientURIScheme(parsedURL); err != nil {
-			return false, errors.Wrap(err, "", "failed to valid public client URI")
+			return false, errors.Wrap(err, "", "failed to valid public client redirect URI")
 		}
 	case client.Confidential:
 		if err := cs.validateConfidentialClientURIScheme(parsedURL); err != nil {
-			return false, errors.Wrap(err, "", "failed to valid confidential client URI")
+			return false, errors.Wrap(err, "", "failed to valid confidential client redirect URI")
 		}
 	default:
-		return false, errors.New(errors.ErrCodeInvalidClient, "invalid client_type")
+		return false, errors.New(errors.ErrCodeInvalidClient, "invalid client type: must be confidential or public")
 	}
 
 	return true, nil
@@ -323,7 +401,7 @@ func (cs *ClientServiceImpl) parseURI(uri string) (*url.URL, error) {
 	}
 
 	if parsedURL.Fragment != "" {
-		return nil, errors.New(errors.ErrCodeInvalidRedirectURI, "fragments are not allowed")
+		return nil, errors.New(errors.ErrCodeInvalidRedirectURI, "fragments are not allowed in the redirect URI")
 	}
 
 	return parsedURL, nil
@@ -385,4 +463,16 @@ func (cs *ClientServiceImpl) validateConfidentialClientURIScheme(parsedURL *url.
 		return errors.New(errors.ErrCodeInvalidRedirectURI, "wildcards are not allowed for confidential clients")
 	}
 	return nil
+}
+
+func (cs *ClientServiceImpl) revokeTokenAndReturnError(token, errorCode, errorMessage string) error {
+	if err := cs.tokenService.DeleteToken(token); err != nil {
+		return errors.New(errors.ErrCodeInternalServerError, "failed to revoke registration access token")
+	}
+	return errors.New(errorCode, errorMessage)
+}
+
+func (cs *ClientServiceImpl) buildClientConfigurationEndpoint(clientID string) string {
+	baseURL := config.GetServerConfig().BaseURL()
+	return fmt.Sprintf("%s%s/%s", baseURL, web.ClientEndpoints.ClientConfiguration, clientID)
 }

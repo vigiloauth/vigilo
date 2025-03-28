@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
@@ -12,7 +13,7 @@ import (
 // header of the request. The header must be in the form "Basic <base64 encoded
 // client_id:client_secret>". If the header is invalid, an error is returned.
 func ExtractClientBasicAuth(r *http.Request) (string, string, error) {
-	authHeader := r.Header.Get("Authorization")
+	authHeader := r.Header.Get(common.Authorization)
 	if !strings.HasPrefix(authHeader, "Basic ") {
 		return "", "", errors.New(errors.ErrCodeInvalidClient, "the authorization header is invalid or missing")
 	}
@@ -30,16 +31,33 @@ func ExtractClientBasicAuth(r *http.Request) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-// ExtractIDFromURL extracts the ID from the URL. The ID is the last but one part of the URL.
-// If the URL is invalid, an error is returned.
-func ExtractIDFromURL(w http.ResponseWriter, r *http.Request) (string, error) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 3 {
-		return "", errors.New(errors.ErrCodeInvalidRequest, "invalid URL")
+// ExtractBearerToken extracts the Bearer token from the Authorization header of an HTTP request.
+// It trims the "Bearer" prefix from the token and returns the token string.
+//
+// Parameters:
+//
+//	r: The HTTP request containing the Authorization header.
+//
+// Returns:
+//
+//	string: The extracted Bearer token.
+//	error: An error if the Authorization header is missing or invalid.
+func ExtractBearerToken(r *http.Request) (string, error) {
+	authHeader := r.Header.Get(common.Authorization)
+	if authHeader == "" {
+		err := errors.New(errors.ErrCodeMissingHeader, "authorization header is missing")
+		return "", err
 	}
-	return parts[len(parts)-2], nil
+
+	return strings.TrimPrefix(authHeader, common.Bearer), nil
 }
 
+// SetNoStoreHeader sets the Cache-Control header of an HTTP response to "no-store".
+// This ensures that the response is not cached by the client or intermediary caches.
+//
+// Parameters:
+//
+//	w: The HTTP response writer to set the header on.
 func SetNoStoreHeader(w http.ResponseWriter) {
-	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set(common.CacheControl, common.NoStore)
 }

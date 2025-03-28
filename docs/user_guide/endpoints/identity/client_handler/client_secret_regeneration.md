@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```
-POST /client/{client_id}/regenerate-secret
+POST /client/regenerate-secret/<client_id>
 ```
 ---
 
@@ -22,7 +22,7 @@ POST /client/{client_id}/regenerate-secret
 
 ---
 
-## URL Parameters
+## URL Path Parameters
 | Parameter | Type   | Required | Description                                                                 |
 | :-------- | :----- | :------- | :-------------------------------------------------------------------------- |
 | client_id | string | Yes      | The unique identifier of the client application. This must match the client ID registered with the authorization server. |
@@ -31,7 +31,7 @@ POST /client/{client_id}/regenerate-secret
 
 ## Example Request
 ```
-POST https://localhost:8080/client/{client_id}/regenerate-secret
+POST https://localhost:8080/client/regenerate-secret/abc12345def
 ```
 
 ---

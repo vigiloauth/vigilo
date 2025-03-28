@@ -101,4 +101,15 @@ type TokenService interface {
 	//
 	//	bool: True is expired, otherwise false.
 	IsTokenExpired(token string) bool
+
+	// ValidateToken checks to see if a token is blacklisted or expired.
+	//
+	// Parameters:
+	//
+	//	token string: The token string to check.
+	//
+	// Returns:
+	//
+	//	error: An error if the token is blacklisted or expired.
+	ValidateToken(token string) error
 }

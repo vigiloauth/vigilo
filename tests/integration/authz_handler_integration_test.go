@@ -25,9 +25,9 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	)
 	testContext.WithUser()
 	testContext.WithUserSession()
-
-	// Call AuthorizeClient Endpoint
 	testContext.WithUserConsent()
+	defer testContext.TearDown()
+
 	queryParams := url.Values{}
 	queryParams.Add(common.ClientID, testClientID)
 	queryParams.Add(common.RedirectURI, testRedirectURI)
@@ -56,6 +56,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 	)
 	testContext.WithUser()
 	testContext.WithUserSession()
+	defer testContext.TearDown()
 
 	// Call AuthorizeClient Endpoint
 	testContext.WithUserConsent()
@@ -84,6 +85,7 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 	)
 	testContext.WithUser()
 	testContext.WithUserConsent()
+	defer testContext.TearDown()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
@@ -113,6 +115,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 	testContext.WithUser()
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
+	defer testContext.TearDown()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
@@ -143,6 +146,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 	)
 	testContext.WithUser()
 	testContext.WithUserSession()
+	defer testContext.TearDown()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
@@ -172,7 +176,10 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
+		testContext.WithUser()
+		testContext.WithUserSession()
 		testContext.WithUserConsent()
+		defer testContext.TearDown()
 
 		authzCode := testContext.GetAuthzCode()
 		tokenRequest := &token.TokenRequest{
