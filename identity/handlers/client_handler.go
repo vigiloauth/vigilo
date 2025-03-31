@@ -129,7 +129,7 @@ func (h *ClientHandler) updateClient(w http.ResponseWriter, r *http.Request, cli
 
 	clientInformation, err := h.clientService.ValidateAndUpdateClient(clientID, registrationAccessToken, request)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to update client")
+		wrappedErr := errors.Wrap(err, "", "failed to validate and update client")
 		web.WriteError(w, wrappedErr)
 		return
 	}
@@ -140,5 +140,12 @@ func (h *ClientHandler) updateClient(w http.ResponseWriter, r *http.Request, cli
 // deleteClient deletes the client configuration for the given client ID and registration access token.
 // It uses the ValidateAndDeleteClient service method to perform the deletion.
 func (h *ClientHandler) deleteClient(w http.ResponseWriter, clientID, registrationAccessToken string) {
-	// use ValidateAndDeleteClient
+	if err := h.clientService.ValidateAndDeleteClient(clientID, registrationAccessToken); err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to validate and delete client")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	web.SetNoStoreHeader(w)
+	w.WriteHeader(http.StatusNoContent)
 }
