@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	tokenDuration    time.Duration = 15 * time.Minute
-	resetResponseMsg string        = "Password reset instructions have been sent to your email if an account exists."
+	resetResponseMsg string = "Password reset instructions have been sent to your email if an account exists."
 )
 
 // Ensure PasswordResetService implements the PasswordReset interface.
@@ -26,6 +25,7 @@ type PasswordResetServiceImpl struct {
 	tokenService   token.TokenService
 	userRepository users.UserRepository
 	emailService   email.EmailService
+	tokenDuration  time.Duration
 }
 
 // NewPasswordResetService creates a new PasswordResetService instance.
@@ -48,6 +48,7 @@ func NewPasswordResetService(
 		tokenService:   tokenService,
 		userRepository: userRepository,
 		emailService:   emailService,
+		tokenDuration:  config.GetServerConfig().TokenConfig().AccessTokenDuration(),
 	}
 }
 
@@ -66,7 +67,7 @@ func (p *PasswordResetServiceImpl) SendPasswordResetEmail(userEmail string) (*us
 		return &users.UserPasswordResetResponse{Message: resetResponseMsg}, nil
 	}
 
-	resetToken, err := p.tokenService.GenerateToken(userEmail, tokenDuration)
+	resetToken, err := p.tokenService.GenerateToken(userEmail, p.tokenDuration)
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to generate reset token")
 	}
@@ -165,7 +166,7 @@ func (p *PasswordResetServiceImpl) constructResetURL(resetToken string) (string,
 //
 //	error: An error if sending the email fails.
 func (p *PasswordResetServiceImpl) generateAndSendEmail(userEmail, resetURL, resetToken string) error {
-	emailRequest := email.NewPasswordResetRequest(userEmail, resetURL, resetToken, time.Now().Add(tokenDuration))
+	emailRequest := email.NewPasswordResetRequest(userEmail, resetURL, resetToken, time.Now().Add(p.tokenDuration))
 	emailRequest = *p.emailService.GenerateEmailRequest(emailRequest)
 	if err := p.emailService.SendEmail(emailRequest); err != nil {
 		return errors.Wrap(err, "", "failed to send email")
@@ -181,6 +182,6 @@ func (p *PasswordResetServiceImpl) generateAndSendEmail(userEmail, resetURL, res
 //	resetToken string: The reset token.
 //	userEmail string: The user's email address.
 func (p *PasswordResetServiceImpl) addTokenToStore(resetToken, userEmail string) {
-	tokenExpirationTime := time.Now().Add(tokenDuration)
+	tokenExpirationTime := time.Now().Add(p.tokenDuration)
 	p.tokenService.SaveToken(resetToken, userEmail, tokenExpirationTime)
 }
