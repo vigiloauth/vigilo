@@ -46,31 +46,31 @@
 ---
 
 ## 🔹 4. Client Delete Endpoint → `DELETE /register/{client_id}`
-- [ ] **Protected Route**: Requires `registration_access_token`
-- [ ] Create a route `DELETE /register/{client_id}`
-- [ ] Extract `client_id` from the request URL
-- [ ] Validate the **registration access token** (ensures only the client itself can delete its data)
-- [ ] Delete the client record from the database
-- [ ] Invalidate the `client_id`
-- [ ] Invalidate the `client_secret`
-- [ ] Invalidate the `registration_access_token`
-- [ ] Return `204 No Content` on success
-- [ ] Integration test
+- [x] **Protected Route**: Requires `registration_access_token`
+- [x] Create a route `DELETE /register/{client_id}`
+- [x] Extract `client_id` from the request URL
+- [x] Validate the **registration access token** (ensures only the client itself can delete its data)
+- [x] Delete the client record from the database
+- [x] Invalidate the `client_id`
+- [x] Invalidate the `client_secret`
+- [x] Invalidate the `registration_access_token`
+- [x] Return `204 No Content` on success
+- [x] Integration test
 - [ ] DOCS
 
 ---
 
 ## 🔹 5. Registration Access Token Handling
-- [ ] Generate a **secure** `registration_access_token` on client creation
-- [ ] Store the token securely in the database with the client record
-- [ ] Require the token for `GET`, `PUT`, and `DELETE` requests
-- [ ] Validate the token on incoming requests
-- [ ] Implement proper token expiration or revocation mechanisms
-- [ ] Return an error as described in [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) for an invalid `registration_access_token`
-- [ ] Return a `403 Forbidden` error if the client cannot delete itself.
-- [ ] If the client does not exist, respond with `401 Unauthorized` and revoke the token immediately.
-- [ ] Integration tests
-- [ ] Docs
+- [x] Generate a **secure** `registration_access_token` on client creation
+- [x] Store the token securely in the database with the client record
+- [x] Require the token for `GET`, `PUT`, and `DELETE` requests
+- [x] Validate the token on incoming requests
+- [x] Implement proper token expiration or revocation mechanisms
+- [x] Return an error as described in [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) for an invalid `registration_access_token`
+- [x] Return a `403 Forbidden` error if the client cannot delete itself.
+- [x] If the client does not exist, respond with `401 Unauthorized` and revoke the token immediately.
+- [x] Integration tests
+- [x] Docs
 
 ---
 
@@ -78,11 +78,13 @@
 - [x] Client Registration
 - [x] Client Read (Self-Access)
 - [x] Client Update 
-- [ ] Client Delete
+- [x] Client Delete
 - [ ] Create docs explaining the dynamic client configuration flow.
     - [ ] Include the valid grant types
     - [ ] Include the valid scopes
     - [ ] Include the valid response types
+- [ ] Implement worker pool for go routines
+- [ ] Logging configuration
 - [ ] E2E tests for Authorization Code Flow.
 - [ ] Refactor OAuth Login
 - [ ] Refactor Oauth UserConsent

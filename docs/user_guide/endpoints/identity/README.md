@@ -20,6 +20,7 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - **Client Configuration**
         - [Client Read Request](client_handler/client_read_request.md)
         - [Client Update Request](client_handler/client_update_request.md)
+        - [Client Delete Request](client_handler/client_delete_request.md)
 - **Authorization Code Flow:**
     - [Client Authorization](authz_handler/authorize_client.md)
     - [User Authentication](oauth_handler/user_authentication.md)

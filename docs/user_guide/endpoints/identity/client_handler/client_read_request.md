@@ -61,18 +61,18 @@ Authorization: Bearer reg-23410913-abewfq.123483
 {
     "error": "unauthorized",
     "error_description": "failed to validate and retrieve client information",
-    "error_details": "client does not exist with the given ID"
+    "error_details": "the provided client ID is invalid or does not match the registered credentials"
 }
 ```
 
-### 2. Client ID and Registration Access Token Subject Mismatch
+### 2. Token Subject and Client ID Mismatch
 #### HTTP Status Code: `401 Unauthorized`
 #### Response Body:
 ```json
 {
     "error": "unauthorized",
     "error_description": "failed to validate and retrieve client information",
-    "error_details": "the client ID associated with the registration access token does not match with the client ID from the request"
+    "error_details": "the registration access token subject does not match with the client ID in the request"
 }
 ```
 
@@ -82,8 +82,19 @@ Authorization: Bearer reg-23410913-abewfq.123483
 ```json
 {
     "error": "insufficient_scope",
-    "error_description": "client does not have the required scopes for this request"
+    "error_description": "failed to validate and update client",
+    "error_details": "client does not have the required scopes for this request"
 }
 ```
+
+### 4. Expired Registration Access Token
+#### HTTP Status Code: `401 Unauthorized`
+#### Response Body
+```json
+{
+    "error": "token_expired",
+    "error_description": "an error occurred validating the access token",
+    "error_details": "the token is expired"
+}
 
 

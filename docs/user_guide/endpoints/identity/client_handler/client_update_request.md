@@ -95,7 +95,7 @@ ___
 ```json
 {
     "error": "validation_error",
-    "error_description": "failed to update client",
+    "error_description": "failed to validate and update client",
     "error_details": "one or more validation errors occurred",
     "errors": [
         {
@@ -116,7 +116,7 @@ ___
 ```json
 {
     "error": "validation_error",
-    "error_description": "failed to update client",
+    "error_description": "failed to validate and update client",
     "error_details": "one or more validation errors occurred",
     "errors": [
         {
@@ -148,7 +148,7 @@ The `id_token` response type is not allowed with the following grant types:
 ```json
 {
     "error": "unauthorized",
-    "error_description": "failed to update client",
+    "error_description": "failed to validate and update client",
     "error_details": "the registration access token subject does not match with the client ID in the request"
 }
 ```
@@ -170,7 +170,7 @@ The `id_token` response type is not allowed with the following grant types:
 ```json
 {
     "error": "unauthorized",
-    "error_description": "failed to update client",
+    "error_description": "failed to validate and update client",
     "error_details": "the provided client ID is invalid or does not match the registered credentials"
 }
 ```
@@ -181,7 +181,7 @@ The `id_token` response type is not allowed with the following grant types:
 ```json
 {
     "error": "unauthorized",
-    "error_description": "failed to update client",
+    "error_description": "failed to validate and update client",
     "error_details": "the provided client secret is invalid or does not match the registered credentials"
 }
 ```
@@ -192,7 +192,7 @@ The `id_token` response type is not allowed with the following grant types:
 ```json
 {
     "error": "insufficient_scope",
-    "error_description": "failed to update client",
+    "error_description": "failed to validate and update client",
     "error_details": "client does not have the required scopes for this request"
 }
 ```
