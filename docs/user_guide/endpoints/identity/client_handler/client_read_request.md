@@ -7,7 +7,7 @@ GET /oauth/client/register/{client_id}
 ---
 
 **Description:**
-This endpoint is a protected route which is responsible for retrieving the current client configuration. The client makes an `HTTP Get` request to the client configuration endpoint, authenticating with its `registration_access_token`. Both the `registration_access_token` and the `client_configuration_endpoint` are generated during client registration. Please view the Client Registration [endpoint](client_registration.md) for more information on how to properly generate a client.
+This endpoint is a protected route which is responsible for retrieving the current client configuration. The client makes an `HTTP Get` request to the client configuration endpoint, authenticating with its `registration_access_token`. Both the `registration_access_token` and the `client_configuration_endpoint` are generated during the dynamic client registration flow. Please view the Client Registration [endpoint](client_registration.md) for more information on how to properly generate a client.
 
 --- 
 
@@ -73,6 +73,16 @@ Authorization: Bearer reg-23410913-abewfq.123483
     "error": "unauthorized",
     "error_description": "failed to validate and retrieve client information",
     "error_details": "the client ID associated with the registration access token does not match with the client ID from the request"
+}
+```
+
+### 3. Insufficient Scope
+#### HTTP Status Code: `403 Forbidden`
+#### Response Body:
+```json
+{
+    "error": "insufficient_scope",
+    "error_description": "client does not have the required scopes for this request"
 }
 ```
 

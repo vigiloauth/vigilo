@@ -28,20 +28,20 @@
 - [x] **Protected Route**: Requires `registration_access_token`
 - [x] Create a route `PUT /register/{client_id}`
 - [x] Extract `client_id` from the request URL
-- [ ] Validate the **registration access token** (ensures only the client itself can modify its data)
-- [ ] Parse and validate the request body
-- [ ] Ensure `client_id` and `client_secret` **cannot be modified**
-- [ ] Update allowed fields (`client_name`, `redirect_uris`, `grant_types`, etc.)
-- [ ] Save updated client data to the database
-- [ ] Return the updated client metadata
-- [ ] The request must include JSON containing `client_id`, `client_secret`, `redirect_uris`, `grant_types`, and can include any other metadata.
-- [ ] Returns `200 OK` if successful.
-- [ ] Return an error as described in [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) for an invalid `registration_access_token`
-- [ ] Return a `401 Unauthorized` if the client does not exist, and revoke the `registration_access_token`
-- [ ] Ensure response format follows [RFC 7592](https://www.rfc-editor.org/rfc/rfc7592.html#section-3) 
-- [ ] Return a `403 Forbidden` if the client is not allowed to update its records.
-- [ ] - [ ] Integration test
-- [ ] DOCS
+- [x] Validate the **registration access token** (ensures only the client itself can modify its data)
+- [x] Parse and validate the request body
+- [x] Ensure `client_id` and `client_secret` **cannot be modified**
+- [x] Update allowed fields (`client_name`, `redirect_uris`, `grant_types`, etc.)
+- [x] Save updated client data to the database
+- [x] Return the updated client metadata
+- [x] The request must include JSON containing `client_id`, `client_secret`, `redirect_uris`, `grant_types`, and can include any other metadata.
+- [x] Returns `200 OK` if successful.
+- [x] Return an error as described in [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) for an invalid `registration_access_token`
+- [x] Return a `401 Unauthorized` if the client does not exist, and revoke the `registration_access_token`
+- [x] Ensure response format follows [RFC 7592](https://www.rfc-editor.org/rfc/rfc7592.html#section-3) 
+- [x] Return a `403 Forbidden` if the client is not allowed to update its records.
+- [x] Integration test
+- [x] DOCS
 
 ---
 
@@ -61,14 +61,16 @@
 ---
 
 ## 🔹 5. Registration Access Token Handling
-- [x] Generate a **secure** `registration_access_token` on client creation
-- [x] Store the token securely in the database with the client record
-- [x] Require the token for `GET`, `PUT`, and `DELETE` requests
-- [x] Validate the token on incoming requests
-- [x] Implement proper token expiration or revocation mechanisms
-- [x] Return an error as described in [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) for an invalid `registration_access_token`
+- [ ] Generate a **secure** `registration_access_token` on client creation
+- [ ] Store the token securely in the database with the client record
+- [ ] Require the token for `GET`, `PUT`, and `DELETE` requests
+- [ ] Validate the token on incoming requests
+- [ ] Implement proper token expiration or revocation mechanisms
+- [ ] Return an error as described in [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) for an invalid `registration_access_token`
 - [ ] Return a `403 Forbidden` error if the client cannot delete itself.
-- [x] If the client does not exist, respond with `401 Unauthorized` and revoke the token immediately.
+- [ ] If the client does not exist, respond with `401 Unauthorized` and revoke the token immediately.
+- [ ] Integration tests
+- [ ] Docs
 
 ---
 
@@ -77,5 +79,9 @@
 - [x] Client Read (Self-Access)
 - [ ] Client Update 
 - [ ] Client Delete
+- [ ] Update errors
 - [ ] Create docs explaining the dynamic client configuration flow.
+- [ ] E2E tests for Authorization Code Flow.
+- [ ] Refactor OAuth Login
+- [ ] Refactor Oauth UserConsent
 ---

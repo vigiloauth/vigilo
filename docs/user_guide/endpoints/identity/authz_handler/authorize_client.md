@@ -131,7 +131,7 @@ GET https://localhost:<port>/oauth/authorize?client_id=abc123&redirect_uri=https
 #### Response Body:
 ```json
 {
-    "error": "invalid_scope",
+    "error": "insufficient_scope",
     "error_description": "The client is missing required scopes."
 }
 ```

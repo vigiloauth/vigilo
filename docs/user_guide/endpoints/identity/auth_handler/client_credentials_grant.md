@@ -158,7 +158,7 @@ The access token is a JWT that can be used to access protected resources. The `e
 #### Response Body:
 ```json
 {
-    "error": "invalid_scope",
+    "error": "insufficient_scope",
     "error_description": "The client does not have the required scope 'client:manage'."
 }
 ```

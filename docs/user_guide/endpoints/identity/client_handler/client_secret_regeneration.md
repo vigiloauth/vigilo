@@ -90,7 +90,7 @@ POST https://localhost:8080/client/regenerate-secret/abc12345def
 #### Response Body:
 ```json
 {
-    "error_code": "invalid_scope",
+    "error_code": "insufficient_scope",
     "message": "The client does not have the required scope 'client:manage' to perform this operation."
 }
 ```

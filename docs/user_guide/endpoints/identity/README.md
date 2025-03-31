@@ -19,6 +19,7 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [Client Secret Regeneration](client_handler/client_secret_regeneration.md)
     - **Client Configuration**
         - [Client Read Request](client_handler/client_read_request.md)
+        - [Client Update Request](client_handler/client_update_request.md)
 - **Authorization Code Flow:**
     - [Client Authorization](authz_handler/authorize_client.md)
     - [User Authentication](oauth_handler/user_authentication.md)
