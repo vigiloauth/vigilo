@@ -13,6 +13,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	repository "github.com/vigiloauth/vigilo/internal/repository/client"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -258,11 +259,11 @@ func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsEr
 }
 
 func TestClientHandler_GetClient(t *testing.T) {
-	t.Run("Success - Client secret is not included in the response for public clients", func(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientManage},
+			[]string{client.ClientRead},
 			[]string{client.ClientCredentials},
 		)
 		testContext.WithAccessToken(testClientID, 1*time.Hour)
@@ -271,7 +272,6 @@ func TestClientHandler_GetClient(t *testing.T) {
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
 		headers := map[string]string{common.Bearer: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
-
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		var clientInformationResponse client.ClientInformationResponse
@@ -343,12 +343,325 @@ func TestClientHandler_GetClient(t *testing.T) {
 	})
 }
 
+func TestClientHandler_UpdateClient(t *testing.T) {
+	t.Run("Success - Update confidential client", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		request.Secret = testClientSecret
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		// Update client name
+		request.Name = testClientName2
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		// Assert HTTP Response and response body
+		var clientInformationResponse client.ClientInformationResponse
+		err = json.NewDecoder(rr.Body).Decode(&clientInformationResponse)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rr.Code, "expected status 200 OK")
+		assert.NotNil(t, clientInformationResponse)
+		assert.Equal(t, testClientID, clientInformationResponse.ID)
+		assert.NotEqual(t, "", clientInformationResponse.Secret, "client secret be included in the response for confidential clients")
+
+		// Assert Client is updated in the database
+		updatedClient := repository.GetInMemoryClientRepository().GetClientByID(testClientID)
+		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
+		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
+		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
+	})
+
+	t.Run("Success - Update public client", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Public,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		// Update client name
+		request.Name = testClientName2
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		// Assert HTTP Response and response body
+		var clientInformationResponse client.ClientInformationResponse
+		err = json.NewDecoder(rr.Body).Decode(&clientInformationResponse)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, rr.Code, "expected status 200 OK")
+		assert.NotNil(t, clientInformationResponse)
+		assert.Equal(t, testClientID, clientInformationResponse.ID)
+		assert.Equal(t, "", clientInformationResponse.Secret, "client secret not be included in the response for public clients")
+
+		// Assert Client is updated in the database
+		updatedClient := repository.GetInMemoryClientRepository().GetClientByID(testClientID)
+		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
+		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
+		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
+	})
+
+	t.Run("Bad Request - Missing required fields", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Public,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		rr := testContext.SendHTTPRequest(http.MethodPut, endpoint, nil, headers)
+
+		testContext.AssertErrorResponse(rr, errors.ErrCodeBadRequest, "missing one or more required fields in the request")
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Bad Request - Invalid redirect URIs", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		// Attempt to update with invalid redirect URIs
+		request.RedirectURIS = append(request.RedirectURIS, "http://test.com/callback", "https://example.com/*")
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Bad Request - Invalid response types", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		// Attempt to update with invalid response types.
+		// Client Credentials is not allowed with Authorization Code.
+		request.GrantTypes = []string{client.ClientCredentials}
+		request.ResponseTypes = []string{client.CodeResponseType}
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Unauthorized - Token subject and client ID mismatch", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken("invalid-id", 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+
+	t.Run("Unauthorized - Expired registration access token", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, -1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+
+	t.Run("Unauthorized - Invalid client ID", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, "invalid-client-id")
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+
+	t.Run("Unauthorized - Client secret mismatch", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		request.Secret = "invalid-secret"
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			request.GetScopes(),
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+
+	t.Run("Forbidden - Insufficient scopes", func(t *testing.T) {
+		request := createClientUpdateRequest()
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Confidential,
+			[]string{client.ClientRead},
+			request.GetGrantTypes(),
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		headers := map[string]string{common.Bearer: testContext.JWTToken}
+
+		requestBody, err := json.Marshal(request)
+		assert.NoError(t, err)
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPut,
+			endpoint,
+			bytes.NewReader(requestBody),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+}
+
 func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 	return &client.ClientRegistrationRequest{
-		Name:          testClientName,
+		Name:          testClientName1,
 		RedirectURIS:  []string{testRedirectURI},
 		GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
 		Scopes:        []string{client.ClientRead, client.ClientWrite},
+		ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
+	}
+}
+
+func createClientUpdateRequest() *client.ClientUpdateRequest {
+	return &client.ClientUpdateRequest{
+		ID:            testClientID,
+		Name:          testClientName1,
+		RedirectURIS:  []string{testRedirectURI},
+		GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
+		Scopes:        []string{client.ClientRead, client.ClientWrite, client.UserManage, client.ClientManage},
 		ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
 	}
 }

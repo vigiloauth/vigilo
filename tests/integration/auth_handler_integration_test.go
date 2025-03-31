@@ -118,7 +118,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		rr := sendTokenGenerationRequest(testContext, headers)
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidScope, "the client credentials are invalid or incorrectly formatted")
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInsufficientScope, "the client credentials are invalid or incorrectly formatted")
 
 	})
 }

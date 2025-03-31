@@ -73,7 +73,7 @@ func (c *InMemoryUserConsentRepository) HasConsent(userID, clientID, requestedSc
 		found := slices.Contains(grantedScopes, reqScope)
 		if !found {
 			return false, errors.New(
-				errors.ErrCodeInvalidScope,
+				errors.ErrCodeInsufficientScope,
 				"at least one requested scope wasn't previously granted",
 			)
 		}

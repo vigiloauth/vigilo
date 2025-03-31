@@ -238,26 +238,72 @@ func (cs *ClientServiceImpl) ValidateClientRedirectURI(redirectURI string, exist
 //	error: An error if validation fails or the client cannot be retrieved.
 func (cs *ClientServiceImpl) ValidateAndRetrieveClient(clientID, registrationAccessToken string) (*client.ClientInformationResponse, error) {
 	if clientID == "" || registrationAccessToken == "" {
-		return nil, errors.New(errors.ErrCodeInvalidRequest, "missing one or more required parameters")
+		return nil, errors.NewMissingParametersError()
 	}
 
-	retrievedClient, err := cs.validateClientAndToken(clientID, registrationAccessToken)
+	retrievedClient, err := cs.validateClientAndToken(clientID, registrationAccessToken, client.ClientRead)
 	if err != nil {
 		return nil, err
 	}
 
 	registrationClientURI := config.GetServerConfig().BaseURL() + web.ClientEndpoints.Register
-	response := &client.ClientInformationResponse{
-		ID:                      retrievedClient.ID,
-		RegistrationClientURI:   registrationClientURI,
-		RegistrationAccessToken: registrationAccessToken,
+	return client.NewClientInformationResponse(
+		retrievedClient.ID,
+		retrievedClient.Secret,
+		registrationClientURI,
+		registrationAccessToken,
+	), nil
+}
+
+// ValidateAndUpdateClient validates the provided registration access token, ensures the client exists,
+// revokes the token if necessary, and compares the token value to the clientID. It returns an error if any
+// validation fails or if the client cannot be updated.
+//
+// Parameters:
+//
+//	clientID string: The ID of the client to validate and update.
+//	registrationAccessToken string: The access token used for validation.
+//	request *ClientUpdateRequest: The client update request.
+//
+// Returns:
+//
+//	*CLientInformationResponse: If the the request is successful.
+//	error: An error if validation fails or the client cannot be updated.
+func (cs *ClientServiceImpl) ValidateAndUpdateClient(clientID, registrationAccessToken string, request *client.ClientUpdateRequest) (*client.ClientInformationResponse, error) {
+	if clientID == "" || registrationAccessToken == "" {
+		return nil, errors.NewMissingParametersError()
 	}
 
-	if retrievedClient.IsConfidential() {
-		response.Secret = retrievedClient.Secret
+	if request.ID != clientID {
+		return nil, errors.New(errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
 	}
 
-	return response, nil
+	retrievedClient, err := cs.validateClientAndToken(clientID, registrationAccessToken, client.ClientManage)
+	if err != nil {
+		return nil, err
+	}
+
+	if retrievedClient.Type == client.Confidential {
+		request.Type = client.Confidential
+		if err := request.Validate(); err != nil {
+			return nil, err
+		} else if request.Secret != "" && request.Secret != retrievedClient.Secret {
+			return nil, errors.New(errors.ErrCodeUnauthorized, "the provided client secret is invalid or does not match the registered credentials")
+		}
+	}
+
+	retrievedClient.UpdateValues(request)
+	if err := cs.clientRepo.UpdateClient(retrievedClient); err != nil {
+		return nil, err
+	}
+
+	registrationClientURI := config.GetServerConfig().BaseURL() + web.ClientEndpoints.Register
+	return client.NewClientInformationResponse(
+		retrievedClient.ID,
+		retrievedClient.Secret,
+		registrationClientURI,
+		registrationAccessToken,
+	), nil
 }
 
 // validateClientAuthorization checks if the client is authorized to perform certain actions
@@ -286,7 +332,7 @@ func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.
 	}
 
 	if !existingClient.HasScope(scope) {
-		return errors.New(errors.ErrCodeInvalidScope, "client does not have the required scope(s)")
+		return errors.New(errors.ErrCodeInsufficientScope, "client does not have the required scope(s)")
 	}
 	if !existingClient.HasGrantType(grantType) {
 		return errors.New(errors.ErrCodeInvalidGrant, "client does not have the required grant type")
@@ -294,17 +340,21 @@ func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.
 	return nil
 }
 
-func (cs *ClientServiceImpl) validateClientAndToken(clientID, registrationAccessToken string) (*client.Client, error) {
+func (cs *ClientServiceImpl) validateClientAndToken(clientID, registrationAccessToken, scope string) (*client.Client, error) {
 	retrievedClient := cs.GetClientByID(clientID)
 	if retrievedClient == nil {
-		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "client does not exist with the given ID")
+		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "the provided client ID is invalid")
+	} else if !retrievedClient.HasScope(scope) && !retrievedClient.HasScope(client.ClientManage) {
+		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeInsufficientScope, "client does not have the required scopes for this request")
 	}
+
 	tokenClaim, err := cs.tokenService.ParseToken(registrationAccessToken)
 	if err != nil {
 		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeInvalidToken, "failed to parse registration access token")
-	}
-	if tokenClaim.Subject != clientID {
-		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "the registration access token does not match the client ID")
+	} else if tokenClaim.Subject != clientID {
+		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "the registration access token subject does not match with the client ID in the request")
+	} else if time.Now().Unix() > tokenClaim.ExpiresAt {
+		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "the registration access token has expired")
 	}
 
 	return retrievedClient, nil

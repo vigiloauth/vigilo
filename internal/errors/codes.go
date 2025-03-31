@@ -52,7 +52,7 @@ const (
 	ErrCodeInvalidClient          = "invalid_client"
 	ErrCodeInvalidGrant           = "invalid_grant"
 	ErrCodeInvalidRedirectURI     = "invalid_redirect_uri"
-	ErrCodeInvalidScope           = "invalid_scope"
+	ErrCodeInsufficientScope      = "insufficient_scope"
 	ErrCodeClientSecretNotAllowed = "client_secret_not_allowed"
 	ErrCodeClientNotFound         = "client_not_found"
 	ErrCodeDuplicateClient        = "duplicate_client"
@@ -118,7 +118,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,
 	ErrCodeUnauthorizedClient: http.StatusForbidden,
 	ErrCodeInvalidGrant:       http.StatusForbidden,
-	ErrCodeInvalidScope:       http.StatusForbidden,
+	ErrCodeInsufficientScope:  http.StatusForbidden,
 	ErrCodeAccessDenied:       http.StatusForbidden,
 
 	// 409 Conflict

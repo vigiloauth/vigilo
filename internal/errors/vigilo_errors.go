@@ -78,11 +78,15 @@ func NewRequestValidationError(err error) error {
 }
 
 func NewRequestBodyDecodingError(err error) error {
-	return Wrap(err, ErrCodeBadRequest, "failed to decode request body")
+	return New(ErrCodeBadRequest, "missing one or more required fields in the request")
 }
 
 func NewMethodNotAllowedError(method string) error {
 	return New(ErrCodeMethodNotAllowed, fmt.Sprintf("method not allowed: %s", method))
+}
+
+func NewMissingParametersError() error {
+	return New(ErrCodeInvalidRequest, "missing one or more required parameters")
 }
 
 func NewInvalidSessionError() error {
@@ -106,12 +110,20 @@ func Wrap(err error, code string, message string) error {
 		}
 	}
 
-	return &VigiloAuthError{
-		ErrorCode:        code,
-		ErrorDescription: message,
-		Details:          err.Error(),
-		WrappedErr:       err,
+	vigiloError := &VigiloAuthError{}
+	if e, ok := err.(*ErrorCollection); ok {
+		vigiloError.ErrorCode = ErrCodeValidationError
+		vigiloError.ErrorDescription = message
+		vigiloError.Errors = e.Errors()
+		vigiloError.Details = "one or more validation errors occurred"
+	} else {
+		vigiloError.ErrorCode = code
+		vigiloError.ErrorDescription = message
+		vigiloError.Details = err.Error()
+		vigiloError.WrappedErr = err
 	}
+
+	return vigiloError
 }
 
 // Unwrap returns the wrapped error

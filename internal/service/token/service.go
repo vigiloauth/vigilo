@@ -198,11 +198,10 @@ func (ts *TokenServiceImpl) IsTokenExpired(token string) bool {
 //
 //	error: An error if the token is blacklisted or expired.
 func (ts *TokenServiceImpl) ValidateToken(token string) error {
-	if ts.IsTokenBlacklisted(token) {
-		return errors.New(errors.ErrCodeUnauthorized, "the token is blacklisted")
-	}
 	if ts.IsTokenExpired(token) {
 		return errors.New(errors.ErrCodeExpiredToken, "the token is expired")
+	} else if ts.IsTokenBlacklisted(token) {
+		return errors.New(errors.ErrCodeUnauthorized, "the token is blacklisted")
 	}
 	return nil
 }

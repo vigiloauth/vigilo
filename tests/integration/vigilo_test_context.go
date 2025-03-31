@@ -39,7 +39,8 @@ const (
 	testEmail           string = "test@email.com"
 	testPassword1       string = "Password123!@"
 	testPassword2       string = "NewPassword_$55"
-	testClientName      string = "Test App"
+	testClientName1     string = "Test App"
+	testClientName2     string = "Test App 2"
 	testInvalidPassword string = "weak"
 	testClientID        string = "test-client-id"
 	testUserID          string = "test-user-id"
@@ -109,7 +110,7 @@ func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 // grantTypes []client.GrantType: An array of grantTypes.
 func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, grantTypes []string) {
 	c := &client.Client{
-		Name:         testClientName,
+		Name:         testClientName1,
 		ID:           testClientID,
 		Type:         clientType,
 		Scopes:       scopes,

@@ -195,7 +195,7 @@ func (c AuthorizationCodeServiceImpl) validateClient(redirectURI, clientID, scop
 	scopes := strings.Split(scopesString, " ")
 	for _, scope := range scopes {
 		if !client.HasScope(scope) {
-			return errors.New(errors.ErrCodeInvalidScope, "client is missing required scopes")
+			return errors.New(errors.ErrCodeInsufficientScope, "client is missing required scopes")
 		}
 	}
 

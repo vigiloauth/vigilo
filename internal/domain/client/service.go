@@ -75,8 +75,23 @@ type ClientService interface {
 	//
 	// Returns:
 	//
-	//
 	//	*CLientInformationResponse: If the the request is successful.
 	//	error: An error if validation fails or the client cannot be retrieved.
 	ValidateAndRetrieveClient(clientID, registrationAccessToken string) (*ClientInformationResponse, error)
+
+	// ValidateAndUpdateClient validates the provided registration access token, ensures the client exists,
+	// revokes the token if necessary, and compares the token value to the clientID. It returns an error if any
+	// validation fails or if the client cannot be updated.
+	//
+	// Parameters:
+	//
+	//	clientID string: The ID of the client to validate and update.
+	//	registrationAccessToken string: The access token used for validation.
+	//	request *ClientUpdateRequest: The client update request.
+	//
+	// Returns:
+	//
+	//	*CLientInformationResponse: If the the request is successful.
+	//	error: An error if validation fails or the client cannot be updated.
+	ValidateAndUpdateClient(clientID, registrationAccessToken string, request *ClientUpdateRequest) (*ClientInformationResponse, error)
 }

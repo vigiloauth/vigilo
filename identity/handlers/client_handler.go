@@ -95,7 +95,7 @@ func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http
 	case http.MethodGet:
 		h.getClient(w, clientID, registrationAccessToken)
 	case http.MethodPut:
-		h.updateClient(w, clientID, registrationAccessToken)
+		h.updateClient(w, r, clientID, registrationAccessToken)
 	case http.MethodDelete:
 		h.deleteClient(w, clientID, registrationAccessToken)
 	default:
@@ -120,8 +120,21 @@ func (h *ClientHandler) getClient(w http.ResponseWriter, clientID, registrationA
 
 // updateClient updates the client configuration for the given client ID and registration access token.
 // It uses the ValidateAndUpdateClient service method to perform the update.
-func (h *ClientHandler) updateClient(w http.ResponseWriter, clientID, registrationAccessToken string) {
-	// use ValidateAndUpdateClient
+func (h *ClientHandler) updateClient(w http.ResponseWriter, r *http.Request, clientID, registrationAccessToken string) {
+	request, err := web.DecodeJSONRequest[client.ClientUpdateRequest](w, r)
+	if err != nil {
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
+		return
+	}
+
+	clientInformation, err := h.clientService.ValidateAndUpdateClient(clientID, registrationAccessToken, request)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to update client")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	web.WriteJSON(w, http.StatusOK, clientInformation)
 }
 
 // deleteClient deletes the client configuration for the given client ID and registration access token.

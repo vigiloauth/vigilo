@@ -298,6 +298,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 		// Attempt to login with old password
 		oldLoginRequest := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
 		requestBody, err = json.Marshal(oldLoginRequest)
+		assert.NoError(t, err)
 		oldLoginResp := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.UserEndpoints.Login,
