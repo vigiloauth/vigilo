@@ -5,13 +5,19 @@ Welcome to the **VigiloAuth** User Guide! This guide will help you get started w
 ---
 
 ## Table of Contents
-- [Overview](#1-overview)
-- [Features](#2-features)
-- [Getting Started](#3-getting-started)
-  - [Installation](#31-installation)
-  - [Configuration](#32-configuration)
-- [Quick Start](#4-quick-start)
-- [Feedback and Contributions](#5-feedback-and-contributions)
+- [User Guide for VigiloAuth](#user-guide-for-vigiloauth)
+	- [Table of Contents](#table-of-contents)
+	- [1. Overview](#1-overview)
+	- [2. Features](#2-features)
+	- [3. Getting Started](#3-getting-started)
+		- [3.1 Installation](#31-installation)
+		- [3.2 Configuration](#32-configuration)
+	- [4. Quick Start](#4-quick-start)
+	- [5. Contributing](#5-contributing)
+		- [5.1 How to Contribute](#51-how-to-contribute)
+		- [5.2 Commit Standards](#52-commit-standards)
+		- [5.3 Commit Types](#53-commit-types)
+	- [6. License](#6-license)
 
 ---
 
@@ -82,3 +88,46 @@ func main() {
 	http.ListenAndServe(":8080", appRouter)
 }
 ```
+
+## 5. Contributing
+We welcome contributions to improve VigiloAuth! Follow the steps below to ensure a smooth contribution process.
+
+### 5.1 How to Contribute
+1. **Fork the Repository:** Create your own fork of the repository on GitHub.
+2. **Clone Your Fork:** Clone your fork locally.
+3. **Create a Branch:** Create a feature or a bug fix branch from master.
+4. **Make Your Changes:** Implement your changes and ensure they align with the project goals.
+5. **Write Tests:** Add or update tests to validate your changes.
+6. **Commit Your Changes:** Use **_Conventional Commits_** for all commit messages (see standards below).
+7. **Push Your Changes:** Push your branch to your forked repository.
+8. **Open a Pull Request (PR):** Submit a PR to the main repository with a clear description of your changes.
+
+### 5.2 Commit Standards
+We follow the **_Conventional Commit_** standards to ensure clear and meaningful commit messages. Use the format:
+```azure
+<type>[optional scope]: <description>
+[optional body]
+[optional footer(s)]
+```
+### 5.3 Commit Types
+- `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
+- `feat`: Add a new feature that enhances the functionality of the project.
+- `fix`: Apply a bug fix that resolves an issue without affecting functionality. 
+- `docs`: Update documentation, such as fixing typos or adding new information. 
+- `style`: Changes that don’t affect the code’s behavior, like formatting or code style adjustments. 
+- `refactor`: Refactor code without adding features or fixing bugs. 
+- `test`: Add or modify tests. 
+- `chore`: Miscellaneous changes like updates to build tools or dependencies.
+
+## 6. License
+Copyright 2024 Olivier Pimparé-Charbonneau, Zachary Sexton
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
