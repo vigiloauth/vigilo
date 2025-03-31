@@ -6,7 +6,7 @@ PUT /oauth/client/register/{client_id}
 ```
 
 **Description:**
-This endpoint is a protected route which is responsible for updating the current client configuration. The client makes an `HTTP Put` request to the client configuration endpoint with the required request body, authenticating with its `registration_access_token`. Both the `registration_access_token` and the `client_configuration_endpoint` are generated during the dynamic client registration flow. Please view the Client Registration [endpoint](client_registration.md) for more information on how to properly generate a client. Valid values of client metadata fields in this request **MUST** replace, not augment, the values previously associated with the client.
+This endpoint is a protected route which is responsible for updating the current client configuration. The client makes an `HTTP Put` request to the client configuration endpoint with the required request body, authenticating with its `registration_access_token`. Both the `registration_access_token` and the `client_configuration_endpoint` are generated during the dynamic client registration flow. Please view the Client Registration [endpoint](client_registration.md) for more information on how to properly generate a client. Valid values of client metadata fields in this request **MUST** replace, not augment, the values previously associated with the client. The `client_secret` is immutable once assigned. If a new secret is required, the client must re-register through the Client Registration [endpoint](client_registration.md), or regenerate their secret through the Client Secret Regeneration [endpoint](client_secret_regeneration.md).
 
 ---
 
@@ -31,9 +31,9 @@ This endpoint is a protected route which is responsible for updating the current
 | client_secret        | string        | No       | The secret of the client application being updated.                         |
 | client_name          | string        | No       | The name of the client application being updated.                        |
 | redirect_uris        | string array  | No       | A list of URIs to which the authorization server will redirect the user after successful authorization. Public clients must use HTTPS. |
-| grant_types          | string array  | No      | The grant types associated with the client. Supported values: `authorization_code`, `client_credentials`, `password`, `refresh_token`, `implicit`, `device_code`. |
-| scopes               | string array  | No       | The scopes associated with the client. Supported values: `read`, `write`.  |
-| response_types       | string array  | No      | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
+| grant_types          | string array  | No       | The grant types associated with the client. Supported values: `authorization_code`, `client_credentials`, `password`, `refresh_token`, `implicit`, `device_code`. |
+| scopes               | string array  | No       | The scopes associated with the client. Supported values: `client:read`, `client:write`, `client:delete`, `client:manage`.  |
+| response_types       | string array  | No       | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
 | token_auth_endpoint  | string        | No       | The token authentication endpoint for the client credentials flow. Required for `client_credentials` grant type. |
 
 ---
@@ -97,17 +97,16 @@ ___
     "error": "validation_error",
     "error_description": "failed to update client",
     "error_details": "one or more validation errors occurred",
-    "errors":
-        [
-            {
-                "error": "invalid_redirect_uri",
-				"error_description": "confidential clients must use HTTPS"
-            },
-            {
-                "error":"invalid_redirect_uri","
-				error_description": "redirect URIs cannot have wildcards"
-            }
-		]
+    "errors": [
+        {
+            "error": "invalid_redirect_uri",
+            "error_description": "confidential clients must use HTTPS"
+        },
+        {
+            "error": "invalid_redirect_uri",
+            "error_description": "redirect URIs cannot have wildcards"
+        }
+    ]
 }
 ```
 
@@ -119,13 +118,12 @@ ___
     "error": "validation_error",
     "error_description": "failed to update client",
     "error_details": "one or more validation errors occurred",
-    "errors":
-        [
-            {
-                "error": "invalid_response_type",
-				"error_description": "response types are not allowed for the client credentials, password grant, or refresh token grant types"
-            },
-		]
+    "errors": [
+        {
+            "error": "invalid_response_type",
+			"error_description": "response types are not allowed for the client credentials, password grant, or refresh token grant types"
+        },
+	]
 }
 ```
 **Note:**
