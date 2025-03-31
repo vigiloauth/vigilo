@@ -80,7 +80,7 @@ type TokenService interface {
 	//   error: An error if the token is not found, expired, or the email doesn't match.
 	GetToken(email string, token string) (*TokenData, error)
 
-	// DeleteToken removes a token from the token store.
+	// DeleteToken removes a token from the token repository.
 	//
 	// Parameters:
 	//
@@ -90,6 +90,17 @@ type TokenService interface {
 	//
 	//   error: An error if the token deletion fails.
 	DeleteToken(token string) error
+
+	// DeleteToken removes a token from the token repository asynchronously.
+	//
+	// Parameters:
+	//
+	//   token string: The token string to delete.
+	//
+	// Returns:
+	//
+	//   error: An error if the token deletion fails.
+	DeleteTokenAsync(token string) <-chan error
 
 	// IsTokenExpired checks to see if the provided token is expired.
 	//

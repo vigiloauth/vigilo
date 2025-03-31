@@ -13,7 +13,8 @@ import (
 	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	repository "github.com/vigiloauth/vigilo/internal/repository/client"
+	clientRepo "github.com/vigiloauth/vigilo/internal/repository/client"
+	tokenRepo "github.com/vigiloauth/vigilo/internal/repository/token"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -381,7 +382,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		assert.NotEqual(t, "", clientInformationResponse.Secret, "client secret be included in the response for confidential clients")
 
 		// Assert Client is updated in the database
-		updatedClient := repository.GetInMemoryClientRepository().GetClientByID(testClientID)
+		updatedClient := clientRepo.GetInMemoryClientRepository().GetClientByID(testClientID)
 		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
 		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
 		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
@@ -423,7 +424,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		assert.Equal(t, "", clientInformationResponse.Secret, "client secret not be included in the response for public clients")
 
 		// Assert Client is updated in the database
-		updatedClient := repository.GetInMemoryClientRepository().GetClientByID(testClientID)
+		updatedClient := clientRepo.GetInMemoryClientRepository().GetClientByID(testClientID)
 		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
 		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
 		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
@@ -642,6 +643,104 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		)
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)
+	})
+}
+
+func TestClientHandler_DeleteClient(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Public,
+			[]string{client.ClientManage, client.ClientDelete},
+			[]string{client.AuthorizationCode, client.PKCE},
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
+
+		assert.Equal(t, http.StatusNoContent, rr.Code)
+	})
+
+	t.Run("Unauthorized - Token subject and client ID mismatch", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Public,
+			[]string{client.ClientManage, client.ClientDelete},
+			[]string{client.AuthorizationCode, client.PKCE},
+		)
+		testContext.WithAccessToken("invalid-id", 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+
+		// assert token is deleted.
+		_, err := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken, "invalid-id")
+		assert.Error(t, err)
+	})
+
+	t.Run("Unauthorized - Expired registration access token", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Public,
+			[]string{client.ClientManage, client.ClientDelete},
+			[]string{client.AuthorizationCode, client.PKCE},
+		)
+		testContext.WithAccessToken(testClientID, -1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+
+		// assert token is deleted.
+		_, err := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken, testClientID)
+		assert.Error(t, err)
+	})
+
+	t.Run("Unauthorized - Invalid client ID", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Public,
+			[]string{client.ClientManage, client.ClientDelete},
+			[]string{client.AuthorizationCode, client.PKCE},
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, "invalid-id")
+		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+
+		// assert token is deleted.
+		_, err := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken, testClientID)
+		assert.Error(t, err)
+	})
+
+	t.Run("Forbidden - Insufficient Scopes", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(
+			client.Public,
+			[]string{},
+			[]string{client.AuthorizationCode, client.PKCE},
+		)
+		testContext.WithAccessToken(testClientID, 1*time.Hour)
+		defer testContext.TearDown()
+
+		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
+		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
+
+		assert.Equal(t, http.StatusForbidden, rr.Code)
+
+		// assert token is deleted.
+		_, err := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken, testClientID)
+		assert.Error(t, err)
 	})
 }
 

@@ -334,7 +334,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 			}, nil
 		}
-		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+		mockTokenService.DeleteTokenAsyncFunc = func(token string) <-chan error { return nil }
 
 		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
 		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)

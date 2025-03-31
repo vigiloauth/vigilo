@@ -1,6 +1,8 @@
 package service
 
 import (
+	"log"
+	"math/rand"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -166,6 +168,44 @@ func (ts *TokenServiceImpl) GetToken(id string, token string) (*token.TokenData,
 //	error: An error if the token deletion fails.
 func (ts *TokenServiceImpl) DeleteToken(token string) error {
 	return ts.tokenRepo.DeleteToken(token)
+}
+
+// DeleteToken removes a token from the token repository asynchronously.
+//
+// Parameters:
+//
+//	token string: The token string to delete.
+//
+// Returns:
+//
+//	error: An error if the token deletion fails.
+func (ts *TokenServiceImpl) DeleteTokenAsync(token string) <-chan error {
+	errChan := make(chan error, 1)
+
+	go func() {
+		maxRetries := 5
+		var deleteErr error
+
+		for i := range maxRetries {
+			if err := ts.tokenRepo.DeleteToken(token); err == nil {
+				log.Print("Token deleted successfully")
+				errChan <- nil
+				return
+			} else {
+				deleteErr = err
+				log.Printf("Retry %d/%d: Failed to delete token: %v", i+1, maxRetries, err)
+			}
+
+			backoff := time.Duration(100*(1<<i)) * time.Millisecond
+			jitter := time.Duration(rand.Intn(100)) * time.Millisecond
+			time.Sleep(backoff + jitter)
+		}
+
+		log.Printf("Failed to delete token after %d retries: %v", maxRetries, deleteErr)
+		errChan <- deleteErr
+	}()
+
+	return errChan
 }
 
 // IsTokenExpired checks if a token is expired.

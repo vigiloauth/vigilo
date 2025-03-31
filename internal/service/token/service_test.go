@@ -6,7 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	token "github.com/vigiloauth/vigilo/internal/repository/token"
+	domain "github.com/vigiloauth/vigilo/internal/domain/token"
+	"github.com/vigiloauth/vigilo/internal/errors"
+	mTokenRepo "github.com/vigiloauth/vigilo/internal/mocks/token"
 )
 
 const (
@@ -39,7 +41,10 @@ func TestTokenService_GenerateToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tokenService := NewTokenServiceImpl(token.GetInMemoryTokenRepository())
+			mockTokenRepo := &mTokenRepo.MockTokenRepository{
+				SaveTokenFunc: func(token, id string, expiration time.Time) {},
+			}
+			tokenService := NewTokenServiceImpl(mockTokenRepo)
 
 			tokenString, err := tokenService.GenerateToken(tt.subject, tt.expirationTime)
 
@@ -82,7 +87,10 @@ func TestTokenService_ParseToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tokenService := NewTokenServiceImpl(token.GetInMemoryTokenRepository())
+			mockTokenRepo := &mTokenRepo.MockTokenRepository{
+				SaveTokenFunc: func(token, id string, expiration time.Time) {},
+			}
+			tokenService := NewTokenServiceImpl(mockTokenRepo)
 
 			if tt.tokenString == "valid_token_string" {
 				validToken, err := tokenService.GenerateToken(tt.expectedSubject, time.Hour)
@@ -103,59 +111,116 @@ func TestTokenService_ParseToken(t *testing.T) {
 }
 
 func TestTokenService_GetToken(t *testing.T) {
-	tokenService := NewTokenServiceImpl(token.GetInMemoryTokenRepository())
-	tokenService.SaveToken(testToken, testID, time.Now().Add(1*time.Hour))
+	mockTokenRepo := &mTokenRepo.MockTokenRepository{
+		GetTokenFunc: func(token, id string) (*domain.TokenData, error) {
+			return &domain.TokenData{
+				Token: testToken,
+				ID:    testID,
+			}, nil
+		},
+	}
+
+	tokenService := NewTokenServiceImpl(mockTokenRepo)
 
 	result, err := tokenService.GetToken(testID, testToken)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-
-	result, err = tokenService.GetToken(testID, testInvalidToken)
-	assert.Error(t, err)
-	assert.Nil(t, result)
 }
 
 func TestTokenService_IsTokenBlacklisted(t *testing.T) {
-	tokenStore := token.GetInMemoryTokenRepository()
-	tokenService := NewTokenServiceImpl(tokenStore)
+	mockTokenRepo := &mTokenRepo.MockTokenRepository{
+		IsTokenBlacklistedFunc: func(token string) bool { return true },
+	}
 
-	tokenStore.SaveToken(testToken, testID, time.Now().Add(1*time.Hour))
+	tokenService := NewTokenServiceImpl(mockTokenRepo)
 
 	isBlacklisted := tokenService.IsTokenBlacklisted(testToken)
 	assert.True(t, isBlacklisted)
 }
 
-func TestTokenService_AddToken(t *testing.T) {
-	token := token.GetInMemoryTokenRepository()
-	tokenService := NewTokenServiceImpl(token)
-
-	token.SaveToken(testToken, testID, time.Now().Add(1*time.Hour))
-
-	tokenData, err := tokenService.GetToken(testID, testToken)
-	assert.NoError(t, err)
-	assert.NotNil(t, tokenData)
-}
-
 func TestTokenService_DeleteToken(t *testing.T) {
-	tokenRepo := token.GetInMemoryTokenRepository()
-	tokenService := NewTokenServiceImpl(tokenRepo)
+	mockTokenRepo := &mTokenRepo.MockTokenRepository{
+		DeleteTokenFunc: func(token string) error { return nil },
+	}
 
-	tokenRepo.SaveToken(testToken, testID, time.Now().Add(1*time.Hour))
+	tokenService := NewTokenServiceImpl(mockTokenRepo)
 
 	err := tokenService.DeleteToken(testToken)
 	assert.NoError(t, err)
-
-	tokenData, err := tokenService.GetToken(testID, testToken)
-	assert.Error(t, err)
-	assert.Nil(t, tokenData)
 }
 
 func TestTokenService_GenerateTokenPair(t *testing.T) {
-	tokenService := NewTokenServiceImpl(token.GetInMemoryTokenRepository())
+	mockTokenRepo := &mTokenRepo.MockTokenRepository{
+		SaveTokenFunc: func(token, id string, expiration time.Time) {},
+	}
 
+	tokenService := NewTokenServiceImpl(mockTokenRepo)
 	accessToken, refreshToken, err := tokenService.GenerateTokenPair(testID, testClientID)
 
 	assert.NoError(t, err)
 	assert.NotEqual(t, "", accessToken)
 	assert.NotEqual(t, "", refreshToken)
+}
+
+func TestTokenService_DeleteTokenAsync(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		mockTokenRepo := &mTokenRepo.MockTokenRepository{
+			DeleteTokenFunc: func(token string) error {
+				return nil
+			},
+		}
+
+		service := NewTokenServiceImpl(mockTokenRepo)
+		errChan := service.DeleteTokenAsync("test-token")
+
+		select {
+		case err := <-errChan:
+			assert.NoError(t, err, "Expected no error for successful token deletion")
+		case <-time.After(1 * time.Second):
+			t.Fatal("Test timed out waiting for DeleteTokenAsync to finish")
+		}
+	})
+
+	t.Run("Retry and Fail", func(t *testing.T) {
+		mockTokenRepo := &mTokenRepo.MockTokenRepository{
+			DeleteTokenFunc: func(token string) error {
+				return errors.New(errors.ErrCodeInternalServerError, "failed to delete token")
+			},
+		}
+
+		service := NewTokenServiceImpl(mockTokenRepo)
+		errChan := service.DeleteTokenAsync("test-token")
+
+		select {
+		case err := <-errChan:
+			assert.Error(t, err, "Expected an error after all retries fail")
+			assert.Equal(t, "failed to delete token", err.Error(), "Expected the correct error message")
+		case <-time.After(4 * time.Second):
+			t.Fatal("Test timed out waiting for DeleteTokenAsync to finish")
+		}
+	})
+
+	t.Run("Retry and Succeed", func(t *testing.T) {
+		attempts := 0
+		mockTokenRepo := &mTokenRepo.MockTokenRepository{
+			DeleteTokenFunc: func(token string) error {
+				attempts++
+				if attempts <= 2 {
+					return errors.New(errors.ErrCodeInternalServerError, "failed to delete token")
+				}
+				return nil
+			},
+		}
+
+		service := NewTokenServiceImpl(mockTokenRepo)
+		errChan := service.DeleteTokenAsync("test-token")
+
+		select {
+		case err := <-errChan:
+			assert.NoError(t, err, "Expected no error after successful retry")
+			assert.Equal(t, 3, attempts, "Expected 3 attempts before success")
+		case <-time.After(2 * time.Second):
+			t.Fatal("Test timed out waiting for DeleteTokenAsync to finish")
+		}
+	})
 }

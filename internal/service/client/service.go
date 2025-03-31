@@ -331,6 +331,11 @@ func (cs *ClientServiceImpl) ValidateAndDeleteClient(clientID, registrationAcces
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to delete client")
 	}
 
+	errChan := cs.tokenService.DeleteTokenAsync(registrationAccessToken)
+	if err := <-errChan; err != nil {
+		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to delete registration access token")
+	}
+
 	return nil
 }
 
@@ -371,7 +376,7 @@ func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.
 func (cs *ClientServiceImpl) validateClientAndToken(clientID, registrationAccessToken, scope string) (*client.Client, error) {
 	retrievedClient := cs.GetClientByID(clientID)
 	if retrievedClient == nil {
-		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "the provided client ID is invalid")
+		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
 	} else if !retrievedClient.HasScope(scope) && !retrievedClient.HasScope(client.ClientManage) {
 		return nil, cs.revokeTokenAndReturnError(registrationAccessToken, errors.ErrCodeInsufficientScope, "client does not have the required scopes for this request")
 	}
