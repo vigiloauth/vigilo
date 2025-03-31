@@ -77,10 +77,12 @@
 ## 🔹 6. Documentation
 - [x] Client Registration
 - [x] Client Read (Self-Access)
-- [ ] Client Update 
+- [x] Client Update 
 - [ ] Client Delete
-- [ ] Update errors
 - [ ] Create docs explaining the dynamic client configuration flow.
+    - [ ] Include the valid grant types
+    - [ ] Include the valid scopes
+    - [ ] Include the valid response types
 - [ ] E2E tests for Authorization Code Flow.
 - [ ] Refactor OAuth Login
 - [ ] Refactor Oauth UserConsent

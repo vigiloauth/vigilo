@@ -306,6 +306,34 @@ func (cs *ClientServiceImpl) ValidateAndUpdateClient(clientID, registrationAcces
 	), nil
 }
 
+// ValidateAndDeleteClient validates the provided registration access token, ensures the client exists,
+// revokes the token if necessary, and compares the token value to the clientID. It returns an error if
+// any validation fails or the client cannot be deleted.
+//
+// Parameters:
+//
+//	clientID string: The ID of the client to validate and delete.
+//	registrationAccessToken string: The access token used for validation.
+//
+// Returns:
+//
+//	error: An error if validation fails or the client cannot be deleted.
+func (cs *ClientServiceImpl) ValidateAndDeleteClient(clientID, registrationAccessToken string) error {
+	if clientID == "" || registrationAccessToken == "" {
+		return errors.NewMissingParametersError()
+	}
+
+	if _, err := cs.validateClientAndToken(clientID, registrationAccessToken, client.ClientDelete); err != nil {
+		return err
+	}
+
+	if err := cs.clientRepo.DeleteClientByID(clientID); err != nil {
+		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to delete client")
+	}
+
+	return nil
+}
+
 // validateClientAuthorization checks if the client is authorized to perform certain actions
 // based on its configuration, including its type, client secret, grant type, and scope.
 // Note: If the client secret is not needed for validation, it can be passed as and empty string.

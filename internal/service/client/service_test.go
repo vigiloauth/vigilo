@@ -329,7 +329,10 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{Subject: testClientID}, nil
+			return &jwt.StandardClaims{
+				Subject:   testClientID,
+				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+			}, nil
 		}
 
 		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
@@ -350,7 +353,10 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{Subject: testClientID}, nil
+			return &jwt.StandardClaims{
+				Subject:   testClientID,
+				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+			}, nil
 		}
 
 		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
@@ -420,7 +426,10 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 			return createTestClient()
 		}
 		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{Subject: testClientID}, nil
+			return &jwt.StandardClaims{
+				Subject:   testClientID,
+				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+			}, nil
 		}
 		mockClientRepo.UpdateClientFunc = func(client *client.Client) error { return nil }
 
@@ -507,6 +516,98 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, clientInformation)
+	})
+
+	t.Run("Error - Registration access token is expired", func(t *testing.T) {})
+}
+
+func TestClientService_ValidateAndDeleteClient(t *testing.T) {
+	mockClientRepo := &mockClient.MockClientRepository{}
+	mockTokenService := &mockToken.MockTokenService{}
+
+	t.Run("Success", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Scopes = append(testClient.Scopes, client.ClientDelete)
+
+		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client {
+			return createTestClient()
+		}
+		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+			return &jwt.StandardClaims{
+				Subject:   testClientID,
+				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+			}, nil
+		}
+		mockClientRepo.DeleteClientByIDFunc = func(clientID string) error { return nil }
+
+		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		err := service.ValidateAndDeleteClient(testClientID, testToken)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error - Client ID mismatch", func(t *testing.T) {
+		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
+		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+
+		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		err := service.ValidateAndDeleteClient(testClientID, testToken)
+
+		assert.Error(t, err)
+		assert.Equal(t, "the provided client ID is invalid", err.Error())
+	})
+
+	t.Run("Error - Registration access token and client ID mismatch", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Scopes = append(testClient.Scopes, client.ClientDelete)
+		testClient.ID = testClientID
+
+		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+			return &jwt.StandardClaims{Subject: "invalid"}, nil
+		}
+		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+
+		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		err := service.ValidateAndDeleteClient(testClientID, testToken)
+
+		assert.Error(t, err)
+		assert.Equal(t, "the registration access token subject does not match with the client ID in the request", err.Error())
+	})
+
+	t.Run("Error - Insufficient scopes", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Scopes = []string{}
+		testClient.ID = testClientID
+
+		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+
+		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		err := service.ValidateAndDeleteClient(testClientID, testToken)
+
+		assert.Error(t, err)
+		assert.Equal(t, "client does not have the required scopes for this request", err.Error())
+	})
+
+	t.Run("Error - Registration access token is expired", func(t *testing.T) {
+		testClient := createTestClient()
+		testClient.Scopes = append(testClient.Scopes, client.ClientDelete)
+		testClient.ID = testClientID
+
+		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
+		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+			return &jwt.StandardClaims{
+				Subject:   testClientID,
+				ExpiresAt: time.Now().Add(-1 * time.Hour).Unix(),
+			}, nil
+		}
+		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
+
+		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		err := service.ValidateAndDeleteClient(testClientID, testToken)
+
+		assert.Error(t, err)
+		assert.Equal(t, "the registration access token has expired", err.Error())
 	})
 }
 

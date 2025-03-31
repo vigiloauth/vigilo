@@ -94,4 +94,18 @@ type ClientService interface {
 	//	*CLientInformationResponse: If the the request is successful.
 	//	error: An error if validation fails or the client cannot be updated.
 	ValidateAndUpdateClient(clientID, registrationAccessToken string, request *ClientUpdateRequest) (*ClientInformationResponse, error)
+
+	// ValidateAndDeleteClient validates the provided registration access token, ensures the client exists,
+	// revokes the token if necessary, and compares the token value to the clientID. It returns an error if
+	// any validation fails or the client cannot be deleted.
+	//
+	// Parameters:
+	//
+	//	clientID string: The ID of the client to validate and delete.
+	//	registrationAccessToken string: The access token used for validation.
+	//
+	// Returns:
+	//
+	//	error: An error if validation fails or the client cannot be deleted.
+	ValidateAndDeleteClient(clientID, registrationAccessToken string) error
 }

@@ -12,6 +12,7 @@ type MockClientService struct {
 	ValidateClientRedirectURIFunc             func(redirectURI string, existingClient *client.Client) error
 	ValidateAndRetrieveClientFunc             func(clientID, registrationAccessToken string) (*client.ClientInformationResponse, error)
 	ValidateAndUpdateClientFunc               func(clientID, registrationAccessToken string, request *client.ClientUpdateRequest) (*client.ClientInformationResponse, error)
+	ValidateAndDeleteClientFunc               func(clientID, registrationAccessToken string) error
 }
 
 func (m *MockClientService) Register(newClient *client.Client) (*client.ClientRegistrationResponse, error) {
@@ -40,4 +41,8 @@ func (m *MockClientService) ValidateAndRetrieveClient(clientID, registrationAcce
 
 func (m *MockClientService) ValidateAndUpdateClient(clientID, registrationAccessToken string, request *client.ClientUpdateRequest) (*client.ClientInformationResponse, error) {
 	return m.ValidateAndUpdateClientFunc(clientID, registrationAccessToken, request)
+}
+
+func (m *MockClientService) ValidateAndDeleteClient(clientID, registrationAccessToken string) error {
+	return m.ValidateAndDeleteClientFunc(clientID, registrationAccessToken)
 }
