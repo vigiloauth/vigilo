@@ -7,7 +7,7 @@ GET /oauth/client/register/{client_id}
 ---
 
 **Description:**
-This endpoint is a protected route which is responsible for retrieving the current client configuration. The client makes an `HTTP Get` request to the client configuration endpoint, authenticating with its `registration_access_token`. Both the `registration_access_token` and the `client_configuration_endpoint` are generated during the dynamic client registration flow. Please view the Client Registration [endpoint](client_registration.md) for more information on how to properly generate a client.
+This endpoint is a protected route which is responsible for retrieving the current client configuration. The client makes an `HTTP GET` request to the client configuration endpoint, authenticating with its `registration_access_token`. Both the `registration_access_token` and the `client_configuration_endpoint` are generated during the dynamic client registration flow. Please view the Client Registration [endpoint](client_registration.md) for more information on how to properly generate a client.
 
 --- 
 
