@@ -27,9 +27,7 @@ type ClientRequest interface {
 	GetRedirectURIS() []string
 	GetScopes() []string
 	GetResponseTypes() []string
-	SetGrantTypes(grantTypes []string)
 	SetScopes(scopes []string)
-	SetResponseTypes(responseTypes []string)
 }
 
 // ClientRegistrationRequest represents a request to register a new OAuth client.
@@ -180,16 +178,8 @@ func (req *ClientRegistrationRequest) GetResponseTypes() []string {
 	return req.ResponseTypes
 }
 
-func (req *ClientRegistrationRequest) SetGrantTypes(grantTypes []string) {
-	req.GrantTypes = grantTypes
-}
-
 func (req *ClientRegistrationRequest) SetScopes(scopes []string) {
 	req.Scopes = scopes
-}
-
-func (req *ClientRegistrationRequest) SetResponseTypes(responseTypes []string) {
-	req.ResponseTypes = responseTypes
 }
 
 func (req *ClientUpdateRequest) GetType() string {
@@ -212,16 +202,8 @@ func (req *ClientUpdateRequest) GetResponseTypes() []string {
 	return req.ResponseTypes
 }
 
-func (req *ClientUpdateRequest) SetGrantTypes(grantTypes []string) {
-	req.GrantTypes = grantTypes
-}
-
 func (req *ClientUpdateRequest) SetScopes(scopes []string) {
 	req.Scopes = scopes
-}
-
-func (req *ClientUpdateRequest) SetResponseTypes(responseTypes []string) {
-	req.ResponseTypes = responseTypes
 }
 
 func NewClientInformationResponse(clientID, clientSecret, registrationClientURI, registrationAccessToken string) *ClientInformationResponse {
