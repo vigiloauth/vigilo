@@ -10,8 +10,8 @@ type Client struct {
 	Name                    string
 	ID                      string
 	Secret                  string
-	SecretExpiration        int
 	Type                    string
+	SecretExpiration        int
 	RedirectURIS            []string
 	GrantTypes              []string
 	Scopes                  []string

@@ -46,19 +46,9 @@ For information on how to use `client_configuration_endpoint` and `registration_
     "https://example.com/redirect"
   ],
   "client_type": "confidential",
-  "grant_types": [
-    "authorization_code",
-    "client_credentials"
-  ],
-  "scopes": [
-    "read",
-    "write"
-  ],
-  "response_types": [
-    "code",
-    "token"
-  ],
-  "token_auth_endpoint": "https://example.com/token"
+  "grant_types": ["authorization_code", "client_credentials"],
+  "scopes": ["client:read", "client:write"],
+  "response_types": ["code", "token"],
 }
 ```
 
@@ -71,25 +61,19 @@ For information on how to use `client_configuration_endpoint` and `registration_
 #### Response Body:
 ```json
 {
-    "client_id": "c899a9e5-168b-4c85-81f9-1a4ee3b49431",
+    "client_id": "c899a9e5-168b-4c85",
     "client_name": "Example Client",
     "client_type": "public",
     "redirect_uris": [
         "https://example.com/callback",
         "https://example.com/redirect"
     ],
-    "grant_types": [
-        "authorization_code",
-        "pkce"
-    ],
-    "response_types": [
-        "code",
-        "id_token"
-    ],
+    "grant_types": ["authorization_code", "pkce"],
+    "response_types": ["code", "id_token"],
     "created_at": "2025-03-18T17:55:40.843541-07:00",
     "updated_at": "2025-03-18T17:55:40.843541-07:00",
-    "registration_access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyjasd...",
-    "client_configuration_endpoint": "https://localhost/oauth/client/register/c899a9e5-168b-4c85-81f9-1a4ee3b49431",
+    "registration_access_token": "eyJhbGciOiJIUzI1NiIsInR5...",
+    "client_configuration_endpoint": "https://localhost/oauth/client/register/c899a9e5-168b-4c85",
     "client_id_issued_at": "2025-03-28T13:12:12.065756-04:00"
 }
 ```
