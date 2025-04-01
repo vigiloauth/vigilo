@@ -116,6 +116,8 @@ The following metadata fields are supported by the VigiloAuth Server for Dynamic
 | `client_id`                  | Unique identifier for the client.                                           | `string`    | Auto-generated                          |
 | `client_secret`              | Secret used by confidential clients to authenticate with the server.        | `string`    | Auto-generated for confidential clients |
 | `token_endpoint_auth_method` | Authentication method for the token endpoint (e.g., `client_secret_basic`). | `string`    | Optional                                |
+| `jwks_uri`                   | URL pointing to the client's JSON Web Key Set (JWKS), used for verifying signed requests or tokens. | `string`    | Optional                                |
+| `logo_uri`                   | URL pointing to the client's logo, which can be displayed in user-facing interfaces or administrative dashboards. | `string`    | Optional                                |
 
 #### 5.1 Supported Grant Types
 Grant types are an important aspect of the OAuth 2.0 Dynamic Client Registration Protocol. It specifies the OAuth 2.0 grant types that the client is allowed to use. This field is optional in the protocol, but it plays a critical role in defining how the client interacts with the authorization server.

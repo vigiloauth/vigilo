@@ -34,6 +34,8 @@ For information on how to use `client_configuration_endpoint` and `registration_
 | `scopes`               | `[]string`  | No       | The scopes associated with the client. Supported values: `client:read`, `client:write`, `client:delete`, `client:manage`.  |
 | `response_types`       | `[]string`  | Yes      | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
 | `token_auth_endpoint`  | `string`    | No       | The token authentication endpoint for the client credentials flow. Required for `client_credentials` grant type. |
+| `jwks_uri`             | `string`    | No       | URL pointing to the client's JSON Web Key Set (JWKS), used for signed requests or tokens |
+| `logo_uri`             | `string`    | No       | URL pointing to the client's logo, which can be displayed in user-facing interfaces or administrative dashboards. |
 
 ---
 
