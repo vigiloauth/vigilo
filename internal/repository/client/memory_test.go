@@ -5,14 +5,25 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/identity/config"
 	domain "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 const clientID string = "clientID"
 
+func setup() {
+	config.GetServerConfig().Logger().SetLevel("DEBUG")
+}
+
+func tearDown() {
+	config.GetServerConfig().Logger().SetLevel("INFO")
+}
+
 func TestInMemoryClientStore_CreateClient(t *testing.T) {
 	t.Run("Successful Client Creation", func(t *testing.T) {
+		setup()
+		defer tearDown()
 		cs := NewInMemoryClientRepository()
 		client := createTestClient()
 
@@ -25,6 +36,8 @@ func TestInMemoryClientStore_CreateClient(t *testing.T) {
 	})
 
 	t.Run("Duplicate entry", func(t *testing.T) {
+		setup()
+		defer tearDown()
 		cs := NewInMemoryClientRepository()
 		client := createTestClient()
 
@@ -42,6 +55,8 @@ func TestInMemoryClientStore_CreateClient(t *testing.T) {
 }
 
 func TestInMemoryClientStore_GetClient(t *testing.T) {
+	setup()
+	defer tearDown()
 	cs := NewInMemoryClientRepository()
 	client := createTestClient()
 
@@ -54,6 +69,8 @@ func TestInMemoryClientStore_GetClient(t *testing.T) {
 }
 
 func TestInMemoryClientStore_DeleteClient(t *testing.T) {
+	setup()
+	defer tearDown()
 	cs := NewInMemoryClientRepository()
 	client := createTestClient()
 
@@ -69,6 +86,8 @@ func TestInMemoryClientStore_DeleteClient(t *testing.T) {
 
 func TestInMemoryClientStore_UpdateClient(t *testing.T) {
 	t.Run("Successful Client Update", func(t *testing.T) {
+		setup()
+		defer tearDown()
 		cs := NewInMemoryClientRepository()
 		client := createTestClient()
 
@@ -85,6 +104,8 @@ func TestInMemoryClientStore_UpdateClient(t *testing.T) {
 	})
 
 	t.Run("Client not found for update", func(t *testing.T) {
+		setup()
+		defer tearDown()
 		cs := NewInMemoryClientRepository()
 		client := createTestClient()
 

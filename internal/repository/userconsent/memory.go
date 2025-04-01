@@ -7,15 +7,19 @@ import (
 
 	"slices"
 
+	"github.com/vigiloauth/vigilo/identity/config"
 	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 var (
+	logger                                 = config.GetServerConfig().Logger()
 	_        consent.UserConsentRepository = (*InMemoryUserConsentRepository)(nil)
 	instance *InMemoryUserConsentRepository
 	once     sync.Once
 )
+
+const module = "InMemoryUserConsentRepository"
 
 // InMemoryUserConsentRepository implements the ConsentStore interface using an in-memory map.
 type InMemoryUserConsentRepository struct {
@@ -30,14 +34,16 @@ type InMemoryUserConsentRepository struct {
 //	*InMemoryConsentStore: The singleton instance of InMemoryConsentRepository.
 func GetInMemoryUserConsentRepository() *InMemoryUserConsentRepository {
 	once.Do(func() {
+		logger.Debug(module, "Creating new instance of InMemoryUserConsentRepository")
 		instance = &InMemoryUserConsentRepository{data: make(map[string]*consent.UserConsentRecord)}
 	})
 	return instance
 }
 
-// ResetInMemoryUserConsentRepository resets the in-memory user store for testing purposes.
+// ResetInMemoryUserConsentRepository resets the in-memory repository for testing purposes.
 func ResetInMemoryUserConsentRepository() {
 	if instance != nil {
+		logger.Debug(module, "Resetting instance")
 		instance.mu.Lock()
 		instance.data = make(map[string]*consent.UserConsentRecord)
 		instance.mu.Unlock()
@@ -57,12 +63,14 @@ func ResetInMemoryUserConsentRepository() {
 //	bool: True if consent exists, false otherwise.
 //	error: An error if the check fails, or nil if successful.
 func (c *InMemoryUserConsentRepository) HasConsent(userID, clientID, requestedScope string) (bool, error) {
+	logger.Info(module, "HasConsent: Validating if user has granted consent to client")
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	key := createConsentKey(userID, clientID)
 	record, exists := c.data[key]
 	if !exists {
+		logger.Debug(module, "HasConsent: Record does not exist with given consent key: %s", key)
 		return false, nil
 	}
 
@@ -72,6 +80,7 @@ func (c *InMemoryUserConsentRepository) HasConsent(userID, clientID, requestedSc
 	for _, reqScope := range requestedScopes {
 		found := slices.Contains(grantedScopes, reqScope)
 		if !found {
+			logger.Error(module, "HasConsent: The requested scope=%s was not previously granted", reqScope)
 			return false, errors.New(
 				errors.ErrCodeInsufficientScope,
 				"at least one requested scope wasn't previously granted",
@@ -79,6 +88,7 @@ func (c *InMemoryUserConsentRepository) HasConsent(userID, clientID, requestedSc
 		}
 	}
 
+	logger.Info(module, "HasConsent: User has granted consent to the client")
 	return true, nil
 }
 

@@ -3,14 +3,19 @@ package repository
 import (
 	"sync"
 
+	"github.com/vigiloauth/vigilo/identity/config"
 	domain "github.com/vigiloauth/vigilo/internal/domain/login"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 )
 
 // maxStoredLoginAttempts defines the maximum number of login attempts stored per user.
-const maxStoredLoginAttempts = 100
+const (
+	module                 = "InMemoryLoginAttemptRepository"
+	maxStoredLoginAttempts = 100
+)
 
 var (
+	logger                                 = config.GetServerConfig().Logger()
 	_        domain.LoginAttemptRepository = (*InMemoryLoginAttemptRepository)(nil)
 	instance *InMemoryLoginAttemptRepository
 	once     sync.Once
@@ -30,6 +35,7 @@ type InMemoryLoginAttemptRepository struct {
 //	*InMemoryLoginAttemptStore: The singleton instance of InMemoryLoginAttemptStore.
 func GetInMemoryLoginRepository() *InMemoryLoginAttemptRepository {
 	once.Do(func() {
+		logger.Debug(module, "Creating new instance of InMemoryLoginAttemptRepository")
 		instance = &InMemoryLoginAttemptRepository{
 			attempts: make(map[string][]*user.UserLoginAttempt),
 		}
@@ -40,6 +46,7 @@ func GetInMemoryLoginRepository() *InMemoryLoginAttemptRepository {
 // ResetInMemoryLoginAttemptStore resets the in-memory store for testing purposes.
 func ResetInMemoryLoginAttemptStore() {
 	if instance != nil {
+		logger.Debug(module, "Resetting instance")
 		instance.mu.Lock()
 		instance.attempts = make(map[string][]*user.UserLoginAttempt)
 		instance.mu.Unlock()

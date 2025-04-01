@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/identity/config"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
@@ -14,7 +15,18 @@ const (
 	testUserID    string = "user_id"
 )
 
+func setup() {
+	config.GetServerConfig().Logger().SetLevel("DEBUG")
+}
+
+func tearDown() {
+	config.GetServerConfig().Logger().SetLevel("INFO")
+}
+
 func TestInMemorySessionRepository_SaveSession(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	t.Run("Success", func(t *testing.T) {
 		sessionData := getTestSessionData()
 		sessionRepo := NewInMemorySessionRepository()
@@ -46,6 +58,9 @@ func TestInMemorySessionRepository_SaveSession(t *testing.T) {
 }
 
 func TestInMemorySessionRepository_GetSessionByID(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	t.Run("Success", func(t *testing.T) {
 		sessionData := getTestSessionData()
 		sessionRepo := NewInMemorySessionRepository()
@@ -54,7 +69,7 @@ func TestInMemorySessionRepository_GetSessionByID(t *testing.T) {
 		err := sessionRepo.SaveSession(sessionData)
 		assert.NoError(t, err)
 
-		// Assert session is present in repositoru
+		// Assert session is present in repository
 		existingSession, err := sessionRepo.GetSessionByID(testSessionID)
 		assert.NoError(t, err)
 		assert.NotNil(t, existingSession)
@@ -69,6 +84,9 @@ func TestInMemorySessionRepository_GetSessionByID(t *testing.T) {
 }
 
 func TestInMemorySessionRepository_UpdateSessionByID(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	t.Run("Success", func(t *testing.T) {
 		sessionData := getTestSessionData()
 		sessionRepo := NewInMemorySessionRepository()
@@ -102,6 +120,9 @@ func TestInMemorySessionRepository_UpdateSessionByID(t *testing.T) {
 }
 
 func TestInMemorySessionRepository_DeleteSessionByID(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	sessionData := getTestSessionData()
 	sessionRepo := NewInMemorySessionRepository()
 
@@ -118,6 +139,9 @@ func TestInMemorySessionRepository_DeleteSessionByID(t *testing.T) {
 }
 
 func TestInMemorySessionRepository_CleanupExpiredSessions(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	t.Run("Removes expired sessions", func(t *testing.T) {
 		sessionRepo := NewInMemorySessionRepository()
 

@@ -3,15 +3,19 @@ package repository
 import (
 	"sync"
 
+	"github.com/vigiloauth/vigilo/identity/config"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 var (
+	logger                       = config.GetServerConfig().Logger()
 	_        user.UserRepository = (*InMemoryUserRepository)(nil)
 	instance *InMemoryUserRepository
 	once     sync.Once
 )
+
+const module = "InMemoryUserRepository"
 
 // InMemoryUserRepository implements the UserStore interface using an in-memory map.
 type InMemoryUserRepository struct {
@@ -26,6 +30,7 @@ type InMemoryUserRepository struct {
 //	*InMemoryUserRepository: The singleton instance of InMemoryUserRepository.
 func GetInMemoryUserRepository() *InMemoryUserRepository {
 	once.Do(func() {
+		logger.Debug(module, "Creating new instance of InMemoryUserRepository")
 		instance = &InMemoryUserRepository{data: make(map[string]*user.User)}
 	})
 	return instance
@@ -34,6 +39,7 @@ func GetInMemoryUserRepository() *InMemoryUserRepository {
 // ResetInMemoryUserRepository resets the in-memory user store for testing purposes.
 func ResetInMemoryUserRepository() {
 	if instance != nil {
+		logger.Debug(module, "Resetting instance")
 		instance.mu.Lock()
 		instance.data = make(map[string]*user.User)
 		instance.mu.Unlock()
@@ -54,7 +60,8 @@ func (c *InMemoryUserRepository) AddUser(user *user.User) error {
 	defer c.mu.Unlock()
 
 	if _, ok := c.data[user.ID]; ok {
-		return errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
+		logger.Debug(module, "AddUser: user already exists with the given ID=%s", user.ID)
+		return errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided ID")
 	}
 
 	c.data[user.ID] = user
@@ -76,6 +83,7 @@ func (c *InMemoryUserRepository) GetUserByID(userID string) *user.User {
 
 	user, found := c.data[userID]
 	if !found {
+		logger.Debug(module, "GetUserByID: User not found with the given ID=%s", userID)
 		return nil
 	}
 
@@ -112,6 +120,7 @@ func (c *InMemoryUserRepository) UpdateUser(user *user.User) error {
 	defer c.mu.Unlock()
 
 	if _, ok := c.data[user.ID]; !ok {
+		logger.Debug(module, "UpdateUser: User not found with the given ID=%s", user.ID)
 		return errors.New(
 			errors.ErrCodeUserNotFound,
 			"user does not exist with the provided ID",

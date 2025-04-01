@@ -5,11 +5,15 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	cookies "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 var _ cookies.HTTPCookieService = (*HTTPCookieServiceImpl)(nil)
+var logger = config.GetServerConfig().Logger()
+
+const module = "HTTPCookieService"
 
 type HTTPCookieServiceImpl struct {
 	sessionCookieName string
@@ -35,6 +39,11 @@ func NewHTTPCookieServiceImpl() *HTTPCookieServiceImpl {
 //   - error: An error if setting the cookie fails.
 func (c *HTTPCookieServiceImpl) SetSessionCookie(w http.ResponseWriter, token string, expirationTime time.Duration) {
 	shouldUseHTTPS := config.GetServerConfig().ForceHTTPS()
+	logger.Info(module, "SetSessionCookie: Setting session cookie with name=[%s], expiration=[%s], token[%s]",
+		common.TruncateSensitive(c.sessionCookieName),
+		expirationTime,
+		common.TruncateSensitive(token),
+	)
 	http.SetCookie(w, &http.Cookie{
 		Name:     c.sessionCookieName,
 		Value:    token,
@@ -51,6 +60,7 @@ func (c *HTTPCookieServiceImpl) SetSessionCookie(w http.ResponseWriter, token st
 //
 //   - w http.ResponseWriter: The HTTP response writer.
 func (c *HTTPCookieServiceImpl) ClearSessionCookie(w http.ResponseWriter) {
+	logger.Info(module, "ClearSessionCookie: Clearing session cookie for [%s]", common.TruncateSensitive(c.sessionCookieName))
 	http.SetCookie(w, &http.Cookie{
 		Name:     c.sessionCookieName,
 		Value:    "",
@@ -73,7 +83,8 @@ func (c *HTTPCookieServiceImpl) ClearSessionCookie(w http.ResponseWriter) {
 func (c *HTTPCookieServiceImpl) GetSessionToken(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(c.sessionCookieName)
 	if err != nil {
-		return "", errors.Wrap(err, errors.ErrCodeMissingHeader, "session cookie not found")
+		logger.Error(module, "GetSessionToken: Failed to retrieve session token: %v", err)
+		return "", errors.Wrap(err, errors.ErrCodeMissingHeader, "session token not found")
 	}
 	return cookie.Value, nil
 }
@@ -81,6 +92,7 @@ func (c *HTTPCookieServiceImpl) GetSessionToken(r *http.Request) (string, error)
 func (c *HTTPCookieServiceImpl) GetSessionCookie(r *http.Request) (*http.Cookie, error) {
 	cookie, err := r.Cookie(c.sessionCookieName)
 	if err != nil {
+		logger.Error(module, "GetSessionCookie: Failed to retrieve session cookie: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeMissingHeader, "failed to retrieve cookie from request")
 	}
 	return cookie, nil

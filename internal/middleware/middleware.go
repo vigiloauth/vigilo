@@ -11,7 +11,12 @@ import (
 	web "github.com/vigiloauth/vigilo/internal/web"
 )
 
-const maxRequestsForStrictRateLimiting int = 3
+var logger = config.GetServerConfig().Logger()
+
+const (
+	module                           string = "middleware"
+	maxRequestsForStrictRateLimiting int    = 3
+)
 
 // Middleware encapsulates middleware functionalities.
 type Middleware struct {
@@ -43,14 +48,17 @@ func NewMiddleware(tokenService token.TokenService) *Middleware {
 func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger.Info(module, "AuthMiddleware: Processing request method=%s url=%s", r.Method, r.URL.Path)
 			tokenString, err := web.ExtractBearerToken(r)
 			if err != nil {
+				logger.Warn(module, "AuthMiddleware: Failed to extract bearer token: %v", err)
 				wrappedErr := errors.Wrap(err, "", "failed to extract bearer token from authorization header")
 				web.WriteError(w, wrappedErr)
 				return
 			}
 
 			if err := m.tokenService.ValidateToken(tokenString); err != nil {
+				logger.Warn(module, "AuthMiddleware: Failed to validate token: %s", err)
 				wrappedErr := errors.Wrap(err, "", "an error occurred validating the access token")
 				web.WriteError(w, wrappedErr)
 				return
@@ -58,11 +66,13 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 
 			_, err = m.tokenService.ParseToken(tokenString)
 			if err != nil {
+				logger.Warn(module, "AuthMiddleware: Failed to parse token: %s", err)
 				wrappedErr := errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse token")
 				web.WriteError(w, wrappedErr)
 				return
 			}
 
+			logger.Info(module, "AuthMiddleware: Token validated successfully, passing request to next handler")
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -71,10 +81,13 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 // RedirectToHTTPS is a middleware that redirects HTTP requests to HTTPS.
 func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info(module, "RedirectToHTTPS: Processing request method=%s url=%s", r.Method, r.URL.Path)
 		if r.TLS == nil {
+			logger.Info(module, "RedirectToHTTPS: Redirecting request to HTTPS")
 			redirectToHttps(w, r)
 			return
 		}
+		logger.Info(module, "RedirectToHTTPS: Passing request to next handler")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -82,11 +95,14 @@ func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 // RateLimit is a middleware that limits the number of requests based on the rate limiter.
 func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info(module, "RateLimit: Applying rate limiting to request method=%s url=%s", r.Method, r.URL.Path)
 		if !m.rateLimiter.Allow() {
+			logger.Warn(module, "RateLimit: Rate limit exceeded for url=%s", r.URL.Path)
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "too many requests")
 			web.WriteError(w, err)
 			return
 		}
+		logger.Info(module, "RateLimit: Passing request to next handler")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -95,11 +111,15 @@ func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 	strictLimiter := NewRateLimiter(maxRequestsForStrictRateLimiting)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info(module, "StrictRateLimit: Applying strict rate limiting to request method=%s url=%s", r.Method, r.URL.Path)
 		if !strictLimiter.Allow() {
+			logger.Warn(module, "StrictRateLimit: Strict rate limit exceeded for url=%s", r.URL.Path)
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "rate limit exceeded for sensitive operations")
 			web.WriteError(w, err)
 			return
 		}
+
+		logger.Info(module, "StrictRateLimit: Passing request to next handler")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -107,12 +127,15 @@ func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger.Info(module, "RequireRequestMethod: Validating request method=%s for url=%s", r.Method, r.URL.Path)
 			if r.Method != requestMethod {
+				logger.Warn(module, "RequireRequestMethod: Invalid request method received for url=%s", r.URL.Path)
 				err := errors.New(errors.ErrCodeMethodNotAllowed, fmt.Sprintf("method '%s' not allowed for this request", r.Method))
 				web.WriteError(w, err)
 				return
 			}
 
+			logger.Info(module, "RequireRequestMethod: Passing request to next handler")
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -123,18 +146,22 @@ func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handle
 func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			logger.Info(module, "RequiresContentType: Validating content type=%s for url=%s", contentType, r.URL.Path)
 			if r.Method == http.MethodOptions {
+				logger.Info(module, "RequiresContentType: Passing request to next handler")
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			if r.Method == http.MethodGet || r.Method == http.MethodHead {
+				logger.Info(module, "RequiresContentType: Passing request to next handler")
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			ct := r.Header.Get("Content-Type")
 			if ct == "" {
+				logger.Warn(module, "RequiresContentType: Content-Type header is missing in request")
 				err := errors.New(errors.ErrCodeInvalidContentType, "Content-Type header is required")
 				web.WriteError(w, err)
 				return
@@ -145,10 +172,12 @@ func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) 
 					errors.ErrCodeInvalidContentType,
 					fmt.Sprintf("unsupported Content-Type, expected: %s", contentType),
 				)
+				logger.Warn(module, "RequiresContentType: Unsupported Content-Type=%s received for request", contentType)
 				web.WriteError(w, err)
 				return
 			}
 
+			logger.Info(module, "RequiresContentType: Passing request to next handler")
 			next.ServeHTTP(w, r)
 		})
 	}

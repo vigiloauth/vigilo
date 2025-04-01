@@ -1,9 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/vigiloauth/vigilo/internal/common"
 )
 
 // TokenConfig holds the configuration for JWT token generation and validation.
@@ -13,6 +15,8 @@ type TokenConfig struct {
 	signingMethod        jwt.SigningMethod // Signing method used for JWT tokens.
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
+	logger               *Logger
+	module               string
 }
 
 // TokenOption is a function type used to configure JWTConfig options.
@@ -39,11 +43,20 @@ func NewTokenConfig(opts ...TokenOption) *TokenConfig {
 		secret:         defaultSecret,
 		expirationTime: defaultExpirationTime,
 		signingMethod:  jwt.SigningMethodHS256,
+		logger:         GetLogger(),
+		module:         "TokenConfig",
 	}
 
-	for _, opt := range opts {
-		opt(config)
+	if len(opts) > 0 {
+		config.logger.Info(config.module, "Creating token config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(config)
+		}
+	} else {
+		config.logger.Info(config.module, "Using default token config")
 	}
+
+	config.logger.Debug(config.module, "\n\nToken config parameters: %v", config.String())
 
 	return config
 }
@@ -59,6 +72,7 @@ func NewTokenConfig(opts ...TokenOption) *TokenConfig {
 //	JWTOption: A function that configures the secret key.
 func WithSecret(secret string) TokenOption {
 	return func(c *TokenConfig) {
+		c.logger.Debug(c.module, "Configuring TokenConfig with given secret=[%s]", common.TruncateSensitive(secret))
 		c.secret = secret
 	}
 }
@@ -74,18 +88,21 @@ func WithSecret(secret string) TokenOption {
 //	JWTOption: A function that configures the expiration time.
 func WithExpirationTime(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
+		c.logger.Debug(c.module, "Configuring TokenConfig with expiration time=[%s]", duration)
 		c.expirationTime = duration
 	}
 }
 
 func WithAccessTokenDuration(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
+		c.logger.Debug(c.module, "Configuring TokenConfig with access token duration=[%s]", duration)
 		c.accessTokenDuration = duration
 	}
 }
 
 func WithRefreshTokenDuration(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
+		c.logger.Debug(c.module, "Configuring TokenConfig with refresh token duration=[%s]", duration)
 		c.refreshTokenDuration = duration
 	}
 }
@@ -101,6 +118,7 @@ func WithRefreshTokenDuration(duration time.Duration) TokenOption {
 //	JWTOption: A function that configures the signing method.
 func WithSigningMethod(method jwt.SigningMethod) TokenOption {
 	return func(c *TokenConfig) {
+		c.logger.Debug(c.module, "Configuring TokenConfig with signing method=[%s]", method.Alg())
 		c.signingMethod = method
 	}
 }
@@ -138,4 +156,17 @@ func (j *TokenConfig) AccessTokenDuration() time.Duration {
 //	jwt.SigningMethod: The signing method.
 func (j *TokenConfig) SigningMethod() jwt.SigningMethod {
 	return j.signingMethod
+}
+
+func (j *TokenConfig) String() string {
+	return fmt.Sprintf(
+		"\n\tSigningMethod: %s\n"+
+			"\tExpirationTime: %s\n"+
+			"\tRefreshTokenDuration: %s\n"+
+			"\tAccessTokenDuration: %s\n",
+		j.expirationTime,
+		j.signingMethod.Alg(),
+		j.refreshTokenDuration,
+		j.accessTokenDuration,
+	)
 }

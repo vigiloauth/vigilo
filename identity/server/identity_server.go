@@ -34,10 +34,17 @@ type VigiloIdentityServer struct {
 	tlsConfig    *tls.Config
 	httpServer   *http.Server
 	middleware   *middleware.Middleware
+
+	logger *config.Logger
+	module string
 }
 
 // NewVigiloIdentityServer creates and initializes a new instance of IdentityServer.
 func NewVigiloIdentityServer() *VigiloIdentityServer {
+	module := "VigiloIdentityServer"
+	logger := config.GetLogger()
+	logger.Info(module, "Initializing Vigilo Identity Server")
+
 	container := NewServiceContainer()
 	serverConfig := config.GetServerConfig()
 
@@ -52,11 +59,16 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 		tlsConfig:     container.tlsConfig,
 		httpServer:    container.httpServer,
 		middleware:    container.middleware,
+		logger:        logger,
+		module:        module,
 	}
 
 	server.setupRoutes()
 	if serverConfig.ForceHTTPS() {
+		server.logger.Info(server.module, "Vigilo Identity Server is running on HTTPS")
 		server.router.Use(server.middleware.RedirectToHTTPS)
+	} else {
+		server.logger.Warn(server.module, "Vigilo Identity Server is running on HTTP. It is recommended to enable HTTPS in production environments")
 	}
 
 	return server

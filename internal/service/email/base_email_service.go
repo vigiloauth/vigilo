@@ -4,18 +4,21 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/smtp"
 	"sync"
 	"text/template"
 	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 var _ email.EmailService = (*BaseEmailService)(nil)
+var logger = config.GetServerConfig().Logger()
+
+const baseEmailService = "BaseEmailService"
 
 // BaseEmailService provides common email functionality.
 type BaseEmailService struct {
@@ -35,24 +38,28 @@ type BaseEmailService struct {
 func (es *BaseEmailService) Initialize() error {
 	smtpConfig := config.GetServerConfig().SMTPConfig()
 	if smtpConfig == nil {
-		log.Println("Warning: SMTP configuration is not set, email functionality disabled")
+		logger.Warn(baseEmailService, "SMTP Configuration is not set, email functionality is disabled")
 		return nil
 	}
 
 	if err := validateSMTPConfig(smtpConfig); err != nil {
+		logger.Error(baseEmailService, "Initialize: Failed to validate SMTP credentials: %v", err)
 		return errors.Wrap(err, errors.ErrCodeValidationError, "failed to validate SMTP Credentials")
 	}
 
 	if es.getTemplateFunc == nil {
+		logger.Debug(baseEmailService, "Initialize: No email template function provided, defaulting to default template function")
 		es.getTemplateFunc = es.getDefaultTemplate
 	}
 
 	if es.shouldRetryFunc == nil {
+		logger.Debug(baseEmailService, "Initialize: No retry function provided, defaulting to default template function")
 		es.shouldRetryFunc = es.shouldRetryEmail
 	}
 
 	es.smtpConfig = smtpConfig
 	if err := es.loadEmailTemplate(); err != nil {
+		logger.Error(baseEmailService, "Initialize: Failed to load email template: %v", err)
 		return errors.Wrap(err, errors.ErrCodeEmailTemplateParseFailed, "failed to load email template")
 	}
 
@@ -73,6 +80,7 @@ func (es *BaseEmailService) SendEmail(request email.EmailRequest) error {
 		es.requestMutex.Lock()
 		defer es.requestMutex.Unlock()
 		es.retryEmail(&request)
+		logger.Error(baseEmailService, "SendEmail: Adding failed email delivery to retry queue: %v", err)
 		return errors.Wrap(
 			err, errors.ErrCodeEmailDeliveryFailed,
 			"failed to deliver email, added to retry queue",
@@ -94,6 +102,7 @@ func (es *BaseEmailService) SendEmail(request email.EmailRequest) error {
 func (es *BaseEmailService) SetTemplate(tmplContent string) error {
 	tmpl, err := template.New("email").Parse(tmplContent)
 	if err != nil {
+		logger.Error(baseEmailService, "SetTemplate: Failed to parse template content: %v", err)
 		return errors.Wrap(
 			err, errors.ErrCodeEmailTemplateParseFailed,
 			"failed to parse email template",
@@ -112,17 +121,21 @@ func (es *BaseEmailService) SetTemplate(tmplContent string) error {
 func (es *BaseEmailService) TestConnection() error {
 	client, err := es.createClient()
 	if err != nil {
+		logger.Error(baseEmailService, "TestConnection: Failed to create SMTP client: %v", err)
 		return errors.Wrap(
 			err, errors.ErrCodeSMTPServerConnectionFailed,
 			"failed to create SMTP Client",
 		)
 	}
 	defer client.Quit()
+
+	logger.Info(baseEmailService, "TestConnection: Successfully connected to SMTP server")
 	return nil
 }
 
 // ProcessQueue processes the email retry queue.
 func (es *BaseEmailService) ProcessQueue() {
+	logger.Info(baseEmailService, "ProcessQueue: Processing email queue")
 	es.requestMutex.Lock()
 	defer es.requestMutex.Unlock()
 
@@ -142,6 +155,7 @@ func (es *BaseEmailService) ProcessQueue() {
 		}
 	}
 
+	logger.Info(baseEmailService, "ProcessQueue: Added %d requests to the queue", len(remainingRequests))
 	es.requests = remainingRequests
 }
 
@@ -151,6 +165,7 @@ func (es *BaseEmailService) ProcessQueue() {
 //
 //	interval time.Duration: The interval between queue processing.
 func (es *BaseEmailService) StartQueueProcessor(interval time.Duration) {
+	logger.Info(baseEmailService, "StartQueueProcess: Starting queue processor with interval=[%s]", interval)
 	ticker := time.NewTicker(interval)
 	go func() {
 		for range ticker.C {
@@ -175,7 +190,9 @@ func (es *BaseEmailService) GetQueueStatus() (int, map[string]int) {
 		recipients[request.Recipient] = request.RetryCount
 	}
 
-	return len(es.requests), recipients
+	totalRequests := len(es.requests)
+	logger.Info(baseEmailService, "GetQueueStatus: Total Requests in the queue=[%d]", totalRequests)
+	return totalRequests, recipients
 }
 
 // ClearQueue clears the email queue.
@@ -183,6 +200,7 @@ func (es *BaseEmailService) ClearQueue() {
 	es.requestMutex.Lock()
 	defer es.requestMutex.Unlock()
 	es.requests = []email.EmailRequest{}
+	logger.Info(baseEmailService, "ClearQueue: Retry queue has been cleared")
 }
 
 // sendEmail sends an email using the configured SMTP settings.
@@ -196,11 +214,13 @@ func (es *BaseEmailService) ClearQueue() {
 //	error: An error if sending the email fails.
 func (es *BaseEmailService) sendEmail(request email.EmailRequest) error {
 	if es.template == nil {
+		logger.Error(baseEmailService, "Email template is empty")
 		return errors.New(errors.ErrCodeEmptyInput, "'email template' cannot be empty")
 	}
 
 	var emailBody bytes.Buffer
 	if err := es.template.Execute(&emailBody, request.TemplateData); err != nil {
+		logger.Error(baseEmailService, "Failed to render email template: %v", err)
 		return errors.Wrap(
 			err, errors.ErrCodeTemplateRenderingFailed,
 			"failed to render email template",
@@ -208,6 +228,7 @@ func (es *BaseEmailService) sendEmail(request email.EmailRequest) error {
 	}
 
 	message := es.buildMessage(request, emailBody)
+	logger.Info(baseEmailService, "Attempting to send email with encryption to recipient=[%s]", common.TruncateSensitive(request.Recipient))
 	return es.sendWithEncryption(request.Recipient, message)
 }
 
@@ -225,6 +246,10 @@ func (es *BaseEmailService) buildMessage(request email.EmailRequest, emailBody b
 	// Create header
 	from := es.smtpConfig.FromAddress()
 	if es.smtpConfig.Credentials() != nil && es.smtpConfig.Credentials().Username() != "" {
+		logger.Debug(baseEmailService, "Adding SMTP credentials to header, from=[%s], fromAddress=[%s]",
+			common.TruncateSensitive(es.smtpConfig.FromName()),
+			common.TruncateSensitive(es.smtpConfig.FromAddress()),
+		)
 		from = fmt.Sprintf("%s <%s>", es.smtpConfig.FromName(), es.smtpConfig.FromAddress())
 	}
 
@@ -235,6 +260,7 @@ func (es *BaseEmailService) buildMessage(request email.EmailRequest, emailBody b
 	message += "Content-Type: text/html; charset=UTF-8\r\n"
 
 	if es.smtpConfig.ReplyTo() != "" {
+		logger.Debug(baseEmailService, "Adding reply-to=[%s] to email", common.TruncateSensitive(es.smtpConfig.ReplyTo()))
 		message += fmt.Sprintf("Reply-To: %s\r\n", es.smtpConfig.ReplyTo())
 	}
 
@@ -272,51 +298,60 @@ func (es *BaseEmailService) sendWithEncryption(recipient, message string) error 
 		tlsConfig := &tls.Config{ServerName: es.smtpConfig.Server()}
 		conn, err := tls.Dial("tcp", serverAddress, tlsConfig)
 		if err != nil {
+			logger.Error(baseEmailService, "Failed to connect network address=[%s]: %v", common.SanitizeURL(serverAddress), err)
 			return errors.Wrap(err, errors.ErrCodeTLSConnectionFailed, "failed to connect to given network address")
 		}
 		defer conn.Close()
 
 		client, err := smtp.NewClient(conn, es.smtpConfig.Server())
 		if err != nil {
+			logger.Error(baseEmailService, "Failed to create a new SMTP client: %v", err)
 			return errors.Wrap(err, errors.ErrCodeSMTPClientCreationFailed, "failed to create a new SMTP client")
 		}
 		defer client.Quit()
 
 		if err := es.authenticateClient(client); err != nil {
+			logger.Error(baseEmailService, "Failed to authenticate SMTP client: %v", err)
 			return errors.Wrap(err, errors.ErrCodeSMTPAuthenticationFailed, "failed to authenticate client")
 		}
 
 		// Set sender and recipient
 		if err = client.Mail(fromAddress); err != nil {
+			logger.Error(baseEmailService, "Failed to initiate a mail transaction: %v", err)
 			return errors.Wrap(err, errors.ErrCodeSMTPServerError, "failed to initiate a mail transaction")
 		}
 
 		if err = client.Rcpt(recipient); err != nil {
-			return errors.Wrap(err, errors.ErrCodeSMTPServerError, "failed to initiate `RCPT` command to the recipient")
+			logger.Error(baseEmailService, "Failed to initiate RCPT command to recipient=[%s]: %v", common.TruncateSensitive(recipient), err)
+			return errors.Wrap(err, errors.ErrCodeSMTPServerError, "failed to initiate 'RCPT' command to the recipient")
 		}
 
 		// Send message
 		w, err := client.Data()
 		if err != nil {
-			return errors.Wrap(err, errors.ErrCodeSMTPServerError, "failed to issue `DATA` command to the server")
+			logger.Error(baseEmailService, "Failed to issue DATA command to the server=[%s]: %v", common.TruncateSensitive(serverAddress), err)
+			return errors.Wrap(err, errors.ErrCodeSMTPServerError, "failed to issue 'DATA' command to the server")
 		}
 
 		_, err = w.Write(messageBytes)
 		if err != nil {
+			logger.Error(baseEmailService, "Failed to write message: %v", err)
 			return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to write message")
 		}
 
 		err = w.Close()
 		if err != nil {
-			return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to close `io.WriterCloser`")
+			logger.Error(baseEmailService, "Failed to close io.WriterCloser: %v", err)
+			return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to close 'io.WriterCloser'")
 		}
 
 		return nil
 
 	default:
+		logger.Error(baseEmailService, "Failed to send email with unsupported encryption=[%s]", es.smtpConfig.Encryption())
 		return errors.New(
 			errors.ErrCodeUnsupportedEncryptionType,
-			fmt.Sprintf("`%s` is unsupported", string(es.smtpConfig.Encryption())))
+			fmt.Sprintf("'%s' is unsupported", string(es.smtpConfig.Encryption())))
 	}
 }
 
@@ -338,6 +373,7 @@ func (es *BaseEmailService) authenticateClient(smtpClient *smtp.Client) error {
 			es.smtpConfig.Server(),
 		)
 		if err := smtpClient.Auth(auth); err != nil {
+			logger.Error(baseEmailService, "Failed to authenticate the SMTP client: %v", err)
 			return errors.Wrap(
 				err, errors.ErrCodeSMTPAuthenticationFailed,
 				"failed to authenticate SMTP client",
@@ -380,7 +416,7 @@ func (es *BaseEmailService) loadEmailTemplate() error {
 //	error: If there is an error validating the configuration, otherwise nil.
 func validateSMTPConfig(smtpConfig *config.SMTPConfig) error {
 	if smtpConfig.Server() == "" {
-		return errors.New(errors.ErrCodeEmptyInput, "invalid or empty `SMTP Server`")
+		return errors.New(errors.ErrCodeEmptyInput, "invalid or empty 'SMTP Server'")
 	}
 
 	if smtpConfig.Port() == 0 {

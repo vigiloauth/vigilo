@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -25,6 +24,7 @@ type ServerConfig struct {
 	smtpConfig     *SMTPConfig     // SMTP configuration.
 	passwordConfig *PasswordConfig // Password configuration.
 	logger         *Logger         // Logging Configuration
+	module         string
 }
 
 // ServerConfigOptions is a function type used to configure ServerConfig options.
@@ -79,10 +79,18 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		requestsPerMinute: defaultRequestsPerMinute,
 		sessionCookieName: defaultSessionCookieName,
 		logger:            GetLogger(),
+		module:            "ServerConfig",
 	}
 
-	for _, opt := range opts {
-		opt(sc)
+	sc.logger.Info(sc.module, "Initializing server config")
+
+	if len(opts) > 0 {
+		sc.logger.Info(sc.module, "Creating server config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(sc)
+		}
+	} else {
+		sc.logger.Info(sc.module, "Using default server config")
 	}
 
 	serverConfigInstance = sc // Set the singleton instance.
@@ -100,6 +108,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 //	ServerConfigOptions: A function that configures the port.
 func WithPort(port int) ServerConfigOptions {
 	return func(sc *ServerConfig) {
+		sc.logger.Info(sc.module, "Configuring server to run on port [%d]", port)
 		sc.port = port
 	}
 }
@@ -373,7 +382,7 @@ func (sc *ServerConfig) LoginConfig() *LoginConfig {
 //	Prints a warning to standard output if the configuration is not set.
 func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
 	if sc.smtpConfig == nil {
-		fmt.Println("Warning: SMTP configuration is not set")
+		sc.logger.Warn(sc.module, "SMTP Configuration is not set, email functionality is disabled")
 		return nil
 	}
 	return sc.smtpConfig

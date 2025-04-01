@@ -4,10 +4,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vigiloauth/vigilo/identity/config"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 )
 
+const module = "InMemoryAuthorizationCodeRepository"
+
 var (
+	logger                                     = config.GetServerConfig().Logger()
 	_        authz.AuthorizationCodeRepository = (*InMemoryAuthorizationCodeRepository)(nil)
 	instance *InMemoryAuthorizationCodeRepository
 	once     sync.Once
@@ -32,6 +36,7 @@ type codeEntry struct {
 //	*InMemoryAuthorizationCodeStore: The singleton instance of InMemoryAuthorizationCodeRepository.
 func GetInMemoryAuthorizationCodeRepository() *InMemoryAuthorizationCodeRepository {
 	once.Do(func() {
+		logger.Debug(module, "Creating new instance of InMemoryAuthorizationCodeRepository")
 		instance = &InMemoryAuthorizationCodeRepository{
 			codes: make(map[string]codeEntry),
 		}
@@ -84,11 +89,13 @@ func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(code string) 
 
 	entry, exists := s.codes[code]
 	if !exists {
+		logger.Debug(module, "GetAuthorizationCode: Code=%s does not exist", code)
 		return nil, false, nil
 	}
 
 	// Check if code has expired
 	if time.Now().After(entry.ExpiresAt) {
+		logger.Warn(module, "GetAuthorizationCode: Authorization code is expired")
 		return nil, false, nil
 	}
 
@@ -118,6 +125,7 @@ func (s *InMemoryAuthorizationCodeRepository) DeleteAuthorizationCode(code strin
 //
 //	error: An error if the cleanup fails, nil otherwise.
 func (s *InMemoryAuthorizationCodeRepository) CleanupExpiredAuthorizationCodes() error {
+	logger.Info(module, "Starting process to cleanup expired authorization codes")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -128,6 +136,7 @@ func (s *InMemoryAuthorizationCodeRepository) CleanupExpiredAuthorizationCodes()
 		}
 	}
 
+	logger.Info(module, "Cleanup process finished")
 	return nil
 }
 

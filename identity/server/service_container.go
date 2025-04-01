@@ -101,6 +101,9 @@ type ServiceContainer struct {
 	middleware *middleware.Middleware
 	tlsConfig  *tls.Config
 	httpServer *http.Server
+
+	logger *config.Logger
+	module string
 }
 
 // NewServiceContainer creates a new ServiceContainer instance with all services initialized.
@@ -110,16 +113,20 @@ type ServiceContainer struct {
 //
 //	*ServiceContainer: A new ServiceContainer instance.
 func NewServiceContainer() *ServiceContainer {
-	container := &ServiceContainer{}
-	container.initializeInMemoryStores()
+	container := &ServiceContainer{
+		logger: config.GetLogger(),
+		module: "ServiceContainer",
+	}
+	container.initializeInMemoryRepositories()
 	container.initializeServices()
 	container.initializeHandlers()
 	container.initializeServerConfigs()
 	return container
 }
 
-// initializeInMemoryStores initializes the in-memory data stores used by the service container.
-func (c *ServiceContainer) initializeInMemoryStores() {
+// initializeInMemoryRepositories initializes the in-memory data stores used by the service container.
+func (c *ServiceContainer) initializeInMemoryRepositories() {
+	c.logger.Info(c.module, "Initializing in memory repositories")
 	c.tokenRepo = tokenRepo.GetInMemoryTokenRepository()
 	c.userRepo = userRepo.GetInMemoryUserRepository()
 	c.loginAttemptRepo = loginRepo.GetInMemoryLoginRepository()
@@ -131,37 +138,49 @@ func (c *ServiceContainer) initializeInMemoryStores() {
 
 // initializeServices defines getter methods for lazy service initialization**
 func (c *ServiceContainer) initializeServices() {
+	c.logger.Info(c.module, "Initializing Services")
 	c.httpCookieServiceInit = func() cookie.HTTPCookieService {
+		c.logger.Debug(c.module, "Initializing HTTPCookieService")
 		return cookieService.NewHTTPCookieServiceImpl()
 	}
 	c.tokenServiceInit = func() token.TokenService {
+		c.logger.Debug(c.module, "Initializing TokenService")
 		return tokenService.NewTokenServiceImpl(c.tokenRepo)
 	}
 	c.sessionServiceInit = func() session.SessionService {
+		c.logger.Debug(c.module, "Initializing SessionService")
 		return sessionService.NewSessionServiceImpl(c.getTokenService(), c.sessionRepo, c.getHTTPSessionCookieService())
 	}
 	c.loginAttemptServiceInit = func() login.LoginAttemptService {
+		c.logger.Debug(c.module, "Initializing LoginAttemptService")
 		return loginService.NewLoginAttemptServiceImpl(c.userRepo, c.loginAttemptRepo)
 	}
 	c.userServiceInit = func() users.UserService {
+		c.logger.Debug(c.module, "Initializing UserService")
 		return userService.NewUserServiceImpl(c.userRepo, c.getTokenService(), c.getLoginAttemptService())
 	}
 	c.passwordResetServiceInit = func() password.PasswordResetService {
+		c.logger.Debug(c.module, "Initializing PasswordResetService")
 		return passwordService.NewPasswordResetService(c.getTokenService(), c.userRepo, c.getPasswordResetEmailService())
 	}
 	c.clientServiceInit = func() client.ClientService {
+		c.logger.Debug(c.module, "Initializing ClientService")
 		return clientService.NewClientServiceImpl(c.clientRepo, c.getTokenService())
 	}
 	c.consentServiceInit = func() userConsent.UserConsentService {
+		c.logger.Debug(c.module, "Initializing UserConsentService")
 		return consentService.NewUserConsentServiceImpl(c.consentRepo, c.userRepo, c.getSessionService(), c.getClientService(), c.getAuthzCodeService())
 	}
 	c.authzCodeServiceInit = func() authzCode.AuthorizationCodeService {
+		c.logger.Debug(c.module, "Initializing AuthorizationCodeService")
 		return authzCodeService.NewAuthorizationCodeServiceImpl(c.authzCodeRepo, c.getUserService(), c.getClientService())
 	}
 	c.authorizationServiceInit = func() authz.AuthorizationService {
+		c.logger.Debug(c.module, "Initializing AuthorizationService")
 		return authzService.NewAuthorizationServiceImpl(c.getAuthzCodeService(), c.getConsentService(), c.getTokenService(), c.getClientService())
 	}
 	c.passwordResetEmailServiceInit = func() email.EmailService {
+		c.logger.Debug(c.module, "Initializing PasswordResetEmailService")
 		service, err := emailService.NewPasswordResetEmailService()
 		if err != nil {
 			panic(err)
@@ -169,6 +188,7 @@ func (c *ServiceContainer) initializeServices() {
 		return service
 	}
 	c.emailNotificationServiceInit = func() email.EmailService {
+		c.logger.Debug(c.module, "Initializing EmailNotificationService")
 		service, err := emailService.NewEmailNotificationService()
 		if err != nil {
 			panic(err)
@@ -179,6 +199,7 @@ func (c *ServiceContainer) initializeServices() {
 
 // initializeHandlers initializes the HTTP handlers used by the service container.
 func (c *ServiceContainer) initializeHandlers() {
+	c.logger.Info(c.module, "Initializing handlers")
 	c.userHandler = handlers.NewUserHandler(c.getUserService(), c.getPasswordResetService(), c.getSessionService())
 	c.clientHandler = handlers.NewClientHandler(c.getClientService())
 	c.authHandler = handlers.NewAuthenticationHandler(c.getTokenService(), c.getClientService())
@@ -189,6 +210,7 @@ func (c *ServiceContainer) initializeHandlers() {
 // initializeServerConfigs initializes the server-related configurations,
 // including middleware, TLS configuration, and the HTTP server.
 func (c *ServiceContainer) initializeServerConfigs() {
+	c.logger.Info(c.module, "Initializing server configurations")
 	c.middleware = middleware.NewMiddleware(c.getTokenService())
 	c.tlsConfig = initializeTLSConfig()
 	c.httpServer = initializeHTTPServer(c.tlsConfig)

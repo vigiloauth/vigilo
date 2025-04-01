@@ -4,16 +4,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
 
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 )
 
 var (
+	logger                             = config.GetServerConfig().Logger()
 	_        session.SessionRepository = (*InMemorySessionRepository)(nil)
 	instance *InMemorySessionRepository
 	once     sync.Once
 )
+
+const module = "InMemorySessionRepository"
 
 type InMemorySessionRepository struct {
 	data map[string]*session.SessionData
@@ -28,6 +32,7 @@ func NewInMemorySessionRepository() *InMemorySessionRepository {
 
 func GetInMemorySessionRepository() *InMemorySessionRepository {
 	once.Do(func() {
+		logger.Debug(module, "Creating new instance of InMemorySessionRepository")
 		instance = &InMemorySessionRepository{
 			data: make(map[string]*session.SessionData),
 		}
@@ -37,6 +42,7 @@ func GetInMemorySessionRepository() *InMemorySessionRepository {
 
 func ResetInMemorySessionRepository() {
 	if instance != nil {
+		logger.Debug(module, "Resetting instance")
 		instance.mu.Lock()
 		instance.data = make(map[string]*session.SessionData)
 		instance.mu.Unlock()
@@ -56,6 +62,7 @@ func (s *InMemorySessionRepository) SaveSession(sessionData *session.SessionData
 	defer s.mu.Unlock()
 
 	if _, ok := s.data[sessionData.ID]; ok {
+		logger.Debug(module, "SaveSession: Failed to save session as it already exists")
 		return errors.New(errors.ErrCodeDuplicateSession, "session already exists with the given ID")
 	}
 
@@ -78,6 +85,7 @@ func (s *InMemorySessionRepository) GetSessionByID(sessionID string) (*session.S
 
 	session, found := s.data[sessionID]
 	if !found {
+		logger.Debug(module, "GetSessionByID: No session exists with the given ID=%s", sessionID)
 		return nil, nil
 	}
 
@@ -98,6 +106,7 @@ func (s *InMemorySessionRepository) UpdateSessionByID(sessionID string, sessionD
 	defer s.mu.Unlock()
 
 	if _, ok := s.data[sessionID]; !ok {
+		logger.Debug(module, "UpdateSessionByID: No session exists with the given ID=%s", sessionID)
 		return errors.New(errors.ErrCodeSessionNotFound, "session does not exist with the provided ID")
 	}
 
@@ -121,6 +130,7 @@ func (s *InMemorySessionRepository) DeleteSessionByID(sessionID string) error {
 
 // CleanupExpiredSessions starts a go routine and removes all expired sessions from the repository.
 func (s *InMemorySessionRepository) CleanupExpiredSessions(ticker *time.Ticker) {
+	logger.Debug(module, "Starting process to cleanup expired sessions")
 	go func() {
 		defer ticker.Stop()
 
@@ -142,4 +152,5 @@ func (s *InMemorySessionRepository) CleanupExpiredSessions(ticker *time.Ticker) 
 			s.mu.Unlock()
 		}
 	}()
+	logger.Debug(module, "Finished process to cleanup expired sessions")
 }

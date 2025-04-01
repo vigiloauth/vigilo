@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -14,6 +16,9 @@ import (
 )
 
 var _ authz.AuthorizationCodeService = (*AuthorizationCodeServiceImpl)(nil)
+var logger = config.GetServerConfig().Logger()
+
+const module = "AuthorizationCodeService"
 
 type AuthorizationCodeServiceImpl struct {
 	authzCodeRepo authz.AuthorizationCodeRepository
@@ -63,19 +68,31 @@ func NewAuthorizationCodeServiceImpl(
 //	error: An error if code generation fails.
 func (c *AuthorizationCodeServiceImpl) GenerateAuthorizationCode(userID, clientID, redirectURI, scope string) (string, error) {
 	if userID == "" || clientID == "" || redirectURI == "" || scope == "" {
-		return "", errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")
+		err := errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")
+		logger.Error(module, "GenerateAuthorizationCode: Failed to generate authorization code: %v", err)
+		return "", err
 	}
 
+	logger.Info(module, "GenerateAuthorizationCode: Generating authorization code for user=[%s], client=[%s] with redirectURI=[%s], scopes[%s]",
+		common.TruncateSensitive(userID),
+		common.TruncateSensitive(clientID),
+		common.SanitizeURL(redirectURI),
+		scope,
+	)
+
 	if user := c.userService.GetUserByID(userID); user == nil {
+		logger.Error(module, "GenerateAuthorizationCode: Failed to retrieve user: invalid user ID")
 		return "", errors.New(errors.ErrCodeUnauthorized, "invalid user_id")
 	}
 
 	if err := c.validateClient(redirectURI, clientID, scope); err != nil {
+		logger.Error(module, "GenerateAuthorizationCode: Failed to validate client=[%s]: %v", common.TruncateSensitive(clientID), err)
 		return "", errors.Wrap(err, errors.ErrCodeInvalidClient, "invalid client")
 	}
 
 	codeBytes := make([]byte, 32)
 	if _, err := rand.Read(codeBytes); err != nil {
+		logger.Error(module, "GenerateAuthorizationCode: Failed to generate authorization code: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate authorization code")
 	}
 
@@ -92,9 +109,14 @@ func (c *AuthorizationCodeServiceImpl) GenerateAuthorizationCode(userID, clientI
 
 	expiresAt := authData.CreatedAt.Add(c.codeLifeTime.Load().(time.Duration))
 	if err := c.authzCodeRepo.StoreAuthorizationCode(code, authData, expiresAt); err != nil {
+		logger.Error(module, "GenerateAuthorizationCode: Failed to store authorization code: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to store authorization code")
 	}
 
+	logger.Info(module, "GenerateAuthorizationCode: Authorization code successfully generated for user=[%s] and client=[%s]",
+		common.TruncateSensitive(userID),
+		common.TruncateSensitive(clientID),
+	)
 	return code, nil
 }
 
@@ -112,11 +134,20 @@ func (c *AuthorizationCodeServiceImpl) GenerateAuthorizationCode(userID, clientI
 //	error: An error if validation fails.
 func (c *AuthorizationCodeServiceImpl) ValidateAuthorizationCode(code, clientID, redirectURI string) (*authz.AuthorizationCodeData, error) {
 	if code == "" || clientID == "" || redirectURI == "" {
-		return nil, errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")
+		err := errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")
+		logger.Error(module, "ValidateAuthorizationCode: Failed to validate authorization code: %v", err)
+		return nil, err
 	}
+
+	logger.Info(module, "ValidateAuthorizationCode: Attempting to validate authorization code=[%s] for client=[%s], redirectURI=[%s]",
+		common.TruncateSensitive(code),
+		common.TruncateSensitive(clientID),
+		common.SanitizeURL(redirectURI),
+	)
 
 	authData, exists, err := c.authzCodeRepo.GetAuthorizationCode(code)
 	if err != nil {
+		logger.Error(module, "ValidateAuthorizationCode: Failed to retrieve authorization code: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to retrieve the authorization code")
 	}
 	if !exists {
@@ -124,7 +155,9 @@ func (c *AuthorizationCodeServiceImpl) ValidateAuthorizationCode(code, clientID,
 	}
 
 	if authData.Used {
-		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code already used")
+		err = errors.New(errors.ErrCodeInvalidGrant, "authorization code already used")
+		logger.Error(module, "ValidateAuthorizationCode: Failed to validate authorization code: %v", err)
+		return nil, err
 	}
 
 	if authData.ClientID != clientID {
@@ -137,10 +170,13 @@ func (c *AuthorizationCodeServiceImpl) ValidateAuthorizationCode(code, clientID,
 
 	// Mark the code as used
 	authData.Used = true
+	logger.Debug(module, "ValidateAuthorizationCode: Marking authorization code as used")
 	if err := c.authzCodeRepo.UpdateAuthorizationCode(code, authData); err != nil {
+		logger.Error(module, "ValidateAuthorizationCode: Failed to update authorization code: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to update authorization code")
 	}
 
+	logger.Info(module, "ValidateAuthorizationCode: Successfully validate authorization code for client=[%s]", common.TruncateSensitive(clientID))
 	return authData, nil
 }
 
@@ -154,7 +190,13 @@ func (c *AuthorizationCodeServiceImpl) ValidateAuthorizationCode(code, clientID,
 //
 //	error: An error if revocation fails.
 func (c *AuthorizationCodeServiceImpl) RevokeAuthorizationCode(code string) error {
-	return c.authzCodeRepo.DeleteAuthorizationCode(code)
+	if err := c.authzCodeRepo.DeleteAuthorizationCode(code); err != nil {
+		logger.Error(module, "RevokeAuthorizationCode: Failed to revoke authorization code=[%s]: %v", common.TruncateSensitive(code), err)
+		return err
+	}
+
+	logger.Info(module, "RevokeAuthorizationCode: Successfully revoked authorization code")
+	return nil
 }
 
 // SetAuthorizationCodeLifeTime configures how long authorization codes remain valid.

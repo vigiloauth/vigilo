@@ -5,11 +5,14 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 )
 
 // Ensure PasswordResetEmailService implements the EmailService interface.
 var _ email.EmailService = (*PasswordResetEmailService)(nil)
+
+const passwordResetModule = "PasswordResetEmailService"
 
 // PasswordResetEmailService handles email sending and queue processing.
 type PasswordResetEmailService struct {
@@ -28,6 +31,7 @@ func NewPasswordResetEmailService() (*PasswordResetEmailService, error) {
 	service.BaseEmailService.shouldRetryFunc = service.shouldRetryEmail
 
 	if err := service.Initialize(); err != nil {
+		logger.Error(passwordResetModule, "NewPasswordResetEmailService: Failed to initialize: %v", err)
 		return nil, err
 	}
 
@@ -49,6 +53,11 @@ func (ps *PasswordResetEmailService) GenerateEmail(request email.EmailRequest) *
 	}
 
 	expiryTime := time.Now().Add(request.PasswordResetRequest.ExpiresIn)
+	logger.Info(passwordResetModule, "GenerateEmail: Successfully generate password reset email for recipient=[%s], applicationID=[%s], resetURL=[%s]",
+		common.TruncateSensitive(request.Recipient),
+		common.TruncateSensitive(request.ApplicationID),
+		common.SanitizeURL(request.PasswordResetRequest.ResetURL),
+	)
 
 	return &email.EmailRequest{
 		Recipient: request.Recipient,
@@ -96,6 +105,7 @@ func (ps *PasswordResetEmailService) getDefaultTemplate() string {
 //	bool: True if the email should be retried, false otherwise.
 func (ps *PasswordResetEmailService) shouldRetryEmail(now time.Time, request email.EmailRequest) bool {
 	if request.RetryCount >= ps.smtpConfig.MaxRetries() {
+		logger.Warn(passwordResetModule, "Retry limit reached for recipient=[%s]", common.TruncateSensitive(request.Recipient))
 		return false
 	}
 

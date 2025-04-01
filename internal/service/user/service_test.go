@@ -359,12 +359,3 @@ func createTestUserLoginRequest() *users.UserLoginRequest {
 		Password: testPassword1,
 	}
 }
-
-func createTestLoginAttempt() *users.UserLoginAttempt {
-	return &users.UserLoginAttempt{
-		IPAddress:       testIPAddress,
-		RequestMetadata: testRequestMetadata,
-		Details:         testRequestDetails,
-		UserAgent:       testUserAgent,
-	}
-}

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -12,6 +13,9 @@ import (
 )
 
 var _ users.UserService = (*UserServiceImpl)(nil)
+var logger = config.GetServerConfig().Logger()
+
+const module = "UserService"
 
 type UserServiceImpl struct {
 	userRepo     users.UserRepository
@@ -58,21 +62,26 @@ func NewUserServiceImpl(
 func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationResponse, error) {
 	hashedPassword, err := crypto.HashString(user.Password)
 	if err != nil {
+		logger.Error(module, "CreateUser: Failed to create new user: %v", err)
 		return nil, errors.Wrap(err, "", "failed to encrypt password")
 	}
 
 	if existingUser := u.userRepo.GetUserByID(user.Email); existingUser != nil {
-		return nil, errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
+		err := errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
+		logger.Error(module, "CreateUser: Failed to create new user: %v", err)
+		return nil, err
 	}
 
 	user.ID = crypto.GenerateUUID()
 	user.Password = hashedPassword
 	if err := u.userRepo.AddUser(user); err != nil {
+		logger.Error(module, "CreateUser: Failed to create new user: %v", err)
 		return nil, errors.Wrap(err, "", "failed to create new user")
 	}
 
 	jwtToken, err := u.tokenService.GenerateToken(user.Email, u.jwtConfig.ExpirationTime())
 	if err != nil {
+		logger.Error(module, "CreateUser: Failed to generate a session token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate session token")
 	}
 
@@ -100,15 +109,19 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 //   - error: An error if authentication fails or if the input is invalid.
 func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
 	if clientID == "" || redirectURI == "" {
-		return nil, errors.New(errors.ErrCodeBadRequest, "missing one or more required parameters")
+		err := errors.New(errors.ErrCodeBadRequest, "missing one or more required parameters")
+		logger.Error(module, "HandleOAuthLogin: Failed to login: %v", err)
+		return nil, err
 	}
 
 	if err := request.Validate(); err != nil {
+		logger.Error(module, "HandleOAuthLogin: Failed to validate request: %v", err)
 		return nil, err
 	}
 
 	response, err := u.AuthenticateUserWithRequest(request, remoteAddr, forwardedFor, userAgent)
 	if err != nil {
+		logger.Error(module, "HandleOAuthLogin: Failed to authenticate user: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeUnauthorized, "failed to authenticate user")
 	}
 
@@ -140,6 +153,11 @@ func (u *UserServiceImpl) AuthenticateUserWithRequest(request *users.UserLoginRe
 	}
 
 	loginAttempt := users.NewUserLoginAttempt(remoteAddr, forwardedFor, "", userAgent)
+	logger.Info(module, "AuthenticateUserWithRequest: Authenticating user=[%s] for remoteAddr=[%s], forwardedFor=[%s], userAgent=[%s]",
+		common.TruncateSensitive(user.Email),
+		common.TruncateSensitive(remoteAddr),
+		forwardedFor, userAgent,
+	)
 	return u.authenticateUser(user, loginAttempt)
 }
 
@@ -189,34 +207,44 @@ func (u *UserServiceImpl) authenticateUser(
 
 	retrievedUser := u.userRepo.GetUserByID(loginUser.ID)
 	if retrievedUser == nil {
-		return nil, errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
+		err := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
+		logger.Error(module, "Failed to retrieve user by ID=[%s]: %v", common.TruncateSensitive(loginUser.ID), err)
+		return nil, err
 	}
 
 	if retrievedUser.AccountLocked {
-		return nil, errors.New(
+		err := errors.New(
 			errors.ErrCodeAccountLocked,
 			"account is locked due to too many failed login attempts -- please reset your password",
 		)
+		logger.Error(module, "Failed to authenticate due to too many failed attempts=[%d], timestamp=[%s]", loginAttempt.FailedAttempts, loginAttempt.Timestamp)
+		return nil, err
 	}
 
 	loginAttempt.UserID = retrievedUser.ID
 	if passwordsAreEqual := crypto.CompareHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
 		if err := u.loginService.HandleFailedLoginAttempt(retrievedUser, loginAttempt); err != nil {
+
 			return nil, errors.NewInternalServerError()
 		}
 
-		return nil, errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
+		err := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
+		logger.Error(module, "Failed to authenticate user=[%s]: %v", common.TruncateSensitive(loginUser.ID), err)
+		return nil, err
 	}
 
 	jwtToken, err := u.tokenService.GenerateToken(retrievedUser.ID, u.jwtConfig.ExpirationTime())
 	if err != nil {
+		logger.Error(module, "Failed to generate access token for user=[%s]: %v", common.TruncateSensitive(retrievedUser.ID), err)
 		return nil, errors.NewInternalServerError()
 	}
 
 	retrievedUser.LastFailedLogin = time.Time{}
 	if err := u.userRepo.UpdateUser(retrievedUser); err != nil {
+		logger.Error(module, "Failed to update user after successful authentication: %v", err)
 		return nil, errors.Wrap(err, "", "failed to update user")
 	}
 
+	logger.Info(module, "User Authentication successful")
 	return users.NewUserLoginResponse(retrievedUser, jwtToken), nil
 }

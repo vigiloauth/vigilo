@@ -1,20 +1,22 @@
 package service
 
 import (
-	"log"
 	"math/rand"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 // Ensure TokenService implements the TokenManager interface.
 var _ token.TokenService = (*TokenServiceImpl)(nil)
+var logger = config.GetServerConfig().Logger()
 
 const tokenIssuer string = "vigilo-auth-server"
+const module string = "TokenService"
 
 // TokenServiceImpl implements the TokenManager interface using JWT.
 type TokenServiceImpl struct {
@@ -52,6 +54,7 @@ func NewTokenServiceImpl(tokenRepo token.TokenRepository) *TokenServiceImpl {
 func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Duration) (string, error) {
 	tokenString, err := ts.generateAndStoreToken(subject, "", expirationTime)
 	if err != nil {
+		logger.Error(module, "GenerateToken: Failed to generate token for subject=[%s]: %v", common.TruncateSensitive(subject), err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
 	}
 
@@ -73,11 +76,21 @@ func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Du
 func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID string) (string, string, error) {
 	accessToken, err := ts.generateAndStoreToken(userID, clientID, ts.tokenConfig.AccessTokenDuration())
 	if err != nil {
+		logger.Error(module, "GenerateTokenPair: Failed to generate access token for user=[%s], client=[%s]: %v",
+			common.TruncateSensitive(userID),
+			common.TruncateSensitive(clientID),
+			err,
+		)
 		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access token")
 	}
 
 	refreshToken, err := ts.generateAndStoreToken(userID, clientID, ts.tokenConfig.RefreshTokenDuration())
 	if err != nil {
+		logger.Error(module, "GenerateTokenPair: Failed to generate refresh token for user=[%s], client=[%s]: %v",
+			common.TruncateSensitive(userID),
+			common.TruncateSensitive(clientID),
+			err,
+		)
 		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate refresh token")
 	}
 
@@ -152,6 +165,7 @@ func (ts *TokenServiceImpl) SaveToken(token string, id string, expirationTime ti
 func (ts *TokenServiceImpl) GetToken(id string, token string) (*token.TokenData, error) {
 	retrievedToken, err := ts.tokenRepo.GetToken(token, id)
 	if err != nil {
+		logger.Error(module, "GetToken: Failed to retrieve token for ID=[%s]: %v", common.TruncateSensitive(id), err)
 		return nil, errors.Wrap(err, errors.ErrCodeTokenNotFound, "failed to retrieve token")
 	}
 	return retrievedToken, nil
@@ -180,6 +194,7 @@ func (ts *TokenServiceImpl) DeleteToken(token string) error {
 //
 //	error: An error if the token deletion fails.
 func (ts *TokenServiceImpl) DeleteTokenAsync(token string) <-chan error {
+	logger.Info(module, "DeleteTokenAsync: Deleting token=[%s] asynchronously", common.TruncateSensitive(token))
 	errChan := make(chan error, 1)
 
 	go func() {
@@ -188,12 +203,10 @@ func (ts *TokenServiceImpl) DeleteTokenAsync(token string) <-chan error {
 
 		for i := range maxRetries {
 			if err := ts.tokenRepo.DeleteToken(token); err == nil {
-				log.Print("Token deleted successfully")
 				errChan <- nil
 				return
 			} else {
 				deleteErr = err
-				log.Printf("Retry %d/%d: Failed to delete token: %v", i+1, maxRetries, err)
 			}
 
 			backoff := time.Duration(100*(1<<i)) * time.Millisecond
@@ -201,10 +214,11 @@ func (ts *TokenServiceImpl) DeleteTokenAsync(token string) <-chan error {
 			time.Sleep(backoff + jitter)
 		}
 
-		log.Printf("Failed to delete token after %d retries: %v", maxRetries, deleteErr)
+		logger.Error(module, "DeleteTokenAsync: Failed to delete token=[%s] after %d retries: %v", common.TruncateSensitive(token), maxRetries, deleteErr)
 		errChan <- deleteErr
 	}()
 
+	logger.Info(module, "DeleteTokenAsync: Token deleted successfully")
 	return errChan
 }
 
@@ -220,9 +234,11 @@ func (ts *TokenServiceImpl) DeleteTokenAsync(token string) <-chan error {
 func (ts *TokenServiceImpl) IsTokenExpired(token string) bool {
 	claims, err := ts.ParseToken(token)
 	if err != nil {
+		logger.Warn(module, "IsTokenExpired: Token=[%s] is expired", common.TruncateSensitive(token))
 		return true
 	}
 	if claims == nil {
+		logger.Warn(module, "IsTokenExpired: Token=[%s] is expired", common.TruncateSensitive(token))
 		return true
 	}
 	return time.Now().Unix() > claims.ExpiresAt
@@ -239,8 +255,10 @@ func (ts *TokenServiceImpl) IsTokenExpired(token string) bool {
 //	error: An error if the token is blacklisted or expired.
 func (ts *TokenServiceImpl) ValidateToken(token string) error {
 	if ts.IsTokenExpired(token) {
+		logger.Warn(module, "ValidateToken: Token=[%s] is expired", common.TruncateSensitive(token))
 		return errors.New(errors.ErrCodeExpiredToken, "the token is expired")
 	} else if ts.IsTokenBlacklisted(token) {
+		logger.Warn(module, "ValidateToken: Token=[%s] is blacklisted", common.TruncateSensitive(token))
 		return errors.New(errors.ErrCodeUnauthorized, "the token is blacklisted")
 	}
 	return nil
@@ -259,6 +277,11 @@ func (ts *TokenServiceImpl) ValidateToken(token string) error {
 //	string: A signed JWT token string.
 //	error: An error if token generation or signing fails.
 func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience string, duration time.Duration) (string, error) {
+	logger.Info(module, "Generating token for subject=[%s], duration=[%s]",
+		common.TruncateSensitive(subject),
+		duration,
+	)
+
 	tokenExpiration := time.Now().Add(duration)
 	claims := &jwt.StandardClaims{
 		Subject:   subject,
@@ -268,15 +291,19 @@ func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience string, dura
 	}
 
 	if audience != "" {
+		logger.Debug(module, "Adding audience=[%s] to token claims", common.TruncateSensitive(audience))
 		claims.Audience = audience
 	}
 
 	token := jwt.NewWithClaims(ts.tokenConfig.SigningMethod(), claims)
 	signedToken, err := token.SignedString([]byte(ts.tokenConfig.Secret()))
 	if err != nil {
+		logger.Error(module, "Failed to generate token: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
 	}
 
+	logger.Info(module, "Token generated successfully for subject=[%s]", common.TruncateSensitive(subject))
 	ts.tokenRepo.SaveToken(signedToken, subject, tokenExpiration)
+	logger.Info(module, "Token stored successfully for subject=[%s]", common.TruncateSensitive(subject))
 	return signedToken, nil
 }

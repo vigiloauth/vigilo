@@ -3,15 +3,19 @@ package repository
 import (
 	"sync"
 
+	"github.com/vigiloauth/vigilo/identity/config"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 var (
+	logger                           = config.GetServerConfig().Logger()
 	_        client.ClientRepository = (*InMemoryClientRepository)(nil)
 	instance *InMemoryClientRepository
 	once     sync.Once
 )
+
+const module = "InMemoryClientRepository"
 
 // InMemoryClientRepository provides an in-memory implementation of ClientStore.
 // It uses a map to store clients and a read-write mutex for concurrency control.
@@ -37,6 +41,7 @@ func NewInMemoryClientRepository() *InMemoryClientRepository {
 //	*InMemoryClientStore: The singleton instance of InMemoryClientStore.
 func GetInMemoryClientRepository() *InMemoryClientRepository {
 	once.Do(func() {
+		logger.Debug(module, "Creating new instance of InMemoryClientRepository")
 		instance = &InMemoryClientRepository{
 			data: make(map[string]*client.Client),
 		}
@@ -47,6 +52,7 @@ func GetInMemoryClientRepository() *InMemoryClientRepository {
 // ResetInMemoryClientRepository resets the in-memory store for testing purposes.
 func ResetInMemoryClientRepository() {
 	if instance != nil {
+		logger.Debug(module, "Resetting instance")
 		instance.mu.Lock()
 		instance.data = make(map[string]*client.Client)
 		instance.mu.Unlock()
@@ -67,6 +73,7 @@ func (cs *InMemoryClientRepository) SaveClient(client *client.Client) error {
 	defer cs.mu.Unlock()
 
 	if _, clientExists := cs.data[client.ID]; clientExists {
+		logger.Debug(module, "SaveClient: Failed to save client. Duplicate ID")
 		return errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
 	}
 
@@ -89,6 +96,7 @@ func (cs *InMemoryClientRepository) GetClientByID(clientID string) *client.Clien
 
 	client, found := cs.data[clientID]
 	if !found {
+		logger.Debug(module, "GetClientByID: No client found using the given ID=%s", clientID)
 		return nil
 	}
 
@@ -125,6 +133,7 @@ func (cs *InMemoryClientRepository) UpdateClient(client *client.Client) error {
 	defer cs.mu.Unlock()
 
 	if _, clientExists := cs.data[client.ID]; !clientExists {
+		logger.Debug(module, "UpdateClient: No client found using the given ID=%s", client.ID)
 		return errors.New(errors.ErrCodeClientNotFound, "client not found using provided ID")
 	}
 
@@ -142,6 +151,6 @@ func (cs *InMemoryClientRepository) UpdateClient(client *client.Client) error {
 //
 //	bool: True if it exists, otherwise false.
 func (cs *InMemoryClientRepository) IsExistingID(clientID string) bool {
-	_, clientExsits := cs.data[clientID]
-	return clientExsits
+	_, clientExists := cs.data[clientID]
+	return clientExists
 }

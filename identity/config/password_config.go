@@ -1,5 +1,9 @@
 package config
 
+import (
+	"fmt"
+)
+
 const defaultRequiredPasswordLength int = 5
 
 // PasswordConfig holds the configuration for password complexity requirements.
@@ -8,6 +12,8 @@ type PasswordConfig struct {
 	requireNumber bool // Indicates whether numbers are required.
 	requireSymbol bool // Indicates whether symbols are required.
 	minLength     int  // Minimum required password length.
+	logger        *Logger
+	module        string
 }
 
 // PasswordConfigOption is a function type used to configure PasswordConfig options.
@@ -28,12 +34,20 @@ func NewPasswordConfig(opts ...PasswordConfigOption) *PasswordConfig {
 		requireNumber: false,
 		requireSymbol: false,
 		minLength:     defaultRequiredPasswordLength,
+		logger:        GetLogger(),
+		module:        "PasswordConfig",
 	}
 
-	for _, opt := range opts {
-		opt(pc)
+	if len(opts) > 0 {
+		pc.logger.Info(pc.module, "Creating password config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(pc)
+		}
+	} else {
+		pc.logger.Info(pc.module, "Using default password config")
 	}
 
+	pc.logger.Debug(pc.module, "\n\nPassword config parameters: %s", pc.String())
 	return pc
 }
 
@@ -44,6 +58,7 @@ func NewPasswordConfig(opts ...PasswordConfigOption) *PasswordConfig {
 //	PasswordConfigOption: A function that configures the uppercase requirement.
 func WithUppercase() PasswordConfigOption {
 	return func(pc *PasswordConfig) {
+		pc.logger.Info(pc.module, "Configuring PasswordConfig to require an uppercase")
 		pc.requireUpper = true
 	}
 }
@@ -55,6 +70,7 @@ func WithUppercase() PasswordConfigOption {
 //	PasswordConfigOption: A function that configures the number requirement.
 func WithNumber() PasswordConfigOption {
 	return func(pc *PasswordConfig) {
+		pc.logger.Info(pc.module, "Configuring PasswordConfig to require a number")
 		pc.requireNumber = true
 	}
 }
@@ -66,6 +82,7 @@ func WithNumber() PasswordConfigOption {
 //	PasswordConfigOption: A function that configures the symbol requirement.
 func WithSymbol() PasswordConfigOption {
 	return func(pc *PasswordConfig) {
+		pc.logger.Info(pc.module, "Configuring PasswordConfig to require a symbol")
 		pc.requireSymbol = true
 	}
 }
@@ -82,6 +99,7 @@ func WithSymbol() PasswordConfigOption {
 func WithMinLength(length int) PasswordConfigOption {
 	return func(pc *PasswordConfig) {
 		if length > defaultRequiredPasswordLength {
+			pc.logger.Info(pc.module, "Configuring PasswordConfig minimum length=[%d]", length)
 			pc.minLength = length
 		}
 	}
@@ -121,4 +139,17 @@ func (pc *PasswordConfig) RequireSymbol() bool {
 //	int: The minimum required password length.
 func (pc *PasswordConfig) MinLength() int {
 	return pc.minLength
+}
+
+func (pc *PasswordConfig) String() string {
+	return fmt.Sprintf(
+		"\n\tRequireUppercase: %t\n"+
+			"\tRequireNumber: %t\n"+
+			"\tRequireSymbol: %t\n"+
+			"\tMinLength: %d\n",
+		pc.requireUpper,
+		pc.requireNumber,
+		pc.requireSymbol,
+		pc.minLength,
+	)
 }

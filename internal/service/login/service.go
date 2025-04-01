@@ -4,10 +4,15 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
+
+const module = "LoginService"
+
+var logger = config.GetServerConfig().Logger()
 
 type LoginAttemptServiceImpl struct {
 	userRepo               user.UserRepository
@@ -42,6 +47,9 @@ func NewLoginAttemptServiceImpl(
 //	attempt *UserLoginAttempt: The login attempt to save.
 func (s *LoginAttemptServiceImpl) SaveLoginAttempt(attempt *user.UserLoginAttempt) error {
 	if err := s.loginRepo.SaveLoginAttempt(attempt); err != nil {
+		logger.Error(module, "SaveLoginAttempt: Failed to save login attempt for user=[%s]: %v",
+			common.TruncateSensitive(attempt.UserID), err,
+		)
 		return errors.Wrap(err, "", "failed to save login attempt")
 	}
 	return nil
@@ -72,19 +80,28 @@ func (s *LoginAttemptServiceImpl) GetLoginAttempts(userID string) []*user.UserLo
 //
 //	error: An error if an operation fails.
 func (s *LoginAttemptServiceImpl) HandleFailedLoginAttempt(user *user.User, attempt *user.UserLoginAttempt) error {
+	logger.Info(module, "HandleFailedLoginAttempt: Authentication failed for user=[%s]", common.TruncateSensitive(user.ID))
+
 	user.LastFailedLogin = time.Now()
 	if err := s.loginRepo.SaveLoginAttempt(attempt); err != nil {
+		logger.Error(module, "HandleFailedLoginAttempt: Failed to save login attempt for user=[%s]: %v",
+			common.TruncateSensitive(attempt.UserID), err,
+		)
 		return errors.Wrap(err, "", "failed to save failed login attempt")
 	}
 
 	if err := s.userRepo.UpdateUser(user); err != nil {
+		logger.Error(module, "HandleFailedLoginAttempt: Failed to update user=[%s]: %v", common.TruncateSensitive(user.ID), err)
 		return errors.Wrap(err, "", "failed to update the user")
 	}
 
 	if s.shouldLockAccount(user.ID) {
+		logger.Info(module, "HandleFailedLoginAttempt: Attempting to lock account for user=[%s]", common.TruncateSensitive(user.ID))
 		if err := s.lockAccount(user); err != nil {
+			logger.Error(module, "HandleFailedLoginAttempt: Failed to lock account for user=[%s]: %v", common.TruncateSensitive(user.ID), err)
 			return errors.Wrap(err, "", "failed to update the user")
 		}
+		logger.Info(module, "HandleFailedLoginAttempt: Account successfully locked for user=[%s]", common.TruncateSensitive(user.ID))
 	}
 
 	return nil

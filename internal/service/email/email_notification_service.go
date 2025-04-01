@@ -3,11 +3,14 @@ package service
 import (
 	"time"
 
+	"github.com/vigiloauth/vigilo/internal/common"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 )
 
 // Ensure EmailNotificationService implements the EmailService interface.
 var _ email.EmailService = (*EmailNotificationService)(nil)
+
+const notificationService = "EmailNotificationService"
 
 // EmailNotificationService handles sending email notifications.
 type EmailNotificationService struct {
@@ -26,6 +29,7 @@ func NewEmailNotificationService() (*EmailNotificationService, error) {
 	service.BaseEmailService.shouldRetryFunc = service.shouldRetryEmail
 
 	if err := service.Initialize(); err != nil {
+		logger.Error(notificationService, "Failed to initialize email notification service: %v", err)
 		return nil, err
 	}
 
@@ -42,6 +46,11 @@ func NewEmailNotificationService() (*EmailNotificationService, error) {
 //
 //	*EmailRequest: The generated email request.
 func (es *EmailNotificationService) GenerateEmailRequest(request email.EmailRequest) *email.EmailRequest {
+	logger.Info(notificationService, "GenerateEmailRequest: Generating email request for recipient=[%s], subject=[%s]",
+		common.TruncateSensitive(request.Recipient),
+		request.Subject,
+	)
+
 	return &email.EmailRequest{
 		Recipient: request.Recipient,
 		Subject:   request.Subject,

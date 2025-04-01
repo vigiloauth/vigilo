@@ -69,6 +69,7 @@ type VigiloTestContext struct {
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
+	config.GetServerConfig().Logger().SetLevel("DEBUG")
 	return &VigiloTestContext{
 		T:            t,
 		VigiloServer: server.NewVigiloIdentityServer(),
