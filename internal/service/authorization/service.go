@@ -19,7 +19,7 @@ import (
 var _ authz.AuthorizationService = (*AuthorizationServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
-const module = "AuthorizationService"
+const module = "Authorization Service"
 
 // AuthorizationServiceImpl implements the AuthorizationService interface
 // and coordinates authorization-related operations across multiple services.

@@ -18,6 +18,9 @@ type UserHandler struct {
 	passwordResetService password.PasswordResetService
 	sessionService       session.SessionService
 	jwtConfig            *config.TokenConfig
+
+	logger *config.Logger
+	module string
 }
 
 // NewUserHandler creates a new instance of UserHandler.
@@ -40,6 +43,8 @@ func NewUserHandler(
 		passwordResetService: passwordResetService,
 		sessionService:       sessionService,
 		jwtConfig:            config.GetServerConfig().TokenConfig(),
+		logger:               config.GetServerConfig().Logger(),
+		module:               "User Handler",
 	}
 }
 
@@ -47,6 +52,9 @@ func NewUserHandler(
 // It processes incoming HTTP requests for user registration, validates the input,
 // registers the user, and sends an appropriate response including a JWT token.
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[Register]", requestID)
+
 	request, err := web.DecodeJSONRequest[users.UserRegistrationRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
@@ -61,8 +69,8 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	user := users.NewUser(request.Username, request.Email, request.Password)
 	response, err := h.userService.CreateUser(user)
 	if err != nil {
-		wrappedEerr := errors.Wrap(err, "", "failed to create user")
-		web.WriteError(w, wrappedEerr)
+		wrappedErr := errors.Wrap(err, "", "failed to create user")
+		web.WriteError(w, wrappedErr)
 		return
 	}
 
@@ -71,6 +79,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[Register]", requestID)
 	web.WriteJSON(w, http.StatusCreated, response)
 }
 
@@ -79,6 +88,9 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 // logs in the user, and returns a JWT token if successful or a generic error
 // message for failed attempts.
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[Login]", requestID)
+
 	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
@@ -107,6 +119,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[Login]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -115,12 +128,16 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 // adds the token to the blacklist to prevent further use, and sends an appropriate response.
 // If the Authorization header is missing or the token is invalid, it returns an error.
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[Logout]", requestID)
+
 	if err := h.sessionService.InvalidateSession(w, r); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to invalidate session")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
+	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[Logout]", requestID)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -128,6 +145,9 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // It process the incoming request and sends a password reset email to the user if they
 // exist with the provided email.
 func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[RequestPasswordResetEmail]", requestID)
+
 	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
@@ -147,6 +167,7 @@ func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[RequestPasswordResetEmail]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -154,6 +175,9 @@ func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.R
 // It decodes the request body into a UserPasswordResetRequest, validates the request,
 // and then calls the passwordResetService to reset the user's password.
 func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[ResetPassword]", requestID)
+
 	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
@@ -176,5 +200,6 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[ResetPassword]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }

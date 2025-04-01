@@ -22,7 +22,7 @@ import (
 var _ consent.UserConsentService = (*UserConsentServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
-const module = "UserConsentService"
+const module = "User Consent Service"
 
 // UserConsentServiceImpl implements the UserConsentService interface
 // and manages user consent-related operations by coordinating

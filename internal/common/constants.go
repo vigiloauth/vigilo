@@ -18,4 +18,6 @@ const (
 	ClientRegistrationAccessToken string = "registration_access_token"
 	CacheControl                  string = "Cache-Control"
 	NoStore                       string = "no-store"
+	RequestIDHeader               string = "X-Request-ID"
+	RequestID                     string = "requestID"
 )

@@ -26,7 +26,7 @@ func NewRateLimiter(rate int) *RateLimiter {
 
 // Allow checks if a request is allowed based on the rate limit.
 func (rl *RateLimiter) Allow() bool {
-	logger.Info(module, "Allow: Verifying if request exceeds the rate limit")
+	logger.Info(module, "Verifying if request exceeds the rate limit")
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
@@ -43,11 +43,11 @@ func (rl *RateLimiter) Allow() bool {
 	}
 
 	if rl.tokens >= 1.0 {
-		logger.Info(module, "Allow: request is valid")
+		logger.Info(module, "Request is valid")
 		rl.tokens -= 1.0 // Consume a token
 		return true
 	}
 
-	logger.Warn(module, "Allow: request is invalid as it exceeds the rate limit")
+	logger.Warn(module, "Request is invalid as it exceeds the rate limit")
 	return false // Not enough tokens available
 }

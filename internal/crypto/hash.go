@@ -3,10 +3,13 @@ package crypto
 import (
 	"github.com/google/uuid"
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var logger = config.GetServerConfig().Logger()
+
+const module = "Crypto"
 
 // HashString takes a plain text string and returns a hashed
 // version of it using bcrypt with the default cost.
@@ -22,7 +25,7 @@ var logger = config.GetServerConfig().Logger()
 func HashString(plainStr string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plainStr), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Error("crypto", "HashString: Error hashing string: %v", err)
+		logger.Error(module, "HashString: Error hashing string: %v", err)
 		return "", err
 	}
 	return string(hash), nil
@@ -41,7 +44,7 @@ func HashString(plainStr string) (string, error) {
 //	bool: True if they match, otherwise false.
 func CompareHash(plainStr, hashStr string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashStr), []byte(plainStr))
-	logger.Warn("crypto", "CompareHash: Error comparing hashes")
+	logger.Warn(module, "CompareHash: Error comparing hashes")
 	return err == nil
 }
 
@@ -53,6 +56,6 @@ func CompareHash(plainStr, hashStr string) bool {
 //   - string: A string representation of the generated UUID.
 func GenerateUUID() string {
 	uuid := uuid.New().String()
-	logger.Debug("crypto", "GenerateUUID: Generated UUID: %s", uuid)
+	logger.Debug(module, "GenerateUUID: Generated UUID: [%s]", common.TruncateSensitive(uuid))
 	return uuid
 }

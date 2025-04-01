@@ -1,11 +1,14 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/crypto"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	web "github.com/vigiloauth/vigilo/internal/web"
@@ -13,8 +16,10 @@ import (
 
 var logger = config.GetServerConfig().Logger()
 
+type contextKey string
+
 const (
-	module                           string = "middleware"
+	module                           string = "Middleware"
 	maxRequestsForStrictRateLimiting int    = 3
 )
 
@@ -48,7 +53,8 @@ func NewMiddleware(tokenService token.TokenService) *Middleware {
 func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Info(module, "AuthMiddleware: Processing request method=%s url=%s", r.Method, r.URL.Path)
+			logger.Debug(module, "AuthMiddleware: Processing request method=%s url=%s", r.Method, r.URL.Path)
+
 			tokenString, err := web.ExtractBearerToken(r)
 			if err != nil {
 				logger.Warn(module, "AuthMiddleware: Failed to extract bearer token: %v", err)
@@ -72,7 +78,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			logger.Info(module, "AuthMiddleware: Token validated successfully, passing request to next handler")
+			logger.Debug(module, "AuthMiddleware: Token validated successfully, passing request to next handler")
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -81,13 +87,14 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 // RedirectToHTTPS is a middleware that redirects HTTP requests to HTTPS.
 func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.Info(module, "RedirectToHTTPS: Processing request method=%s url=%s", r.Method, r.URL.Path)
+		logger.Debug(module, "RedirectToHTTPS: Processing request method=%s url=%s", r.Method, r.URL.Path)
 		if r.TLS == nil {
-			logger.Info(module, "RedirectToHTTPS: Redirecting request to HTTPS")
+			logger.Debug(module, "RedirectToHTTPS: Redirecting request to HTTPS")
 			redirectToHttps(w, r)
 			return
 		}
-		logger.Info(module, "RedirectToHTTPS: Passing request to next handler")
+
+		logger.Debug(module, "RedirectToHTTPS: Passing request to next handler")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -95,14 +102,15 @@ func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 // RateLimit is a middleware that limits the number of requests based on the rate limiter.
 func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.Info(module, "RateLimit: Applying rate limiting to request method=%s url=%s", r.Method, r.URL.Path)
+		logger.Debug(module, "RateLimit: Applying rate limiting to request method=%s url=%s", r.Method, r.URL.Path)
 		if !m.rateLimiter.Allow() {
 			logger.Warn(module, "RateLimit: Rate limit exceeded for url=%s", r.URL.Path)
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "too many requests")
 			web.WriteError(w, err)
 			return
 		}
-		logger.Info(module, "RateLimit: Passing request to next handler")
+
+		logger.Debug(module, "RateLimit: Passing request to next handler")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -111,7 +119,7 @@ func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 	strictLimiter := NewRateLimiter(maxRequestsForStrictRateLimiting)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger.Info(module, "StrictRateLimit: Applying strict rate limiting to request method=%s url=%s", r.Method, r.URL.Path)
+		logger.Debug(module, "StrictRateLimit: Applying strict rate limiting to request method=%s url=%s", r.Method, r.URL.Path)
 		if !strictLimiter.Allow() {
 			logger.Warn(module, "StrictRateLimit: Strict rate limit exceeded for url=%s", r.URL.Path)
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "rate limit exceeded for sensitive operations")
@@ -119,7 +127,7 @@ func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 			return
 		}
 
-		logger.Info(module, "StrictRateLimit: Passing request to next handler")
+		logger.Debug(module, "StrictRateLimit: Passing request to next handler")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -127,7 +135,7 @@ func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Info(module, "RequireRequestMethod: Validating request method=%s for url=%s", r.Method, r.URL.Path)
+			logger.Debug(module, "RequireRequestMethod: Validating request method=%s for url=%s", r.Method, r.URL.Path)
 			if r.Method != requestMethod {
 				logger.Warn(module, "RequireRequestMethod: Invalid request method received for url=%s", r.URL.Path)
 				err := errors.New(errors.ErrCodeMethodNotAllowed, fmt.Sprintf("method '%s' not allowed for this request", r.Method))
@@ -135,10 +143,24 @@ func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handle
 				return
 			}
 
-			logger.Info(module, "RequireRequestMethod: Passing request to next handler")
+			logger.Debug(module, "RequireRequestMethod: Passing request to next handler")
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// RequestIDMiddleware ensures each request has a unique request ID.
+func (m *Middleware) RequestIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := r.Header.Get(common.RequestIDHeader)
+		if requestID == "" {
+			requestID = crypto.GenerateUUID()
+		}
+
+		w.Header().Set(common.RequestIDHeader, requestID)
+		ctx := context.WithValue(r.Context(), common.RequestID, requestID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 // RequiresContentType creates middleware that validates the request Content-Type header
@@ -146,15 +168,15 @@ func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handle
 func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger.Info(module, "RequiresContentType: Validating content type=%s for url=%s", contentType, r.URL.Path)
+			logger.Debug(module, "RequiresContentType: Validating content type=%s for url=%s", contentType, r.URL.Path)
 			if r.Method == http.MethodOptions {
-				logger.Info(module, "RequiresContentType: Passing request to next handler")
+				logger.Debug(module, "RequiresContentType: Passing request to next handler")
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			if r.Method == http.MethodGet || r.Method == http.MethodHead {
-				logger.Info(module, "RequiresContentType: Passing request to next handler")
+				logger.Debug(module, "RequiresContentType: Passing request to next handler")
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -177,7 +199,7 @@ func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) 
 				return
 			}
 
-			logger.Info(module, "RequiresContentType: Passing request to next handler")
+			logger.Debug(module, "RequiresContentType: Passing request to next handler")
 			next.ServeHTTP(w, r)
 		})
 	}

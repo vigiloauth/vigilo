@@ -13,7 +13,7 @@ import (
 var _ cookies.HTTPCookieService = (*HTTPCookieServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
-const module = "HTTPCookieService"
+const module = "HTTP Cookie Service"
 
 type HTTPCookieServiceImpl struct {
 	sessionCookieName string

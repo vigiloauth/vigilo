@@ -82,6 +82,7 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 func (s *VigiloIdentityServer) setupRoutes() {
 	// Apply Global Middleware
 	s.router.Use(s.middleware.RateLimit)
+	s.router.Use(s.middleware.RequestIDMiddleware)
 
 	// Public Routes (No Auth Required)
 	s.router.Group(func(r chi.Router) {

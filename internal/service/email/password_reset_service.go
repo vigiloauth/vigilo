@@ -12,7 +12,7 @@ import (
 // Ensure PasswordResetEmailService implements the EmailService interface.
 var _ email.EmailService = (*PasswordResetEmailService)(nil)
 
-const passwordResetModule = "PasswordResetEmailService"
+const passwordResetModule = "Password Reset Email Service"
 
 // PasswordResetEmailService handles email sending and queue processing.
 type PasswordResetEmailService struct {

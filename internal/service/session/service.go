@@ -18,7 +18,7 @@ import (
 var _ session.SessionService = (*SessionServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
-const module = "SessionService"
+const module = "Session Service"
 
 // SessionServiceImpl handles session management.
 type SessionServiceImpl struct {

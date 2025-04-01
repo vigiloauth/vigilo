@@ -18,7 +18,7 @@ import (
 var _ authz.AuthorizationCodeService = (*AuthorizationCodeServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
-const module = "AuthorizationCodeService"
+const module = "Authorization Code Service"
 
 type AuthorizationCodeServiceImpl struct {
 	authzCodeRepo authz.AuthorizationCodeRepository

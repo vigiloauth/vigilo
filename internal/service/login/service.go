@@ -10,7 +10,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
-const module = "LoginService"
+const module = "Login Service"
 
 var logger = config.GetServerConfig().Logger()
 

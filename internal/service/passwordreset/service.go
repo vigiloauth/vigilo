@@ -16,7 +16,7 @@ import (
 
 const (
 	resetResponseMsg string = "Password reset instructions have been sent to your email if an account exists."
-	module           string = "PasswordResetService"
+	module           string = "Password Reset Service"
 )
 
 // Ensure PasswordResetService implements the PasswordReset interface.

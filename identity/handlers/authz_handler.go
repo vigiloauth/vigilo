@@ -18,6 +18,9 @@ import (
 type AuthorizationHandler struct {
 	authorizationService authz.AuthorizationService
 	sessionService       session.SessionService
+
+	logger *config.Logger
+	module string
 }
 
 // NewAuthorizationHandler creates a new AuthorizationHandler instance.
@@ -29,6 +32,8 @@ func NewAuthorizationHandler(
 	return &AuthorizationHandler{
 		authorizationService: authorizationService,
 		sessionService:       sessionService,
+		logger:               config.GetServerConfig().Logger(),
+		module:               "Authorization Handler",
 	}
 }
 
@@ -49,6 +54,9 @@ func NewAuthorizationHandler(
 // If authorization is successful, it redirects the user to the redirect URI with the authorization code.
 // If an error occurs, it writes an appropriate error response.
 func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[AuthorizeClient]", requestID)
+
 	query := r.URL.Query()
 	clientID := query.Get(common.ClientID)
 	redirectURI := query.Get(common.RedirectURI)
@@ -58,7 +66,8 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 
 	userID := h.sessionService.GetUserIDFromSession(r)
 	if userID == "" {
-		loginURL := h.buildLoginURL(clientID, redirectURI, scope, state)
+		loginURL := h.buildLoginURL(clientID, redirectURI, scope, state, requestID)
+		h.logger.Warn(h.module, "RequestID=[%s]: User is not authenticated. Returning a 'login required error'", requestID)
 		web.WriteError(w, errors.NewLoginRequiredError(loginURL))
 		return
 	}
@@ -66,10 +75,12 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	redirectURL, err := h.authorizationService.AuthorizeClient(userID, clientID, redirectURI, scope, state, approved)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to authorize client: %v", requestID, err)
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
+	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[AuthorizeClient]", requestID)
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
@@ -83,26 +94,33 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 //	w http.ResponseWriter: The HTTP response writer.
 //	r *http.Request: The HTTP request.
 func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[TokenExchange]", requestID)
+
 	tokenRequest, err := web.DecodeJSONRequest[token.TokenRequest](w, r)
 	if err != nil {
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to decode token request body: %v", requestID, err)
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
 
 	sessionData, err := h.sessionService.GetSessionData(r)
 	if err != nil {
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to retrieve session data: %v", requestID, err)
 		web.WriteError(w, errors.NewInvalidSessionError())
 		return
 	}
 
 	if sessionData.State != tokenRequest.State {
 		err := errors.New(errors.ErrCodeInvalidRequest, "state mismatch between session and request")
+		h.logger.Error(h.module, "RequestID=[%s]: State mismatch between session and request", requestID)
 		web.WriteError(w, err)
 		return
 	}
 
 	authzCodeData, err := h.authorizationService.AuthorizeTokenExchange(tokenRequest)
 	if err != nil {
+		h.logger.Error(h.module, "RequestID=[%s]: Authorization failed for token exchange: %v", requestID, err)
 		wrappedErr := errors.Wrap(err, "", "authorization failed for token exchange")
 		web.WriteError(w, wrappedErr)
 		return
@@ -110,21 +128,24 @@ func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Requ
 
 	response, err := h.authorizationService.GenerateTokens(authzCodeData)
 	if err != nil {
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to generate access and refresh tokens: %v", requestID, err)
 		wrappedErr := errors.Wrap(err, "", "failed to generate access & refresh tokens")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
 	if err := h.sessionService.ClearStateFromSession(sessionData); err != nil {
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to clear state from the current session: %v", requestID, err)
 		wrappedErr := errors.Wrap(err, "", "failed to clear state from session")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
+	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[TokenExchange]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state string) string {
+func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state, requestID string) string {
 	baseURL := config.GetServerConfig().BaseURL()
 	loginURL := fmt.Sprintf("%s%s?client_id=%s&redirect_uri=%s&scope=%s",
 		baseURL,
@@ -135,8 +156,10 @@ func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state
 	)
 
 	if state != "" {
+		h.logger.Debug(h.module, "RequestID=[%s]: Adding state to login URL", requestID)
 		loginURL = fmt.Sprintf("%s&state=%s", loginURL, url.QueryEscape(state))
 	}
 
+	h.logger.Debug(h.module, "RequestID=[%s]: LoginURL=[%s] successfully generated", requestID, common.SanitizeURL(loginURL))
 	return loginURL
 }

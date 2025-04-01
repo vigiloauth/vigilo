@@ -77,10 +77,15 @@ func (l *Logger) SetLevel(level string) {
 			colors[INFO], timestamp, colors[INFO], "INFO", colorReset, levelUpper,
 		)
 		fmt.Fprintln(os.Stdout, logLine)
+		if levelUpper == "DEBUG" {
+			logLine := fmt.Sprintf("%s[%s] %s%s%s [LOGGER] It is highly recommended to disable DEBUG logs in production environments",
+				colors[WARN], timestamp, colors[WARN], "WARN", colorReset,
+			)
+			fmt.Fprintln(os.Stdout, logLine)
+		}
 
 	} else {
 		timestamp := time.Now().Format("2006-01-02 15:04:05.000")
-
 		logLine := fmt.Sprintf("%s[%s] %s%s%s [LOGGER] Invalid log level: %s. Using INFO",
 			colors[WARN], timestamp, colors[WARN], "WARN", colorReset, level,
 		)

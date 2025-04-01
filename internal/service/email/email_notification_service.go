@@ -10,7 +10,7 @@ import (
 // Ensure EmailNotificationService implements the EmailService interface.
 var _ email.EmailService = (*EmailNotificationService)(nil)
 
-const notificationService = "EmailNotificationService"
+const notificationService = "Email Notification Service"
 
 // EmailNotificationService handles sending email notifications.
 type EmailNotificationService struct {

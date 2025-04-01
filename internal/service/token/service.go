@@ -16,7 +16,7 @@ var _ token.TokenService = (*TokenServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
 const tokenIssuer string = "vigilo-auth-server"
-const module string = "TokenService"
+const module string = "Token Service"
 
 // TokenServiceImpl implements the TokenManager interface using JWT.
 type TokenServiceImpl struct {

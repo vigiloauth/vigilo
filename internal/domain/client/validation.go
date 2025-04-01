@@ -14,7 +14,7 @@ import (
 
 var logger = config.GetServerConfig().Logger()
 
-const module string = "client validation"
+const module string = "Client Validation"
 
 // Validate checks if the ClientRegistrationRequest contains valid values.
 func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {

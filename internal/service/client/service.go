@@ -21,7 +21,7 @@ import (
 var _ client.ClientService = (*ClientServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
-const module = "ClientService"
+const module = "Client Service"
 
 // ClientServiceImpl provides the implementation of ClientService.
 type ClientServiceImpl struct {

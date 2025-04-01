@@ -15,7 +15,7 @@ import (
 var _ users.UserService = (*UserServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
-const module = "UserService"
+const module = "User Service"
 
 type UserServiceImpl struct {
 	userRepo     users.UserRepository
@@ -223,8 +223,8 @@ func (u *UserServiceImpl) authenticateUser(
 
 	loginAttempt.UserID = retrievedUser.ID
 	if passwordsAreEqual := crypto.CompareHash(loginUser.Password, retrievedUser.Password); !passwordsAreEqual {
+		logger.Error(module, "Failed to compare passwords. Passwords do not match")
 		if err := u.loginService.HandleFailedLoginAttempt(retrievedUser, loginAttempt); err != nil {
-
 			return nil, errors.NewInternalServerError()
 		}
 

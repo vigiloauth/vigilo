@@ -18,7 +18,7 @@ import (
 var _ email.EmailService = (*BaseEmailService)(nil)
 var logger = config.GetServerConfig().Logger()
 
-const baseEmailService = "BaseEmailService"
+const baseEmailService = "Base Email Service"
 
 // BaseEmailService provides common email functionality.
 type BaseEmailService struct {
