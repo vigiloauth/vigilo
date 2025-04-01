@@ -27,7 +27,7 @@ func HashString(plainStr string) (string, error) {
 // CompareHash compares a plain text string with a hashed
 // string and returns true if they match.
 //
-// Paremeters:
+// Parameters:
 //
 //	plainStr string: The plain text string.
 //	hashStr string: The encrypted string.

@@ -17,12 +17,14 @@ type ServerConfig struct {
 	port              int  // Port number the server listens on.
 	requestsPerMinute int  // Maximum requests allowed per minute.
 
-	readTimeout    time.Duration   // Read timeout for HTTP requests.
-	writeTimeout   time.Duration   // Write timeout for HTTP responses.
+	readTimeout  time.Duration // Read timeout for HTTP requests.
+	writeTimeout time.Duration // Write timeout for HTTP responses.
+
 	tokenConfig    *TokenConfig    // JWT configuration.
 	loginConfig    *LoginConfig    // Login configuration.
 	smtpConfig     *SMTPConfig     // SMTP configuration.
 	passwordConfig *PasswordConfig // Password configuration.
+	logger         *Logger         // Logging Configuration
 }
 
 // ServerConfigOptions is a function type used to configure ServerConfig options.
@@ -76,6 +78,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		passwordConfig:    NewPasswordConfig(),
 		requestsPerMinute: defaultRequestsPerMinute,
 		sessionCookieName: defaultSessionCookieName,
+		logger:            GetLogger(),
 	}
 
 	for _, opt := range opts {
@@ -401,4 +404,8 @@ func (sc *ServerConfig) SessionCookieName() string {
 //	int: The maximum number of requests per minute.
 func (sc *ServerConfig) MaxRequestsPerMinute() int {
 	return sc.requestsPerMinute
+}
+
+func (sc *ServerConfig) Logger() *Logger {
+	return sc.logger
 }
