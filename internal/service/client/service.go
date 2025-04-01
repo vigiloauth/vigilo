@@ -104,6 +104,12 @@ func (cs *ClientServiceImpl) Register(newClient *client.Client) (*client.ClientR
 	if newClient.Type == client.Confidential {
 		response.Secret = plainSecret
 	}
+	if newClient.JwksURI != "" {
+		response.JwksURI = newClient.JwksURI
+	}
+	if newClient.LogoURI != "" {
+		response.LogoURI = newClient.LogoURI
+	}
 
 	return response, nil
 }

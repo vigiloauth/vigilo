@@ -20,6 +20,19 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 		errorCollection.Add(err)
 	}
 
+	if req.JwksURI != "" {
+		if _, err := url.ParseRequestURI(req.JwksURI); err != nil {
+			err = errors.New(errors.ErrCodeInvalidClientMetadata, "invalid jwks_uri format")
+			errorCollection.Add(err)
+		}
+	}
+	if req.LogoURI != "" {
+		if _, err := url.ParseRequestURI(req.JwksURI); err != nil {
+			err = errors.New(errors.ErrCodeInvalidClientMetadata, "invalid logo_uri format")
+			errorCollection.Add(err)
+		}
+	}
+
 	if req.Type == Public && req.Secret != "" {
 		err := errors.New(errors.ErrCodeInvalidClientMetadata, "'client_secret' must not be provided for public clients")
 		errorCollection.Add(err)

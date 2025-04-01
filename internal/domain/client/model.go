@@ -11,14 +11,16 @@ type Client struct {
 	ID                      string
 	Secret                  string
 	Type                    string
-	SecretExpiration        int
+	TokenEndpointAuthMethod string
+	JwksURI                 string
+	LogoURI                 string
 	RedirectURIS            []string
 	GrantTypes              []string
 	Scopes                  []string
 	ResponseTypes           []string
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
-	TokenEndpointAuthMethod string
+	SecretExpiration        int
 }
 
 type ClientRequest interface {
@@ -33,12 +35,14 @@ type ClientRequest interface {
 // ClientRegistrationRequest represents a request to register a new OAuth client.
 type ClientRegistrationRequest struct {
 	Name                    string   `json:"client_name"`
-	RedirectURIS            []string `json:"redirect_uris"`
 	Type                    string   `json:"client_type"`
 	Secret                  string   `json:"client_secret,omitempty"`
+	RedirectURIS            []string `json:"redirect_uris"`
 	GrantTypes              []string `json:"grant_types"`
 	Scopes                  []string `json:"scopes,omitempty"`
 	ResponseTypes           []string `json:"response_types"`
+	JwksURI                 string   `json:"jwks_uri,omitempty"`
+	LogoURI                 string   `json:"logo_uri,omitempty"`
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method,omitempty"`
 }
 
@@ -52,6 +56,8 @@ type ClientUpdateRequest struct {
 	GrantTypes              []string `json:"grant_types,omitempty"`
 	Scopes                  []string `json:"scopes,omitempty"`
 	ResponseTypes           []string `json:"response_types,omitempty"`
+	JwksURI                 string   `json:"jwks_uri,omitempty"`
+	LogoURI                 string   `json:"logo_uri,omitempty"`
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method,omitempty"`
 }
 
@@ -64,10 +70,12 @@ type ClientRegistrationResponse struct {
 	Type                    string    `json:"client_type"`
 	RedirectURIS            []string  `json:"redirect_uris"`
 	GrantTypes              []string  `json:"grant_types"`
-	Scopes                  []string  `json:"scopes,omitempty"`
+	Scopes                  []string  `json:"scopes"`
 	ResponseTypes           []string  `json:"response_types"`
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
+	JwksURI                 string    `json:"jwks_uri,omitempty"`
+	LogoURI                 string    `json:"logo_uri,omitempty"`
 	TokenEndpointAuthMethod string    `json:"token_endpoint_auth_method,omitempty"`
 	RegistrationAccessToken string    `json:"registration_access_token"`
 	ConfigurationEndpoint   string    `json:"client_configuration_endpoint"`
