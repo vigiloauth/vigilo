@@ -29,6 +29,8 @@ type ClientRequest interface {
 	GetRedirectURIS() []string
 	GetScopes() []string
 	GetResponseTypes() []string
+	GetJwksURI() string
+	GetLogoURI() string
 	SetScopes(scopes []string)
 }
 
@@ -148,6 +150,12 @@ func (c *Client) UpdateValues(request *ClientUpdateRequest) {
 	if request.Name != "" {
 		c.Name = request.Name
 	}
+	if request.LogoURI != "" {
+		c.LogoURI = request.LogoURI
+	}
+	if request.JwksURI != "" {
+		c.JwksURI = request.JwksURI
+	}
 	if len(request.RedirectURIS) > 0 {
 		c.RedirectURIS = append(c.RedirectURIS, request.RedirectURIS...)
 	}
@@ -186,6 +194,14 @@ func (req *ClientRegistrationRequest) GetResponseTypes() []string {
 	return req.ResponseTypes
 }
 
+func (req *ClientRegistrationRequest) GetLogoURI() string {
+	return req.LogoURI
+}
+
+func (req *ClientRegistrationRequest) GetJwksURI() string {
+	return req.JwksURI
+}
+
 func (req *ClientRegistrationRequest) SetScopes(scopes []string) {
 	req.Scopes = scopes
 }
@@ -208,6 +224,14 @@ func (req *ClientUpdateRequest) GetScopes() []string {
 
 func (req *ClientUpdateRequest) GetResponseTypes() []string {
 	return req.ResponseTypes
+}
+
+func (req *ClientUpdateRequest) GetLogoURI() string {
+	return req.LogoURI
+}
+
+func (req *ClientUpdateRequest) GetJwksURI() string {
+	return req.JwksURI
 }
 
 func (req *ClientUpdateRequest) SetScopes(scopes []string) {

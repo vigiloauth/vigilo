@@ -20,19 +20,6 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 		errorCollection.Add(err)
 	}
 
-	if req.JwksURI != "" {
-		if _, err := url.ParseRequestURI(req.JwksURI); err != nil {
-			err = errors.New(errors.ErrCodeInvalidClientMetadata, "invalid jwks_uri format")
-			errorCollection.Add(err)
-		}
-	}
-	if req.LogoURI != "" {
-		if _, err := url.ParseRequestURI(req.JwksURI); err != nil {
-			err = errors.New(errors.ErrCodeInvalidClientMetadata, "invalid logo_uri format")
-			errorCollection.Add(err)
-		}
-	}
-
 	if req.Type == Public && req.Secret != "" {
 		err := errors.New(errors.ErrCodeInvalidClientMetadata, "'client_secret' must not be provided for public clients")
 		errorCollection.Add(err)
@@ -45,7 +32,7 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 
 	validateClientType(req, errorCollection)
 	validateGrantType(req, errorCollection)
-	validateRedirectURIS(req, errorCollection)
+	validateURIS(req, errorCollection)
 	validateScopes(req, errorCollection)
 	validateResponseTypes(req, errorCollection)
 
@@ -60,7 +47,7 @@ func ValidateClientUpdateRequest(req *ClientUpdateRequest) error {
 	errorCollection := errors.NewErrorCollection()
 
 	validateGrantType(req, errorCollection)
-	validateRedirectURIS(req, errorCollection)
+	validateURIS(req, errorCollection)
 	validateScopes(req, errorCollection)
 	validateResponseTypes(req, errorCollection)
 
@@ -111,12 +98,25 @@ func validateGrantType(req ClientRequest, errorCollection *errors.ErrorCollectio
 	}
 }
 
-// validateRedirectURIS checks if redirect URIs are well-formed and secure.
-func validateRedirectURIS(req ClientRequest, errorCollection *errors.ErrorCollection) {
+// validateURIS checks if redirect URIs are well-formed and secure.
+func validateURIS(req ClientRequest, errorCollection *errors.ErrorCollection) {
 	if len(req.GetRedirectURIS()) == 0 {
 		err := errors.New(errors.ErrCodeEmptyInput, "'redirect_uris' is empty")
 		errorCollection.Add(err)
 		return
+	}
+
+	if req.GetJwksURI() != "" {
+		if _, err := url.ParseRequestURI(req.GetJwksURI()); err != nil {
+			err = errors.New(errors.ErrCodeInvalidClientMetadata, "invalid jwks_uri format")
+			errorCollection.Add(err)
+		}
+	}
+	if req.GetLogoURI() != "" {
+		if _, err := url.ParseRequestURI(req.GetLogoURI()); err != nil {
+			err = errors.New(errors.ErrCodeInvalidClientMetadata, "invalid logo_uri format")
+			errorCollection.Add(err)
+		}
 	}
 
 	mobileSchemePattern := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/`)
