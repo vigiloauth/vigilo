@@ -110,15 +110,15 @@ The following metadata fields are supported by the VigiloAuth Server for Dynamic
 | `client_name`                | Human-readable name of the client.                                          | `string`    | Required                                |
 | `client_type`                | The type of client to register (e.g., `confidential`, `public`)             | `string`    | Required                                |
 | `redirect_uris`              | Array of URIs to which the client can redirect users.                       | `[]string`  | Required                                |
-| `grant_types`                | Array of OAuth 2.0 grant types the client can use.                          | `[]string`  | Optional                                |
-| `response_types`             | Array of OAuth 2.0 response types the client can use.                       | `[]string`  | Optional                                |
+| `grant_types`                | Array of OAuth 2.0 grant types the client can use.                          | `[]string`  | Required                                |
+| `response_types`             | Array of OAuth 2.0 response types the client can use.                       | `[]string`  | Required                                |
+| `scopes`                     | Space-separated list of scopes the client can request.                      | `[]string`  | Optional                                |
 | `client_id`                  | Unique identifier for the client.                                           | `string`    | Auto-generated                          |
 | `client_secret`              | Secret used by confidential clients to authenticate with the server.        | `string`    | Auto-generated for confidential clients |
 | `token_endpoint_auth_method` | Authentication method for the token endpoint (e.g., `client_secret_basic`). | `string`    | Optional                                |
-| `scope`                      | Space-separated list of scopes the client can request.                      | `string`    | Optional                                |
 
 #### 5.1 Supported Grant Types
-Grant types are an important aspect of the OAuth 2.0 Dynamic Client Registration Protocol. It specifies the OAuth 2.0 grant types that the client is allowed to use. This field is optional in the protocol, but it plays a critical role in defining how the client interacts with the authorization server. If no grant type is provided during client registration, VigiloAuth Server defaults to the most secure grant type (`authorization_code`).
+Grant types are an important aspect of the OAuth 2.0 Dynamic Client Registration Protocol. It specifies the OAuth 2.0 grant types that the client is allowed to use. This field is optional in the protocol, but it plays a critical role in defining how the client interacts with the authorization server.
 
 VigiloAuth currently supports the following grant types (based on OAuth 2.0 standards):
 - `authorization_code`:
@@ -169,7 +169,7 @@ VigiloAuth currently supports the following predefined scopes:
   - Use Case: For administrative applications or services that require complete control over client registrations.
 
 #### 5.3 Supported Response Types
-Response types define the type of response a client expects from the authorization server during the OAuth 2.0 authorization process. They determine whether the client receives an authorization code, an access token, or an ID token. If no response types are provided during client registration, VigiloAuth server defaults to the most common and secure response type (`code`).
+Response types define the type of response a client expects from the authorization server during the OAuth 2.0 authorization process. They determine whether the client receives an authorization code, an access token, or an ID token.
 
 VigiloAuth currently supports the following response types:
 - `code`

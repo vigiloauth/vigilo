@@ -27,13 +27,13 @@ For information on how to use `client_configuration_endpoint` and `registration_
 ## Request Body
 | Field                | Type          | Required | Description                                                                 |
 | :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
-| client_name          | string        | Yes      | The name of the client application being registered.                       |
-| redirect_uris        | string array  | Yes      | A list of URIs to which the authorization server will redirect the user after successful authorization. Public clients must use HTTPS. |
-| client_type          | string        | Yes      | The type of client. Must be either `public` or `confidential`.             |
-| grant_types          | string array  | Yes      | The grant types associated with the client. Supported values: `authorization_code`, `client_credentials`, `password`, `refresh_token`, `implicit`, `device_code`. |
-| scopes               | string array  | No       | The scopes associated with the client. Supported values: `read`, `write`.  |
-| response_types       | string array  | Yes      | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
-| token_auth_endpoint  | string        | No       | The token authentication endpoint for the client credentials flow. Required for `client_credentials` grant type. |
+| `client_name`          | `string`        | Yes      | The name of the client application being registered.                       |
+| `redirect_uris`        | `[]string`   | Yes      | A list of URIs to which the authorization server will redirect the user after successful authorization. Public clients must use HTTPS. |
+| `client_type`          | `string`        | Yes      | The type of client. Must be either `public` or `confidential`.             |
+| `grant_types`          | `[]string`  | Yes      | The grant types associated with the client. Supported values: `authorization_code`, `client_credentials`, `password`, `refresh_token`, `implicit`, `device_code`, `pkce`. |
+| `scopes`               | `[]string`  | No       | The scopes associated with the client. Supported values: `client:read`, `client:write`, `client:delete`, `client:manage`.  |
+| `response_types`       | `[]string`  | Yes      | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
+| `token_auth_endpoint`  | `string`    | No       | The token authentication endpoint for the client credentials flow. Required for `client_credentials` grant type. |
 
 ---
 
@@ -51,6 +51,7 @@ For information on how to use `client_configuration_endpoint` and `registration_
   "response_types": ["code", "token"],
 }
 ```
+**Note:** If no scopes are provided during client registration, VigiloAuth Server defaults to the most restrictive scope (`client:read`).
 
 ---
 
