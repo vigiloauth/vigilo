@@ -4,6 +4,7 @@
 POST /auth/reset-password
 ```
 ---
+
 **Description:** This endpoint is used to for a user to request a link to reset their password.
 ### Headers
 | Key             | Value                         |
@@ -11,19 +12,25 @@ POST /auth/reset-password
 | Content-Type    | application/json              | 
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | 
 | Content-Length  | 44                            | 
+
 ---
+
 ### Request Body
 | Field      | Type    | Required  | Description                    |
 | :----------|:--------|:----------|:-------------------------------|
-| email      | string  | Yes          | The user's email address.     |
+| `email`      | `string`  | Yes          | The user's email address.     |
+
 ---
+
 ### Example Request
 ```json
 {
     "email": "john.doe@mail.com",
 }
 ```
+
 ---
+
 ## Responses
 #### HTTP Status Code: `200 OK`
 #### Response Body:
@@ -39,6 +46,7 @@ This response is returned even if the user does not exist to prevent user enumer
 The email will include a link with the format: [Base URL]?requestId=[Reset Token]. This link will redirect the user to a page where they can reset their password. The reset token will expire after a set period of time.
 
 ---
+
 ## Error Responses
 ### 1. Empty Base URL Configuration
 #### HTTP Status Code: `400 Bad Request`

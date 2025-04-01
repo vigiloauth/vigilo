@@ -16,8 +16,8 @@ PATCH /auth/reset-password/confirm
 ### Request Body
 | Field       | Type    | Required  | Description                       |
 |:------------|:--------|:----------|:----------------------------------|
-| email       | string  | Yes       | The user's email address.         |
-| newPassword | string  | Yes       | The new password for the account. |
+| `email`       | `string`  | Yes       | The user's email address.         |
+| `new_password` | `string`  | Yes       | The new password for the account. |
 ---
 ### Example Request
 ```json

@@ -18,10 +18,10 @@ This endpoint facilitates the OAuth authorization process by allowing users to r
 ### Query Parameters
 | Parameter    | Type    | Required | Description                                                                 |
 | :----------- | :------ | :------- | :-------------------------------------------------------------------------- |
-| client_id    | string  | Yes      | The unique identifier of the OAuth client.                                  |
-| redirect_uri | string  | Yes      | The URI to redirect to after authorization. Must match the registered URI.  |
-| scope        | string  | Yes      | The requested access scope(s), space-separated.                             |
-| state        | string  | No       | A unique string to maintain state between requests and prevent CSRF attacks.|
+| `client_id`    | `string`  | Yes      | The unique identifier of the OAuth client.                                  |
+| `redirect_uri` | `string`  | Yes      | The URI to redirect to after authorization. Must match the registered URI.  |
+| `scope`        | `string`  | Yes      | The requested access scope(s), space-separated.                             |
+| `state`        | `string`  | No       | A unique string to maintain state between requests and prevent CSRF attacks.|
 
 ### Required Headers
 | Key    | Value                   | Description                   |
@@ -35,8 +35,8 @@ This endpoint facilitates the OAuth authorization process by allowing users to r
 ### Request Body Parameters
 | Field     | Type    | Required  | Description                                                                 |
 | :-------- | :------ | :-------- | :-------------------------------------------------------------------------- |
-| approved  | bool    | Yes       | The user's consent decision. `true` for approval, `false` for denial.       |
-| scopes    | string  | No        | The requested access scope(s), space-separated.                             |
+| `approved`  | `bool`    | Yes       | The user's consent decision. `true` for approval, `false` for denial.       |
+| `scopes`    | `[]string`  | No        | The requested access scope(s), space-separated.                             |
 
 ### Required Headers
 | Key          | Value                   | Description                   |

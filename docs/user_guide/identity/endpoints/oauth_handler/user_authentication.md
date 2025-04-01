@@ -24,17 +24,17 @@ This endpoint handles user authentication for the OAuth authorization code flow.
 ## Query Parameters
 | Parameter        | Type    | Required | Description                                                                 |
 | :--------------- | :------ | :------- | :-------------------------------------------------------------------------- |
-| client_id        | string  | Yes      | The unique identifier of the OAuth client. Must match the registered client.|
-| redirect_uri     | string  | Yes      | The URI to redirect after authorization. Must match the registered URI.     |
+| `client_id`        | `string`  | Yes      | The unique identifier of the OAuth client. Must match the registered client.|
+| `redirect_uri`     | `string`  | Yes      | The URI to redirect after authorization. Must match the registered URI.     |
 
 ---
 
 ## Request Body Parameters
 | Field     | Type    | Required  | Description                    |
 | :-------- | :------ | :-------- | :----------------------------- |
-| user_id   | string  | Yes       | The user's ID.                 |
-| email     | string  | Yes       | The user's email address.      |
-| password  | string  | Yes       | The password for the account.  |
+| `user_id`   | `string`  | Yes       | The user's ID.                 |
+| `email`     | `string`  | Yes       | The user's email address.      |
+| `password`  | `string`  | Yes       | The password for the account.  |
 
 ---
 

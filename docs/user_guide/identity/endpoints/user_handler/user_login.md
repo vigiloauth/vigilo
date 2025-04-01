@@ -15,8 +15,8 @@ POST /auth/login
 ### Request Body
 | Field     | Type    | Required  | Description                    |
 |:----------|:--------|:----------|:-------------------------------|
-| email     | string  | Yes       | The user's email address.      |
-| password  | string  | Yes       | The password for the account.  |
+| `email`     | `string`  | Yes       | The user's email address.      |
+| `password`  | `string`  | Yes       | The password for the account.  |
 ---
 ### Example Request
 ```json

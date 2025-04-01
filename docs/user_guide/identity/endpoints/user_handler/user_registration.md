@@ -14,9 +14,9 @@ POST /auth/signup
 ### Request Body
 | Field     | Type    | Required  | Description                    |
 |:----------|:--------|:----------|:-------------------------------|
-| username  | string  | Yes       | The user's username.
-| email     | string  | Yes       | The user's email address.      |
-| password  | string  | Yes       | The password for the account.  |
+| `username`  | `string`  | Yes       | The user's username.
+| `email`     | `string`  | Yes       | The user's email address.      |
+| `password`  | `string`  | Yes       | The password for the account.  |
 ---
 ### Example Request
 ```json

@@ -25,7 +25,7 @@ POST /client/regenerate-secret/<client_id>
 ## URL Path Parameters
 | Parameter | Type   | Required | Description                                                                 |
 | :-------- | :----- | :------- | :-------------------------------------------------------------------------- |
-| client_id | string | Yes      | The unique identifier of the client application. This must match the client ID registered with the authorization server. |
+| `client_id` | `string` | Yes      | The unique identifier of the client application. This must match the client ID registered with the authorization server. |
 
 ---
 

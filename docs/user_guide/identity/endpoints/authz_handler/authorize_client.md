@@ -22,11 +22,11 @@ This endpoint is used to handle the authorization request in the OAuth 2.0 Autho
 ## Query Parameters
 | Parameter            | Type          | Required | Description                                                                 |
 | :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
-| client_id            | string        | Yes      | The unique identifier of the OAuth client.                                 |
-| redirect_uri         | string        | Yes      | The URI to redirect to after authorization. Must match the registered URI. |
-| scope                | string        | Yes      | The requested access scope(s), space-separated.                            |
-| approved             | boolean       | Yes      | Indicates whether the user has approved the authorization request.         |
-| state                | string        | No       | An opaque value used to maintain state between the request and callback. This helps prevent CSRF attacks. |
+| `client_id`            | `string`        | Yes      | The unique identifier of the OAuth client.                                 |
+| `redirect_uri`         | `string`        | Yes      | The URI to redirect to after authorization. Must match the registered URI. |
+| `scope`                | `string`        | Yes      | The requested access scope(s), space-separated.                            |
+| `approved`             | `boolean`       | Yes      | Indicates whether the user has approved the authorization request.         |
+| `state`                | `string`        | No       | An opaque value used to maintain state between the request and callback. This helps prevent CSRF attacks. |
 
 ---
 
@@ -44,11 +44,11 @@ This endpoint is used to handle the authorization request in the OAuth 2.0 Autho
 4. If the session exists, the server processes the user's consent to the authorization request.
 5. The server redirects to the specified `redirect_uri` with an authorization code or an error.
 
----
+---w
 
 ## Example Request
 ```
-GET https://localhost:<port>/oauth/authorize?client_id=abc123&redirect_uri=https://client.example.com/callback&scope=profile&approved=true&state=xyz
+GET https://localhost:<port>/oauth/authorize?client_id=abc123&redirect_uri=https://client.example.com/callback&scope=user:profile&approved=true&state=xyz
 ```
 
 ---

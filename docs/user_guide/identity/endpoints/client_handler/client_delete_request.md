@@ -24,7 +24,7 @@ Upon deletion, the `client_id`, `client_secret` (if applicable), and the `regist
 ## URL Parameters
 | Parameter            | Type          | Required | Description                                                                |
 | :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
-| client_id            | string        | Yes      | The unique identifier of the OAuth client.                                 |
+| `client_id`            | `string`        | Yes      | The unique identifier of the OAuth client.                                 |
 
 ---
 

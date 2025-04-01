@@ -21,7 +21,7 @@ This endpoint is a protected route which is responsible for retrieving the curre
 ## URL Parameters
 | Parameter            | Type          | Required | Description                                                                |
 | :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
-| client_id            | string        | Yes      | The unique identifier of the OAuth client.                                 |
+| `client_id`            | `string`        | Yes      | The unique identifier of the OAuth client.                                 |
 
 ---
 

@@ -34,7 +34,7 @@ This endpoint implements the OAuth 2.0 client credentials flow, allowing authent
 ## Request Body
 | Field      | Type    | Required  | Description                                                                 |
 | :----------|:--------|:----------|:----------------------------------------------------------------------------|
-| grant_type | string  | Yes       | Specifies the type of grant being used. Must be set to `client_credentials`.|
+| `grant_type` | `string`  | Yes       | Specifies the type of grant being used. Must be set to `client_credentials`.|
 
 ---
 

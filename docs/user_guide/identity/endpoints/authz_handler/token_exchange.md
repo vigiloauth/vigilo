@@ -22,11 +22,11 @@ This endpoint handles the token exchange for the OAuth 2.0 Authorization Code Fl
 ## Query Parameters
 | Parameter            | Type          | Required | Description                                                                 |
 | :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
-| grant_type           | string        | Yes      | Specifies the type of grant being used. Must be set to `authorization_code`.|
-| code                 | string        | Yes      | The authorization code received from the [authorize endpoint](authorize_client.md). |
-| client_id            | string        | Yes      | The unique identifier of the OAuth client.                                 |
-| client_secret        | string        | Yes      | The client's secret key.                                                   |
-| redirect_uri         | string        | Yes      | Must match the redirect URI used in the [authorize step](authorize_client.md). |
+| `grant_type`           | `string`        | Yes      | Specifies the type of grant being used. Must be set to `authorization_code`.|
+| `code`                 | `string`        | Yes      | The authorization code received from the [authorize endpoint](authorize_client.md). |
+| `client_id`            | `string`        | Yes      | The unique identifier of the OAuth client.                                 |
+| `client_secret`        | `string`        | Yes      | The client's secret key.                                                   |
+| `redirect_uri`         | `string`        | Yes      | Must match the redirect URI used in the [authorize step](authorize_client.md). |
 
 ---
 
