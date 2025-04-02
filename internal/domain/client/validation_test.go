@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_"
+
 func TestClientRegistrationRequest_Validate(t *testing.T) {
 	t.Run("Successful Validation", func(t *testing.T) {
 		client := createClientRegistrationRequest()
@@ -157,6 +159,8 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			{
 				name: "Valid Base64 URL-encoded string (43-44 chars)",
 				request: &ClientAuthorizationRequest{
+					Client:              createClient(),
+					ResponseType:        CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWasdasd2dasXyz0123456789-_",
 					CodeChallengeMethod: S256,
 				},
@@ -164,6 +168,8 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			{
 				name: "Valid long Base64 URL-encoded string (greater than 44 chars)",
 				request: &ClientAuthorizationRequest{
+					Client:              createClient(),
+					ResponseType:        CodeResponseType,
 					CodeChallenge:       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_",
 					CodeChallengeMethod: S256,
 				},
@@ -184,6 +190,8 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			{
 				name: "Code challenge contains invalid characters (+, /)",
 				request: &ClientAuthorizationRequest{
+					Client:              createClient(),
+					ResponseType:        CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWXyz01234562345654323456789+/",
 					CodeChallengeMethod: S256,
 				},
@@ -191,6 +199,8 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			{
 				name: "Code challenge contains invalid characters (@, #, !)",
 				request: &ClientAuthorizationRequest{
+					Client:              createClient(),
+					ResponseType:        CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWXyz012345012345678765434567887656789@#!",
 					CodeChallengeMethod: S256,
 				},
@@ -209,6 +219,8 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			CodeChallenge:       "short",
 			CodeChallengeMethod: S256,
+			Client:              createClient(),
+			ResponseType:        CodeResponseType,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
@@ -220,8 +232,10 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 
 	t.Run("Error is returned when the code challenge method is invalid", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
-			CodeChallenge:       "this-is-a-plain-test-code-challenge",
+			CodeChallenge:       validCodeChallenge,
 			CodeChallengeMethod: "invalid",
+			Client:              createClient(),
+			ResponseType:        CodeResponseType,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
@@ -233,12 +247,130 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 
 	t.Run("Code challenge method defaults to plain if not present", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
-			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
+			Client:        createClient(),
+			ResponseType:  CodeResponseType,
+			CodeChallenge: validCodeChallenge,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
 		assert.NoError(t, err)
 		assert.Equal(t, Plain, request.CodeChallengeMethod)
+	})
+
+	t.Run("Error is returned when client does not have 'code' response type", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			Client: &Client{
+				GrantTypes:    []string{AuthorizationCode, PKCE},
+				ResponseTypes: []string{IDTokenResponseType},
+			},
+			CodeChallenge: validCodeChallenge,
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		expectedError := "'code' response type is required for PKCE"
+
+		assert.Error(t, err)
+		assert.Contains(t, expectedError, err.Error())
+	})
+
+	t.Run("Success when request does not have PKCE grant and no code challenge is passed", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			ResponseType: CodeResponseType,
+			Client: &Client{
+				Type:          Confidential,
+				ResponseTypes: []string{CodeResponseType},
+				GrantTypes:    []string{AuthorizationCode},
+			},
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error is returned when the client does not have authorization code grant", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			Client: &Client{
+				Type:          Public,
+				ResponseTypes: []string{CodeResponseType},
+				GrantTypes:    []string{PKCE},
+			},
+			ResponseType:        CodeResponseType,
+			CodeChallengeMethod: Plain,
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		expectedErr := "Authorization code grant is required for this request"
+
+		assert.Error(t, err)
+		assert.Contains(t, expectedErr, err.Error())
+	})
+
+	t.Run("Error is returned when public client does not have PKCE grant", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			Client: &Client{
+				Type:          Public,
+				ResponseTypes: []string{CodeResponseType},
+				GrantTypes:    []string{AuthorizationCode},
+			},
+			ResponseType:        CodeResponseType,
+			CodeChallenge:       validCodeChallenge,
+			CodeChallengeMethod: Plain,
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		expectedErr := "public clients are required to use PKCE"
+
+		assert.Error(t, err)
+		assert.Contains(t, expectedErr, err.Error())
+	})
+
+	t.Run("Error is returned when client has PKCE but does not provide a code challenge", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			Client: &Client{
+				Type:          Public,
+				ResponseTypes: []string{CodeResponseType},
+				GrantTypes:    []string{AuthorizationCode, PKCE},
+			},
+			ResponseType: CodeResponseType,
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		expectedErr := "'code_challenge' is required for PKCE"
+
+		assert.Error(t, err)
+		assert.Contains(t, expectedErr, err.Error())
+	})
+
+	t.Run("Success when confidential client is not using PKCE", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			Client: &Client{
+				Type:          Confidential,
+				ResponseTypes: []string{CodeResponseType},
+				GrantTypes:    []string{AuthorizationCode},
+			},
+			ResponseType: CodeResponseType,
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error is returned when confidential client provides a code challenge but is not using PKCE", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			Client: &Client{
+				Type:          Confidential,
+				ResponseTypes: []string{CodeResponseType},
+				GrantTypes:    []string{AuthorizationCode},
+			},
+			ResponseType:  CodeResponseType,
+			CodeChallenge: validCodeChallenge,
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		expectedErr := "PKCE is required when providing a code challenge"
+
+		assert.Error(t, err)
+		assert.Contains(t, expectedErr, err.Error())
 	})
 }
 
@@ -255,6 +387,17 @@ func createClientRegistrationRequest() *ClientRegistrationRequest {
 
 func createClientUpdateRequest() *ClientUpdateRequest {
 	return &ClientUpdateRequest{
+		Name:          "Test Client",
+		Type:          Public,
+		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
+		GrantTypes:    []string{AuthorizationCode, PKCE},
+		Scopes:        []string{ClientRead, ClientWrite},
+		ResponseTypes: []string{CodeResponseType, IDTokenResponseType},
+	}
+}
+
+func createClient() *Client {
+	return &Client{
 		Name:          "Test Client",
 		Type:          Public,
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},

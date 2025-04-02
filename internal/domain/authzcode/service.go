@@ -1,22 +1,21 @@
 package domain
 
-import "time"
+import (
+	client "github.com/vigiloauth/vigilo/internal/domain/client"
+)
 
 type AuthorizationCodeService interface {
 	// GenerateAuthorizationCode creates a new authorization code and stores it with associated data.
 	//
 	// Parameters:
 	//
-	//   userID string: The user who authorized the client.
-	//   clientID string: The client requesting authorization.
-	//   redirectURI string: The URI to redirect after authorization.
-	//   scope string: The authorized scope(s).
+	//	 request *ClientAuthorizationRequest: The request containing the metadata to generate an authorization code.
 	//
 	// Returns:
 	//
-	//   string: The generated authorization code.
+	//	 string: The generated authorization code.
 	//   error: An error if code generation fails.
-	GenerateAuthorizationCode(userID, clientID, redirectURI, scope string) (string, error)
+	GenerateAuthorizationCode(request *client.ClientAuthorizationRequest) (string, error)
 
 	// ValidateAuthorizationCode checks if a code is valid and returns associated data.
 	//
@@ -42,13 +41,6 @@ type AuthorizationCodeService interface {
 	//
 	//   error: An error if revocation fails.
 	RevokeAuthorizationCode(code string) error
-
-	// SetAuthorizationCodeLifeTime configures how long authorization codes remain valid.
-	//
-	// Parameters:
-	//
-	//   lifetime time.Duration: The validity period for new codes.
-	SetAuthorizationCodeLifeTime(lifetime time.Duration)
 
 	// GetAuthorizationCode retrieves the authorization code data for a given code.
 	//

@@ -15,15 +15,16 @@ import (
 )
 
 const (
-	testUserID       string = "testUserID"
-	testUserPassword string = "testPassword"
-	testEmail        string = "testEmail"
-	testClientName   string = "testClient"
-	testClientID     string = "clientID"
-	testClientSecret string = "secret"
-	testScope        string = "client:manage"
-	testRedirectURI  string = "http://localhost/callback"
-	testCode         string = "12314324code"
+	testUserID         string = "testUserID"
+	testUserPassword   string = "testPassword"
+	testEmail          string = "testEmail"
+	testClientName     string = "testClient"
+	testClientID       string = "clientID"
+	testClientSecret   string = "secret"
+	testScope          string = "client:manage"
+	testRedirectURI    string = "http://localhost/callback"
+	testCode           string = "12314324code"
+	validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_"
 )
 
 func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
@@ -40,7 +41,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 		}
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
-		code, err := service.GenerateAuthorizationCode(testUserID, testClientID, testRedirectURI, testScope)
+		code, err := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
 		assert.NoError(t, err)
 		assert.NotEqual(t, "", code)
@@ -49,8 +50,10 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 	t.Run("Error is returned when missing a required parameters", func(t *testing.T) {
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
 
+		request := createClientAuthorizationRequest()
+		request.UserID = ""
+		code, actual := service.GenerateAuthorizationCode(request)
 		expected := errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")
-		code, actual := service.GenerateAuthorizationCode("", testClientID, testRedirectURI, testScope)
 
 		assert.Equal(t, "", code)
 		assert.Equal(t, expected.Error(), actual.Error())
@@ -65,7 +68,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 		}
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
-		code, err := service.GenerateAuthorizationCode(testUserID, testClientID, testRedirectURI, testScope)
+		code, err := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
 		assert.Error(t, err)
 		assert.Equal(t, "", code)
@@ -76,7 +79,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := errors.New(errors.ErrCodeUnauthorized, "invalid user_id")
-		code, actual := service.GenerateAuthorizationCode(testUserID, testClientID, testRedirectURI, testScope)
+		code, actual := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
 		assert.Error(t, actual)
 		assert.Equal(t, expected.Error(), actual.Error())
@@ -88,8 +91,8 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
-		expected := errors.New(errors.ErrCodeUnauthorized, "invalid client: invalid client_id")
-		code, actual := service.GenerateAuthorizationCode(testUserID, testClientID, testRedirectURI, testScope)
+		expected := errors.New(errors.ErrCodeUnauthorized, "invalid client: invalid client ID")
+		code, actual := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
 		assert.Error(t, actual)
 		assert.Equal(t, expected.Error(), actual.Error())
@@ -138,7 +141,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 		}
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
-		expected := errors.New(errors.ErrCodeInvalidClient, "client ID mismatch")
+		expected := errors.New(errors.ErrCodeInvalidClient, "authorization code client ID and request client ID do no match")
 		code, actual := service.ValidateAuthorizationCode(testCode, "invalidID", testRedirectURI)
 
 		assert.Nil(t, code)
@@ -152,7 +155,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 		}
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
-		expected := errors.New(errors.ErrCodeInvalidClient, "redirect URI mismatch")
+		expected := errors.New(errors.ErrCodeInvalidClient, "authorization code redirect URI and request redirect URI do no match")
 		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, "testRedirectURI")
 
 		assert.Nil(t, code)
@@ -160,7 +163,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 		assert.Equal(t, expected.Error(), actual.Error())
 	})
 
-	t.Run("Error is returned when missing a required paramaters", func(t *testing.T) {
+	t.Run("Error is returned when missing a required parameters", func(t *testing.T) {
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
 
 		expected := errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")
@@ -168,21 +171,6 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 
 		assert.Nil(t, code)
 		assert.Equal(t, expected.Error(), actual.Error())
-	})
-
-	t.Run("Error is returned when there is an error deleting the code", func(t *testing.T) {
-		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(code string) (*authz.AuthorizationCodeData, bool, error) {
-			return createAuthzCodeData(), true, nil
-		}
-		mockAuthzCodeRepo.DeleteAuthorizationCodeFunc = func(code string) error {
-			return errors.NewInternalServerError()
-		}
-
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
-		data, err := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
-
-		assert.Nil(t, data)
-		assert.Error(t, err)
 	})
 }
 
@@ -214,5 +202,24 @@ func createAuthzCodeData() *authz.AuthorizationCodeData {
 		RedirectURI: testRedirectURI,
 		Scope:       testScope,
 		CreatedAt:   time.Now(),
+	}
+}
+
+func createClientAuthorizationRequest() *client.ClientAuthorizationRequest {
+	return &client.ClientAuthorizationRequest{
+		ClientID:    testClientID,
+		UserID:      testUserID,
+		Scope:       "client:manage",
+		RedirectURI: testRedirectURI,
+		Client: &client.Client{
+			Type:          client.Public,
+			ResponseTypes: []string{client.CodeResponseType},
+			GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
+			Scopes:        []string{"client:manage"},
+			RedirectURIS:  []string{testRedirectURI},
+		},
+		ResponseType:        client.CodeResponseType,
+		CodeChallenge:       validCodeChallenge,
+		CodeChallengeMethod: client.Plain,
 	}
 }

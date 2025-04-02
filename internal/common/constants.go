@@ -20,4 +20,6 @@ const (
 	NoStore                       string = "no-store"
 	RequestIDHeader               string = "X-Request-ID"
 	RequestID                     string = "requestID"
+	CodeChallenge                 string = "code_challenge"
+	CodeChallengeMethod           string = "code_challenge_method"
 )

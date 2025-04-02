@@ -2,6 +2,7 @@ package domain
 
 import (
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
+	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 )
 
@@ -11,11 +12,7 @@ type AuthorizationService interface {
 	//
 	// Parameters:
 	//
-	//   - userID: The ID of the user attempting to authorize the client.
-	//   - clientID: The ID of the client requesting authorization.
-	//   - redirectURI: The URI to redirect the user to after authorization.
-	//   - scope: The requested authorization scopes.
-	//   - state: An optional state parameter for maintaining request state between the client and the authorization server.
+	//	 - authorizationRequest *ClientAuthorizationRequest: The client authorization request.
 	//   - consentApproved: A boolean indicating whether the user has already approved consent for the requested scopes.
 	//
 	// Returns:
@@ -33,7 +30,7 @@ type AuthorizationService interface {
 	// Errors:
 	//
 	//   - Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
-	AuthorizeClient(userID, clientID, redirectURI, scope, state string, consentApproved bool) (string, error)
+	AuthorizeClient(authorizationRequest *client.ClientAuthorizationRequest, consentApproved bool) (string, error)
 
 	// AuthorizeTokenExchange validates the token exchange request for an OAuth 2.0 authorization code grant.
 	//

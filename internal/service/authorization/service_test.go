@@ -29,49 +29,95 @@ const (
 func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 	mockConsentService := &mConsentService.MockUserConsentService{}
 	mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockClientService := &mClientService.MockClientService{}
 
 	t.Run("Success", func(t *testing.T) {
 		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
 			return true, nil
 		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(userID, clientID, redirectURI, scope string) (string, error) {
+		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
 			return "code", nil
 		}
 
-		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, mockTokenService, mockClientService)
-		redirectURI, err := service.AuthorizeClient(testUserID, testClientID, testRedirectURI, testScope, "", testConsentApproved)
+		request := getClientAuthorizationRequest()
+		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, nil, nil)
+		redirectURI, err := service.AuthorizeClient(request, testConsentApproved)
 
 		assert.NoError(t, err)
 		assert.NotEqual(t, "", redirectURI)
-	})
-
-	t.Run("Error is returned with the consentURL", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
-			return true, nil
-		}
-
-		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, mockTokenService, mockClientService)
-		redirectURI, err := service.AuthorizeClient(testUserID, testClientID, testRedirectURI, testScope, "", false)
-
-		assert.Error(t, err)
-		assert.Equal(t, "", redirectURI)
 	})
 
 	t.Run("Error is returned generating authorization code", func(t *testing.T) {
 		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
 			return true, nil
 		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(userID, clientID, redirectURI, scope string) (string, error) {
+		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
 			return "", errors.NewInternalServerError()
 		}
 
-		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, mockTokenService, mockClientService)
-		redirectURI, err := service.AuthorizeClient(testUserID, testClientID, testRedirectURI, testScope, "", testConsentApproved)
+		request := getClientAuthorizationRequest()
+		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, nil, nil)
+		redirectURI, err := service.AuthorizeClient(request, testConsentApproved)
 
 		assert.Error(t, err)
 		assert.Equal(t, "", redirectURI)
+	})
+
+	t.Run("Error is returned when user does not provide consent", func(t *testing.T) {
+		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
+			return false, errors.NewAccessDeniedError()
+		}
+
+		request := getClientAuthorizationRequest()
+		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, nil)
+
+		_, err := service.AuthorizeClient(request, true)
+		expectedErr := "the resource owner denied the request"
+
+		assert.Error(t, err)
+		assert.Contains(t, expectedErr, err.Error())
+	})
+
+	t.Run("Error is returned when the client authorization code request is invalid", func(t *testing.T) {
+		request := &client.ClientAuthorizationRequest{
+			Client: &client.Client{
+				GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
+				ResponseTypes: []string{client.IDTokenResponseType},
+			},
+			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
+		}
+
+		service := NewAuthorizationServiceImpl(nil, nil, nil, nil)
+		_, err := service.AuthorizeClient(request, true)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Consent required error is returned when the user does not approve consent and consent is required", func(t *testing.T) {
+		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
+			return true, nil
+		}
+
+		request := getClientAuthorizationRequest()
+		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, nil)
+
+		_, err := service.AuthorizeClient(request, false)
+
+		assert.Contains(t, "user consent required for the requested scope", err.Error())
+		assert.Error(t, err)
+	})
+
+	t.Run("Access denied error is returned when consent is approved but user denies consent", func(t *testing.T) {
+		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
+			return false, nil
+		}
+
+		request := getClientAuthorizationRequest()
+		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, nil)
+
+		_, err := service.AuthorizeClient(request, true)
+
+		assert.Contains(t, "the resource owner denied the request", err.Error())
+		assert.Error(t, err)
 	})
 }
 
@@ -180,6 +226,27 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, expected, err.Error())
 	})
+}
+
+func getClientAuthorizationRequest() *client.ClientAuthorizationRequest {
+	return &client.ClientAuthorizationRequest{
+		ClientID:            testClientID,
+		ResponseType:        client.CodeResponseType,
+		RedirectURI:         testRedirectURI,
+		Scope:               client.ClientManage,
+		State:               "testState",
+		CodeChallenge:       "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
+		CodeChallengeMethod: client.S256,
+		UserID:              testUserID,
+		Client: &client.Client{
+			Name:          "Test Client",
+			Type:          "Public",
+			RedirectURIS:  []string{testRedirectURI},
+			GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
+			Scopes:        []string{client.ClientManage},
+			ResponseTypes: []string{client.CodeResponseType},
+		},
+	}
 }
 
 func getTestAuthzCodeData() *authzCode.AuthorizationCodeData {

@@ -58,11 +58,7 @@ func NewAuthorizationServiceImpl(
 //
 // Parameters:
 //
-//   - userID: The ID of the user attempting to authorize the client.
-//   - clientID: The ID of the client requesting authorization.
-//   - redirectURI: The URI to redirect the user to after authorization.
-//   - scope: The requested authorization scopes.
-//   - state: An optional state parameter for maintaining request state between the client and the authorization server.
+//   - authorizationRequest *ClientAuthorizationRequest: The client authorization request.
 //   - consentApproved: A boolean indicating whether the user has already approved consent for the requested scopes.
 //
 // Returns:
@@ -80,34 +76,39 @@ func NewAuthorizationServiceImpl(
 // Errors:
 //
 //   - Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
-func (s *AuthorizationServiceImpl) AuthorizeClient(userID, clientID, redirectURI, scope, state string, consentApproved bool) (string, error) {
-	consentRequired, err := s.userConsentService.CheckUserConsent(userID, clientID, scope)
+func (s *AuthorizationServiceImpl) AuthorizeClient(request *client.ClientAuthorizationRequest, consentApproved bool) (string, error) {
+	if err := request.Validate(); err != nil {
+		logger.Error(module, "AuthorizeClient: Failed to validate request: %v", err)
+		return "", errors.Wrap(err, "", "failed to authorize client")
+	}
+
+	consentRequired, err := s.userConsentService.CheckUserConsent(request.UserID, request.ClientID, request.Scope)
 	if err != nil {
-		logger.Error(module, "AuthorizeClient: Failed to authorize client, user=[%s] denied consent: %v", common.TruncateSensitive(userID), err)
+		logger.Error(module, "AuthorizeClient: Failed to authorize client, user=[%s] denied consent: %v", common.TruncateSensitive(request.UserID), err)
 		return "", errors.NewAccessDeniedError()
 	}
 
 	if !consentApproved && consentRequired {
-		consentURL := s.buildConsentURL(clientID, redirectURI, scope, state)
+		consentURL := s.buildConsentURL(request.ClientID, request.RedirectURI, request.Scope, request.State)
 		logger.Info(module, "AuthorizeClient: Successfully created consent URL=[%s]", common.SanitizeURL(consentURL))
 		return "", errors.NewConsentRequiredError(consentURL)
 	}
 
 	if consentApproved && !consentRequired {
-		logger.Error(module, "AuthorizeClient: Failed to authorize client, user=[%s] denied consent: %v", common.TruncateSensitive(userID), err)
+		logger.Error(module, "AuthorizeClient: Failed to authorize client, user=[%s] denied consent: %v", common.TruncateSensitive(request.UserID), err)
 		return "", errors.NewAccessDeniedError()
 	}
 
-	code, err := s.authzCodeService.GenerateAuthorizationCode(userID, clientID, redirectURI, scope)
+	code, err := s.authzCodeService.GenerateAuthorizationCode(request)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to generate authorization code")
 		logger.Error(module, "AuthorizeClient: Failed to generate authorization code: %v", err)
 		return "", wrappedErr
 	}
 
-	redirectURL := s.buildRedirectURL(redirectURI, code, state)
+	redirectURL := s.buildRedirectURL(request.RedirectURI, code, request.State)
 	logger.Info(module, "AuthorizeClient: Client=[%s] successfully authorized, redirectURL=[%s]",
-		common.TruncateSensitive(clientID),
+		common.TruncateSensitive(request.ClientID),
 		common.SanitizeURL(redirectURL),
 	)
 	return redirectURL, nil

@@ -106,13 +106,15 @@ type ClientSecretRegenerationResponse struct {
 
 // ClientAuthorizationRequest represents the incoming request to the /authorize endpoint.
 type ClientAuthorizationRequest struct {
-	ResponseType        string `schema:"response_type"`
 	ClientID            string `schema:"client_id"`
+	ResponseType        string `schema:"response_type"`
 	RedirectURI         string `schema:"redirect_uri"`
 	Scope               string `schema:"scope,omitempty"`
 	State               string `schema:"state,omitempty"`
 	CodeChallenge       string `schema:"code_challenge,omitempty"`
 	CodeChallengeMethod string `schema:"code_challenge_method,omitempty"`
+	UserID              string
+	Client              *Client
 }
 
 type ClientInformationResponse struct {
@@ -127,6 +129,10 @@ func (c *Client) HasGrantType(requiredGrantType string) bool {
 	return slices.Contains(c.GrantTypes, requiredGrantType)
 }
 
+func (c *Client) RequiresPKCE() bool {
+	return slices.Contains(c.GrantTypes, PKCE)
+}
+
 // HasRedirectURI checks to see if the client has the required redirectURI.
 func (c *Client) HasRedirectURI(redirectURI string) bool {
 	return slices.Contains(c.RedirectURIS, redirectURI)
@@ -135,6 +141,10 @@ func (c *Client) HasRedirectURI(redirectURI string) bool {
 // HasScope checks to see if the client has the required scope.
 func (c *Client) HasScope(requiredScope string) bool {
 	return slices.Contains(c.Scopes, requiredScope)
+}
+
+func (c *Client) HasResponseType(responseType string) bool {
+	return slices.Contains(c.ResponseTypes, responseType)
 }
 
 // IsConfidential checks to see if the client is public or confidential.

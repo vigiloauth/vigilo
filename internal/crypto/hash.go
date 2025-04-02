@@ -1,6 +1,10 @@
 package crypto
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+
 	"github.com/google/uuid"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
@@ -58,4 +62,20 @@ func GenerateUUID() string {
 	uuid := uuid.New().String()
 	logger.Debug(module, "GenerateUUID: Generated UUID: [%s]", common.TruncateSensitive(uuid))
 	return uuid
+}
+
+// HashSHA256 hashes the input using SHA-256 and encodes it in base64 URL format.
+func HashSHA256(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return base64.RawURLEncoding.EncodeToString(hash[:])
+}
+
+// GenerateRandomString generates a cryptographically secure random string of the specified length.
+func GenerateRandomString(length int) (string, error) {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }

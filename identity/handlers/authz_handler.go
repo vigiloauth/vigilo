@@ -8,6 +8,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
+	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
@@ -63,6 +64,9 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	scope := query.Get(common.Scope)
 	approved := query.Get(common.Approved) == "true"
 	state := query.Get(common.State)
+	responseType := query.Get(common.ResponseType)
+	codeChallenge := query.Get(common.CodeChallenge)
+	codeChallengeMethod := query.Get(common.CodeChallengeMethod)
 
 	userID := h.sessionService.GetUserIDFromSession(r)
 	if userID == "" {
@@ -72,7 +76,18 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	redirectURL, err := h.authorizationService.AuthorizeClient(userID, clientID, redirectURI, scope, state, approved)
+	authorizationRequest := &client.ClientAuthorizationRequest{
+		ClientID:            clientID,
+		RedirectURI:         redirectURI,
+		Scope:               scope,
+		State:               state,
+		ResponseType:        responseType,
+		CodeChallenge:       codeChallenge,
+		CodeChallengeMethod: codeChallengeMethod,
+		UserID:              userID,
+	}
+
+	redirectURL, err := h.authorizationService.AuthorizeClient(authorizationRequest, approved)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")
 		h.logger.Error(h.module, "RequestID=[%s]: Failed to authorize client: %v", requestID, err)

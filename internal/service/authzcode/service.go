@@ -1,14 +1,14 @@
 package service
 
 import (
-	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/crypto"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -24,7 +24,7 @@ type AuthorizationCodeServiceImpl struct {
 	authzCodeRepo authz.AuthorizationCodeRepository
 	userService   user.UserService
 	clientService client.ClientService
-	codeLifeTime  atomic.Value
+	codeLifeTime  time.Duration
 }
 
 // NewAuthorizationCodeServiceImpl creates a new instance of AuthorizationCodeServiceImpl.
@@ -43,13 +43,12 @@ func NewAuthorizationCodeServiceImpl(
 	userService user.UserService,
 	clientService client.ClientService,
 ) *AuthorizationCodeServiceImpl {
-	duration := 10 * time.Minute
 	service := &AuthorizationCodeServiceImpl{
 		authzCodeRepo: authzCodeRepo,
 		userService:   userService,
 		clientService: clientService,
+		codeLifeTime:  config.GetServerConfig().AuthorizationCodeDuration(),
 	}
-	service.codeLifeTime.Store(duration)
 	return service
 }
 
@@ -57,67 +56,80 @@ func NewAuthorizationCodeServiceImpl(
 //
 // Parameters:
 //
-//	userID string: The user who authorized the client.
-//	clientID string: The client requesting authorization.
-//	redirectURI string: The URI to redirect after authorization.
-//	scope string: The authorized scope(s).
+//	request *ClientAuthorizationRequest: The request containing the metadata to generate an authorization code.
 //
 // Returns:
 //
-//	string: The generated authorization code.
-//	error: An error if code generation fails.
-func (c *AuthorizationCodeServiceImpl) GenerateAuthorizationCode(userID, clientID, redirectURI, scope string) (string, error) {
-	if userID == "" || clientID == "" || redirectURI == "" || scope == "" {
+//		 string: The generated authorization code.
+//	  error: An error if code generation fails.
+func (c *AuthorizationCodeServiceImpl) GenerateAuthorizationCode(req *client.ClientAuthorizationRequest) (string, error) {
+	if err := req.Validate(); err != nil {
+		logger.Error(module, "GenerateAuthorizationCode: Failed to validate authorization request: %v", err)
+		return "", errors.Wrap(err, "", "failed to generate authorization code")
+	}
+
+	if req.UserID == "" || req.ClientID == "" || req.RedirectURI == "" || req.Scope == "" {
 		err := errors.New(errors.ErrCodeEmptyInput, "missing one or more parameters")
 		logger.Error(module, "GenerateAuthorizationCode: Failed to generate authorization code: %v", err)
 		return "", err
 	}
 
 	logger.Info(module, "GenerateAuthorizationCode: Generating authorization code for user=[%s], client=[%s] with redirectURI=[%s], scopes[%s]",
-		common.TruncateSensitive(userID),
-		common.TruncateSensitive(clientID),
-		common.SanitizeURL(redirectURI),
-		scope,
+		common.TruncateSensitive(req.UserID),
+		common.TruncateSensitive(req.ClientID),
+		common.SanitizeURL(req.RedirectURI),
+		req.Scope,
 	)
 
-	if user := c.userService.GetUserByID(userID); user == nil {
+	if user := c.userService.GetUserByID(req.UserID); user == nil {
 		logger.Error(module, "GenerateAuthorizationCode: Failed to retrieve user: invalid user ID")
 		return "", errors.New(errors.ErrCodeUnauthorized, "invalid user_id")
 	}
 
-	if err := c.validateClient(redirectURI, clientID, scope); err != nil {
-		logger.Error(module, "GenerateAuthorizationCode: Failed to validate client=[%s]: %v", common.TruncateSensitive(clientID), err)
+	if err := c.validateClientParameters(req.RedirectURI, req.ClientID, req.Scope); err != nil {
+		logger.Error(module, "GenerateAuthorizationCode: Failed to validate client=[%s]: %v", common.TruncateSensitive(req.ClientID), err)
 		return "", errors.Wrap(err, errors.ErrCodeInvalidClient, "invalid client")
 	}
 
-	codeBytes := make([]byte, 32)
-	if _, err := rand.Read(codeBytes); err != nil {
-		logger.Error(module, "GenerateAuthorizationCode: Failed to generate authorization code: %v", err)
-		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate authorization code")
-	}
-
-	code := base64.RawURLEncoding.EncodeToString(codeBytes)
 	authData := &authz.AuthorizationCodeData{
-		UserID:      userID,
-		ClientID:    clientID,
-		RedirectURI: redirectURI,
-		Scope:       scope,
+		UserID:      req.UserID,
+		ClientID:    req.ClientID,
+		RedirectURI: req.RedirectURI,
+		Scope:       req.Scope,
 		CreatedAt:   time.Now(),
-		Code:        code,
 		Used:        false,
 	}
 
-	expiresAt := authData.CreatedAt.Add(c.codeLifeTime.Load().(time.Duration))
-	if err := c.authzCodeRepo.StoreAuthorizationCode(code, authData, expiresAt); err != nil {
+	if req.Client.RequiresPKCE() {
+		code, err := c.generateAuthorizationCodeForPKCE(req)
+		if err != nil {
+			logger.Error(module, "Error occurred generating authorization code: %v", err)
+			return "", errors.NewInternalServerError()
+		}
+		authData.Code = code
+		authData.CodeChallenge = req.CodeChallenge
+		authData.CodeChallengeMethod = req.CodeChallengeMethod
+	} else {
+		code, err := crypto.GenerateRandomString(32)
+		if err != nil {
+			logger.Error(module, "Error occurred generating authorization code: %v", err)
+			return "", errors.NewInternalServerError()
+		}
+		authData.Code = code
+	}
+
+	expiresAt := authData.CreatedAt.Add(c.codeLifeTime)
+	if err := c.authzCodeRepo.StoreAuthorizationCode(authData.Code, authData, expiresAt); err != nil {
 		logger.Error(module, "GenerateAuthorizationCode: Failed to store authorization code: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to store authorization code")
 	}
 
 	logger.Info(module, "GenerateAuthorizationCode: Authorization code successfully generated for user=[%s] and client=[%s]",
-		common.TruncateSensitive(userID),
-		common.TruncateSensitive(clientID),
+		common.TruncateSensitive(req.UserID),
+		common.TruncateSensitive(req.ClientID),
 	)
-	return code, nil
+
+	return authData.Code, nil
 }
 
 // ValidateAuthorizationCode checks if a code is valid and returns associated data.
@@ -199,15 +211,6 @@ func (c *AuthorizationCodeServiceImpl) RevokeAuthorizationCode(code string) erro
 	return nil
 }
 
-// SetAuthorizationCodeLifeTime configures how long authorization codes remain valid.
-//
-// Parameters:
-//
-//	lifetime time.Duration: The validity period for new codes.
-func (c *AuthorizationCodeServiceImpl) SetAuthorizationCodeLifeTime(lifetime time.Duration) {
-	c.codeLifeTime.Store(lifetime)
-}
-
 // GetAuthorizationCode retrieves the authorization code data for a given code.
 //
 // Parameters:
@@ -228,7 +231,7 @@ func (c *AuthorizationCodeServiceImpl) GetAuthorizationCode(code string) (*authz
 	return retrievedCode, nil
 }
 
-func (c AuthorizationCodeServiceImpl) validateClient(redirectURI, clientID, scopesString string) error {
+func (c AuthorizationCodeServiceImpl) validateClientParameters(redirectURI, clientID, scopesString string) error {
 	client := c.clientService.GetClientByID(clientID)
 	if client == nil {
 		return errors.New(errors.ErrCodeUnauthorizedClient, "invalid client ID")
@@ -241,13 +244,20 @@ func (c AuthorizationCodeServiceImpl) validateClient(redirectURI, clientID, scop
 		}
 	}
 
-	if !client.IsConfidential() {
-		return errors.New(errors.ErrCodeUnauthorizedClient, "client must be confidential to process the request")
-	}
-
 	if err := c.clientService.ValidateClientRedirectURI(redirectURI, client); err != nil {
 		return errors.Wrap(err, errors.ErrCodeInvalidRedirectURI, "invalid redirect URI")
 	}
 
 	return nil
+}
+
+func (c *AuthorizationCodeServiceImpl) generateAuthorizationCodeForPKCE(req *client.ClientAuthorizationRequest) (string, error) {
+	baseAuthzCode, err := crypto.GenerateRandomString(32)
+	if err != nil {
+		return "", err
+	}
+
+	combinedAuthzCode := fmt.Sprintf("%s|%s|%s", baseAuthzCode, req.CodeChallenge, req.CodeChallengeMethod)
+	encodedAuthzCode := base64.RawURLEncoding.EncodeToString([]byte(combinedAuthzCode))
+	return encodedAuthzCode, nil
 }

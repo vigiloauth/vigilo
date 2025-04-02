@@ -16,8 +16,9 @@ type ServerConfig struct {
 	port              int  // Port number the server listens on.
 	requestsPerMinute int  // Maximum requests allowed per minute.
 
-	readTimeout  time.Duration // Read timeout for HTTP requests.
-	writeTimeout time.Duration // Write timeout for HTTP responses.
+	readTimeout               time.Duration // Read timeout for HTTP requests.
+	writeTimeout              time.Duration // Write timeout for HTTP responses.
+	authorizationCodeDuration time.Duration
 
 	tokenConfig    *TokenConfig    // JWT configuration.
 	loginConfig    *LoginConfig    // Login configuration.
@@ -36,12 +37,15 @@ var (
 )
 
 const (
-	defaultPort              int           = 8443                         // Default port number.
-	defaultHTTPSRequirement  bool          = false                        // Default HTTPS requirement.
-	defaultReadTimeout       time.Duration = 15 * time.Second             // Default read timeout.
-	defaultWriteTimeout      time.Duration = 15 * time.Second             // Default write timeout.
-	defaultRequestsPerMinute int           = 100                          // Default maximum requests per minute.
-	defaultSessionCookieName string        = "vigilo-auth-session-cookie" // Default session cookie name.
+	defaultPort             int  = 8443  // Default port number.
+	defaultHTTPSRequirement bool = false // Default HTTPS requirement.
+
+	defaultReadTimeout               time.Duration = 15 * time.Second // Default read timeout.
+	defaultWriteTimeout              time.Duration = 15 * time.Second // Default write timeout.
+	defaultAuthorizationCodeDuration time.Duration = 10 * time.Minute
+
+	defaultRequestsPerMinute int    = 100                          // Default maximum requests per minute.
+	defaultSessionCookieName string = "vigilo-auth-session-cookie" // Default session cookie name.
 )
 
 // GetServerConfig returns the global server configuration instance (singleton).
@@ -69,17 +73,18 @@ func GetServerConfig() *ServerConfig {
 //	*ServerConfig: A new ServerConfig instance.
 func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 	sc := &ServerConfig{
-		port:              defaultPort,
-		forceHTTPS:        defaultHTTPSRequirement,
-		readTimeout:       defaultReadTimeout,
-		writeTimeout:      defaultWriteTimeout,
-		tokenConfig:       NewTokenConfig(),
-		loginConfig:       NewLoginConfig(),
-		passwordConfig:    NewPasswordConfig(),
-		requestsPerMinute: defaultRequestsPerMinute,
-		sessionCookieName: defaultSessionCookieName,
-		logger:            GetLogger(),
-		module:            "ServerConfig",
+		port:                      defaultPort,
+		forceHTTPS:                defaultHTTPSRequirement,
+		readTimeout:               defaultReadTimeout,
+		writeTimeout:              defaultWriteTimeout,
+		tokenConfig:               NewTokenConfig(),
+		loginConfig:               NewLoginConfig(),
+		passwordConfig:            NewPasswordConfig(),
+		requestsPerMinute:         defaultRequestsPerMinute,
+		sessionCookieName:         defaultSessionCookieName,
+		authorizationCodeDuration: defaultAuthorizationCodeDuration,
+		logger:                    GetLogger(),
+		module:                    "ServerConfig",
 	}
 
 	sc.logger.Info(sc.module, "Initializing server config")
@@ -293,6 +298,12 @@ func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 	}
 }
 
+func WithAuthorizationCodeDuration(duration time.Duration) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.authorizationCodeDuration = duration
+	}
+}
+
 // Port returns the servers port from.
 //
 // Returns:
@@ -417,4 +428,8 @@ func (sc *ServerConfig) MaxRequestsPerMinute() int {
 
 func (sc *ServerConfig) Logger() *Logger {
 	return sc.logger
+}
+
+func (sc *ServerConfig) AuthorizationCodeDuration() time.Duration {
+	return sc.authorizationCodeDuration
 }

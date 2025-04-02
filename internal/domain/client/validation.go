@@ -86,19 +86,43 @@ func ValidateClientUpdateRequest(req *ClientUpdateRequest) error {
 func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
 	logger.Debug(module, "Starting validation for client authorization request")
 
-	if req.CodeChallengeMethod == "" {
-		logger.Warn(module, "Code challenge method was not provided, defaulting to 'plain'")
-		req.CodeChallengeMethod = Plain
+	if !req.Client.HasGrantType(AuthorizationCode) {
+		logger.Error(module, "Failed to validate client: client does not have required grant types")
+		return errors.New(errors.ErrCodeInvalidGrant, "Authorization code grant is required for this request")
 	}
 
-	if err := validateCodeChallengeMethod(req.CodeChallengeMethod); err != nil {
-		logger.Error(module, "Failed to validate authorization request: %v", err)
-		return err
+	if !req.Client.IsConfidential() && !req.Client.RequiresPKCE() {
+		return errors.New(errors.ErrCodeInvalidRequest, "public clients are required to use PKCE")
 	}
 
-	if err := validateCodeChallenge(req.CodeChallenge); err != nil {
-		logger.Error(module, "Failed to validate authorization request: %v", err)
-		return err
+	if req.Client.RequiresPKCE() && req.CodeChallenge == "" {
+		logger.Error(module, "Failed to validate request: client has PKCE but did not provide a code challenge")
+		return errors.New(errors.ErrCodeInvalidRequest, "'code_challenge' is required for PKCE")
+	} else if !req.Client.RequiresPKCE() && req.CodeChallenge != "" {
+		logger.Error(module, "Failed to validate request: client provided a code challenge but does not have PKCE")
+		return errors.New(errors.ErrCodeInvalidRequest, "PKCE is required when providing a code challenge")
+	}
+
+	if !req.Client.HasResponseType(req.ResponseType) {
+		logger.Error(module, "Failed to validate request: client does not have 'code' response type")
+		return errors.New(errors.ErrCodeInvalidClient, "'code' response type is required for PKCE")
+	}
+
+	if req.CodeChallenge != "" {
+		if req.CodeChallengeMethod == "" {
+			logger.Warn(module, "Code challenge method was not provided, defaulting to 'plain'")
+			req.CodeChallengeMethod = Plain
+		}
+
+		if err := validateCodeChallengeMethod(req.CodeChallengeMethod); err != nil {
+			logger.Error(module, "Failed to validate authorization request: %v", err)
+			return err
+		}
+
+		if err := validateCodeChallenge(req.CodeChallenge); err != nil {
+			logger.Error(module, "Failed to validate authorization request: %v", err)
+			return err
+		}
 	}
 
 	logger.Debug(module, "No errors while validating client authorization request")
@@ -326,11 +350,11 @@ func validateResponseTypes(req ClientRequest, errorCollection *errors.ErrorColle
 func validateCodeChallenge(codeChallenge string) error {
 	codeChallengeLength := len(codeChallenge)
 	if codeChallengeLength < 43 || codeChallengeLength > 128 {
-		logger.Error(module, "Failed to validate code challenge: too short")
+		logger.Error(module, "Failed to validate code challenge: code challenge does not meet length requirements")
 		return errors.New(errors.ErrCodeInvalidRequest, fmt.Sprintf("invalid code challenge length (%d): must be between 43 and 128 characters", codeChallengeLength))
 	}
 
-	validCodeChallengeRegex := regexp.MustCompile(`^[A-Za-z0-9-_]+$`)
+	validCodeChallengeRegex := regexp.MustCompile(`^[A-Za-z0-9._~-]+$`)
 	if !validCodeChallengeRegex.MatchString(codeChallenge) {
 		logger.Error(module, "Failed to validate code challenge: contains invalid characters")
 		return errors.New(errors.ErrCodeInvalidRequest, "invalid characters: only A-Z, a-z, 0-9, '-', and '_' are allowed (Base64 URL encoding)")

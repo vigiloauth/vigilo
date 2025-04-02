@@ -304,7 +304,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		mockConsentRepo.SaveConsentFunc = func(userID, clientID, scope string) error {
 			return nil
 		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(userID, clientID, redirectURI, scope string) (string, error) {
+		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
 			return "", errors.NewInternalServerError()
 		}
 
@@ -322,10 +322,10 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		mockConsentRepo.SaveConsentFunc = func(userID, clientID, scope string) error {
 			return nil
 		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(userID, clientID, redirectURI, scope string) (string, error) {
+		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
 			return "auth_code", nil
 		}
-		mockSessionService.ClearStateFromSessionFunc = func(essionData *session.SessionData) error {
+		mockSessionService.ClearStateFromSessionFunc = func(sessionData *session.SessionData) error {
 			return errors.NewInternalServerError()
 		}
 
@@ -343,7 +343,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		mockConsentRepo.SaveConsentFunc = func(userID, clientID, scope string) error {
 			return nil
 		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(userID, clientID, redirectURI, scope string) (string, error) {
+		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
 			return "auth_code", nil
 		}
 		mockSessionService.ClearStateFromSessionFunc = func(sessionData *session.SessionData) error {

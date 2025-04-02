@@ -265,7 +265,14 @@ func (c *UserConsentServiceImpl) processApprovedConsent(
 		return nil, wrappedErr
 	}
 
-	code, err := c.authzCodeService.GenerateAuthorizationCode(userID, clientID, redirectURI, approvedScopes)
+	authorizationCodeRequest := &clients.ClientAuthorizationRequest{
+		ClientID:    clientID,
+		UserID:      userID,
+		Scope:       approvedScopes,
+		RedirectURI: redirectURI,
+	}
+
+	code, err := c.authzCodeService.GenerateAuthorizationCode(authorizationCodeRequest)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to generate authorization code")
 		logger.Error(module, "Failed to generate authorization code: %v", err)
