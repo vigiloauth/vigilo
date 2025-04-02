@@ -257,8 +257,14 @@ func (req *ClientRegistrationRequest) Validate() error {
 	return ValidateClientRegistrationRequest(req)
 }
 
+// Validate checks if the ClientUpdateRequest contains valid values.
 func (req *ClientUpdateRequest) Validate() error {
 	return ValidateClientUpdateRequest(req)
+}
+
+// Validate checks if the ClientAuthorizationRequest contains valid values.
+func (req *ClientAuthorizationRequest) Validate() error {
+	return ValidateClientAuthorizationRequest(req)
 }
 
 // Predefined grant types.
@@ -301,7 +307,7 @@ var ValidResponseTypes = map[string]bool{
 	IDTokenResponseType: true,
 }
 
-// Predefined Scopes.
+// Predefined scopes.
 const (
 	// Client Management Scopes
 	ClientRead   string = "client:read"   // Read registered client details.
@@ -323,4 +329,15 @@ var ValidScopes = map[string]bool{
 	UserManage:   true,
 	UserRead:     true,
 	UserWrite:    true,
+}
+
+// Predefined code challenge methods.
+const (
+	Plain string = "plain"
+	S256  string = "SHA-256"
+)
+
+var ValidCodeChallengeMethods = map[string]bool{
+	Plain: true,
+	S256:  true,
 }
