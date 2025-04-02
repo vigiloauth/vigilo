@@ -16,9 +16,9 @@ var logger = config.GetServerConfig().Logger()
 
 const module string = "Client Validation"
 
-// Validate checks if the ClientRegistrationRequest contains valid values.
+// ValidateClientRegistrationRequest checks if the ClientRegistrationRequest contains valid values.
 func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
-	logger.Info(module, "Starting validation for client registration request")
+	logger.Debug(module, "Starting validation for client registration request")
 	errorCollection := errors.NewErrorCollection()
 
 	if req.Name == "" {
@@ -33,11 +33,11 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 		logger.Warn(module, "Validation failed: client_secret provided for a public client")
 	}
 
-	if !contains(req.GetGrantTypes(), PKCE) {
-		if req.GetType() == Public {
+	if !contains(req.GrantTypes, PKCE) {
+		if req.Type == Public {
 			logger.Warn(module, "Validation failed: Public client is not using PKCE")
 			return errors.New(errors.ErrCodeInvalidRequest, "PKCE is required for public clients")
-		} else if req.GetType() == Confidential {
+		} else if req.Type == Confidential {
 			logger.Warn(module, "It is recommended for confidential clients to use PKCE")
 		}
 	}
@@ -59,10 +59,11 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 		return errorCollection
 	}
 
-	logger.Info(module, "Client registration validation completed successfully")
+	logger.Debug(module, "No errors while validating client registration request")
 	return nil
 }
 
+// ValidateClientUpdateRequest checks if the ClientUpdateRequest contains valid values.
 func ValidateClientUpdateRequest(req *ClientUpdateRequest) error {
 	logger.Info(module, "Starting validation for client update request")
 	errorCollection := errors.NewErrorCollection()
@@ -77,6 +78,30 @@ func ValidateClientUpdateRequest(req *ClientUpdateRequest) error {
 		return errorCollection
 	}
 
+	logger.Debug(module, "No errors while validating client update request")
+	return nil
+}
+
+// ValidateClientAuthorizationRequest checks if the ClientAuthorizationRequest contains valid values.
+func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
+	logger.Debug(module, "Starting validation for client authorization request")
+
+	if req.CodeChallengeMethod == "" {
+		logger.Warn(module, "Code challenge method was not provided, defaulting to 'plain'")
+		req.CodeChallengeMethod = Plain
+	}
+
+	if err := validateCodeChallengeMethod(req.CodeChallengeMethod); err != nil {
+		logger.Error(module, "Failed to validate authorization request: %v", err)
+		return err
+	}
+
+	if err := validateCodeChallenge(req.CodeChallenge); err != nil {
+		logger.Error(module, "Failed to validate authorization request: %v", err)
+		return err
+	}
+
+	logger.Debug(module, "No errors while validating client authorization request")
 	return nil
 }
 
@@ -295,6 +320,33 @@ func validateResponseTypes(req ClientRequest, errorCollection *errors.ErrorColle
 		errorCollection.Add(err)
 		logger.Warn(module, "Incompatible response type: 'id_token' requires 'authorization_code' or 'implicit' grant type")
 	}
+}
+
+// validateCodeChallenge makes sure the code challenge is long enough and that it does not contain invalid characters.
+func validateCodeChallenge(codeChallenge string) error {
+	codeChallengeLength := len(codeChallenge)
+	if codeChallengeLength < 43 || codeChallengeLength > 128 {
+		logger.Error(module, "Failed to validate code challenge: too short")
+		return errors.New(errors.ErrCodeInvalidRequest, fmt.Sprintf("invalid code challenge length (%d): must be between 43 and 128 characters", codeChallengeLength))
+	}
+
+	validCodeChallengeRegex := regexp.MustCompile(`^[A-Za-z0-9-_]+$`)
+	if !validCodeChallengeRegex.MatchString(codeChallenge) {
+		logger.Error(module, "Failed to validate code challenge: contains invalid characters")
+		return errors.New(errors.ErrCodeInvalidRequest, "invalid characters: only A-Z, a-z, 0-9, '-', and '_' are allowed (Base64 URL encoding)")
+	}
+
+	return nil
+}
+
+// validateCodeChallengeMethod makes sure the code challenge method is valid.
+func validateCodeChallengeMethod(codeChallengeMethod string) error {
+	if _, ok := ValidCodeChallengeMethods[codeChallengeMethod]; !ok {
+		logger.Error(module, "Failed to validate authorization request: invalid code challenge method: %s", codeChallengeMethod)
+		return errors.New(module, fmt.Sprintf("invalid code challenge method: '%s'. Valid methods are 'plain' and 'SHA-256'", codeChallengeMethod))
+	}
+
+	return nil
 }
 
 // contains checks if a slice contains a specific element.
