@@ -79,6 +79,14 @@ func TestClientRegistrationRequest_Validate(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, ClientRead, client.Scopes[0])
 	})
+
+	t.Run("Return error when public client is not using PKCE", func(t *testing.T) {
+		client := createClientRegistrationRequest()
+		client.GrantTypes = []string{AuthorizationCode}
+
+		err := client.Validate()
+		assert.Error(t, err)
+	})
 }
 
 func TestClientUpdateRequest_Validate(t *testing.T) {
