@@ -24,18 +24,34 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 		requestBody    *client.ClientRegistrationRequest
 		expectedStatus int
 		isPublicClient bool
+		wantErr        bool
 	}{
 		{
 			name:           "Successful Public Client Registration",
 			requestBody:    createClientRegistrationRequest(),
 			expectedStatus: http.StatusCreated,
 			isPublicClient: true,
+			wantErr:        false,
 		},
 		{
 			name:           "Successful Confidential Client Registration",
 			requestBody:    createClientRegistrationRequest(),
 			expectedStatus: http.StatusCreated,
 			isPublicClient: false,
+			wantErr:        false,
+		},
+		{
+			name: "Error is returned when public client is not using PKCE",
+			requestBody: &client.ClientRegistrationRequest{
+				Name:          testClientName1,
+				RedirectURIS:  []string{testRedirectURI},
+				GrantTypes:    []string{client.AuthorizationCode},
+				Scopes:        []string{client.ClientRead, client.ClientWrite},
+				ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
+			},
+			expectedStatus: http.StatusBadRequest,
+			isPublicClient: true,
+			wantErr:        true,
 		},
 	}
 
@@ -73,11 +89,13 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 				assert.NotEmpty(t, responseBody.Secret)
 			}
 
-			assert.NotEmpty(t, responseBody.ID)
-			assert.Equal(t, test.requestBody.Name, responseBody.Name)
-			assert.Equal(t, test.requestBody.Type, responseBody.Type)
-			assert.NotEqual(t, "", responseBody.RegistrationAccessToken)
-			assert.ElementsMatch(t, test.requestBody.RedirectURIS, responseBody.RedirectURIS)
+			if !test.wantErr {
+				assert.NotEmpty(t, responseBody.ID)
+				assert.Equal(t, test.requestBody.Name, responseBody.Name)
+				assert.Equal(t, test.requestBody.Type, responseBody.Type)
+				assert.NotEqual(t, "", responseBody.RegistrationAccessToken)
+				assert.ElementsMatch(t, test.requestBody.RedirectURIS, responseBody.RedirectURIS)
+			}
 		})
 	}
 }
