@@ -33,6 +33,15 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 		logger.Warn(module, "Validation failed: client_secret provided for a public client")
 	}
 
+	if !contains(req.GetGrantTypes(), PKCE) {
+		if req.GetType() == Public {
+			logger.Warn(module, "Validation failed: Public client is not using PKCE")
+			return errors.New(errors.ErrCodeInvalidRequest, "PKCE is required for public clients")
+		} else if req.GetType() == Confidential {
+			logger.Warn(module, "It is recommended for confidential clients to use PKCE")
+		}
+	}
+
 	if req.TokenEndpointAuthMethod != "" && !slices.Contains(req.GrantTypes, ClientCredentials) {
 		err := errors.New(errors.ErrCodeInvalidClientMetadata, "'token_endpoint_auth' is required for 'client_credentials' grant")
 		errorCollection.Add(err)
