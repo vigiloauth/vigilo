@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -144,6 +145,100 @@ func TestClientUpdateRequest_Validate(t *testing.T) {
 
 		err := client.Validate()
 		assert.Error(t, err)
+	})
+}
+
+func TestClientAuthorizationRequest_Validate(t *testing.T) {
+	t.Run("Validation successful", func(t *testing.T) {
+		tests := []struct {
+			name    string
+			request *ClientAuthorizationRequest
+		}{
+			{
+				name: "Valid Base64 URL-encoded string (43-44 chars)",
+				request: &ClientAuthorizationRequest{
+					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWasdasd2dasXyz0123456789-_",
+					CodeChallengeMethod: S256,
+				},
+			},
+			{
+				name: "Valid long Base64 URL-encoded string (greater than 44 chars)",
+				request: &ClientAuthorizationRequest{
+					CodeChallenge:       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_",
+					CodeChallengeMethod: S256,
+				},
+			},
+		}
+
+		for _, test := range tests {
+			err := ValidateClientAuthorizationRequest(test.request)
+			assert.NoError(t, err, fmt.Sprintf("expected no error for %s", test.name))
+		}
+	})
+
+	t.Run("Error is returned when the code challenge contains invalid characters", func(t *testing.T) {
+		tests := []struct {
+			name    string
+			request *ClientAuthorizationRequest
+		}{
+			{
+				name: "Code challenge contains invalid characters (+, /)",
+				request: &ClientAuthorizationRequest{
+					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWXyz01234562345654323456789+/",
+					CodeChallengeMethod: S256,
+				},
+			},
+			{
+				name: "Code challenge contains invalid characters (@, #, !)",
+				request: &ClientAuthorizationRequest{
+					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWXyz012345012345678765434567887656789@#!",
+					CodeChallengeMethod: S256,
+				},
+			},
+		}
+
+		for _, test := range tests {
+			err := ValidateClientAuthorizationRequest(test.request)
+			assert.Error(t, err, fmt.Sprintf("expected error for %s", test.name))
+			expectedMessage := "invalid characters: only A-Z, a-z, 0-9, '-', and '_' are allowed (Base64 URL encoding)"
+			assert.Contains(t, expectedMessage, err.Error())
+		}
+	})
+
+	t.Run("Error is returned when the code challenge is too short", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			CodeChallenge:       "short",
+			CodeChallengeMethod: S256,
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		expectedErr := fmt.Sprintf("invalid code challenge length (%d): must be between 43 and 128 characters", len(request.CodeChallenge))
+
+		assert.Error(t, err, "expected an error when code challenge is too short")
+		assert.Contains(t, expectedErr, err.Error())
+	})
+
+	t.Run("Error is returned when the code challenge method is invalid", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			CodeChallenge:       "this-is-a-plain-test-code-challenge",
+			CodeChallengeMethod: "invalid",
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		expectedErr := "invalid code challenge method: 'invalid'. Valid methods are 'plain' and 'SHA-256'"
+
+		assert.Error(t, err, "expected an error when code challenge method is not plain or SHA-256")
+		assert.Contains(t, expectedErr, err.Error())
+	})
+
+	t.Run("Code challenge method defaults to plain if not present", func(t *testing.T) {
+		request := &ClientAuthorizationRequest{
+			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
+		}
+
+		err := ValidateClientAuthorizationRequest(request)
+		assert.NoError(t, err)
+		assert.Equal(t, Plain, request.CodeChallengeMethod)
 	})
 }
 
