@@ -241,12 +241,6 @@ func (cs *ClientServiceImpl) GetClientByID(clientID string) *client.Client {
 //
 //	error: Returns an error if the client does not contain the given redirectURI.
 func (cs *ClientServiceImpl) ValidateClientRedirectURI(redirectURI string, existingClient *client.Client) error {
-	if redirectURI == "" || existingClient == nil {
-		err := errors.New(errors.ErrCodeInvalidRequest, "one or more parameters are empty")
-		logger.Error(module, "ValidateClientRedirectURI: Failed to validate redirect URI: %v", err)
-		return err
-	}
-
 	logger.Info(module, "ValidateClientRedirectURI: Validating URI=[%s] for client=[%s]",
 		common.SanitizeURL(redirectURI),
 		common.TruncateSensitive(existingClient.ID),

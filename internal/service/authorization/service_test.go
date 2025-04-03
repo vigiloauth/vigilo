@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/crypto"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -24,11 +25,13 @@ const (
 	testAccessToken     string = "access-token"
 	testRefreshToken    string = "refresh-token"
 	testConsentApproved bool   = true
+	codeVerifier        string = "validCodeVerifier123WhichIsVeryLongAndWorks"
 )
 
 func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 	mockConsentService := &mConsentService.MockUserConsentService{}
 	mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{}
+	mockClientService := &mClientService.MockClientService{}
 
 	t.Run("Success", func(t *testing.T) {
 		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
@@ -37,9 +40,12 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
 			return "code", nil
 		}
+		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
+			return getTestClient()
+		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, nil, nil)
+		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, nil, mockClientService)
 		redirectURI, err := service.AuthorizeClient(request, testConsentApproved)
 
 		assert.NoError(t, err)
@@ -53,9 +59,12 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
 			return "", errors.NewInternalServerError()
 		}
+		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
+			return getTestClient()
+		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, nil, nil)
+		service := NewAuthorizationServiceImpl(mockAuthzCodeService, mockConsentService, nil, mockClientService)
 		redirectURI, err := service.AuthorizeClient(request, testConsentApproved)
 
 		assert.Error(t, err)
@@ -63,12 +72,15 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 	})
 
 	t.Run("Error is returned when user does not provide consent", func(t *testing.T) {
+		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
+			return getTestClient()
+		}
 		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
 			return false, errors.NewAccessDeniedError()
 		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, nil)
+		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, mockClientService)
 
 		_, err := service.AuthorizeClient(request, true)
 		expectedErr := "the resource owner denied the request"
@@ -78,6 +90,10 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the client authorization code request is invalid", func(t *testing.T) {
+		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
+			return getTestClient()
+		}
+
 		request := &client.ClientAuthorizationRequest{
 			Client: &client.Client{
 				GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
@@ -86,7 +102,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
 		}
 
-		service := NewAuthorizationServiceImpl(nil, nil, nil, nil)
+		service := NewAuthorizationServiceImpl(nil, nil, nil, mockClientService)
 		_, err := service.AuthorizeClient(request, true)
 
 		assert.Error(t, err)
@@ -96,9 +112,12 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
 			return true, nil
 		}
+		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
+			return getTestClient()
+		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, nil)
+		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, mockClientService)
 
 		_, err := service.AuthorizeClient(request, false)
 
@@ -110,9 +129,12 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
 			return false, nil
 		}
+		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
+			return getTestClient()
+		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, nil)
+		service := NewAuthorizationServiceImpl(nil, mockConsentService, nil, mockClientService)
 
 		_, err := service.AuthorizeClient(request, true)
 
@@ -130,6 +152,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			GetAuthorizationCodeFunc: func(code string) (*authzCode.AuthorizationCodeData, error) {
 				return getTestAuthzCodeData(), nil
 			},
+			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
 		}
 
 		mockClientService := &mClientService.MockClientService{
@@ -155,6 +178,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid authorization code")
 			},
+			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
 		}
 
 		service := NewAuthorizationServiceImpl(mockAuthzCodeService, nil, nil, nil)
@@ -171,6 +195,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return getTestAuthzCodeData(), nil
 			},
+			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
 		}
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(clientID string) *client.Client {
@@ -185,6 +210,91 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, expected, err.Error())
 		assert.Nil(t, actual)
+	})
+}
+
+func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
+	authzCodeData := getTestAuthzCodeData()
+	authzCodeData.CodeChallenge = crypto.HashSHA256(codeVerifier)
+
+	t.Run("Successful authorization for request using PKCE", func(t *testing.T) {
+		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
+			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+				return authzCodeData, nil
+			},
+			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
+				return nil
+			},
+			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+		}
+		mockClientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(clientID string) *client.Client {
+				return getTestClient()
+			},
+		}
+
+		tokenRequest := getTestTokenRequest()
+		tokenRequest.CodeVerifier = codeVerifier
+
+		service := NewAuthorizationServiceImpl(mockAuthzCodeService, nil, nil, mockClientService)
+		response, err := service.AuthorizeTokenExchange(tokenRequest)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+	})
+
+	t.Run("Error is returned when token request does not have required code verifier", func(t *testing.T) {
+		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
+			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+				return authzCodeData, nil
+			},
+			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
+				return nil
+			},
+			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+		}
+		mockClientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(clientID string) *client.Client {
+				return getTestClient()
+			},
+		}
+
+		tokenRequest := getTestTokenRequest()
+		service := NewAuthorizationServiceImpl(mockAuthzCodeService, nil, nil, mockClientService)
+
+		expectedErr := "missing code verifier for PKCE"
+		response, err := service.AuthorizeTokenExchange(tokenRequest)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), expectedErr)
+		assert.Nil(t, response)
+	})
+
+	t.Run("Error is returned when validating PKCE request", func(t *testing.T) {
+		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
+			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+				return authzCodeData, nil
+			},
+			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
+				return errors.New(errors.ErrCodeInvalidGrant, "PKCE validation failed")
+			},
+			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+		}
+		mockClientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(clientID string) *client.Client {
+				return getTestClient()
+			},
+		}
+
+		tokenRequest := getTestTokenRequest()
+		tokenRequest.CodeVerifier = codeVerifier
+		service := NewAuthorizationServiceImpl(mockAuthzCodeService, nil, nil, mockClientService)
+
+		response, err := service.AuthorizeTokenExchange(tokenRequest)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "PKCE validation failed")
+		assert.Nil(t, response)
 	})
 }
 
@@ -240,7 +350,7 @@ func getClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 		UserID:              testUserID,
 		Client: &client.Client{
 			Name:          "Test Client",
-			Type:          "Public",
+			Type:          client.PKCE,
 			RedirectURIS:  []string{testRedirectURI},
 			GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
 			Scopes:        []string{client.ClientManage},
@@ -260,10 +370,12 @@ func getTestAuthzCodeData() *authzCode.AuthorizationCodeData {
 
 func getTestClient() *client.Client {
 	return &client.Client{
-		ID:           testClientID,
-		Secret:       testClientSecret,
-		RedirectURIS: []string{testClientID},
-		Scopes:       []string{"clientL:manage", "user:manage"},
+		ID:            testClientID,
+		Secret:        testClientSecret,
+		RedirectURIS:  []string{testClientID},
+		Scopes:        []string{client.ClientManage, client.UserRead},
+		GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
+		ResponseTypes: []string{client.CodeResponseType},
 	}
 }
 

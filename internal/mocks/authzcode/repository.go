@@ -12,7 +12,7 @@ type MockAuthorizationCodeRepository struct {
 	StoreAuthorizationCodeFunc func(code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error
 
 	// GetAuthorizationCodeFunc is a mock function for the GetAuthorizationCode method.
-	GetAuthorizationCodeFunc func(code string) (*authz.AuthorizationCodeData, bool, error)
+	GetAuthorizationCodeFunc func(code string) (*authz.AuthorizationCodeData, error)
 
 	// DeleteAuthorizationCodeFunc is a mock function for the DeleteAuthorizationCode method.
 	DeleteAuthorizationCodeFunc func(code string) error
@@ -36,7 +36,7 @@ func (m *MockAuthorizationCodeRepository) StoreAuthorizationCode(
 }
 
 // GetAuthorizationCode calls the mock GetAuthorizationCodeFunc.
-func (m *MockAuthorizationCodeRepository) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, bool, error) {
+func (m *MockAuthorizationCodeRepository) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, error) {
 	return m.GetAuthorizationCodeFunc(code)
 }
 

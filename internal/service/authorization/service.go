@@ -77,33 +77,24 @@ func NewAuthorizationServiceImpl(
 //
 //   - Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
 func (s *AuthorizationServiceImpl) AuthorizeClient(request *client.ClientAuthorizationRequest, consentApproved bool) (string, error) {
+	request.Client = s.clientService.GetClientByID(request.ClientID)
+	if request.Client == nil {
+		logger.Error(module, "AuthorizeClient: Invalid client ID=[%s]", request.ClientID)
+		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client ID")
+	}
+
 	if err := request.Validate(); err != nil {
 		logger.Error(module, "AuthorizeClient: Failed to validate request: %v", err)
-		return "", errors.Wrap(err, "", "failed to authorize client")
+		return "", err
 	}
 
-	consentRequired, err := s.userConsentService.CheckUserConsent(request.UserID, request.ClientID, request.Scope)
+	if err := s.handleUserConsent(request, consentApproved); err != nil {
+		return "", err
+	}
+
+	code, err := s.generateAuthorizationCode(request)
 	if err != nil {
-		logger.Error(module, "AuthorizeClient: Failed to authorize client, user=[%s] denied consent: %v", common.TruncateSensitive(request.UserID), err)
-		return "", errors.NewAccessDeniedError()
-	}
-
-	if !consentApproved && consentRequired {
-		consentURL := s.buildConsentURL(request.ClientID, request.RedirectURI, request.Scope, request.State)
-		logger.Info(module, "AuthorizeClient: Successfully created consent URL=[%s]", common.SanitizeURL(consentURL))
-		return "", errors.NewConsentRequiredError(consentURL)
-	}
-
-	if consentApproved && !consentRequired {
-		logger.Error(module, "AuthorizeClient: Failed to authorize client, user=[%s] denied consent: %v", common.TruncateSensitive(request.UserID), err)
-		return "", errors.NewAccessDeniedError()
-	}
-
-	code, err := s.authzCodeService.GenerateAuthorizationCode(request)
-	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to generate authorization code")
-		logger.Error(module, "AuthorizeClient: Failed to generate authorization code: %v", err)
-		return "", wrappedErr
+		return "", err
 	}
 
 	redirectURL := s.buildRedirectURL(request.RedirectURI, code, request.State)
@@ -111,6 +102,7 @@ func (s *AuthorizationServiceImpl) AuthorizeClient(request *client.ClientAuthori
 		common.TruncateSensitive(request.ClientID),
 		common.SanitizeURL(redirectURL),
 	)
+
 	return redirectURL, nil
 }
 
@@ -125,19 +117,23 @@ func (s *AuthorizationServiceImpl) AuthorizeClient(request *client.ClientAuthori
 //	*AuthorizationCodeData: The authorization code data if authorization is successful.
 //	error: An error if the token exchange request is invalid or fails authorization checks.
 func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
-	logger.Info(module, "AuthorizeTokenExchange: Attempting to authorize token exchange for client=[%s]", common.TruncateSensitive(tokenRequest.ClientID))
-
-	authzCodeData, err := s.authzCodeService.ValidateAuthorizationCode(tokenRequest.AuthorizationCode, tokenRequest.ClientID, tokenRequest.RedirectURI)
+	authzCodeData, err := s.validateAuthorizationCode(tokenRequest)
 	if err != nil {
-		logger.Error(module, "AuthorizeTokenExchange: Failed to authorize token exchange: %v", err)
-		return nil, errors.Wrap(err, "", "failed to validate authorization code")
+		return nil, err
 	}
 
 	if err := s.validateClient(authzCodeData, tokenRequest); err != nil {
+		s.revokeAuthorizationCode(authzCodeData.Code)
 		logger.Error(module, "AuthorizeTokenExchange: Failed to validate client=[%s]: %v", common.TruncateSensitive(tokenRequest.ClientID), err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
 
+	if err := s.handlePKCEValidation(authzCodeData, tokenRequest); err != nil {
+		s.revokeAuthorizationCode(authzCodeData.Code)
+		return nil, err
+	}
+
+	s.revokeAuthorizationCode(authzCodeData.Code)
 	logger.Info(module, "AuthorizeTokenExchange: Client=[%s] successfully authorized", common.TruncateSensitive(tokenRequest.ClientID))
 	return authzCodeData, nil
 }
@@ -182,9 +178,13 @@ func (s *AuthorizationServiceImpl) validateClient(code *authzCode.AuthorizationC
 	client := s.clientService.GetClientByID(tokenRequest.ClientID)
 	if client == nil {
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client")
-	} else if client.Secret != tokenRequest.ClientSecret {
+	}
+	if client.IsConfidential() && !client.SecretsMatch(tokenRequest.ClientSecret) {
+		logger.Error(module, "Failed to validate client: client secret from token request does not match with registered client")
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client credentials")
-	} else if code.ClientID != tokenRequest.ClientID {
+	}
+	if code.ClientID != tokenRequest.ClientID {
+		logger.Error(module, "Failed to validate client: client ID from token request does not match with registered client")
 		return errors.New(errors.ErrCodeInvalidGrant, "authorization code client ID and request client ID do no match")
 	}
 
@@ -244,4 +244,77 @@ func (s *AuthorizationServiceImpl) buildRedirectURL(redirectURI, code, state str
 	}
 
 	return redirectURL
+}
+
+// validateAuthorizationCode validates the authorization code and revokes it on failure.
+func (s *AuthorizationServiceImpl) validateAuthorizationCode(tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
+	authzCodeData, err := s.authzCodeService.ValidateAuthorizationCode(tokenRequest.AuthorizationCode, tokenRequest.ClientID, tokenRequest.RedirectURI)
+	if err != nil {
+		s.revokeAuthorizationCode(tokenRequest.AuthorizationCode)
+		logger.Error(module, "Failed to validate authorization code: %v", err)
+		return nil, errors.Wrap(err, "", "failed to validate authorization code")
+	}
+	return authzCodeData, nil
+}
+
+// handlePKCEValidation validates the PKCE parameters if required.
+func (s *AuthorizationServiceImpl) handlePKCEValidation(authzCodeData *authzCode.AuthorizationCodeData, tokenRequest *token.TokenRequest) error {
+	if authzCodeData.CodeChallenge == "" {
+		logger.Debug(module, "PKCE is not required for this request. Skipping validation")
+		return nil
+	}
+
+	if tokenRequest.CodeVerifier == "" {
+		logger.Error(module, "Missing code verifier for PKCE")
+		return errors.New(errors.ErrCodeInvalidRequest, "missing code verifier for PKCE")
+	} else if err := tokenRequest.ValidateCodeVerifier(); err != nil {
+		logger.Error(module, "Failed to validate code verifier: %v", err)
+		return err
+	}
+
+	if err := s.authzCodeService.ValidatePKCE(authzCodeData, tokenRequest.CodeVerifier); err != nil {
+		logger.Error(module, "PKCE validation failed: %v", err)
+		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "PKCE validation failed")
+	}
+
+	return nil
+}
+
+// revokeAuthorizationCode revokes the authorization code and logs any errors.
+func (s *AuthorizationServiceImpl) revokeAuthorizationCode(code string) {
+	if err := s.authzCodeService.RevokeAuthorizationCode(code); err != nil {
+		logger.Error(module, "Failed to revoke authorization code: %v", err)
+	}
+}
+
+// handleUserConsent checks and handles user consent logic.
+func (s *AuthorizationServiceImpl) handleUserConsent(request *client.ClientAuthorizationRequest, consentApproved bool) error {
+	consentRequired, err := s.userConsentService.CheckUserConsent(request.UserID, request.ClientID, request.Scope)
+	if err != nil {
+		logger.Error(module, "Failed to check user consent, user=[%s]: %v", common.TruncateSensitive(request.UserID), err)
+		return errors.NewAccessDeniedError()
+	}
+
+	if consentRequired {
+		if !consentApproved {
+			consentURL := s.buildConsentURL(request.ClientID, request.RedirectURI, request.Scope, request.State)
+			logger.Info(module, "Consent required, redirecting to consent URL=[%s]", common.SanitizeURL(consentURL))
+			return errors.NewConsentRequiredError(consentURL)
+		}
+	} else if consentApproved {
+		logger.Error(module, "Consent not required but was approved, user=[%s]", common.TruncateSensitive(request.UserID))
+		return errors.NewAccessDeniedError()
+	}
+
+	return nil
+}
+
+// generateAuthorizationCode generates an authorization code for the client.
+func (s *AuthorizationServiceImpl) generateAuthorizationCode(request *client.ClientAuthorizationRequest) (string, error) {
+	code, err := s.authzCodeService.GenerateAuthorizationCode(request)
+	if err != nil {
+		logger.Error(module, "Failed to generate authorization code: %v", err)
+		return "", errors.Wrap(err, "", "failed to generate authorization code")
+	}
+	return code, nil
 }

@@ -13,6 +13,8 @@ This endpoint is responsible for registering the client into the server. If the 
 For information on how to use `client_configuration_endpoint` and `registration_access_token`, please read the following endpoints:
 - [Client Read Request](client_read_request.md)
 
+**Note:** Public clients who register with the response type `code`, MUST also use the `authorization_code` and `pkce` grant types.
+
 ---
 
 ## Headers
@@ -40,6 +42,10 @@ For information on how to use `client_configuration_endpoint` and `registration_
 ---
 
 ## Example Request
+```
+POST /client/register HTTP/1.1
+Accept: application/json
+```
 ```json
 {
   "client_name": "Example Client",
@@ -139,5 +145,16 @@ For information on how to use `client_configuration_endpoint` and `registration_
             "message": "The 'id_token' response type is only allowed with 'authorization_code', 'device_code', or 'implicit' grant types."
         }
     ]
+}
+```
+
+### 4. Public Client Registering Without PKCE
+#### HTTP Status Code: `400 Bad Request`
+#### Response Body:
+```json
+{
+    "error": "invalid_request",
+    "error_description": "failed to register client",
+    "error_details": "public clients are required to use PKCE"
 }
 ```

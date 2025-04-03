@@ -67,8 +67,8 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 
 	response, err := h.clientService.Register(newClient)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to save client: %v", requestID, err)
-		wrappedErr := errors.Wrap(err, "", "failed to save client")
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to register client: %v", requestID, err)
+		wrappedErr := errors.Wrap(err, "", "failed to register client")
 		web.WriteError(w, wrappedErr)
 		return
 	}

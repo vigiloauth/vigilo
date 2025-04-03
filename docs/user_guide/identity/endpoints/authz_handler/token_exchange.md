@@ -19,14 +19,17 @@ This endpoint handles the token exchange for the OAuth 2.0 Authorization Code Fl
 
 ---
 
-## Query Parameters
+## Request Body
 | Parameter            | Type          | Required | Description                                                                 |
 | :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
-| `grant_type`           | `string`        | Yes      | Specifies the type of grant being used. Must be set to `authorization_code`.|
-| `code`                 | `string`        | Yes      | The authorization code received from the [authorize endpoint](authorize_client.md). |
-| `client_id`            | `string`        | Yes      | The unique identifier of the OAuth client.                                 |
-| `client_secret`        | `string`        | Yes      | The client's secret key.                                                   |
-| `redirect_uri`         | `string`        | Yes      | Must match the redirect URI used in the [authorize step](authorize_client.md). |
+| `grant_type`         | `string`      | Yes      | Specifies the type of grant being used. Must be set to `authorization_code`.|
+| `code`               | `string`      | Yes      | The authorization code received from the [authorize endpoint](authorize_client.md). |
+| `client_id`          | `string`      | Yes      | The unique identifier of the OAuth client.                                 |
+| `client_secret`      | `string`      | Yes      | The client's secret key.                                                   |
+| `redirect_uri`       | `string`      | Yes      | Must match the redirect URI used in the [authorize step](authorize_client.md). |
+| `state`              | `string`      | Yes      | An opaque value used to maintain state between the request and callback. This helps prevent CSRF attacks. |
+| `code_verifier`      | string | No       | The code verifier used for PKCE. Required if PKCE was used during the authorization request. |
+
 
 ---
 
@@ -41,7 +44,7 @@ This endpoint handles the token exchange for the OAuth 2.0 Authorization Code Fl
 
 ## Example Request
 ```
-POST /oauth/token
+POST /oauth/token HTTP/1.1
 Content-Type: application/json
 ```
 ```json
@@ -52,6 +55,23 @@ Content-Type: application/json
     "client_id": "s6BhdRkqt3",
     "client_secret": "7Fjfp0ZBr1KtDRbnfVdmIw",
     "state": "xyz123"
+}
+```
+
+### Example Request with PKCE
+```
+POST /oauth/token HTTP/1.1
+Content-Type: application/json
+```
+```json
+{
+    "grant_type": "authorization_code",
+    "code": "SplxlOBeZQQYbYS6WxSbIA",
+    "redirect_uri": "https://client.example.com/callback",
+    "client_id": "s6BhdRkqt3",
+    "client_secret": "7Fjfp0ZBr1KtDRbnfVdmIw",
+    "state": "xyz123",
+    "code_verifier": "xyz456"
 }
 ```
 
@@ -157,3 +177,57 @@ Content-Type: application/json
 }
 ```
 
+### 9. Missing Code Verifier
+#### HTTP Status Code: `400 Bad Request`
+#### Response Body:
+```json
+{
+    "error": "invalid_request",
+    "error_description": "authorization failed for token exchange",
+    "error_details": "missing code verifier for PKCE"
+}
+```
+
+### 10. Code Verifier Does Not Meet Required Length
+#### HTTP Status Code: `400 Bad Request`
+#### Response Body:
+```json
+{
+    "error": "invalid_request",
+    "error_description": "authorization failed for token exchange",
+    "error_details": "invalid code verifier length (length): must be between 43 and 128 characters"
+}
+```
+
+### 11. Invalid Authorization Code
+#### HTTP Status Code: `401 Unauthorized`
+#### Response Body:
+```json
+{
+    "error": "unauthorized",
+    "error_description": "authorization failed for token exchange",
+    "error_details": "failed to validate authorization code: invalid authorization code"
+}
+```
+
+### 12. Code Verifier Exceeds Maximum Length
+#### HTTP Status Code: `400 Bad Request`
+#### Response Body:
+```json
+{
+    "error": "invalid_request",
+    "error_description": "authorization failed for token exchange",
+    "error_details": "invalid code verifier length (length): must be between 43 and 128 characters"
+}
+```
+
+### 13. Code Verifier Contains Invalid Characters
+#### HTTP Status Code: `400 Bad Request`
+#### Response Body:
+```json
+{
+    "error": "invalid_request",
+    "error_description": "authorization failed for token exchange",
+    "error_details": "invalid characters: only A-Z, a-z, 0-9, '-', and '_' are allowed (Base64 URL encoding)"
+}
+```

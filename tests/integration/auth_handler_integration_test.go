@@ -45,7 +45,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		rr := sendTokenGenerationRequest(testContext, headers)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidClient, "invalid authorization header")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidClient, "invalid authorization header")
 	})
 
 	t.Run("Invalid Authorization Header format", func(t *testing.T) {
@@ -58,7 +58,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		rr := sendTokenGenerationRequest(testContext, headers)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidClient, "invalid authorization header")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidClient, "invalid authorization header")
 	})
 
 	t.Run("Invalid Client ID", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		headers := generateHeaderWithCredentials("non-existing-id", testClientSecret)
 		rr := sendTokenGenerationRequest(testContext, headers)
 
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
@@ -88,7 +88,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		rr := sendTokenGenerationRequest(testContext, headers)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
 	})
 
 	t.Run("Client is missing required grant types", func(t *testing.T) {
@@ -102,7 +102,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := sendTokenGenerationRequest(testContext, headers)
 
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidGrant, "the client credentials are invalid or incorrectly formatted")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidGrant, "the client credentials are invalid or incorrectly formatted")
 		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 
@@ -118,7 +118,7 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 		rr := sendTokenGenerationRequest(testContext, headers)
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInsufficientScope, "the client credentials are invalid or incorrectly formatted")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInsufficientScope, "the client credentials are invalid or incorrectly formatted")
 
 	})
 }

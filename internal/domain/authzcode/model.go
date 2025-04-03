@@ -14,3 +14,8 @@ type AuthorizationCodeData struct {
 	CodeChallenge       string
 	CodeChallengeMethod string
 }
+
+const (
+	S256  string = "SHA-256"
+	Plain string = "plain"
+)

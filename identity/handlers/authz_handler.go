@@ -59,35 +59,26 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[AuthorizeClient]", requestID)
 
 	query := r.URL.Query()
-	clientID := query.Get(common.ClientID)
-	redirectURI := query.Get(common.RedirectURI)
-	scope := query.Get(common.Scope)
-	approved := query.Get(common.Approved) == "true"
-	state := query.Get(common.State)
-	responseType := query.Get(common.ResponseType)
-	codeChallenge := query.Get(common.CodeChallenge)
-	codeChallengeMethod := query.Get(common.CodeChallengeMethod)
+	isUserConsentApproved := query.Get(common.Approved) == "true"
+	req := client.NewClientAuthorizationRequest(
+		query.Get(common.ClientID),
+		query.Get(common.RedirectURI),
+		query.Get(common.Scope),
+		query.Get(common.State),
+		query.Get(common.ResponseType),
+		query.Get(common.CodeChallenge),
+		query.Get(common.CodeChallengeMethod),
+		h.sessionService.GetUserIDFromSession(r),
+	)
 
-	userID := h.sessionService.GetUserIDFromSession(r)
-	if userID == "" {
-		loginURL := h.buildLoginURL(clientID, redirectURI, scope, state, requestID)
+	if req.UserID == "" {
+		loginURL := h.buildLoginURL(req.ClientID, req.RedirectURI, req.Scope, req.State, requestID)
 		h.logger.Warn(h.module, "RequestID=[%s]: User is not authenticated. Returning a 'login required error'", requestID)
 		web.WriteError(w, errors.NewLoginRequiredError(loginURL))
 		return
 	}
 
-	authorizationRequest := &client.ClientAuthorizationRequest{
-		ClientID:            clientID,
-		RedirectURI:         redirectURI,
-		Scope:               scope,
-		State:               state,
-		ResponseType:        responseType,
-		CodeChallenge:       codeChallenge,
-		CodeChallengeMethod: codeChallengeMethod,
-		UserID:              userID,
-	}
-
-	redirectURL, err := h.authorizationService.AuthorizeClient(authorizationRequest, approved)
+	redirectURL, err := h.authorizationService.AuthorizeClient(req, isUserConsentApproved)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")
 		h.logger.Error(h.module, "RequestID=[%s]: Failed to authorize client: %v", requestID, err)

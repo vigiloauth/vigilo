@@ -162,7 +162,7 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		endpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 		rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, nil)
 
-		testContext.AssertErrorResponse(rr, errors.ErrCodeLoginRequired, "authentication required to continue the authorization flow")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeLoginRequired, "authentication required to continue the authorization flow")
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
@@ -192,7 +192,7 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 				rr := testContext.SendHTTPRequest(http.MethodGet, test.endpoint, nil, nil)
 				assert.Equal(t, http.StatusBadRequest, rr.Code)
-				testContext.AssertErrorResponse(rr, errors.ErrCodeBadRequest, "missing required OAuth parameters")
+				testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing required OAuth parameters")
 			})
 		}
 	})

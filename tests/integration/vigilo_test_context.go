@@ -44,7 +44,7 @@ const (
 	testInvalidPassword string = "weak"
 	testClientID        string = "test-client-id"
 	testUserID          string = "test-user-id"
-	testClientSecret    string = "a-string-secret-at-least-256-bits-long"
+	testClientSecret    string = "a-string-secret-at-least-256-bits-long-enough"
 	testScope           string = "client:manage user:manage"
 	encodedTestScope    string = "client%3Amanage%20user%3Amanage"
 	testRedirectURI     string = "https://vigiloauth.com/callback"
@@ -54,25 +54,29 @@ const (
 
 // VigiloTestContext encapsulates common testing functionality across all test types
 type VigiloTestContext struct {
-	T                *testing.T
-	VigiloServer     *server.VigiloIdentityServer
-	ResponseRecorder *httptest.ResponseRecorder
-	TestServer       *httptest.Server
-	HttpClient       *http.Client
-	User             *users.User
-	OAuthClient      *client.Client
-	JWTToken         string
-	ClientAuthToken  string
-	SessionCookie    *http.Cookie
-	State            string
+	T                  *testing.T
+	VigiloServer       *server.VigiloIdentityServer
+	ResponseRecorder   *httptest.ResponseRecorder
+	TestServer         *httptest.Server
+	HttpClient         *http.Client
+	User               *users.User
+	OAuthClient        *client.Client
+	JWTToken           string
+	ClientAuthToken    string
+	SessionCookie      *http.Cookie
+	State              string
+	SH256CodeChallenge string
+	PlainCodeChallenge string
 }
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
 	config.GetServerConfig().Logger().SetLevel("DEBUG")
 	return &VigiloTestContext{
-		T:            t,
-		VigiloServer: server.NewVigiloIdentityServer(),
+		T:                  t,
+		VigiloServer:       server.NewVigiloIdentityServer(),
+		SH256CodeChallenge: crypto.HashSHA256(testClientSecret),
+		PlainCodeChallenge: testClientSecret,
 	}
 }
 
@@ -111,12 +115,13 @@ func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 // grantTypes []client.GrantType: An array of grantTypes.
 func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, grantTypes []string) {
 	c := &client.Client{
-		Name:         testClientName1,
-		ID:           testClientID,
-		Type:         clientType,
-		Scopes:       scopes,
-		GrantTypes:   grantTypes,
-		RedirectURIS: []string{testRedirectURI},
+		Name:          testClientName1,
+		ID:            testClientID,
+		Type:          clientType,
+		Scopes:        scopes,
+		GrantTypes:    grantTypes,
+		ResponseTypes: []string{client.CodeResponseType},
+		RedirectURIS:  []string{testRedirectURI},
 	}
 
 	if clientType == client.Confidential {
@@ -321,14 +326,82 @@ func (tc *VigiloTestContext) GetStateFromSession() string {
 }
 
 func (tc *VigiloTestContext) GetAuthzCode() string {
+	queryParams := tc.CreateAuthorizationCodeRequestQueryParams("", "")
+	parsedURL := tc.sendAuthorizationCodeRequest(queryParams)
+
+	authzCode := parsedURL.Query().Get(client.CodeResponseType)
+	assert.NotEmpty(tc.T, authzCode, "Authorization code should not be empty")
+
+	return authzCode
+}
+
+func (tc *VigiloTestContext) CreateAuthorizationCodeRequestQueryParams(codeChallenge, codeChallengeMethod string) url.Values {
 	queryParams := url.Values{}
-	queryParams.Add(common.ResponseType, common.AuthzCode)
+	queryParams.Add(common.ResponseType, client.CodeResponseType)
 	queryParams.Add(common.ClientID, testClientID)
 	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.Scope, testScope)
+	queryParams.Add(common.Scope, client.ClientManage)
 	queryParams.Add(common.State, tc.State)
 	queryParams.Add(common.Approved, "true")
 
+	if codeChallenge != "" {
+		queryParams.Add(common.CodeChallenge, codeChallenge)
+	}
+	if codeChallengeMethod != "" {
+		queryParams.Add(common.CodeChallengeMethod, codeChallengeMethod)
+	}
+
+	return queryParams
+}
+
+func (tc *VigiloTestContext) GetAuthzCodeWithPKCE(codeChallenge, codeChallengeMethod string) string {
+	queryParams := tc.CreateAuthorizationCodeRequestQueryParams(codeChallenge, codeChallengeMethod)
+	parsedURL := tc.sendAuthorizationCodeRequest(queryParams)
+
+	authzCode := parsedURL.Query().Get(common.AuthzCode)
+	assert.NotEmpty(tc.T, authzCode, "Authorization code should not be empty")
+
+	return authzCode
+}
+
+// AssertErrorResponseDescription checks to see if the test returns a correct error.
+func (tc *VigiloTestContext) AssertErrorResponseDescription(
+	rr *httptest.ResponseRecorder,
+	expectedErrCode, expectedDescription string,
+) {
+	errResp := tc.decodeErrorResponse(rr)
+	assert.Equal(tc.T, expectedErrCode, errResp.ErrorCode)
+	assert.Equal(tc.T, expectedDescription, errResp.ErrorDescription)
+}
+
+func (tc *VigiloTestContext) AssertErrorResponseDetails(
+	rr *httptest.ResponseRecorder,
+	expectedErrCode, expectedDetails string,
+) {
+	errResp := tc.decodeErrorResponse(rr)
+	assert.Equal(tc.T, expectedErrCode, errResp.ErrorCode)
+	assert.Equal(tc.T, expectedDetails, errResp.ErrorDetails)
+}
+
+func (tc *VigiloTestContext) AssertErrorResponse(
+	rr *httptest.ResponseRecorder,
+	expectedErrCode, expectedDescription, expectedDetails string,
+) {
+	errResp := tc.decodeErrorResponse(rr)
+	assert.Equal(tc.T, expectedErrCode, errResp.ErrorCode)
+	assert.Equal(tc.T, expectedDescription, errResp.ErrorDescription)
+	assert.Equal(tc.T, expectedDetails, errResp.ErrorDetails)
+}
+
+// TearDown performs cleanup operations.
+func (tc *VigiloTestContext) TearDown() {
+	if tc.TestServer != nil {
+		tc.TestServer.Close()
+	}
+	resetInMemoryStores()
+}
+
+func (tc *VigiloTestContext) sendAuthorizationCodeRequest(queryParams url.Values) *url.URL {
 	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
 	headers := map[string]string{"Cookie": tc.SessionCookie.Name + "=" + tc.SessionCookie.Value}
 
@@ -341,31 +414,7 @@ func (tc *VigiloTestContext) GetAuthzCode() string {
 	parsedURL, err := url.Parse(location)
 	assert.NoError(tc.T, err)
 
-	authzCode := parsedURL.Query().Get(common.AuthzCode)
-	assert.NotEmpty(tc.T, authzCode, "Authorization code should not be empty")
-
-	return authzCode
-}
-
-// AssertErrorResponse checks to see if the test returns a correct error.
-func (tc *VigiloTestContext) AssertErrorResponse(
-	rr *httptest.ResponseRecorder,
-	expectedErrCode, expectedDescription string,
-) {
-	var errResp errors.VigiloAuthError
-	err := json.NewDecoder(rr.Body).Decode(&errResp)
-	assert.NoError(tc.T, err, "Failed to unmarshal response body")
-
-	assert.Equal(tc.T, expectedErrCode, errResp.ErrorCode)
-	assert.Equal(tc.T, expectedDescription, errResp.ErrorDescription)
-}
-
-// TearDown performs cleanup operations.
-func (tc *VigiloTestContext) TearDown() {
-	if tc.TestServer != nil {
-		tc.TestServer.Close()
-	}
-	resetInMemoryStores()
+	return parsedURL
 }
 
 func (tc *VigiloTestContext) addHeaderAuth(req *http.Request, headers map[string]string) {
@@ -391,4 +440,11 @@ func resetInMemoryStores() {
 	clientRepo.ResetInMemoryClientRepository()
 	consentRepo.ResetInMemoryUserConsentRepository()
 	sessionRepo.ResetInMemorySessionRepository()
+}
+
+func (tc *VigiloTestContext) decodeErrorResponse(rr *httptest.ResponseRecorder) errors.VigiloAuthError {
+	var errResp errors.VigiloAuthError
+	err := json.NewDecoder(rr.Body).Decode(&errResp)
+	assert.NoError(tc.T, err, "Failed to unmarshal response body")
+	return errResp
 }

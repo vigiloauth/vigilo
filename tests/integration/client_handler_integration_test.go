@@ -338,7 +338,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		headers := map[string]string{common.Bearer: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
-		testContext.AssertErrorResponse(rr, errors.ErrCodeUnauthorized, "failed to validate and retrieve client information")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeUnauthorized, "failed to validate and retrieve client information")
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
@@ -357,7 +357,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		t.Log(rr.Body.String())
-		testContext.AssertErrorResponse(rr, errors.ErrCodeUnauthorized, "failed to validate and retrieve client information")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeUnauthorized, "failed to validate and retrieve client information")
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 }
@@ -463,7 +463,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		headers := map[string]string{common.Bearer: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodPut, endpoint, nil, headers)
 
-		testContext.AssertErrorResponse(rr, errors.ErrCodeBadRequest, "missing one or more required fields in the request")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing one or more required fields in the request")
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 

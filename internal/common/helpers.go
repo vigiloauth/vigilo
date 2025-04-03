@@ -8,7 +8,7 @@ import (
 // Helper function to truncate sensitive data for logging
 func TruncateSensitive(data string) string {
 	if len(data) > 5 {
-		return data[:5] + "..."
+		return data[:5] + "[REDACTED]"
 	}
 	return data
 }

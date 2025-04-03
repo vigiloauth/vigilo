@@ -25,9 +25,8 @@ type AuthorizationCodeRepository interface {
 	// Returns:
 	//
 	//   *AuthorizationCodeData: The associated data if found.
-	//   bool: Whether the code exists and is valid.
 	//   error: An error if retrieval fails.
-	GetAuthorizationCode(code string) (*AuthorizationCodeData, bool, error)
+	GetAuthorizationCode(code string) (*AuthorizationCodeData, error)
 
 	// DeleteAuthorizationCode deletes an authorization code after use.
 	//

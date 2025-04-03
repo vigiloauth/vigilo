@@ -50,7 +50,11 @@ This endpoint handles user authentication for the OAuth authorization code flow.
 
 ## Example Request
 ```
-POST /oauth/login?client_id=abc123&redirect_uri=https://client.example.com/callback
+POST /oauth/login HTTP/1.1
+Accept: application/json
+
+client_id=abc123
+&redirect_uri=https://client.example.com/callback
 ```
 ```json
 {

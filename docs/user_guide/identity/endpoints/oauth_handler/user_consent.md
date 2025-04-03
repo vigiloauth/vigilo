@@ -59,12 +59,21 @@ This endpoint facilitates the OAuth authorization process by allowing users to r
 
 ### Example GET Request
 ```
-GET /oauth/consent?client_id=abc123&redirect_uri=https://client.example.com/callback&scope=user:read+user:write&state=xyz123
+GET /oauth/consent HTTP/1.1
+Accept: application/json
+Authorization: Bearer reg-23410913-abewfq.123483
+
+client_id=abc123
+&redirect_uri=https://client.example.com/callback&
+scope=user:read+user:write
+&state=xyz123
 ```
 
 ### Example POST Request
 ```
-POST /oauth/consent
+POST /oauth/consent HTTP/1.1
+Accept: application/json
+Authorization: Bearer reg-23410913-abewfq.123483
 ```
 ```json
 {

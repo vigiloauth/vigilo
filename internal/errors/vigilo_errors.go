@@ -6,7 +6,7 @@ import "fmt"
 type VigiloAuthError struct {
 	ErrorCode          string   `json:"error"`
 	ErrorDescription   string   `json:"error_description"`
-	Details            string   `json:"error_details,omitempty"`
+	ErrorDetails       string   `json:"error_details,omitempty"`
 	WrappedErr         error    `json:"-"`
 	Errors             *[]error `json:"errors,omitempty"`
 	OAuthLoginEndpoint string   `json:"login_url,omitempty"`
@@ -15,8 +15,8 @@ type VigiloAuthError struct {
 
 // Error implements the error interface
 func (e *VigiloAuthError) Error() string {
-	if e.Details != "" {
-		return fmt.Sprintf("%s: %s", e.ErrorDescription, e.Details)
+	if e.ErrorDetails != "" {
+		return fmt.Sprintf("%s: %s", e.ErrorDescription, e.ErrorDetails)
 	}
 	return e.ErrorDescription
 }
@@ -93,7 +93,7 @@ func NewInvalidSessionError() error {
 	return &VigiloAuthError{
 		ErrorCode:        ErrCodeInvalidSession,
 		ErrorDescription: "unable to retrieve session data",
-		Details:          "session not found or expired",
+		ErrorDetails:     "session not found or expired",
 	}
 }
 
@@ -115,11 +115,11 @@ func Wrap(err error, code string, message string) error {
 		vigiloError.ErrorCode = ErrCodeValidationError
 		vigiloError.ErrorDescription = message
 		vigiloError.Errors = e.Errors()
-		vigiloError.Details = "one or more validation errors occurred"
+		vigiloError.ErrorDetails = "one or more validation errors occurred"
 	} else {
 		vigiloError.ErrorCode = code
 		vigiloError.ErrorDescription = message
-		vigiloError.Details = err.Error()
+		vigiloError.ErrorDetails = err.Error()
 		vigiloError.WrappedErr = err
 	}
 

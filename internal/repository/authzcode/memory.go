@@ -6,6 +6,7 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
+	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 const module = "InMemoryAuthorizationCodeRepository"
@@ -81,25 +82,24 @@ func (s *InMemoryAuthorizationCodeRepository) StoreAuthorizationCode(
 // Returns:
 //
 //	*AuthorizationData: The associated data if found.
-//	bool: Whether the code exists and is valid.
 //	error: An error if retrieval fails.
-func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, bool, error) {
+func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	entry, exists := s.codes[code]
 	if !exists {
 		logger.Debug(module, "GetAuthorizationCode: Code=%s does not exist", code)
-		return nil, false, nil
+		return nil, errors.New(errors.ErrCodeInvalidAuthorizationCode, "authorization code does not exist")
 	}
 
 	// Check if code has expired
 	if time.Now().After(entry.ExpiresAt) {
 		logger.Warn(module, "GetAuthorizationCode: Authorization code is expired")
-		return nil, false, nil
+		return nil, errors.New(errors.ErrCodeExpiredAuthorizationCode, "authorization code is expired")
 	}
 
-	return entry.Data, true, nil
+	return entry.Data, nil
 }
 
 // DeleteAuthorizationCode deletes an authorization code after use.

@@ -72,6 +72,11 @@ const (
 
 	// System errors
 	ErrCodeInternalServerError = "internal_server_error"
+
+	// Authorization Code Errors
+	ErrCodeInvalidAuthorizationCode  = "invalid_authorization_code"
+	ErrCodeExpiredAuthorizationCode  = "expired_authorization_code"
+	ErrCodeAuthorizationCodeNotFound = "code_not_found"
 )
 
 // HTTP status code mappings
@@ -107,12 +112,15 @@ var statusCodeMap = map[string]int{
 	ErrCodeConsentRequired:          http.StatusUnauthorized,
 	ErrCodeInvalidSession:           http.StatusUnauthorized,
 	ErrCodeInvalidClient:            http.StatusUnauthorized,
+	ErrCodeInvalidAuthorizationCode: http.StatusUnauthorized,
+	ErrCodeExpiredAuthorizationCode: http.StatusUnauthorized,
 
 	// 404 Not Found
-	ErrCodeUserNotFound:    http.StatusNotFound,
-	ErrCodeTokenNotFound:   http.StatusNotFound,
-	ErrCodeClientNotFound:  http.StatusNotFound,
-	ErrCodeSessionNotFound: http.StatusNotFound,
+	ErrCodeUserNotFound:              http.StatusNotFound,
+	ErrCodeTokenNotFound:             http.StatusNotFound,
+	ErrCodeClientNotFound:            http.StatusNotFound,
+	ErrCodeSessionNotFound:           http.StatusNotFound,
+	ErrCodeAuthorizationCodeNotFound: http.StatusNotFound,
 
 	// 403 Forbidden
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,

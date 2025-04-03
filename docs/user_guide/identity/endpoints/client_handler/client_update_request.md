@@ -44,7 +44,6 @@ This endpoint is a protected route which is responsible for updating the current
 ```
 PUT /oauth/client/register/s6BhdRkqt3 HTTP/1.1
 Accept: application/json
-Host: server.example.com
 Authorization: Bearer reg-23410913-abewfq.123483
 ```
 ```json

@@ -41,9 +41,8 @@ This endpoint implements the OAuth 2.0 client credentials flow, allowing authent
 ## Example Request
 ```
 POST /oauth/client/token HTTP/1.1
-Host: localhost:8080
+Authorization: Basic dGVzdGNsaWVudDpzZWNyZXQ
 Content-Type: application/x-www-form-urlencoded
-Authorization: Basic dGVzdGNsaWVudDpzZWNyZXQ=
 
 grant_type=client_credentials
 ```

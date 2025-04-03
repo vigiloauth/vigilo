@@ -32,6 +32,7 @@ type ClientRequest interface {
 	GetJwksURI() string
 	GetLogoURI() string
 	SetScopes(scopes []string)
+	HasGrantType(grantType string) bool
 }
 
 // ClientRegistrationRequest represents a request to register a new OAuth client.
@@ -216,6 +217,10 @@ func (req *ClientRegistrationRequest) SetScopes(scopes []string) {
 	req.Scopes = scopes
 }
 
+func (req *ClientRegistrationRequest) HasGrantType(grantType string) bool {
+	return slices.Contains(req.GrantTypes, grantType)
+}
+
 func (req *ClientUpdateRequest) GetType() string {
 	return req.Type
 }
@@ -248,6 +253,10 @@ func (req *ClientUpdateRequest) SetScopes(scopes []string) {
 	req.Scopes = scopes
 }
 
+func (req *ClientUpdateRequest) HasGrantType(grantType string) bool {
+	return slices.Contains(req.GrantTypes, grantType)
+}
+
 func NewClientInformationResponse(clientID, clientSecret, registrationClientURI, registrationAccessToken string) *ClientInformationResponse {
 	clientInfo := &ClientInformationResponse{
 		ID:                      clientID,
@@ -260,6 +269,19 @@ func NewClientInformationResponse(clientID, clientSecret, registrationClientURI,
 	}
 
 	return clientInfo
+}
+
+func NewClientAuthorizationRequest(clientID, redirectURI, scope, state, responseType, codeChallenge, codeChallengeMethod, userID string) *ClientAuthorizationRequest {
+	return &ClientAuthorizationRequest{
+		ClientID:            clientID,
+		RedirectURI:         redirectURI,
+		Scope:               scope,
+		State:               state,
+		ResponseType:        responseType,
+		CodeChallenge:       codeChallenge,
+		CodeChallengeMethod: codeChallengeMethod,
+		UserID:              userID,
+	}
 }
 
 // Validate checks if the ClientRegistrationRequest contains valid values.

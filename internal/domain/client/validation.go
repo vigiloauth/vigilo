@@ -92,7 +92,7 @@ func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
 	}
 
 	if !req.Client.IsConfidential() && !req.Client.RequiresPKCE() {
-		return errors.New(errors.ErrCodeInvalidRequest, "public clients are required to use PKCE")
+		return errors.New(errors.ErrCodeInvalidGrant, "public clients are required to use PKCE")
 	}
 
 	if req.Client.RequiresPKCE() && req.CodeChallenge == "" {
@@ -105,7 +105,7 @@ func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
 
 	if !req.Client.HasResponseType(req.ResponseType) {
 		logger.Error(module, "Failed to validate request: client does not have 'code' response type")
-		return errors.New(errors.ErrCodeInvalidClient, "'code' response type is required for PKCE")
+		return errors.New(errors.ErrCodeInvalidClient, "'code' response type is required to receive an authorization code")
 	}
 
 	if req.CodeChallenge != "" {
@@ -150,18 +150,14 @@ func validateGrantType(req ClientRequest, errorCollection *errors.ErrorCollectio
 	validGrantTypes := ValidGrantTypes
 	for _, grantType := range req.GetGrantTypes() {
 		if _, ok := validGrantTypes[grantType]; !ok {
-			err := errors.New(
-				errors.ErrCodeInvalidClientMetadata,
-				fmt.Sprintf("grant type '%s' is not supported", grantType))
+			err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type '%s' is not supported", grantType))
 			errorCollection.Add(err)
 			logger.Warn(module, "Unsupported grant type: %s", grantType)
 			continue
 		}
 		if req.GetType() == Public {
 			if grantType == ClientCredentials || grantType == PasswordGrant {
-				err := errors.New(
-					errors.ErrCodeInvalidClientMetadata,
-					fmt.Sprintf("grant type '%s' is not supported for public clients", grantType))
+				err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type '%s' is not supported for public clients", grantType))
 				errorCollection.Add(err)
 				logger.Warn(module, "Restricted grant type '%s' used by public client", grantType)
 			}
@@ -176,10 +172,16 @@ func validateGrantType(req ClientRequest, errorCollection *errors.ErrorCollectio
 
 // validateURIS checks if redirect URIs are well-formed and secure.
 func validateURIS(req ClientRequest, errorCollection *errors.ErrorCollection) {
-	if len(req.GetRedirectURIS()) == 0 {
-		err := errors.New(errors.ErrCodeEmptyInput, "'redirect_uris' is empty")
+	if req.GetType() == Confidential && req.HasGrantType(AuthorizationCode) && len(req.GetRedirectURIS()) == 0 {
+		err := errors.New(errors.ErrCodeInvalidGrant, "redirect URI(s) are required for confidential clients using the authorization code grant type")
 		errorCollection.Add(err)
-		logger.Warn(module, "Validation failed: redirect_uris is empty")
+		return
+	}
+
+	if req.GetType() == Public && len(req.GetRedirectURIS()) == 0 {
+		err := errors.New(errors.ErrCodeEmptyInput, "redirect URI(s) are required for public clients")
+		errorCollection.Add(err)
+		logger.Warn(module, "Validation failed: redirect_uris is empty for public client")
 		return
 	}
 
@@ -351,7 +353,10 @@ func validateCodeChallenge(codeChallenge string) error {
 	codeChallengeLength := len(codeChallenge)
 	if codeChallengeLength < 43 || codeChallengeLength > 128 {
 		logger.Error(module, "Failed to validate code challenge: code challenge does not meet length requirements")
-		return errors.New(errors.ErrCodeInvalidRequest, fmt.Sprintf("invalid code challenge length (%d): must be between 43 and 128 characters", codeChallengeLength))
+		return errors.New(
+			errors.ErrCodeInvalidRequest,
+			fmt.Sprintf("invalid code challenge length (%d): must be between 43 and 128 characters", codeChallengeLength),
+		)
 	}
 
 	validCodeChallengeRegex := regexp.MustCompile(`^[A-Za-z0-9._~-]+$`)
@@ -367,7 +372,10 @@ func validateCodeChallenge(codeChallenge string) error {
 func validateCodeChallengeMethod(codeChallengeMethod string) error {
 	if _, ok := ValidCodeChallengeMethods[codeChallengeMethod]; !ok {
 		logger.Error(module, "Failed to validate authorization request: invalid code challenge method: %s", codeChallengeMethod)
-		return errors.New(module, fmt.Sprintf("invalid code challenge method: '%s'. Valid methods are 'plain' and 'SHA-256'", codeChallengeMethod))
+		return errors.New(
+			errors.ErrCodeInvalidRequest,
+			fmt.Sprintf("invalid code challenge method: '%s'. Valid methods are 'plain' and 'SHA-256'", codeChallengeMethod),
+		)
 	}
 
 	return nil
