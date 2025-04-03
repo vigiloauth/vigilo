@@ -53,7 +53,6 @@ Content-Type: application/json
     "code": "SplxlOBeZQQYbYS6WxSbIA",
     "redirect_uri": "https://client.example.com/callback",
     "client_id": "s6BhdRkqt3",
-    "client_secret": "7Fjfp0ZBr1KtDRbnfVdmIw",
     "state": "xyz123"
 }
 ```
@@ -69,7 +68,6 @@ Content-Type: application/json
     "code": "SplxlOBeZQQYbYS6WxSbIA",
     "redirect_uri": "https://client.example.com/callback",
     "client_id": "s6BhdRkqt3",
-    "client_secret": "7Fjfp0ZBr1KtDRbnfVdmIw",
     "state": "xyz123",
     "code_verifier": "xyz456"
 }

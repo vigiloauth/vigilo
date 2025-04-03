@@ -6,7 +6,7 @@
 	- [1. Overview](#1-overview)
 	- [2. Server Configuration](#2-server-configuration)
 		- [2.1 ForceHTTPS](#21-forcehttps)
-		- [2.2 LoginConfig and JWTConfig](#22-loginconfig-and-jwtconfig)
+		- [2.2 LoginConfig and TokenConfig](#22-loginconfig-and-tokenconfig)
 			- [Default Values](#default-values)
 		- [2.3 Example Usage](#23-example-usage)
 		- [2.4 Default fields](#24-default-fields)
@@ -43,8 +43,8 @@ The `VigiloIdentityServer` can be configured using various options to suit your 
 ### 2.1 ForceHTTPS
 To ensure secure communication, it is recommended to configure your server to use HTTPS. This is done by configuring the `VigiloIdentityServer` with the `ForceHTTPS` option.
 
-### 2.2 LoginConfig and JWTConfig
-The `VigiloIdentityServer` uses `LoginConfig` and `JWTConfig` for handling user authentication and token generation. These configurations have default values that will be used if they are not explicitly provided in the constructor. The server also accepts an optional `SMTPConfiguration` struct to process emails.
+### 2.2 LoginConfig and TokenConfig
+The `VigiloIdentityServer` uses `LoginConfig` and `TokenConfig` for handling user authentication and token generation. These configurations have default values that will be used if they are not explicitly provided in the constructor. The server also accepts an optional `SMTPConfiguration` struct to process emails.
 
 #### Default Values
 - **LoginConfig**: If not provided, the server will use a default configuration for login attempts and user authentication.
@@ -88,7 +88,7 @@ You can also customize these configurations by providing specific options:
 ``` go
 config.NewServerConfig(
     config.WithLoginConfig(customLoginConfig),
-    config.WithJWTConfig(customJWTConfig),
+    config.WithTokenConfig(customTokenConfig),
 	config.WithSMTPConfig(smtpConfig),
 )
 vigiloIdentityServer := server.NewVigiloIdentityServer()
@@ -103,6 +103,7 @@ By default, the server configuration uses the following settings:
 - **WriteTimeout:** 15 seconds
 - **RequestsPerMinute:** 100
 - **SessionCookieName:** vigilo-auth-session-cookie
+- **AuthorizationCodeDuration:** 10 minutes
 
 ### 2.5 Explanation of Fields
 - `WithPort(int)`: The desired server port.
@@ -118,6 +119,7 @@ By default, the server configuration uses the following settings:
 - `WithSMTPConfig(*SMTPConfig)`: Configures the SMTP configuration.
 - `WithPasswordConfig(*PasswordConfig)`: Configures the password configuration.
 - `WithMaxRequestsPerMinute(int)`: Sets the max requests an endpoint can receive per minute.
+- `WithAuthorizationCodeDuration(time.Duration)`: Sets the duration of the authorization code.
 
 ---
 
@@ -151,7 +153,7 @@ func main() {
 ---
 
 ## 4. Configuring JWT
-To configure JWT settings, use the `JWTConfig` struct to set the secret, expiration time, and signing method.
+To configure JWT settings, use the `TokenConfig` struct to set the secret, expiration time, and signing method.
 
 ### 4.1 Example Configuration
 ```go

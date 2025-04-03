@@ -36,6 +36,8 @@
         - [Response:](#response-3)
       - [6.5 Key Notes](#65-key-notes)
 
+---
+
 ## 1. Introduction
 Dynamic Client Registration allows OAuth 2.0 clients to automatically register with VigiloAuth Server, obtaining the information needed for OAuth interactions without manual setup processes. This protocol enables developers to programmatically create client credentials, specify redirect URIs, and define access scopes—streamlining the onboarding process for applications that use your API.
 

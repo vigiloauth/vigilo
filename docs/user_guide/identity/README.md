@@ -7,6 +7,8 @@ This documentation provides a comprehensive guide to configuring and utilizing t
 
 ## OAuth Flows Overview
 - [Dynamic Client Registration](../identity/oauth_flows/dynamic_client_registration.md)
+- [Authorization Code Flow](../identity/oauth_flows/authorization_code.md)
+- [Authorization Code Flow with PKCE](../identity/oauth_flows/authorization_code_pkce.md)
 
 ## Documentation
 - [Configuration Guide](../../configuration.md)

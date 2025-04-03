@@ -17,8 +17,25 @@ This endpoint is used to handle the authorization request in the OAuth 2.0 Autho
 - Scopes should be space-separated strings.
 - The `state` parameter is optional but recommended to prevent CSRF attacks.
 - PKCE (Proof Key for Code Exchange) is an additional security mechanism for public clients (e.g., mobile or single-page applications) to prevent authorization code interception attacks.
-- If the client is using PKCE, the `code_verifier` must be sent during the token exchange to validate the `code_challenge`.
+- If the client is using PKCE, the `code_verifier` must be sent during the [token exchange](token_exchange.md) to validate the `code_challenge`.
 - Confidential clients (e.g., server-side applications) are not required to use PKCE but may still use it for additional security
+- When using PKCE, the client must create the `code_challenge` by either using the `code_verifier` itself, or encrypting it using `SHA-256`
+
+#### Code Challenge Requirements
+```
+code-challenge = 43*128unreserved
+unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+ALPHA = %x41-5A / %x61-7A
+DIGIT = %x30-39
+```
+
+#### Code Verifier Requirements
+```
+code-challenge = 43*128unreserved
+unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
+ALPHA = %x41-5A / %x61-7A
+DIGIT = %x30-39
+```
 
 ---
 
