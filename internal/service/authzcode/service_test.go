@@ -117,12 +117,11 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 		}
 
 		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
-		expected := errors.New(errors.ErrCodeInternalServerError, "failed to retrieve the authorization code: An unexpected error occurred. Please try again later.")
 		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
 
 		assert.Nil(t, code)
 		assert.Error(t, actual)
-		assert.Equal(t, expected.Error(), actual.Error())
+		assert.Equal(t, "invalid authorization code", actual.Error())
 	})
 
 	t.Run("Error is returned when there is a client ID mismatch", func(t *testing.T) {

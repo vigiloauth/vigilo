@@ -259,7 +259,9 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 
 	t.Run("Error is returned when client does not have 'code' response type", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
+			ResponseType: IDTokenResponseType,
 			Client: &Client{
+				Type:          Public,
 				GrantTypes:    []string{AuthorizationCode, PKCE},
 				ResponseTypes: []string{IDTokenResponseType},
 			},
@@ -267,7 +269,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
-		expectedError := "'code' response type is required for PKCE"
+		expectedError := "'code' response type is required to receive an authorization code"
 
 		assert.Error(t, err)
 		assert.Contains(t, expectedError, err.Error())

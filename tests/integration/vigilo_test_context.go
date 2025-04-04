@@ -71,7 +71,7 @@ type VigiloTestContext struct {
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
-	config.GetServerConfig().Logger().SetLevel("DEBUG")
+	config.GetServerConfig().Logger().SetLevel("INFO")
 	return &VigiloTestContext{
 		T:                  t,
 		VigiloServer:       server.NewVigiloIdentityServer(),
@@ -234,6 +234,10 @@ func (tc *VigiloTestContext) SendHTTPRequest(method, endpoint string, body io.Re
 	return rr
 }
 
+func (tc *VigiloTestContext) ClearSession() {
+	sessionRepo.ResetInMemorySessionRepository()
+}
+
 func (tc *VigiloTestContext) WithOAuthLogin() {
 	loginRequest := users.UserLoginRequest{
 		ID:       testUserID,
@@ -244,13 +248,13 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	requestBody, err := json.Marshal(loginRequest)
 	assert.NoError(tc.T, err)
 
-	state := tc.GetStateFromSession()
-	tc.State = state
+	// state := tc.GetStateFromSession()
+	// tc.State = state
 
 	queryParams := url.Values{}
 	queryParams.Add(common.ClientID, testClientID)
 	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.State, state)
+	// queryParams.Add(common.State, state)
 	endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
 
 	rr := tc.SendHTTPRequest(
@@ -279,6 +283,10 @@ func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Re
 }
 
 func (tc *VigiloTestContext) WithUserSession() {
+	if tc.User == nil {
+		tc.WithUser()
+	}
+
 	loginRequest := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
 	body, err := json.Marshal(loginRequest)
 	assert.NoError(tc.T, err)

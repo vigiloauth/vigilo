@@ -33,7 +33,7 @@ func TestUserService_CreateUser_Success(t *testing.T) {
 	mockTokenService := &mTokenService.MockTokenService{}
 	mockLoginService := &mLoginService.MockLoginAttemptService{}
 
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return nil }
+	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return nil }
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
 	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) { return testToken, nil }
 
@@ -51,7 +51,7 @@ func TestUserService_CreateUser_DuplicateEntry(t *testing.T) {
 	user := createNewUser()
 
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return user }
+	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return user }
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
 
@@ -69,7 +69,7 @@ func TestUserService_CreateUser_PasswordIsNotStoredInPlainText(t *testing.T) {
 
 	mockUserRepo.DeleteUserByIDFunc = func(userID string) error { return nil }
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return nil }
+	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return nil }
 	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) { return testToken, nil }
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)

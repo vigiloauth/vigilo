@@ -127,7 +127,7 @@ func (p *PasswordResetServiceImpl) ResetPassword(userEmail, newPassword, resetTo
 		return nil, errors.Wrap(err, "", "failed to encrypt password")
 	}
 
-	user := p.userRepository.GetUserByID(userEmail)
+	user := p.userRepository.GetUserByEmail(userEmail)
 	if user == nil {
 		logger.Error(module, "ResetPassword: Failed to retrieve user by email=[%s]", common.TruncateSensitive(userEmail))
 		return nil, errors.New(errors.ErrCodeUserNotFound, "user not found with the provided email address")

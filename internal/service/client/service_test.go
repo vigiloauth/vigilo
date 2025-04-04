@@ -539,6 +539,12 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 			}, nil
 		}
+		mockTokenService.DeleteTokenAsyncFunc = func(token string) <-chan error {
+			ch := make(chan error, 1)
+			ch <- nil
+			close(ch)
+			return ch
+		}
 		mockClientRepo.DeleteClientByIDFunc = func(clientID string) error { return nil }
 
 		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
@@ -551,10 +557,11 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
 		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		expectedErrMessage := "the provided client ID is invalid or does not match the registered credentials"
 		err := service.ValidateAndDeleteClient(testClientID, testToken)
 
 		assert.Error(t, err)
-		assert.Equal(t, "the provided client ID is invalid", err.Error())
+		assert.Equal(t, expectedErrMessage, err.Error())
 	})
 
 	t.Run("Error - Registration access token and client ID mismatch", func(t *testing.T) {

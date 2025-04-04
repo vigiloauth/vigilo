@@ -307,8 +307,13 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
 			return "", errors.NewInternalServerError()
 		}
+		mockClientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(clientID string) *client.Client {
+				return &client.Client{ID: testClientID}
+			},
+		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
+		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: true}, nil)
 
 		assert.Error(t, err)
@@ -328,8 +333,13 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		mockSessionService.ClearStateFromSessionFunc = func(sessionData *session.SessionData) error {
 			return errors.NewInternalServerError()
 		}
+		mockClientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(clientID string) *client.Client {
+				return &client.Client{ID: testClientID}
+			},
+		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
+		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: true}, nil)
 
 		assert.Error(t, err)
@@ -349,8 +359,13 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		mockSessionService.ClearStateFromSessionFunc = func(sessionData *session.SessionData) error {
 			return nil
 		}
+		mockClientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(clientID string) *client.Client {
+				return &client.Client{ID: testClientID}
+			},
+		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
+		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: true}, nil)
 
 		assert.NoError(t, err)

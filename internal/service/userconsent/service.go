@@ -266,12 +266,21 @@ func (c *UserConsentServiceImpl) processApprovedConsent(
 	}
 
 	authorizationCodeRequest := &clients.ClientAuthorizationRequest{
-		ClientID:    clientID,
-		UserID:      userID,
-		Scope:       approvedScopes,
-		RedirectURI: redirectURI,
+		ClientID:     clientID,
+		UserID:       userID,
+		Scope:        approvedScopes,
+		RedirectURI:  redirectURI,
+		ResponseType: clients.CodeResponseType,
 	}
 
+	client := c.clientService.GetClientByID(clientID)
+	if client == nil {
+		err := errors.New(errors.ErrCodeInvalidClient, "invalid client ID")
+		logger.Error(module, "Failed to process user consent: %v", err)
+		return nil, err
+	}
+
+	authorizationCodeRequest.Client = client
 	code, err := c.authzCodeService.GenerateAuthorizationCode(authorizationCodeRequest)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to generate authorization code")

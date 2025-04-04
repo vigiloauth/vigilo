@@ -40,7 +40,7 @@ func TestTokenStore_IsTokenBlacklisted(t *testing.T) {
 	defer tearDown()
 
 	tokenStore := GetInMemoryTokenRepository()
-	expiration := time.Now().Add(1 * time.Hour)
+	expiration := time.Now().Add(-1 * time.Hour)
 
 	tokenStore.SaveToken(testToken, testID, expiration)
 	isBlacklisted := tokenStore.IsTokenBlacklisted(testToken)

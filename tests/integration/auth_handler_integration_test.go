@@ -17,6 +17,8 @@ import (
 
 func TestAuthHandler_IssueClientCredentialsToken_Success(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage},
@@ -40,6 +42,7 @@ func TestAuthHandler_IssueClientCredentialsToken_Success(t *testing.T) {
 func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testing.T) {
 	t.Run("Missing Authorization Header", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 		rr := sendTokenGenerationRequest(testContext, headers)
@@ -50,6 +53,8 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 	t.Run("Invalid Authorization Header format", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		headers := map[string]string{
 			"Content-Type":  "application/x-www-form-urlencoded",
 			"Authorization": "Basic invalid_credentials",
@@ -63,6 +68,8 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 	t.Run("Invalid Client ID", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage},
@@ -78,6 +85,8 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 	t.Run("Client Secrets do not match", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage},
@@ -93,6 +102,8 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 	t.Run("Client is missing required grant types", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage},
@@ -108,6 +119,8 @@ func TestAuthHandler_IssueClientCredentialsToken_AuthenticationFailures(t *testi
 
 	t.Run("Client is missing required scope", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithClient(
 			client.Confidential,
 			[]string{}, // No scopes

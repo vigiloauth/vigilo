@@ -103,7 +103,7 @@ func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
 		return errors.New(errors.ErrCodeInvalidRequest, "PKCE is required when providing a code challenge")
 	}
 
-	if !req.Client.HasResponseType(req.ResponseType) {
+	if !req.Client.HasResponseType(CodeResponseType) || !req.Client.HasResponseType(req.ResponseType) {
 		logger.Error(module, "Failed to validate request: client does not have 'code' response type")
 		return errors.New(errors.ErrCodeInvalidClient, "'code' response type is required to receive an authorization code")
 	}

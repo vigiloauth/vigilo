@@ -18,6 +18,8 @@ import (
 
 func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
@@ -26,7 +28,6 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	testContext.WithUser()
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
-	defer testContext.TearDown()
 
 	queryParams := url.Values{}
 	queryParams.Add(common.ClientID, testClientID)
@@ -50,6 +51,8 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 
 func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
@@ -57,7 +60,6 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 	)
 	testContext.WithUser()
 	testContext.WithUserSession()
-	defer testContext.TearDown()
 
 	// Call AuthorizeClient Endpoint
 	testContext.WithUserConsent()
@@ -79,6 +81,8 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 
 func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
@@ -86,7 +90,6 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 	)
 	testContext.WithUser()
 	testContext.WithUserConsent()
-	defer testContext.TearDown()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
@@ -108,6 +111,8 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 
 func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
@@ -116,7 +121,6 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 	testContext.WithUser()
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
-	defer testContext.TearDown()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
@@ -141,6 +145,8 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 
 func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage, client.UserManage},
@@ -148,7 +154,6 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 	)
 	testContext.WithUser()
 	testContext.WithUserSession()
-	defer testContext.TearDown()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}

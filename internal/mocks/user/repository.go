@@ -15,6 +15,8 @@ type MockUserRepository struct {
 
 	// UpdateUserFunc is a mock function for the UpdateUser method.
 	UpdateUserFunc func(user *user.User) error
+
+	GetUserByEmailFunc func(email string) *user.User
 }
 
 // AddUser calls the mock AddUserFunc.
@@ -35,4 +37,8 @@ func (m *MockUserRepository) DeleteUserByID(userID string) error {
 // UpdateUser calls the mock UpdateUserFunc.
 func (m *MockUserRepository) UpdateUser(user *user.User) error {
 	return m.UpdateUserFunc(user)
+}
+
+func (m *MockUserRepository) GetUserByEmail(email string) *user.User {
+	return m.GetUserByEmailFunc(email)
 }

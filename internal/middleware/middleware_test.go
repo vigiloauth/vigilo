@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/internal/errors"
 	mocks "github.com/vigiloauth/vigilo/internal/mocks/token"
 )
 
@@ -27,8 +27,9 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: email}, nil
 	}
-	mockTokenService.IsTokenBlacklistedFunc = func(token string) bool { return false }
-	mockTokenService.IsTokenExpiredFunc = func(token string) bool { return false }
+	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
+		return nil
+	}
 
 	middleware := NewMiddleware(mockTokenService)
 
@@ -56,8 +57,8 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
 		return &jwt.StandardClaims{Subject: email}, nil
 	}
-	mockTokenService.IsTokenBlacklistedFunc = func(tokenString string) bool {
-		return tokenString == "blacklistedToken"
+	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
+		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
 	}
 
 	middleware := NewMiddleware(mockTokenService)
@@ -78,8 +79,12 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	mockTokenService := &mocks.MockTokenService{}
 
-	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) { return nil, errors.New("invalid token") }
-	mockTokenService.IsTokenBlacklistedFunc = func(token string) bool { return true }
+	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
+		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
+	}
+	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
+		return nil, errors.New(errors.ErrCodeInvalidToken, "invalid-token")
+	}
 
 	middleware := NewMiddleware(mockTokenService)
 

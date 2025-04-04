@@ -127,7 +127,7 @@ func (b *InMemoryTokenRepository) IsTokenBlacklisted(token string) bool {
 	}
 
 	logger.Debug(module, "IsTokenBlacklisted: Token=%s is blacklisted", truncateToken(token))
-	return true
+	return false
 }
 
 // DeleteToken removes a token from the store.

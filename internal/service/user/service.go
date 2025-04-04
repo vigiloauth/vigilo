@@ -66,7 +66,7 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 		return nil, errors.Wrap(err, "", "failed to encrypt password")
 	}
 
-	if existingUser := u.userRepo.GetUserByID(user.Email); existingUser != nil {
+	if existingUser := u.userRepo.GetUserByEmail(user.Email); existingUser != nil {
 		err := errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
 		logger.Error(module, "CreateUser: Failed to create new user: %v", err)
 		return nil, err

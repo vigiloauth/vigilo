@@ -64,7 +64,13 @@ func (c *InMemoryUserRepository) AddUser(user *user.User) error {
 		return errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided ID")
 	}
 
+	if _, ok := c.data[user.Email]; ok {
+		logger.Debug(module, "AddUser: user already exists with the given email=%s", user.Email)
+		return errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
+	}
+
 	c.data[user.ID] = user
+
 	return nil
 }
 
@@ -88,6 +94,22 @@ func (c *InMemoryUserRepository) GetUserByID(userID string) *user.User {
 	}
 
 	return user
+}
+
+// GetUserByEmail retrieves a user from the store using their email.
+func (c *InMemoryUserRepository) GetUserByEmail(email string) *user.User {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	for _, user := range c.data {
+		if user.Email == email {
+			logger.Debug(module, "GetUserByEmail: User found with the given email=%s", email)
+			return user
+		}
+	}
+
+	logger.Debug(module, "GetUserByEmail: User not found with the given email=%s", email)
+	return nil
 }
 
 // DeleteUserByID removes a user from the repository using their ID.

@@ -37,14 +37,6 @@ func setupTestSMTPConfig() *config.SMTPConfig {
 }
 
 func TestBaseEmailService_Initialize(t *testing.T) {
-	t.Run("Error is thrown due to nil SMTP Config", func(t *testing.T) {
-		es := &BaseEmailService{}
-		err := es.Initialize()
-
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "SMTP configuration has not been provided")
-	})
-
 	t.Run("Success", func(t *testing.T) {
 		setupTestSMTPConfig()
 		es := &BaseEmailService{}

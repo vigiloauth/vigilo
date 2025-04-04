@@ -19,13 +19,14 @@ import (
 func TestOauthHandler_OAuthLogin(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithUser()
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		defer testContext.TearDown()
 
 		loginRequest := users.UserLoginRequest{
 			ID:       testUserID,
@@ -52,12 +53,13 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 
 	t.Run("Invalid UserLogin request", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		defer testContext.TearDown()
 
 		loginRequest := users.UserLoginRequest{
 			ID:       testUserID,
@@ -86,15 +88,15 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 func TestOAuthHandler_UserConsent(t *testing.T) {
 	t.Run("GET Request - returns client and scope information", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithUser()
+		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		// Login to create session
-		testContext.WithOAuthLogin()
-		defer testContext.TearDown()
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -111,15 +113,15 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 	t.Run("POST Request - Success", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithUser()
+		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		// Login to create session
-		testContext.WithOAuthLogin()
-		defer testContext.TearDown()
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -147,12 +149,13 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 	t.Run("No user session present returns LoginRequiredError", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		defer testContext.TearDown()
 
 		queryParams := url.Values{}
 		queryParams.Add(common.ClientID, testClientID)
@@ -190,6 +193,14 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
+				testContext.WithUser()
+				testContext.WithUserSession()
+				testContext.WithClient(
+					client.Confidential,
+					[]string{client.ClientManage, client.UserManage},
+					[]string{client.AuthorizationCode},
+				)
+
 				rr := testContext.SendHTTPRequest(http.MethodGet, test.endpoint, nil, nil)
 				assert.Equal(t, http.StatusBadRequest, rr.Code)
 				testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing required OAuth parameters")
@@ -200,14 +211,15 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 	t.Run("Post Request - state mismatch", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithUser()
+		defer testContext.TearDown()
+
+		testContext.WithUser()
+		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		// Login to create session
-		testContext.WithOAuthLogin()
-		defer testContext.TearDown()
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -234,15 +246,15 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 	t.Run("Post Request - Client missing required scopes", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithUser()
+		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserRead},
+			[]string{client.ClientManage},
 			[]string{client.AuthorizationCode},
 		)
-		// Login to create session
-		testContext.WithOAuthLogin()
-		defer testContext.TearDown()
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -275,20 +287,20 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		assert.NoError(t, err)
 
 		rr = testContext.SendHTTPRequest(http.MethodPost, postEndpoint, bytes.NewReader(requestBody), headers)
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 
 	t.Run("Post Request - user denies consent", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
 		testContext.WithUser()
+		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
 			[]string{client.ClientManage, client.UserManage},
 			[]string{client.AuthorizationCode},
 		)
-		// Login to create session
-		testContext.WithOAuthLogin()
-		defer testContext.TearDown()
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}

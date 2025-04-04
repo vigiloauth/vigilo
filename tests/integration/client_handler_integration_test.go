@@ -64,8 +64,8 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 			}
 
 			testContext := NewVigiloTestContext(t)
-			testContext.WithCustomConfig(config.WithBaseURL("https://localhost"))
 			defer testContext.TearDown()
+			testContext.WithCustomConfig(config.WithBaseURL("https://localhost"))
 
 			requestBody, err := json.Marshal(test.requestBody)
 			assert.NoError(t, err)

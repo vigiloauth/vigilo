@@ -24,6 +24,17 @@ type UserRepository interface {
 	//   *User: The User object if found, or nil if not found.
 	GetUserByID(userID string) *User
 
+	// GetUserByEmail retrieves a user from the store using their email address.
+	//
+	// Parameters:
+	//
+	//   email string: The email address used to retrieve the user.
+	//
+	// Returns:
+	//
+	//   *User: The User object if found, or nil if not found.
+	GetUserByEmail(email string) *User
+
 	// DeleteUserByID removes a user from the repository using their ID.
 	//
 	// Parameters:
