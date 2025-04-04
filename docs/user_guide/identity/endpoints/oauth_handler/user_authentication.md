@@ -1,7 +1,7 @@
 # User Authentication
 
 ## Endpoint
-```
+```http
 POST /oauth/login/authorization
 ```
 
@@ -49,7 +49,7 @@ This endpoint handles user authentication for the OAuth authorization code flow.
 ---
 
 ## Example Request
-```
+```http
 POST /oauth/login HTTP/1.1
 Accept: application/json
 

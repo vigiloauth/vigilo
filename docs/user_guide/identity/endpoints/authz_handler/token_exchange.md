@@ -1,7 +1,7 @@
 # Token Exchange
 
 ## Endpoint
-```
+```http
 POST /oauth/token
 ```
 
@@ -43,7 +43,7 @@ This endpoint handles the token exchange for the OAuth 2.0 Authorization Code Fl
 ---
 
 ## Example Request
-```
+```http
 POST /oauth/token HTTP/1.1
 Content-Type: application/json
 ```
@@ -58,7 +58,7 @@ Content-Type: application/json
 ```
 
 ### Example Request with PKCE
-```
+```http
 POST /oauth/token HTTP/1.1
 Content-Type: application/json
 ```

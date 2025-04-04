@@ -1,7 +1,7 @@
 # Client Delete Request
 
 ## Endpoint
-```
+```http
 DELETE /oauth/client/register/{client_id}
 ```
 
@@ -29,7 +29,7 @@ Upon deletion, the `client_id`, `client_secret` (if applicable), and the `regist
 ---
 
 ## Example Request
-```
+```http
 DELETE /oauth/client/register/s6BhdRkqt3 HTTP/1.1
 Host: server.example.com
 Authorization: Bearer reg-23410913-abewfq.123483
@@ -42,7 +42,7 @@ Authorization: Bearer reg-23410913-abewfq.123483
 ### Success Response
 #### HTTP Status Code: `204 No Content`
 #### Response Headers
-```
+```http
 HTTP/1.1 204 No Content
 Cache-Control: no-store
 Pragma: no-cache

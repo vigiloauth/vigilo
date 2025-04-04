@@ -1,7 +1,7 @@
 # Regenerate Client Secret
 
 ## Endpoint
-```
+```http
 POST /client/regenerate-secret
 ```
 ---
@@ -30,7 +30,7 @@ POST /client/regenerate-secret
 ---
 
 ## Example Request
-```
+```http
 POST https://localhost:8080/client/regenerate-secret/abc12345def HTTP/1.1
 Accept: application/json
 ```

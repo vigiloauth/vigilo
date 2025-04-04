@@ -1,7 +1,7 @@
 # OAuth 2.0 Client Credentials Grant
 
 ## Endpoint
-```
+```http
 POST /oauth/client/token
 ```
 
@@ -39,7 +39,7 @@ This endpoint implements the OAuth 2.0 client credentials flow, allowing authent
 ---
 
 ## Example Request
-```
+```http
 POST /oauth/client/token HTTP/1.1
 Authorization: Basic dGVzdGNsaWVudDpzZWNyZXQ
 Content-Type: application/x-www-form-urlencoded

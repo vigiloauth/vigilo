@@ -1,7 +1,7 @@
 # Client Registration
 
 ## Endpoint
-```
+```http
 POST /client/register
 ```
 
@@ -42,7 +42,7 @@ For information on how to use `client_configuration_endpoint` and `registration_
 ---
 
 ## Example Request
-```
+```http
 POST /client/register HTTP/1.1
 Accept: application/json
 ```

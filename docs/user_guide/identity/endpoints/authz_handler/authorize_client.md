@@ -1,7 +1,7 @@
 # Authorize Client
 
 ## Endpoint
-```
+```http
 GET /oauth/authorize
 ```
 
@@ -75,7 +75,7 @@ DIGIT = %x30-39
 ----
 
 ## Example Request
-```
+```http
 GET /oauth/authorize HTTP/1.1
 Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW
 Content-Type: application/x-www-form-urlencoded
@@ -89,7 +89,7 @@ response_type=code
 ```
 
 #### Example Request using PKCE
-```
+```http
 GET /oauth/authorize HTTP/1.1
 Authorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW
 Content-Type: application/x-www-form-urlencoded
@@ -102,6 +102,8 @@ state=xyz&
 response_type=code&
 code_challenge=1234abc8902zz&
 code_challenge_method=S256
+```
+
 ---
 
 ## Responses
