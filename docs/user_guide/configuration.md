@@ -4,20 +4,20 @@
 - [Configuration Guide](#configuration-guide)
 	- [Table of Contents](#table-of-contents)
 	- [1. Overview](#1-overview)
-	- [2. Server Configuration](#2-server-configuration)
+	- [2. VigiloAuth Server Configuration](#2-vigiloauth-server-configuration)
 		- [2.1 ForceHTTPS](#21-forcehttps)
-		- [2.2 LoginConfig and TokenConfig](#22-loginconfig-and-tokenconfig)
+		- [2.2 Login and Token Configuration](#22-login-and-token-configuration)
 			- [Default Values](#default-values)
 		- [2.3 Example Usage](#23-example-usage)
 		- [2.4 Default fields](#24-default-fields)
 		- [2.5 Explanation of Fields](#25-explanation-of-fields)
-	- [3. Customizing Password Policy](#3-customizing-password-policy)
+	- [3. Password Configuration](#3-password-configuration)
 		- [3.1 Explanation of Methods](#31-explanation-of-methods)
-	- [4. Configuring JWT](#4-configuring-jwt)
+	- [4. Token Configuration](#4-token-configuration)
 		- [4.1 Example Configuration](#41-example-configuration)
 		- [4.2 Explanation of Fields](#42-explanation-of-fields)
 		- [4.3 Default Fields](#43-default-fields)
-	- [5. Configuring Login](#5-configuring-login)
+	- [5. Login Configuration](#5-login-configuration)
 		- [5.1 Example Configuration](#51-example-configuration)
 		- [5.2 Explanation of Fields](#52-explanation-of-fields)
 		- [5.3 Default Fields](#53-default-fields)
@@ -37,13 +37,13 @@
 ## 1. Overview
 **VigiloAuth** allows you to customize various settings to meet your application's security requirements. This guide walks you through configuring the password complexity and length requirements using the `PasswordConfiguration` struct, as well as configuring the server to enforce HTTPS for secure communication.
 
-## 2. Server Configuration
+## 2. VigiloAuth Server Configuration
 The `VigiloIdentityServer` can be configured using various options to suit your needs. Below are the available configuration options:
 
 ### 2.1 ForceHTTPS
 To ensure secure communication, it is recommended to configure your server to use HTTPS. This is done by configuring the `VigiloIdentityServer` with the `ForceHTTPS` option.
 
-### 2.2 LoginConfig and TokenConfig
+### 2.2 Login and Token Configuration
 The `VigiloIdentityServer` uses `LoginConfig` and `TokenConfig` for handling user authentication and token generation. These configurations have default values that will be used if they are not explicitly provided in the constructor. The server also accepts an optional `SMTPConfiguration` struct to process emails.
 
 #### Default Values
@@ -123,7 +123,7 @@ By default, the server configuration uses the following settings:
 
 ---
 
-## 3. Customizing Password Policy
+## 3. Password Configuration
 To customize the password policy, use the `NewPasswordConfig(options)` method and then update the server config instance.
 ```go
 package main
@@ -152,7 +152,7 @@ func main() {
 
 ---
 
-## 4. Configuring JWT
+## 4. Token Configuration
 To configure JWT settings, use the `TokenConfig` struct to set the secret, expiration time, and signing method.
 
 ### 4.1 Example Configuration
@@ -198,7 +198,7 @@ If no custom JWT configuration is provided, the following default values are use
 
 ---
 
-## 5. Configuring Login 
+## 5. Login Configuration
 To configure login details for your application, use the `LoginConfig` struct to set the maximum login attempts a user can have and the artificial delay to normalize response times for login attempts.
 
 ### 5.1 Example Configuration
