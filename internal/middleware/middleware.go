@@ -50,6 +50,10 @@ func NewMiddleware(tokenService token.TokenService) *Middleware {
 }
 
 // AuthMiddleware is a middleware that checks for a valid JWT token in the Authorization header.
+//
+// Returns:
+//
+//	func(http.Handler) http.Handler: A middleware function.
 func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -85,6 +89,14 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 }
 
 // RedirectToHTTPS is a middleware that redirects HTTP requests to HTTPS.
+//
+// Parameters:
+//
+//	next http.Handler: The next handler in the chain.
+//
+// Returns:
+//
+//	http.Handler: A middleware handler.
 func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.Debug(module, "RedirectToHTTPS: Processing request method=%s url=%s", r.Method, r.URL.Path)
@@ -100,6 +112,14 @@ func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 }
 
 // RateLimit is a middleware that limits the number of requests based on the rate limiter.
+//
+// Parameters:
+//
+//	next http.Handler: The next handler in the chain.
+//
+// Returns:
+//
+//	http.Handler: A middleware handler.
 func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger.Debug(module, "RateLimit: Applying rate limiting to request method=%s url=%s", r.Method, r.URL.Path)

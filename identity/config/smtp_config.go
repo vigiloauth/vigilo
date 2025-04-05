@@ -10,6 +10,7 @@ import (
 )
 
 // SMTPConfig holds the configuration for SMTP email sending.
+// SMTPConfig holds the configuration for SMTP email sending.
 type SMTPConfig struct {
 	server       string           // SMTP server address.
 	port         int              // SMTP server port.

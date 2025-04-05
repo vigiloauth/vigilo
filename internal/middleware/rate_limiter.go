@@ -6,6 +6,7 @@ import (
 )
 
 // RateLimiter implements a token bucket rate limiting algorithm.
+// RateLimiter implements a token bucket rate limiting algorithm.
 type RateLimiter struct {
 	rate       float64    // Number of tokens to add per second
 	capacity   float64    // Maximum number of tokens that can be stored
