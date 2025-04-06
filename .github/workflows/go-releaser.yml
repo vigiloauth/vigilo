@@ -1,4 +1,7 @@
-name: GoReleaser
+name: Run GoReleaser
+# This workflow is triggered when a new tag is pushed to the repository.
+# It uses GoReleaser to build and release the Go application.
+# The workflow runs on the latest version of Ubuntu and checks out the code.
 
 on:
   push:

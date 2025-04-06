@@ -1,4 +1,6 @@
-name: Semantic Release
+name: Run Semantic Release
+# This workflow is triggered when a new commit is pushed to the master branch.
+# It uses semantic-release to automatically determine the version number and publish the release.
 
 on:
   push:
