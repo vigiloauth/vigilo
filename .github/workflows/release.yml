@@ -1,61 +1,27 @@
-name: Release
+name: GoReleaser
 
 on:
   push:
-    branches: [ master ]
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
   packages: write
-  issues: write
-  pull-requests: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
           go-version: stable
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-
-      - name: Install semantic-release
-        run: npm install -g semantic-release @semantic-release/github
-
-      - name: Run semantic-release
-        id: semantic
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx semantic-release
-        continue-on-error: true
-
-      # We need to properly fetch tags after semantic-release runs
-      - name: Fetch tags
-        run: git fetch --tags origin
-
-      # Get the latest tag to check if semantic-release created one
-      - name: Get latest tag
-        id: latest_tag
-        run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          echo "LATEST_TAG=${LATEST_TAG}" >> $GITHUB_ENV
-          echo "Latest tag is: ${LATEST_TAG}"
-
-      # Only run GoReleaser if we have a tag
-      - name: Run GoReleaser
-        if: env.LATEST_TAG != ''
-        uses: goreleaser/goreleaser-action@v5
+      - uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
           args: release --clean
