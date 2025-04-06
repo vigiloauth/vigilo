@@ -7,8 +7,8 @@ on:
 permissions:
   contents: write
   packages: write
-  issues: write   # Add permission for issues
-  pull-requests: write  # Add permission for PRs
+  issues: write
+  pull-requests: write
 
 jobs:
   release:
@@ -32,22 +32,29 @@ jobs:
       - name: Install semantic-release
         run: npm install -g semantic-release @semantic-release/github
 
-      # Use a different approach that handles errors more gracefully
       - name: Run semantic-release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npx semantic-release || echo "Semantic release had an error but may have created a tag"
-          # Check if a new tag was created
-          git fetch --tags origin
+          npx semantic-release
+        continue-on-error: true
 
-      - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          install-only: true
+      # We need to properly fetch tags after semantic-release runs
+      - name: Fetch tags
+        run: git fetch --tags origin
 
+      # Get the latest tag to check if semantic-release created one
+      - name: Get latest tag
+        id: latest_tag
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "LATEST_TAG=${LATEST_TAG}" >> $GITHUB_ENV
+          echo "Latest tag is: ${LATEST_TAG}"
+
+      # Only run GoReleaser if we have a tag
       - name: Run GoReleaser
+        if: env.LATEST_TAG != ''
         uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
