@@ -4,26 +4,96 @@ import "fmt"
 
 // VigiloAuthError represents a standardized error structure
 type VigiloAuthError struct {
-	ErrorCode  string   `json:"error_code"`
-	Message    string   `json:"message"`
-	Details    string   `json:"details,omitempty"`
-	WrappedErr error    `json:"-"`
-	Errors     *[]error `json:"errors,omitempty"`
+	ErrorCode          string   `json:"error"`
+	ErrorDescription   string   `json:"error_description"`
+	ErrorDetails       string   `json:"error_details,omitempty"`
+	WrappedErr         error    `json:"-"`
+	Errors             *[]error `json:"errors,omitempty"`
+	OAuthLoginEndpoint string   `json:"login_url,omitempty"`
+	ConsentURL         string   `json:"consent_url,omitempty"`
 }
 
 // Error implements the error interface
 func (e *VigiloAuthError) Error() string {
-	if e.Details != "" {
-		return fmt.Sprintf("%s: %s", e.Message, e.Details)
+	if e.ErrorDetails != "" {
+		return fmt.Sprintf("%s: %s", e.ErrorDescription, e.ErrorDetails)
 	}
-	return e.Message
+	return e.ErrorDescription
 }
 
 // New creates a new error with the given code and message
-func New(code string, message string) error {
+//
+// Parameters:
+//
+//	errCode string: The error code
+//	errorDescription string: A brief description of the error.
+func New(errCode string, errorDescription string) error {
 	return &VigiloAuthError{
-		ErrorCode: code,
-		Message:   message,
+		ErrorCode:        errCode,
+		ErrorDescription: errorDescription,
+	}
+}
+
+// NewInternalServerError creates a new error with default fields.
+func NewInternalServerError() error {
+	return &VigiloAuthError{
+		ErrorCode:        ErrCodeInternalServerError,
+		ErrorDescription: "An unexpected error occurred. Please try again later.",
+	}
+}
+
+// NewLoginRequiredError returns a new VigiloAuthError when the user is not authenticated
+// during the authorization code flow. The error includes the OAuth login endpoint URL.
+func NewLoginRequiredError(url string) *VigiloAuthError {
+	return &VigiloAuthError{
+		ErrorCode:          ErrCodeLoginRequired,
+		ErrorDescription:   "authentication required to continue the authorization flow",
+		OAuthLoginEndpoint: url,
+	}
+}
+
+// NewConsentRequiredError returns a new VigiloAuthError when the user's consent is required
+// for the requested scope. The error includes the consent URL.
+func NewConsentRequiredError(url string) *VigiloAuthError {
+	return &VigiloAuthError{
+		ErrorCode:        ErrCodeConsentRequired,
+		ErrorDescription: "user consent required for the requested scope",
+		ConsentURL:       url,
+	}
+}
+
+func NewAccessDeniedError() *VigiloAuthError {
+	return &VigiloAuthError{
+		ErrorCode:        ErrCodeAccessDenied,
+		ErrorDescription: "the resource owner denied the request",
+	}
+}
+
+func NewSessionCreationError(err error) error {
+	return Wrap(err, "", "failed to create new session")
+}
+
+func NewRequestValidationError(err error) error {
+	return Wrap(err, "", "failed to validate request parameters")
+}
+
+func NewRequestBodyDecodingError(err error) error {
+	return New(ErrCodeBadRequest, "missing one or more required fields in the request")
+}
+
+func NewMethodNotAllowedError(method string) error {
+	return New(ErrCodeMethodNotAllowed, fmt.Sprintf("method not allowed: %s", method))
+}
+
+func NewMissingParametersError() error {
+	return New(ErrCodeInvalidRequest, "missing one or more required parameters")
+}
+
+func NewInvalidSessionError() error {
+	return &VigiloAuthError{
+		ErrorCode:        ErrCodeInvalidSession,
+		ErrorDescription: "unable to retrieve session data",
+		ErrorDetails:     "session not found or expired",
 	}
 }
 
@@ -40,12 +110,20 @@ func Wrap(err error, code string, message string) error {
 		}
 	}
 
-	return &VigiloAuthError{
-		ErrorCode:  code,
-		Message:    message,
-		Details:    err.Error(),
-		WrappedErr: err,
+	vigiloError := &VigiloAuthError{}
+	if e, ok := err.(*ErrorCollection); ok {
+		vigiloError.ErrorCode = ErrCodeValidationError
+		vigiloError.ErrorDescription = message
+		vigiloError.Errors = e.Errors()
+		vigiloError.ErrorDetails = "one or more validation errors occurred"
+	} else {
+		vigiloError.ErrorCode = code
+		vigiloError.ErrorDescription = message
+		vigiloError.ErrorDetails = err.Error()
+		vigiloError.WrappedErr = err
 	}
+
+	return vigiloError
 }
 
 // Unwrap returns the wrapped error

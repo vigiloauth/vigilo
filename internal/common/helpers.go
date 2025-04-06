@@ -1,0 +1,32 @@
+package common
+
+import (
+	"context"
+	"net/url"
+)
+
+// Helper function to truncate sensitive data for logging
+func TruncateSensitive(data string) string {
+	if len(data) > 5 {
+		return data[:5] + "[REDACTED]"
+	}
+	return data
+}
+
+// Helper function to sanitize URLs for logging
+func SanitizeURL(uri string) string {
+	parsed, err := url.Parse(uri)
+	if err != nil {
+		return "[INVALID URL]"
+	}
+	parsed.RawQuery = "[REDACTED]"
+	return parsed.String()
+}
+
+// GetRequestID retrieves the request ID from the context.
+func GetRequestID(ctx context.Context) string {
+	if requestID, ok := ctx.Value(RequestID).(string); ok {
+		return requestID
+	}
+	return ""
+}

@@ -10,6 +10,7 @@ import (
 )
 
 // SMTPConfig holds the configuration for SMTP email sending.
+// SMTPConfig holds the configuration for SMTP email sending.
 type SMTPConfig struct {
 	server       string           // SMTP server address.
 	port         int              // SMTP server port.
@@ -21,6 +22,8 @@ type SMTPConfig struct {
 	credentials  *SMTPCredentials // SMTP credentials (username, password).
 	maxRetries   int              // Maximum number of retry attempts.
 	retryDelay   time.Duration    // Delay between retry attempts.
+	logger       *Logger
+	module       string
 }
 
 // SMTPCredentials holds the username and password for SMTP authentication.
@@ -77,6 +80,8 @@ func NewSMTPConfig(
 		templatePath: templatePath,
 		maxRetries:   defaultMaxRetries,
 		retryDelay:   defaultRetryDelay,
+		logger:       GetLogger(),
+		module:       "SMTPConfig",
 	}
 
 	if credentials != nil {
@@ -84,9 +89,11 @@ func NewSMTPConfig(
 	}
 
 	if err := sc.validateSMTPConfiguration(); err != nil {
+		sc.logger.Error(sc.module, "Failed to validate SMTP configuration: %v", err)
 		return nil, err
 	}
 
+	sc.logger.Debug(sc.module, "\n\nUsing SMTPConfig: %s", sc.String())
 	return sc, nil
 }
 
@@ -220,6 +227,11 @@ func (sc *SMTPConfig) FromName() string {
 	return sc.fromName
 }
 
+// SetFromName sets the sender's name
+func (sc *SMTPConfig) SetFromName(fromName string) {
+	sc.fromName = fromName
+}
+
 // ReplyTo returns the reply-to email address.
 func (sc *SMTPConfig) ReplyTo() string {
 	return sc.replyTo
@@ -251,7 +263,7 @@ func (sc *SMTPConfig) TemplatePath() string {
 //	error: An error if the template path is empty.
 func (sc *SMTPConfig) SetTemplatePath(templatePath string) error {
 	if templatePath == "" {
-		return errors.New(errors.ErrCodeEmptyInput, "`template path` cannot be empty")
+		return errors.New(errors.ErrCodeEmptyInput, "'template path' cannot be empty")
 	}
 
 	sc.templatePath = templatePath
@@ -409,8 +421,18 @@ func validateEmail(email string) error {
 
 // String returns a string representation of the SMTPConfig.
 func (sc *SMTPConfig) String() string {
-	return fmt.Sprintf("SMTPConfig{server: %s, port: %d, encryption: %s, fromAddress: %s, fromName: %s}",
-		sc.server, sc.port, sc.encryption, sc.fromAddress, sc.fromName)
+	return fmt.Sprintf(
+		"\n\tServer: %s\n"+
+			"\tPort: %d\n"+
+			"\tEncryption: %s\n"+
+			"\tFromAddress: %s\n"+
+			"\tFromName: %s",
+		sc.server,
+		sc.port,
+		sc.encryption,
+		sc.fromAddress,
+		sc.fromName,
+	)
 }
 
 // String returns a string representation of the SMTPCredentials.

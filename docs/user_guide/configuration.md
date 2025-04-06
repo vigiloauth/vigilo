@@ -4,19 +4,20 @@
 - [Configuration Guide](#configuration-guide)
 	- [Table of Contents](#table-of-contents)
 	- [1. Overview](#1-overview)
-	- [2. Server Configuration](#2-server-configuration)
+	- [2. VigiloAuth Server Configuration](#2-vigiloauth-server-configuration)
 		- [2.1 ForceHTTPS](#21-forcehttps)
-		- [2.2 LoginConfig and JWTConfig](#22-loginconfig-and-jwtconfig)
+		- [2.2 Login and Token Configuration](#22-login-and-token-configuration)
 			- [Default Values](#default-values)
 		- [2.3 Example Usage](#23-example-usage)
 		- [2.4 Default fields](#24-default-fields)
-	- [3. Customizing Password Policy](#3-customizing-password-policy)
+		- [2.5 Explanation of Fields](#25-explanation-of-fields)
+	- [3. Password Configuration](#3-password-configuration)
 		- [3.1 Explanation of Methods](#31-explanation-of-methods)
-	- [4. Configuring JWT](#4-configuring-jwt)
+	- [4. Token Configuration](#4-token-configuration)
 		- [4.1 Example Configuration](#41-example-configuration)
 		- [4.2 Explanation of Fields](#42-explanation-of-fields)
 		- [4.3 Default Fields](#43-default-fields)
-	- [5. Configuring Login](#5-configuring-login)
+	- [5. Login Configuration](#5-login-configuration)
 		- [5.1 Example Configuration](#51-example-configuration)
 		- [5.2 Explanation of Fields](#52-explanation-of-fields)
 		- [5.3 Default Fields](#53-default-fields)
@@ -36,14 +37,14 @@
 ## 1. Overview
 **VigiloAuth** allows you to customize various settings to meet your application's security requirements. This guide walks you through configuring the password complexity and length requirements using the `PasswordConfiguration` struct, as well as configuring the server to enforce HTTPS for secure communication.
 
-## 2. Server Configuration
+## 2. VigiloAuth Server Configuration
 The `VigiloIdentityServer` can be configured using various options to suit your needs. Below are the available configuration options:
 
 ### 2.1 ForceHTTPS
 To ensure secure communication, it is recommended to configure your server to use HTTPS. This is done by configuring the `VigiloIdentityServer` with the `ForceHTTPS` option.
 
-### 2.2 LoginConfig and JWTConfig
-The `VigiloIdentityServer` uses `LoginConfig` and `JWTConfig` for handling user authentication and token generation. These configurations have default values that will be used if they are not explicitly provided in the constructor. The server also accepts an optional `SMTPConfiguration` struct to process emails.
+### 2.2 Login and Token Configuration
+The `VigiloIdentityServer` uses `LoginConfig` and `TokenConfig` for handling user authentication and token generation. These configurations have default values that will be used if they are not explicitly provided in the constructor. The server also accepts an optional `SMTPConfiguration` struct to process emails.
 
 #### Default Values
 - **LoginConfig**: If not provided, the server will use a default configuration for login attempts and user authentication.
@@ -76,8 +77,8 @@ func main() {
 		config.WithCertFilePath(certFilePath),
 		config.WithKeyFilePath(keyFilePath),
 		config.WithReadTimeout(readTimeout),
-		config.WithWriteTimeout(writeTimeout)
-		config.WithMaxRequestsPerMinute(requestsPerMinute)
+		config.WithWriteTimeout(writeTimeout),
+		config.WithMaxRequestsPerMinute(requestsPerMinute),
 	)
 
 	vigiloIdentityServer := server.NewVigiloIdentityServer()
@@ -87,7 +88,7 @@ You can also customize these configurations by providing specific options:
 ``` go
 config.NewServerConfig(
     config.WithLoginConfig(customLoginConfig),
-    config.WithJWTConfig(customJWTConfig),
+    config.WithTokenConfig(customTokenConfig),
 	config.WithSMTPConfig(smtpConfig),
 )
 vigiloIdentityServer := server.NewVigiloIdentityServer()
@@ -101,8 +102,28 @@ By default, the server configuration uses the following settings:
 - **ReadTimeout:** 15 seconds
 - **WriteTimeout:** 15 seconds
 - **RequestsPerMinute:** 100
+- **SessionCookieName:** vigilo-auth-session-cookie
+- **AuthorizationCodeDuration:** 10 minutes
 
-## 3. Customizing Password Policy
+### 2.5 Explanation of Fields
+- `WithPort(int)`: The desired server port.
+- `WithCertFilePath(string)`: The SSL certificate file path.
+- `WithKeyFilePath(string)`: The SSL key file path.
+- `WithSessionCookieName(string)`: The desired session cookie name.
+- `WithBaseURL(string)`: The server's base URL.
+- `WithForceHTTPS(bool)`: Whether to force HTTPS connections or not.
+- `WithReadTimeout(time.Duration)`: Configures the read timeout duration.
+- `WithWriteTImeout(time.Duration)`: Configures the write timeout duration.
+- `WithTokenConfig(*TokenConfig)`: Configures the custom Token configuration.
+- `WithLoginConfig(*LoginConfig)`: Configures the custom Login configuration.
+- `WithSMTPConfig(*SMTPConfig)`: Configures the SMTP configuration.
+- `WithPasswordConfig(*PasswordConfig)`: Configures the password configuration.
+- `WithMaxRequestsPerMinute(int)`: Sets the max requests an endpoint can receive per minute.
+- `WithAuthorizationCodeDuration(time.Duration)`: Sets the duration of the authorization code.
+
+---
+
+## 3. Password Configuration
 To customize the password policy, use the `NewPasswordConfig(options)` method and then update the server config instance.
 ```go
 package main
@@ -124,13 +145,15 @@ func main() {
 ```
 
 ### 3.1 Explanation of Methods
-1. `WithUppercase()` Enables requiring at least one uppercase letter in passwords. 
-2. `WithNumber()` Enables requiring at least one numeric digit in passwords. 
-3. `WithSymbol()` Enables requiring at least one special character in passwords. 
-4. `WithMinLength(int)` Sets the minimum password length. The value must be at least 8 characters or more for security purposes.
+- `WithUppercase()` Enables requiring at least one uppercase letter in passwords. 
+- `WithNumber()` Enables requiring at least one numeric digit in passwords. 
+- `WithSymbol()` Enables requiring at least one special character in passwords. 
+- `WithMinLength(int)` Sets the minimum password length. The value must be at least 8 characters or more for security purposes.
 
-## 4. Configuring JWT
-To configure JWT settings, use the `JWTConfig` struct to set the secret, expiration time, and signing method.
+---
+
+## 4. Token Configuration
+To configure JWT settings, use the `TokenConfig` struct to set the secret, expiration time, and signing method.
 
 ### 4.1 Example Configuration
 ```go
@@ -159,17 +182,23 @@ func main() {
 }
 ```
 ### 4.2 Explanation of Fields
-1. `WithSecret(string)`: The secret key used to sign the JWT tokens. This should be kept secure and not hard-coded in production.
-2. `WithExpirationTime(time.Duration)`: The duration for which the JTW token is valid.
-3. `WithSigningMethod(jwt.SigningMethodHS256)`: The signing method used to sign the JWT tokens. Common methods include `jwt.SigningMethodHS256`.
+- `WithSecret(string)`: The secret key used to sign the JWT tokens. This should be kept secure and not hard-coded in production.
+- `WithExpirationTime(time.Duration)`: The duration for which the JTW token is valid.
+- `WithSigningMethod(jwt.SigningMethodHS256)`: The signing method used to sign the JWT tokens. Common methods include `jwt.SigningMethodHS256`.
+- `WithAccessTokenDuration(time.Duration)`: The duration for which access tokens are valid.
+- `WithRefreshTokenDuration(time.Duration)`: The duration for which the refresh tokens are valid.
 
 ### 4.3 Default Fields
 If no custom JWT configuration is provided, the following default values are used:
-1. `Secret`: "fallback_secure_default_key" (for developmental/testing purposes only)
-2. `ExpirationTime`: 24 hours
-3. `SigningMethod`: `jwt.SigningMethodHS256`
+- **Secret**: "fallback_secure_default_key" (for developmental/testing purposes only)
+- **ExpirationTime**: 24 hours
+- **SigningMethod**: `jwt.SigningMethodHS256`
+- **AccessTokenDuration**: 30 minutes
+- **RefreshTokenDuration**: 30 days
 
-## 5. Configuring Login 
+---
+
+## 5. Login Configuration
 To configure login details for your application, use the `LoginConfig` struct to set the maximum login attempts a user can have and the artificial delay to normalize response times for login attempts.
 
 ### 5.1 Example Configuration
@@ -202,8 +231,8 @@ func main() {
 
 ### 5.3 Default Fields
 If no custom login configuration is provided, the following default values are used:
-1. `MaxFailedAttempts(int)`: 5
-2. `Delay()`: 500 * time.Millisecond
+- `MaxFailedAttempts(int)`: 5
+- `Delay()`: 500 * time.Millisecond
 
 ## 6. SMTP Server Configuration
 To configure SMTP settings, use the `SMTPConfig` struct to set the server, port, encryption type, sender's address, and other related fields.

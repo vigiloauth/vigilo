@@ -1,0 +1,131 @@
+package repository
+
+import (
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/identity/config"
+	domain "github.com/vigiloauth/vigilo/internal/domain/client"
+	"github.com/vigiloauth/vigilo/internal/errors"
+)
+
+const clientID string = "clientID"
+
+func setup() {
+	config.GetServerConfig().Logger().SetLevel("DEBUG")
+}
+
+func tearDown() {
+	config.GetServerConfig().Logger().SetLevel("INFO")
+}
+
+func TestInMemoryClientStore_CreateClient(t *testing.T) {
+	t.Run("Successful Client Creation", func(t *testing.T) {
+		setup()
+		defer tearDown()
+		cs := NewInMemoryClientRepository()
+		client := createTestClient()
+
+		err := cs.SaveClient(client)
+		assert.NoError(t, err, "expected no error when creating client")
+
+		retrievedClient := cs.GetClientByID(clientID)
+		assert.NotNil(t, retrievedClient, "expected retrieved client to not be nil")
+		assert.Equal(t, retrievedClient, client, "expected both clients to be equal")
+	})
+
+	t.Run("Duplicate entry", func(t *testing.T) {
+		setup()
+		defer tearDown()
+		cs := NewInMemoryClientRepository()
+		client := createTestClient()
+
+		// Create first client
+		err := cs.SaveClient(client)
+		assert.NoError(t, err, "expected no error when creating client")
+
+		// Attempt to add a duplicate client
+		expected := errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
+		actual := cs.SaveClient(client)
+
+		assert.Error(t, actual, "expected error when creating duplicate client")
+		assert.Equal(t, actual, expected)
+	})
+}
+
+func TestInMemoryClientStore_GetClient(t *testing.T) {
+	setup()
+	defer tearDown()
+	cs := NewInMemoryClientRepository()
+	client := createTestClient()
+
+	err := cs.SaveClient(client)
+	assert.NoError(t, err, "expected no error when creating client")
+
+	retrievedClient := cs.GetClientByID(clientID)
+	assert.NotNil(t, retrievedClient)
+	assert.Equal(t, retrievedClient, client)
+}
+
+func TestInMemoryClientStore_DeleteClient(t *testing.T) {
+	setup()
+	defer tearDown()
+	cs := NewInMemoryClientRepository()
+	client := createTestClient()
+
+	err := cs.SaveClient(client)
+	assert.NoError(t, err, "expected no error when creating client")
+
+	err = cs.DeleteClientByID(clientID)
+	assert.NoError(t, err, "expected no error when deleting client")
+
+	existingClient := cs.GetClientByID(clientID)
+	assert.Nil(t, existingClient, "expected client to be nil")
+}
+
+func TestInMemoryClientStore_UpdateClient(t *testing.T) {
+	t.Run("Successful Client Update", func(t *testing.T) {
+		setup()
+		defer tearDown()
+		cs := NewInMemoryClientRepository()
+		client := createTestClient()
+
+		err := cs.SaveClient(client)
+		assert.NoError(t, err, "expected no error when creating client")
+
+		client.Name = "New Client Name"
+		err = cs.UpdateClient(client)
+		assert.NoError(t, err)
+
+		retrievedClient := cs.GetClientByID(clientID)
+		assert.NotNil(t, retrievedClient)
+		assert.Equal(t, retrievedClient.Name, client.Name)
+	})
+
+	t.Run("Client not found for update", func(t *testing.T) {
+		setup()
+		defer tearDown()
+		cs := NewInMemoryClientRepository()
+		client := createTestClient()
+
+		expected := errors.New(errors.ErrCodeClientNotFound, "client not found using provided ID")
+		actual := cs.UpdateClient(client)
+		assert.Equal(t, expected, actual)
+	})
+}
+
+func createTestClient() *domain.Client {
+	now := time.Now()
+	return &domain.Client{
+		Name:         "Test Client",
+		ID:           clientID,
+		Secret:       "test-client-secret",
+		Type:         domain.Confidential,
+		RedirectURIS: []string{"http://localhost:8080/callback"},
+		GrantTypes:   []string{domain.AuthorizationCode, domain.RefreshToken},
+		Scopes:       []string{domain.ClientRead, domain.ClientWrite},
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+}

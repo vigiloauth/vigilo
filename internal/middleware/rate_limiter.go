@@ -6,36 +6,28 @@ import (
 )
 
 // RateLimiter implements a token bucket rate limiting algorithm.
+// RateLimiter implements a token bucket rate limiting algorithm.
 type RateLimiter struct {
-	rate       int        // Number of requests allowed per second.
-	tokens     int        // Current number of available tokens.
-	lastUpdate time.Time  // Timestamp of the last token update.
-	mu         sync.Mutex // Mutex to protect concurrent access.
+	rate       float64    // Number of tokens to add per second
+	capacity   float64    // Maximum number of tokens that can be stored
+	tokens     float64    // Current number of available tokens
+	lastUpdate time.Time  // Timestamp of the last token update
+	mu         sync.Mutex // Mutex to protect concurrent access
 }
 
 // NewRateLimiter creates a new RateLimiter instance.
-//
-// Parameters:
-//
-//	rate int: Number of requests allowed per second.
-//
-// Returns:
-//
-//	*RateLimiter: A new RateLimiter instance.
 func NewRateLimiter(rate int) *RateLimiter {
 	return &RateLimiter{
-		rate:       rate,
-		tokens:     rate,
+		rate:       float64(rate),
+		capacity:   float64(rate),
+		tokens:     float64(rate),
 		lastUpdate: time.Now(),
 	}
 }
 
 // Allow checks if a request is allowed based on the rate limit.
-//
-// Returns:
-//
-//	bool: True if the request is allowed, false otherwise.
 func (rl *RateLimiter) Allow() bool {
+	logger.Debug(module, "Verifying if request exceeds the rate limit")
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
@@ -43,16 +35,20 @@ func (rl *RateLimiter) Allow() bool {
 	elapsed := now.Sub(rl.lastUpdate).Seconds()
 	rl.lastUpdate = now
 
-	// Add tokens based on the elapsed time.
-	rl.tokens += int(elapsed * float64(rl.rate))
-	if rl.tokens > rl.rate {
-		rl.tokens = rl.rate // Ensure tokens don't exceed the rate.
+	// Add tokens based on the elapsed time
+	rl.tokens += elapsed * rl.rate
+
+	// Cap tokens at the maximum capacity
+	if rl.tokens > rl.capacity {
+		rl.tokens = rl.capacity
 	}
 
-	if rl.tokens > 0 {
-		rl.tokens-- // Consume a token.
+	if rl.tokens >= 1.0 {
+		logger.Debug(module, "Request is valid")
+		rl.tokens -= 1.0 // Consume a token
 		return true
 	}
 
-	return false // No tokens available.
+	logger.Warn(module, "Request is invalid as it exceeds the rate limit")
+	return false // Not enough tokens available
 }

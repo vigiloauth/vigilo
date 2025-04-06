@@ -1,11 +1,19 @@
 package config
 
-import "time"
+import (
+	"fmt"
+	"time"
+
+	"github.com/vigiloauth/vigilo/internal/web"
+)
 
 // LoginConfig holds the configuration for login attempt throttling.
 type LoginConfig struct {
 	maxFailedAttempts int           // Maximum number of failed login attempts allowed.
 	delay             time.Duration // Delay duration after exceeding max failed attempts.
+	loginURL          string
+	logger            *Logger
+	module            string
 }
 
 // LoginConfigOptions is a function type used to configure LoginConfig options.
@@ -29,12 +37,21 @@ func NewLoginConfig(opts ...LoginConfigOptions) *LoginConfig {
 	lc := &LoginConfig{
 		maxFailedAttempts: defaultMaxFailedAttempts,
 		delay:             defaultDelay,
+		loginURL:          web.UserEndpoints.Login,
+		logger:            GetLogger(),
+		module:            "LoginConfig",
 	}
 
-	for _, opt := range opts {
-		opt(lc)
+	if len(opts) > 0 {
+		lc.logger.Info(lc.module, "Creating login config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(lc)
+		}
+	} else {
+		lc.logger.Info(lc.module, "Using default login config")
 	}
 
+	lc.logger.Debug(lc.module, "\n\nLogin config parameters: %s", lc.String())
 	return lc
 }
 
@@ -50,6 +67,7 @@ func NewLoginConfig(opts ...LoginConfigOptions) *LoginConfig {
 func WithMaxFailedAttempts(maxAttempts int) LoginConfigOptions {
 	return func(lc *LoginConfig) {
 		if maxAttempts > defaultMaxFailedAttempts {
+			lc.logger.Info(lc.module, "Configuring LoginConfig to use [%d] max failed login attempts", maxAttempts)
 			lc.maxFailedAttempts = maxAttempts
 		}
 	}
@@ -67,6 +85,7 @@ func WithMaxFailedAttempts(maxAttempts int) LoginConfigOptions {
 func WithDelay(delay time.Duration) LoginConfigOptions {
 	return func(lc *LoginConfig) {
 		if delay > defaultDelay {
+			lc.logger.Info(lc.module, "Configuring LoginConfig to use delay=[%s]", delay)
 			lc.delay = delay
 		}
 	}
@@ -81,6 +100,31 @@ func (lc *LoginConfig) MaxFailedAttempts() int {
 	return lc.maxFailedAttempts
 }
 
+// WithLoginURL allows the user to define their own login URL.
+//
+// Parameters:
+//
+//	url string: The login url
+//
+// Returns:
+//
+// LoginConfigOptions: A function that configures the login url.
+func WithLoginURL(url string) LoginConfigOptions {
+	return func(lc *LoginConfig) {
+		lc.logger.Info(lc.module, "Configuring LoginConfig to use URL=[%s]", url)
+		lc.loginURL = url
+	}
+}
+
+// LoginURL returns the predefined login URL.
+//
+// Returns:
+//
+//	string: The predefined login URL.
+func (lc *LoginConfig) LoginURL() string {
+	return lc.loginURL
+}
+
 // Delay returns the delay duration from the LoginConfig.
 //
 // Returns:
@@ -88,4 +132,15 @@ func (lc *LoginConfig) MaxFailedAttempts() int {
 //	time.Duration: The delay duration.
 func (lc *LoginConfig) Delay() time.Duration {
 	return lc.delay
+}
+
+func (lc *LoginConfig) String() string {
+	return fmt.Sprintf(
+		"\n\tMaxFailedAttempts: %d\n"+
+			"\tDelay: %s\n"+
+			"\tLoginURL: %s\n",
+		lc.maxFailedAttempts,
+		lc.delay,
+		lc.loginURL,
+	)
 }

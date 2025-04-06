@@ -1,25 +1,31 @@
 package config
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
 
 // ServerConfig holds the configuration for the server.
 type ServerConfig struct {
-	port              int             // Port number the server listens on.
-	certFilePath      string          // Path to the SSL certificate file.
-	keyFilePath       string          // Path to the SSL key file.
-	baseURL           string          // Base URL of the server.
-	forceHTTPS        bool            // Whether to force HTTPS connections.
-	requestsPerMinute int             // Maximum requests allowed per minute.
-	readTimeout       time.Duration   // Read timeout for HTTP requests.
-	writeTimeout      time.Duration   // Write timeout for HTTP responses.
-	jwtConfig         *JWTConfig      // JWT configuration.
-	loginConfig       *LoginConfig    // Login configuration.
-	smtpConfig        *SMTPConfig     // SMTP configuration.
-	passwordConfig    *PasswordConfig // Password configuration.
+	certFilePath      string // Path to the SSL certificate file.
+	keyFilePath       string // Path to the SSL key file.
+	baseURL           string // Base URL of the server.
+	sessionCookieName string // Name of the session cookie.
+
+	forceHTTPS        bool // Whether to force HTTPS connections.
+	port              int  // Port number the server listens on.
+	requestsPerMinute int  // Maximum requests allowed per minute.
+
+	readTimeout               time.Duration // Read timeout for HTTP requests.
+	writeTimeout              time.Duration // Write timeout for HTTP responses.
+	authorizationCodeDuration time.Duration
+
+	tokenConfig    *TokenConfig    // JWT configuration.
+	loginConfig    *LoginConfig    // Login configuration.
+	smtpConfig     *SMTPConfig     // SMTP configuration.
+	passwordConfig *PasswordConfig // Password configuration.
+	logger         *Logger         // Logging Configuration
+	module         string
 }
 
 // ServerConfigOptions is a function type used to configure ServerConfig options.
@@ -31,11 +37,15 @@ var (
 )
 
 const (
-	defaultPort              int           = 8443             // Default port number.
-	defaultHTTPSRequirement  bool          = false            // Default HTTPS requirement.
-	defaultReadTimeout       time.Duration = 15 * time.Second // Default read timeout.
-	defaultWriteTimeout      time.Duration = 15 * time.Second // Default write timeout.
-	defaultRequestsPerMinute int           = 100              // Default maximum requests per minute.
+	defaultPort             int  = 8443  // Default port number.
+	defaultHTTPSRequirement bool = false // Default HTTPS requirement.
+
+	defaultReadTimeout               time.Duration = 15 * time.Second // Default read timeout.
+	defaultWriteTimeout              time.Duration = 15 * time.Second // Default write timeout.
+	defaultAuthorizationCodeDuration time.Duration = 10 * time.Minute
+
+	defaultRequestsPerMinute int    = 100                          // Default maximum requests per minute.
+	defaultSessionCookieName string = "vigilo-auth-session-cookie" // Default session cookie name.
 )
 
 // GetServerConfig returns the global server configuration instance (singleton).
@@ -63,18 +73,29 @@ func GetServerConfig() *ServerConfig {
 //	*ServerConfig: A new ServerConfig instance.
 func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 	sc := &ServerConfig{
-		port:              defaultPort,
-		forceHTTPS:        defaultHTTPSRequirement,
-		readTimeout:       defaultReadTimeout,
-		writeTimeout:      defaultWriteTimeout,
-		jwtConfig:         NewJWTConfig(),
-		loginConfig:       NewLoginConfig(),
-		passwordConfig:    NewPasswordConfig(),
-		requestsPerMinute: defaultRequestsPerMinute,
+		port:                      defaultPort,
+		forceHTTPS:                defaultHTTPSRequirement,
+		readTimeout:               defaultReadTimeout,
+		writeTimeout:              defaultWriteTimeout,
+		tokenConfig:               NewTokenConfig(),
+		loginConfig:               NewLoginConfig(),
+		passwordConfig:            NewPasswordConfig(),
+		requestsPerMinute:         defaultRequestsPerMinute,
+		sessionCookieName:         defaultSessionCookieName,
+		authorizationCodeDuration: defaultAuthorizationCodeDuration,
+		logger:                    GetLogger(),
+		module:                    "ServerConfig",
 	}
 
-	for _, opt := range opts {
-		opt(sc)
+	sc.logger.Info(sc.module, "Initializing server config")
+
+	if len(opts) > 0 {
+		sc.logger.Info(sc.module, "Creating server config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(sc)
+		}
+	} else {
+		sc.logger.Info(sc.module, "Using default server config")
 	}
 
 	serverConfigInstance = sc // Set the singleton instance.
@@ -92,6 +113,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 //	ServerConfigOptions: A function that configures the port.
 func WithPort(port int) ServerConfigOptions {
 	return func(sc *ServerConfig) {
+		sc.logger.Info(sc.module, "Configuring server to run on port [%d]", port)
 		sc.port = port
 	}
 }
@@ -123,6 +145,21 @@ func WithCertFilePath(filePath string) ServerConfigOptions {
 func WithKeyFilePath(filePath string) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.keyFilePath = filePath
+	}
+}
+
+// WithSessionCookieName configures the session cookie name.
+//
+// Parameters:
+//
+//	cookieName string: The session cookie name.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function that configures the session cookie name.
+func WithSessionCookieName(cookieName string) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.sessionCookieName = cookieName
 	}
 }
 
@@ -186,7 +223,7 @@ func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 	}
 }
 
-// WithJWTConfig configures the JWT configuration.
+// WithTokenConfig configures the JWT configuration.
 //
 // Parameters:
 //
@@ -195,9 +232,9 @@ func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 // Returns:
 //
 //	ServerConfigOptions: A function that configures the JWT configuration.
-func WithJWTConfig(jwtConfig *JWTConfig) ServerConfigOptions {
+func WithTokenConfig(jwtConfig *TokenConfig) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		sc.jwtConfig = jwtConfig
+		sc.tokenConfig = jwtConfig
 	}
 }
 
@@ -257,9 +294,13 @@ func WithPasswordConfig(passwordConfig *PasswordConfig) ServerConfigOptions {
 //	ServerConfigOptions: A function that configures the server configuration.
 func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		if requests > defaultRequestsPerMinute {
-			sc.requestsPerMinute = requests
-		}
+		sc.requestsPerMinute = requests
+	}
+}
+
+func WithAuthorizationCodeDuration(duration time.Duration) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.authorizationCodeDuration = duration
 	}
 }
 
@@ -326,13 +367,13 @@ func (sc *ServerConfig) WriteTimeout() time.Duration {
 	return sc.writeTimeout
 }
 
-// JWTConfig returns the JWT configuration.
+// TokenConfig returns the Token configuration.
 //
 // Returns:
 //
-//	*JWTConfig: The JWT configuration.
-func (sc *ServerConfig) JWTConfig() *JWTConfig {
-	return sc.jwtConfig
+//	*TokenConfig: The Token configuration.
+func (sc *ServerConfig) TokenConfig() *TokenConfig {
+	return sc.tokenConfig
 }
 
 // LoginConfig returns the login configuration.
@@ -352,7 +393,7 @@ func (sc *ServerConfig) LoginConfig() *LoginConfig {
 //	Prints a warning to standard output if the configuration is not set.
 func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
 	if sc.smtpConfig == nil {
-		fmt.Println("Warning: SMTP configuration is not set")
+		sc.logger.Warn(sc.module, "SMTP Configuration is not set, email functionality is disabled")
 		return nil
 	}
 	return sc.smtpConfig
@@ -367,6 +408,15 @@ func (sc *ServerConfig) PasswordConfig() *PasswordConfig {
 	return sc.passwordConfig
 }
 
+// SessionCookieName returns the name of the session cookie.
+//
+// Returns:
+//
+//	string: The session cookie name.
+func (sc *ServerConfig) SessionCookieName() string {
+	return sc.sessionCookieName
+}
+
 // MaxRequestsPerMinute returns the maximum number of requests allowed per minute.
 //
 // Returns:
@@ -374,4 +424,12 @@ func (sc *ServerConfig) PasswordConfig() *PasswordConfig {
 //	int: The maximum number of requests per minute.
 func (sc *ServerConfig) MaxRequestsPerMinute() int {
 	return sc.requestsPerMinute
+}
+
+func (sc *ServerConfig) Logger() *Logger {
+	return sc.logger
+}
+
+func (sc *ServerConfig) AuthorizationCodeDuration() time.Duration {
+	return sc.authorizationCodeDuration
 }
