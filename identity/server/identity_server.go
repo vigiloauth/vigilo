@@ -64,13 +64,6 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 	}
 
 	server.setupRoutes()
-	if serverConfig.ForceHTTPS() {
-		server.logger.Info(server.module, "Vigilo Identity Server is running on HTTPS")
-		server.router.Use(server.middleware.RedirectToHTTPS)
-	} else {
-		server.logger.Warn(server.module, "Vigilo Identity Server is running on HTTP. It is recommended to enable HTTPS in production environments")
-	}
-
 	return server
 }
 
@@ -82,14 +75,15 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 // setupRoutes configures the HTTP routes for the VigiloIdentityServer.
 // It applies middleware, sets up user-related endpoints, and groups authenticated routes.
 func (s *VigiloIdentityServer) setupRoutes() {
-	// Apply Global Middleware
-	s.router.Use(s.middleware.RateLimit)
-	s.router.Use(s.middleware.RequestIDMiddleware)
+	s.applyGlobalMiddleware()
+	s.setupPublicRoutes()
+	s.setupFormDataRequiredRoutes()
+	s.setupProtectedRoutes()
+}
 
-	// Public Routes (No Auth Required)
+func (s *VigiloIdentityServer) setupPublicRoutes() {
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.RequiresContentType(contentTypeJSON))
-
 		r.HandleFunc(web.OAuthEndpoints.UserConsent, s.oauthHandler.UserConsent)
 
 		// GET Routes
@@ -115,21 +109,22 @@ func (s *VigiloIdentityServer) setupRoutes() {
 			pr.Patch(web.UserEndpoints.ResetPassword, s.userHandler.ResetPassword)
 		})
 	})
+}
 
-	// OAuth Token Exchange (Form Data Required)
+func (s *VigiloIdentityServer) setupFormDataRequiredRoutes() {
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.RequiresContentType(contentTypeForm))
-
 		r.Group(func(pr chi.Router) {
 			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
 			pr.Post(web.OAuthEndpoints.ClientCredentialsToken, s.authHandler.IssueClientCredentialsToken)
 		})
 	})
+}
 
+func (s *VigiloIdentityServer) setupProtectedRoutes() {
 	// Protected Routes (Auth Required)
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())
-
 		r.Route(web.ClientEndpoints.ClientConfiguration, func(cr chi.Router) {
 			cr.Get(clientURLParam, s.clientHandler.ManageClientConfiguration)
 			cr.Put(clientURLParam, s.clientHandler.ManageClientConfiguration)
@@ -148,4 +143,17 @@ func (s *VigiloIdentityServer) setupRoutes() {
 			})
 		})
 	})
+}
+
+func (s *VigiloIdentityServer) applyGlobalMiddleware() {
+	if s.serverConfig.ForceHTTPS() {
+		s.logger.Info(s.module, "Vigilo Identity Server is running on HTTPS")
+		s.router.Use(s.middleware.RedirectToHTTPS)
+	} else {
+		s.logger.Warn(s.module, "Vigilo Identity Server is running on HTTP. It is recommended to enable HTTPS in production environments")
+	}
+
+	// Apply global middleware
+	s.router.Use(s.middleware.RateLimit)
+	s.router.Use(s.middleware.RequestIDMiddleware)
 }
