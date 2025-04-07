@@ -1,0 +1,26 @@
+server_config:
+  port: 8080
+  cert_file_path: file_path
+  key_file_path: keyFilePath
+  session_cookie_name: test-session-cookie
+  base_url: /identity
+  force_https: true
+  read_timeout: 30
+  write_timeout: 30
+  authorization_code_duration: 30
+
+token_config:
+  secret_key: secret
+  expiration_time: 30
+  access_token_duration: 30
+  refresh_token_duration: 2
+
+password_config:
+  require_uppercase: true
+  require_number: true
+  require_symbol: true
+  minimum_length: 8
+
+login_config:
+  max_failed_attempts: 10
+  delay: 500

@@ -56,7 +56,7 @@ Accept: application/json
   "client_type": "confidential",
   "grant_types": ["authorization_code", "client_credentials"],
   "scopes": ["client:read", "client:write"],
-  "response_types": ["code", "token"],
+  "response_types": ["code", "token"]
 }
 ```
 **Note:** If no scopes are provided during client registration, VigiloAuth Server defaults to the most restrictive scope (`client:read`).

@@ -260,7 +260,7 @@ func (req *ClientUpdateRequest) HasGrantType(grantType string) bool {
 func NewClientInformationResponse(clientID, clientSecret, registrationClientURI, registrationAccessToken string) *ClientInformationResponse {
 	clientInfo := &ClientInformationResponse{
 		ID:                      clientID,
-		RegistrationClientURI:   registrationAccessToken,
+		RegistrationClientURI:   registrationClientURI,
 		RegistrationAccessToken: registrationAccessToken,
 	}
 
