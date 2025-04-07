@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -72,7 +73,7 @@ func (l *Logger) SetLevel(level string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	levelUpper := level
+	levelUpper := strings.ToUpper(level)
 	if lvl, exists := levelByName[levelUpper]; exists {
 		l.level = lvl
 		timestamp := time.Now().Format("2006-01-02 15:04:05.000")
