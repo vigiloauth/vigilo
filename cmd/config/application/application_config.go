@@ -22,7 +22,8 @@ type ApplicationConfig struct {
 	Module   string
 }
 
-func LoadConfigurations(configFile string) *ApplicationConfig {
+func LoadConfigurations() *ApplicationConfig {
+	configFile := os.Getenv("VIGILO_CONFIG_PATH")
 	ac := &ApplicationConfig{
 		Logger: lib.GetLogger(),
 		Module: "Identity Server",
