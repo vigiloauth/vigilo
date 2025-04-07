@@ -16,8 +16,10 @@ type ApplicationConfig struct {
 	TokenConfig    token.TokenConfigYAML       `yaml:"token_config,omitempty"`
 	PasswordConfig password.PasswordConfigYAML `yaml:"password_config,omitempty"`
 	LoginConfig    login.LoginConfigYAML       `yaml:"login_config,omitempty"`
-	Logger         *lib.Logger
-	Module         string
+
+	LogLevel *string `yaml:"log_level,omitempty"`
+	Logger   *lib.Logger
+	Module   string
 }
 
 func LoadConfigurations(configFile string) *ApplicationConfig {
@@ -41,6 +43,10 @@ func LoadConfigurations(configFile string) *ApplicationConfig {
 	serverConfig.SetLoginConfig(loginConfig)
 	serverConfig.SetPasswordConfig(passwordConfig)
 	serverConfig.SetTokenConfig(tokenConfig)
+
+	if appConfig.LogLevel != nil {
+		lib.SetLevel(*appConfig.LogLevel)
+	}
 
 	return appConfig
 }
