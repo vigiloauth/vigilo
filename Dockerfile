@@ -1,12 +1,18 @@
-FROM golang:1-21-alpine AS builder
+FROM golang:1.23.3 AS builder
 WORKDIR /app
 COPY . .
-RUN cd/cmd/identity-server && go build -o /identity-server
+
+ENV GOOS=linux
+ENV GOARCH=amd64
+ENV CGO_ENABLED=0
+
+RUN go build -o /app/identity-server ./cmd/identity-server
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /identity-server .
-COPY cmd/identity-server/config.yaml ./config.yaml
+COPY --from=builder /app/identity-server .
+COPY cmd/config/application/config.yaml ./config.yaml
+RUN chmod +x ./identity-server
 EXPOSE 8080
 
 ENV VIGILO_SERVER_MODE=docker
