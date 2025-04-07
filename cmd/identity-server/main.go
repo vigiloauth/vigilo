@@ -1,4 +1,4 @@
-package identityserver
+package main
 
 import (
 	"net/http"
@@ -12,7 +12,7 @@ import (
 func main() {
 	isDockerENV := os.Getenv("VIGILO_SERVER_MODE") == "docker"
 	if isDockerENV {
-		cfg := config.LoadConfigurations("config.yaml")
+		cfg := config.LoadConfigurations()
 		module := cfg.Module
 		logger := cfg.Logger
 
