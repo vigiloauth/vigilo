@@ -186,6 +186,10 @@ func WithBaseURL(baseURL string) ServerConfigOptions {
 //	ServerConfigOptions: A function that configures HTTPS forcing.
 func WithForceHTTPS() ServerConfigOptions {
 	return func(sc *ServerConfig) {
+		if sc.certFilePath == "" || sc.keyFilePath == "" {
+			sc.logger.Warn(sc.module, "SSL certificate or key file path is not set. Defaulting to HTTP.")
+			return
+		}
 		sc.forceHTTPS = true
 	}
 }
