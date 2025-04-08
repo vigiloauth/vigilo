@@ -85,6 +85,11 @@ func WithMaxFailedAttempts(maxAttempts int) LoginConfigOptions {
 //	LoginConfigOptions: A function that configures the delay duration.
 func WithDelay(delay time.Duration) LoginConfigOptions {
 	return func(lc *LoginConfig) {
+		if !isInMilliseconds(delay) {
+			lc.logger.Warn(lc.module, "Delay duration is not in milliseconds, using default value of 500ms")
+			lc.delay = defaultDelay
+			return
+		}
 		lc.logger.Info(lc.module, "Configuring LoginConfig to use delay=[%s]", delay)
 		lc.delay = delay
 	}

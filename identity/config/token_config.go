@@ -14,7 +14,7 @@ type TokenConfig struct {
 	expirationTime       time.Duration     // Expiration time for JWT tokens in hours
 	signingMethod        jwt.SigningMethod // Signing method used for JWT tokens.
 	accessTokenDuration  time.Duration     // Access token duration in minutes
-	refreshTokenDuration time.Duration     // Access token duration in days
+	refreshTokenDuration time.Duration     // Refresh token duration in days
 
 	logger *Logger
 	module string
@@ -27,7 +27,7 @@ const (
 	defaultSecret               string        = "fallback_secure_default_key" // Default secret key (should be overridden in production).
 	defaultExpirationTime       time.Duration = time.Duration(24) * time.Hour // Default expiration time for JWT tokens (24 hours).
 	defaultAccessTokenDuration  time.Duration = time.Duration(30) * time.Minute
-	defaultRefreshTokenDuration time.Duration = time.Duration(30) * 24 * time.Hour
+	defaultRefreshTokenDuration time.Duration = time.Duration(1) * 24 * time.Hour
 )
 
 // NewTokenConfig creates a new JWTConfig with default values and applies provided options.
@@ -89,6 +89,11 @@ func WithSecret(secret string) TokenOption {
 //	JWTOption: A function that configures the expiration time.
 func WithExpirationTime(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
+		if !isInHours(duration) {
+			c.logger.Warn(c.module, "Token expiration time is not in hours, using default value")
+			c.expirationTime = defaultExpirationTime
+			return
+		}
 		c.logger.Debug(c.module, "Configuring TokenConfig with expiration time=[%s]", duration)
 		c.expirationTime = duration
 	}
@@ -106,6 +111,11 @@ func WithExpirationTime(duration time.Duration) TokenOption {
 //	JWTOption: A function that configures the expiration time.
 func WithAccessTokenDuration(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
+		if !isInMinutes(duration) {
+			c.logger.Warn(c.module, "Access token duration is not in hours, using default value")
+			c.accessTokenDuration = defaultAccessTokenDuration
+			return
+		}
 		c.logger.Debug(c.module, "Configuring TokenConfig with access token duration=[%s]", duration)
 		c.accessTokenDuration = duration
 	}

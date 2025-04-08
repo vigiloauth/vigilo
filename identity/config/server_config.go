@@ -114,7 +114,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 //	ServerConfigOptions: A function that configures the port.
 func WithPort(port string) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		sc.logger.Info(sc.module, "Configuring server to run on port [%d]", port)
+		sc.logger.Info(sc.module, "Configuring server to run on port [%s]", port)
 		sc.port = port
 	}
 }
@@ -206,6 +206,11 @@ func WithForceHTTPS() ServerConfigOptions {
 //	ServerConfigOptions: A function that configures the read timeout.
 func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
+		if !isInSeconds(timeout) {
+			sc.logger.Warn(sc.module, "Read timeout was not set to seconds. Defaulting to 15 seconds.")
+			timeout = defaultReadTimeout
+			return
+		}
 		sc.readTimeout = timeout
 	}
 }
@@ -222,6 +227,11 @@ func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 //	ServerConfigOptions: A function that configures the write timeout.
 func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
+		if !isInSeconds(timeout) {
+			sc.logger.Warn(sc.module, "Write timeout was not set to seconds. Defaulting to 15 seconds.")
+			timeout = defaultWriteTimeout
+			return
+		}
 		sc.writeTimeout = timeout
 	}
 }
@@ -448,3 +458,8 @@ func (sc *ServerConfig) Logger() *Logger {
 func (sc *ServerConfig) AuthorizationCodeDuration() time.Duration {
 	return sc.authorizationCodeDuration
 }
+
+func isInSeconds(duration time.Duration) bool      { return duration%time.Second == 0 }
+func isInHours(duration time.Duration) bool        { return duration%time.Hour == 0 }
+func isInMinutes(duration time.Duration) bool      { return duration%time.Minute == 0 }
+func isInMilliseconds(duration time.Duration) bool { return duration%time.Millisecond == 0 }

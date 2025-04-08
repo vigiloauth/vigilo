@@ -24,6 +24,7 @@ Welcome to the **VigiloAuth** User Guide! This guide will help you get started w
 ## 1. Overview
 
 **VigiloAuth** is a library designed to simplify authentication and identity management in your application. It provides robust support for OAuth 2.0, token-based authentication, and secure identity workflows.
+
 Whether you're building a web application, API, or microservices architecture, **VigiloAuth** offers the tools you need to manage user authentication and authorization efficiently.
 
 ---
@@ -41,19 +42,18 @@ Whether you're building a web application, API, or microservices architecture, *
 ## 3. Getting Started
 
 ### 3.1 Installation
+VigiloAuth offers two ways to run your own authentication server: as a library implementation or as a standalone Docker instance. To decide which version to use, refer to the installation guides below:
+- [Library Installation Guide](./configuration/library.md)
+- [Docker Installation Guide](./configuration/docker.md)
 
-Follow the [installation guide](installation.md) to add **VigiloAuth** to your project. Ensure you have the following prerequisites:
+Ensure you have the following prerequisites:
 
 - **Go**: Version 1.18 or higher.
-- **Dependencies**: See the `go.mod` file for required libraries.
+- **Dependencies**: See our `go.mod` file for required dependencies.
 
 ### 3.2 Configuration
-
-Learn how to configure endpoints, token lifetimes, and client settings in the [configuration guide](configuration.md). Example configurations include:
-
-- Setting up OAuth endpoints.
-- Customizing token expiration times.
-- Registering clients and managing scopes.
+For a deeper understanding of how our configurations work, refer to the following guide:
+- [VigiloAuth Configuration Guide](./configuration/configuration_guide.md)
 
 ---
 
