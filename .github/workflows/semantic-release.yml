@@ -3,7 +3,7 @@ name: Run Semantic Release
 # It uses semantic-release to automatically determine the version number and publish the release.
 
 on:
-  push:
+  pull_request:
     branches: [master]
 
 permissions:

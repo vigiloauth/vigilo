@@ -10,7 +10,7 @@ import (
 // LoginConfig holds the configuration for login attempt throttling.
 type LoginConfig struct {
 	maxFailedAttempts int           // Maximum number of failed login attempts allowed.
-	delay             time.Duration // Delay duration after exceeding max failed attempts.
+	delay             time.Duration // Delay duration after exceeding max failed attempts in milliseconds
 	loginURL          string
 	logger            *Logger
 	module            string
@@ -73,7 +73,8 @@ func WithMaxFailedAttempts(maxAttempts int) LoginConfigOptions {
 	}
 }
 
-// WithDelay configures the delay duration for the LoginConfig.
+// WithDelay configures the delay duration, in milliseconds for the LoginConfig.
+// Default is 500 milliseconds
 //
 // Parameters:
 //
@@ -84,10 +85,13 @@ func WithMaxFailedAttempts(maxAttempts int) LoginConfigOptions {
 //	LoginConfigOptions: A function that configures the delay duration.
 func WithDelay(delay time.Duration) LoginConfigOptions {
 	return func(lc *LoginConfig) {
-		if delay > defaultDelay {
-			lc.logger.Info(lc.module, "Configuring LoginConfig to use delay=[%s]", delay)
-			lc.delay = delay
+		if !isInMilliseconds(delay) {
+			lc.logger.Warn(lc.module, "Delay duration is not in milliseconds, using default value of 500ms")
+			lc.delay = defaultDelay
+			return
 		}
+		lc.logger.Info(lc.module, "Configuring LoginConfig to use delay=[%s]", delay)
+		lc.delay = delay
 	}
 }
 

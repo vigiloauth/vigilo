@@ -246,7 +246,7 @@ func initializeTLSConfig() *tls.Config {
 //	*http.Server: An HTTP server instance.
 func initializeHTTPServer(tlsConfig *tls.Config) *http.Server {
 	return &http.Server{
-		Addr:         fmt.Sprintf(":%d", config.GetServerConfig().Port()),
+		Addr:         fmt.Sprintf(":%s", config.GetServerConfig().Port()),
 		ReadTimeout:  config.GetServerConfig().ReadTimeout(),
 		WriteTimeout: config.GetServerConfig().WriteTimeout(),
 		TLSConfig:    tlsConfig,

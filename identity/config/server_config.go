@@ -12,20 +12,21 @@ type ServerConfig struct {
 	baseURL           string // Base URL of the server.
 	sessionCookieName string // Name of the session cookie.
 
-	forceHTTPS        bool // Whether to force HTTPS connections.
-	port              int  // Port number the server listens on.
-	requestsPerMinute int  // Maximum requests allowed per minute.
+	forceHTTPS        bool   // Whether to force HTTPS connections.
+	port              string // Port number the server listens on.
+	requestsPerMinute int    // Maximum requests allowed per minute.
 
-	readTimeout               time.Duration // Read timeout for HTTP requests.
-	writeTimeout              time.Duration // Write timeout for HTTP responses.
-	authorizationCodeDuration time.Duration
+	readTimeout               time.Duration // Read timeout for HTTP requests in seconds. Default is 15
+	writeTimeout              time.Duration // Write timeout for HTTP responses in seconds. Default is 13.
+	authorizationCodeDuration time.Duration // Authz code duration in minutes. Default is 10
 
 	tokenConfig    *TokenConfig    // JWT configuration.
 	loginConfig    *LoginConfig    // Login configuration.
 	smtpConfig     *SMTPConfig     // SMTP configuration.
 	passwordConfig *PasswordConfig // Password configuration.
-	logger         *Logger         // Logging Configuration
-	module         string
+
+	logger *Logger // Logging Configuration
+	module string
 }
 
 // ServerConfigOptions is a function type used to configure ServerConfig options.
@@ -37,12 +38,12 @@ var (
 )
 
 const (
-	defaultPort             int  = 8443  // Default port number.
-	defaultHTTPSRequirement bool = false // Default HTTPS requirement.
+	defaultPort             string = "8443" // Default port number.
+	defaultHTTPSRequirement bool   = false  // Default HTTPS requirement.
 
 	defaultReadTimeout               time.Duration = 15 * time.Second // Default read timeout.
 	defaultWriteTimeout              time.Duration = 15 * time.Second // Default write timeout.
-	defaultAuthorizationCodeDuration time.Duration = 10 * time.Minute
+	defaultAuthorizationCodeDuration time.Duration = 10 * time.Minute // Default Authorization Code Duration
 
 	defaultRequestsPerMinute int    = 100                          // Default maximum requests per minute.
 	defaultSessionCookieName string = "vigilo-auth-session-cookie" // Default session cookie name.
@@ -84,7 +85,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		sessionCookieName:         defaultSessionCookieName,
 		authorizationCodeDuration: defaultAuthorizationCodeDuration,
 		logger:                    GetLogger(),
-		module:                    "ServerConfig",
+		module:                    "Server Config",
 	}
 
 	sc.logger.Info(sc.module, "Initializing server config")
@@ -111,9 +112,9 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 // Returns:
 //
 //	ServerConfigOptions: A function that configures the port.
-func WithPort(port int) ServerConfigOptions {
+func WithPort(port string) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		sc.logger.Info(sc.module, "Configuring server to run on port [%d]", port)
+		sc.logger.Info(sc.module, "Configuring server to run on port [%s]", port)
 		sc.port = port
 	}
 }
@@ -185,11 +186,16 @@ func WithBaseURL(baseURL string) ServerConfigOptions {
 //	ServerConfigOptions: A function that configures HTTPS forcing.
 func WithForceHTTPS() ServerConfigOptions {
 	return func(sc *ServerConfig) {
+		if sc.certFilePath == "" || sc.keyFilePath == "" {
+			sc.logger.Warn(sc.module, "SSL certificate or key file path is not set. Defaulting to HTTP.")
+			return
+		}
 		sc.forceHTTPS = true
 	}
 }
 
-// WithReadTimeout configures the read timeout.
+// WithReadTimeout configures the read timeout in seconds.
+// Default is 15 seconds.
 //
 // Parameters:
 //
@@ -200,13 +206,17 @@ func WithForceHTTPS() ServerConfigOptions {
 //	ServerConfigOptions: A function that configures the read timeout.
 func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		if timeout > sc.readTimeout {
-			sc.readTimeout = timeout
+		if !isInSeconds(timeout) {
+			sc.logger.Warn(sc.module, "Read timeout was not set to seconds. Defaulting to 15 seconds.")
+			timeout = defaultReadTimeout
+			return
 		}
+		sc.readTimeout = timeout
 	}
 }
 
-// WithWriteTimeout configures the write timeout.
+// WithWriteTimeout configures the write timeout in seconds
+// Default is 15 seconds.
 //
 // Parameters:
 //
@@ -217,9 +227,12 @@ func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 //	ServerConfigOptions: A function that configures the write timeout.
 func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		if timeout > sc.writeTimeout {
-			sc.writeTimeout = timeout
+		if !isInSeconds(timeout) {
+			sc.logger.Warn(sc.module, "Write timeout was not set to seconds. Defaulting to 15 seconds.")
+			timeout = defaultWriteTimeout
+			return
 		}
+		sc.writeTimeout = timeout
 	}
 }
 
@@ -304,12 +317,24 @@ func WithAuthorizationCodeDuration(duration time.Duration) ServerConfigOptions {
 	}
 }
 
+func (sc *ServerConfig) SetLoginConfig(loginConfig *LoginConfig) {
+	sc.loginConfig = loginConfig
+}
+
+func (sc *ServerConfig) SetPasswordConfig(passwordConfig *PasswordConfig) {
+	sc.passwordConfig = passwordConfig
+}
+
+func (sc *ServerConfig) SetTokenConfig(tokenConfig *TokenConfig) {
+	sc.tokenConfig = tokenConfig
+}
+
 // Port returns the servers port from.
 //
 // Returns:
 //
 //	int: The port number.
-func (sc *ServerConfig) Port() int {
+func (sc *ServerConfig) Port() string {
 	return sc.port
 }
 
@@ -433,3 +458,8 @@ func (sc *ServerConfig) Logger() *Logger {
 func (sc *ServerConfig) AuthorizationCodeDuration() time.Duration {
 	return sc.authorizationCodeDuration
 }
+
+func isInSeconds(duration time.Duration) bool      { return duration%time.Second == 0 }
+func isInHours(duration time.Duration) bool        { return duration%time.Hour == 0 }
+func isInMinutes(duration time.Duration) bool      { return duration%time.Minute == 0 }
+func isInMilliseconds(duration time.Duration) bool { return duration%time.Millisecond == 0 }

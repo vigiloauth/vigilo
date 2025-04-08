@@ -112,7 +112,7 @@ func (ts *TokenServiceImpl) ParseToken(tokenString string) (*jwt.StandardClaims,
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
 		}
-		return []byte(ts.tokenConfig.Secret()), nil
+		return []byte(ts.tokenConfig.SecretKey()), nil
 	})
 
 	if err != nil {
@@ -296,7 +296,7 @@ func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience string, dura
 	}
 
 	token := jwt.NewWithClaims(ts.tokenConfig.SigningMethod(), claims)
-	signedToken, err := token.SignedString([]byte(ts.tokenConfig.Secret()))
+	signedToken, err := token.SignedString([]byte(ts.tokenConfig.SecretKey()))
 	if err != nil {
 		logger.Error(module, "Failed to generate token: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")

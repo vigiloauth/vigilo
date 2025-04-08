@@ -59,6 +59,7 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 		RedirectURIS:  req.RedirectURIS,
 		GrantTypes:    req.GrantTypes,
 		ResponseTypes: req.ResponseTypes,
+		Scopes:        req.Scopes,
 	}
 
 	if req.TokenEndpointAuthMethod != "" && req.TokenEndpointAuthMethod != "none" {

@@ -1,0 +1,67 @@
+package config
+
+import (
+	"os"
+
+	login "github.com/vigiloauth/vigilo/cmd/config/login"
+	password "github.com/vigiloauth/vigilo/cmd/config/password"
+	server "github.com/vigiloauth/vigilo/cmd/config/server"
+	token "github.com/vigiloauth/vigilo/cmd/config/token"
+	lib "github.com/vigiloauth/vigilo/identity/config"
+	"gopkg.in/yaml.v3"
+)
+
+type ApplicationConfig struct {
+	ServerConfig   server.ServerConfigYAML     `yaml:"server_config"`
+	TokenConfig    token.TokenConfigYAML       `yaml:"token_config,omitempty"`
+	PasswordConfig password.PasswordConfigYAML `yaml:"password_config,omitempty"`
+	LoginConfig    login.LoginConfigYAML       `yaml:"login_config,omitempty"`
+
+	LogLevel *string `yaml:"log_level,omitempty"`
+	Logger   *lib.Logger
+	Module   string
+}
+
+func LoadConfigurations() *ApplicationConfig {
+	configFile := os.Getenv("VIGILO_CONFIG_PATH")
+	ac := &ApplicationConfig{
+		Logger: lib.GetLogger(),
+		Module: "Identity Server",
+	}
+
+	appConfig := ac.loadFromYAML(configFile)
+	loginOptions := appConfig.LoginConfig.ToOptions()
+	loginConfig := lib.NewLoginConfig(loginOptions...)
+
+	passwordOptions := appConfig.PasswordConfig.ToOptions()
+	passwordConfig := lib.NewPasswordConfig(passwordOptions...)
+
+	tokenOptions := appConfig.TokenConfig.ToOptions()
+	tokenConfig := lib.NewTokenConfig(tokenOptions...)
+
+	serverOptions := appConfig.ServerConfig.ToOptions()
+	serverConfig := lib.NewServerConfig(serverOptions...)
+	serverConfig.SetLoginConfig(loginConfig)
+	serverConfig.SetPasswordConfig(passwordConfig)
+	serverConfig.SetTokenConfig(tokenConfig)
+
+	if appConfig.LogLevel != nil {
+		lib.SetLevel(*appConfig.LogLevel)
+	}
+
+	return appConfig
+}
+
+func (ac *ApplicationConfig) loadFromYAML(path string) *ApplicationConfig {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		ac.Logger.Fatal(ac.Module, "Failed to load yaml configuration: %v", err)
+	}
+
+	var appConfig ApplicationConfig
+	if err := yaml.Unmarshal(data, &appConfig); err != nil {
+		ac.Logger.Fatal(ac.Module, "Failed to unmarshal YAML: %v", err)
+	}
+
+	return &appConfig
+}
