@@ -37,6 +37,19 @@ func NewAuthenticationServiceImpl(
 	}
 }
 
+// IssueClientCredentialsToken generates a token using the client credentials grant type.
+// This flow is typically used for machine-to-machine authentication where no user is involved.
+//
+// Parameters:
+//
+//	clientID: The registered client identifier
+//	clientSecret: The client's secret used for authentication
+//	requestedGrantType: The OAuth 2.0 grant type (should be "client_credentials")
+//	requestedScopes: Space-delimited list of requested scopes
+//
+// Returns:
+//
+//	A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails
 func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, clientSecret, requestedGrantType, requestedScopes string) (*token.TokenResponse, error) {
 	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
 		s.logger.Error(s.module, "Failed to authenticate client: %v", err)
@@ -64,6 +77,20 @@ func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, client
 	}, nil
 }
 
+// IssueResourceOwnerToken generates a token using the resource owner password credentials grant type.
+// This flow is used when the user provides their credentials directly to the client application.
+//
+// Parameters:
+//
+//	clientID: The registered client identifier
+//	clientSecret: The client's secret used for authentication
+//	requestedGrantType: The OAuth 2.0 grant type (should be "password")
+//	requestedScopes: Space-delimited list of requested scopes
+//	loginAttempt: User login details including username and password
+//
+// Returns:
+//
+//	A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails
 func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecret, requestedGrantType, requestedScopes string, req *user.UserLoginAttempt) (*token.TokenResponse, error) {
 	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
 		s.logger.Error(s.module, "Failed to authenticate client: %v", err)
@@ -89,6 +116,81 @@ func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecr
 		TokenType:    common.Bearer,
 		Scope:        requestedScopes,
 	}, nil
+}
+
+// RefreshAccessToken generates a new access token using a previously issued refresh token.
+// This method implements the OAuth 2.0 refresh token grant flow.
+//
+// Parameters:
+//
+//	clientID: The registered client identifier
+//	clientSecret: The client's secret used for authentication
+//	requestedGrantType: The OAuth 2.0 grant type (should be "refresh_token")
+//	refreshToken: The previously issued refresh token
+//	requestedScopes: The clients scopes
+//
+// Returns:
+//
+//	A TokenResponse containing the newly generated access token and related metadata, or an error if token refresh fails
+func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes string) (*token.TokenResponse, error) {
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
+		s.logger.Error(s.module, "[RefreshAccessToken] Failed to authenticate client: %v", err)
+		return nil, err
+	}
+
+	valid, err := s.validateRefreshTokenAndMatchClient(clientID, refreshToken)
+	if err != nil {
+		s.logger.Error(s.module, "[RefreshAccessToken] Error validating refresh token: %v", err)
+		return nil, err
+	}
+	if !valid {
+		s.logger.Warn(s.module, "[RefreshAccessToken] Invalid refresh token. Blacklisting...")
+		if err := s.tokenService.BlacklistToken(refreshToken); err != nil {
+			s.logger.Error(s.module, "[RefreshAccessToken] Failed to blacklist refresh token: %v", err)
+			return nil, err
+		}
+
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid refresh token")
+	}
+
+	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID)
+	if err != nil {
+		s.logger.Error(s.module, "[RefreshAccessToken] Failed to generate new tokens: %v", err)
+		if err := s.tokenService.BlacklistToken(refreshToken); err != nil {
+			s.logger.Warn(s.module, "[RefreshAccessToken] Failed to blacklist old refresh token: %v", err)
+		}
+
+		return nil, errors.Wrap(err, "", "failed to generate new tokens")
+	}
+
+	if err := s.tokenService.BlacklistToken(refreshToken); err != nil {
+		s.logger.Warn(s.module, "[RefreshAccessToken] Failed to blacklist old refresh token: %v", err)
+	}
+
+	return &token.TokenResponse{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
+		TokenType:    common.Bearer,
+	}, nil
+}
+
+func (s *AuthenticationServiceImpl) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {
+	if err := s.tokenService.ValidateToken(refreshToken); err != nil {
+		return false, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to validate refresh token")
+	}
+
+	claims, err := s.tokenService.ParseToken(refreshToken)
+	if err != nil {
+		return false, errors.New(errors.ErrCodeInternalServerError, "failed to parse refresh token")
+	}
+
+	if claims.Subject != clientID {
+		s.logger.Warn(s.module, "[isValidRefreshToken] Token subject mismatch")
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (s *AuthenticationServiceImpl) authenticateUser(req *user.UserLoginAttempt, clientID string, requestedScopes string) (*user.UserLoginResponse, error) {

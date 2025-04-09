@@ -123,4 +123,19 @@ type TokenService interface {
 	//
 	//	error: An error if the token is blacklisted or expired.
 	ValidateToken(token string) error
+
+	// GenerateRefreshAndAccessTokens generates new tokens with the given subject.
+	//
+	// Parameters:
+	//
+	//	subject string: The subject for the token claims.
+	//
+	//	Returns:
+	//
+	//	refreshToken string: A new refresh token.
+	//	accessToken string: A new access token.
+	//	error: An error if an error occurs during generation.
+	GenerateRefreshAndAccessTokens(subject string) (string, string, error)
+
+	BlacklistToken(token string) error
 }

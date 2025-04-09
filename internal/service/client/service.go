@@ -208,7 +208,7 @@ func (cs *ClientServiceImpl) AuthenticateClient(clientID string, clientSecret st
 
 	if err := cs.validateClientAuthorization(existingClient, clientSecret, requestedGrant, requestedScopes); err != nil {
 		logger.Error(module, "AuthenticateClient: Failed to validate client authorization: %v", err)
-		return errors.Wrap(err, "", "failed to validate client")
+		return errors.Wrap(err, "", "failed to validate client authorization")
 	}
 
 	return nil
@@ -439,7 +439,7 @@ func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.
 	}
 
 	if !existingClient.HasGrantType(requestedGrant) {
-		return errors.New(errors.ErrCodeInvalidGrant, "client does not have the required grant type")
+		return errors.New(errors.ErrCodeUnauthorizedClient, "client does not have the required grant type")
 	}
 	return nil
 }

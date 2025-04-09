@@ -93,7 +93,6 @@ The access token is a JWT that can be used to access protected resources. The `e
 #### Response Body:
 ```json
 {
-    {
     "error": "invalid_client",
     "error_description": "failed to issue token using the client credentials provided",
     "error_details": "failed to authenticate client: the client credentials are invalid or incorrectly formatted"

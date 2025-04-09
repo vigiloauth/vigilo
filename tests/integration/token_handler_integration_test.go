@@ -7,8 +7,10 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -16,7 +18,7 @@ import (
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
-func TestAuthHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
+func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		tests := []struct {
 			name         string
@@ -194,7 +196,7 @@ func TestAuthHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 			headers,
 		)
 
-		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidGrant, "invalid client credentials or unauthorized grant type/scopes")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeUnauthorizedClient, "invalid client credentials or unauthorized grant type/scopes")
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
@@ -221,11 +223,11 @@ func TestAuthHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		)
 
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInsufficientScope, "invalid client credentials or unauthorized grant type/scopes")
-		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
 
-func TestAuthenticationService_IssueTokens_PasswordGrant(t *testing.T) {
+func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		tests := []struct {
 			name         string
@@ -353,7 +355,7 @@ func TestAuthenticationService_IssueTokens_PasswordGrant(t *testing.T) {
 	})
 }
 
-func TestAuthorizationHandler_TokenExchange(t *testing.T) {
+func TestTokenHandler_TokenExchange(t *testing.T) {
 	t.Run("Valid Token Request - Success", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
@@ -415,7 +417,7 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 	})
 }
 
-func TestAuthorizationHandler_TokenExchange_UsingPKCE(t *testing.T) {
+func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 	t.Run("Success when client is using PKCE", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		tests := []struct {
@@ -550,6 +552,230 @@ func TestAuthorizationHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, rr.Code)
 			testContext.TearDown()
 		}
+	})
+}
+
+func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			clientType string
+		}{
+			{
+				name:       "Success when the client is confidential",
+				clientType: client.Confidential,
+			},
+			{
+				name:       "Success when the client is public",
+				clientType: client.Public,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				testContext := NewVigiloTestContext(t)
+				defer testContext.TearDown()
+
+				testContext.WithClient(test.clientType, []string{client.ClientManage}, []string{client.RefreshToken})
+				testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+
+				formData := url.Values{}
+				formData.Add(common.GrantType, client.RefreshToken)
+				formData.Add(common.Scope, client.ClientManage)
+				formData.Add(common.RefreshToken, testContext.JWTToken)
+
+				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+				if test.clientType == client.Confidential {
+					headers["Authorization"] = "Basic " + encodeClientCredentials(testClientID, testClientSecret)
+				} else {
+					formData.Add(common.ClientID, testClientID)
+				}
+
+				rr := testContext.SendHTTPRequest(
+					http.MethodPost,
+					web.OAuthEndpoints.Token,
+					strings.NewReader(formData.Encode()),
+					headers,
+				)
+
+				assert.Equal(t, http.StatusOK, rr.Code)
+				assert.NotNil(t, rr.Body)
+
+				var tokenResponse token.TokenResponse
+				err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
+				assert.NoError(t, err)
+
+				assert.NotNil(t, tokenResponse.AccessToken)
+				assert.Equal(t, common.Bearer, tokenResponse.TokenType)
+				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
+			})
+		}
+	})
+
+	t.Run("Invalid request error is returned for missing parameters", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+
+		formData := url.Values{}
+		formData.Add(common.ClientID, testClientID)
+		formData.Add(common.RefreshToken, testContext.JWTToken)
+
+		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Token,
+			strings.NewReader(formData.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Invalid request error is returned for an unsupported grant type", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+
+		formData := url.Values{}
+		formData.Add(common.ClientID, testClientID)
+		formData.Add(common.RefreshToken, testContext.JWTToken)
+		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(common.GrantType, "invalid-grant-type")
+
+		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Token,
+			strings.NewReader(formData.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Invalid grant error is returned when the refresh token is invalid", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+
+		formData := url.Values{}
+		formData.Add(common.GrantType, client.RefreshToken)
+		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(common.RefreshToken, "invalid-token")
+		formData.Add(common.ClientID, testClientID)
+
+		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Token,
+			strings.NewReader(formData.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Invalid grant error is returned when the refresh token is expired", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithExpiredToken()
+
+		formData := url.Values{}
+		formData.Add(common.GrantType, client.RefreshToken)
+		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(common.RefreshToken, testContext.JWTToken)
+		formData.Add(common.ClientID, testClientID)
+
+		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Token,
+			strings.NewReader(formData.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Invalid grant error is returned when the refresh token is blacklisted", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithBlacklistedToken(testClientID)
+
+		formData := url.Values{}
+		formData.Add(common.GrantType, client.RefreshToken)
+		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(common.RefreshToken, testContext.JWTToken)
+		formData.Add(common.ClientID, testClientID)
+
+		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Token,
+			strings.NewReader(formData.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Unauthorized client is returned when the client does not have the 'refresh_token' grant type", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.AuthorizationCode})
+		testContext.WithJWTToken(testClientID, time.Duration(5)*time.Minute)
+
+		formData := url.Values{}
+		formData.Add(common.GrantType, client.RefreshToken)
+		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(common.RefreshToken, testContext.JWTToken)
+		formData.Add(common.ClientID, testClientID)
+
+		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Token,
+			strings.NewReader(formData.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("Invalid scope error is returned when the client does not have the required scope(s)", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithClient(client.Public, []string{client.ClientRead}, []string{client.RefreshToken})
+		testContext.WithJWTToken(testClientID, time.Duration(5)*time.Minute)
+
+		formData := url.Values{}
+		formData.Add(common.GrantType, client.RefreshToken)
+		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(common.RefreshToken, testContext.JWTToken)
+		formData.Add(common.ClientID, testClientID)
+
+		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Token,
+			strings.NewReader(formData.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
 

@@ -24,6 +24,7 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [Client Credentials Flow](../identity/endpoints/token_handler/client_credentials_grant.md)
     - [Resource Owner Password Credentials Flow](../identity/endpoints/token_handler/ropc_grant.md)
     - [Client Secret Regeneration](../identity/endpoints/client_handler/client_secret_regeneration.md)
+    - [Token Refresh](../identity/endpoints/token_handler/token_refresh.md)
     - **Client Configuration**
         - [Client Read Request](../identity/endpoints/client_handler/client_read_request.md)
         - [Client Update Request](../identity/endpoints/client_handler/client_update_request.md)

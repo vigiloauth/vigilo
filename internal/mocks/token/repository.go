@@ -21,6 +21,8 @@ type MockTokenRepository struct {
 
 	// DeleteTokenFunc is a mock function for the DeleteToken method.
 	DeleteTokenFunc func(token string) error
+
+	BlacklistTokenFunc func(token string) error
 }
 
 // AddToken calls the mock AddTokenFunc.
@@ -41,4 +43,8 @@ func (m *MockTokenRepository) GetToken(token string, id string) (*token.TokenDat
 // DeleteToken calls the mock DeleteTokenFunc.
 func (m *MockTokenRepository) DeleteToken(token string) error {
 	return m.DeleteTokenFunc(token)
+}
+
+func (m *MockTokenRepository) BlacklistToken(token string) error {
+	return m.BlacklistTokenFunc(token)
 }

@@ -155,7 +155,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 
 		for _, tc := range testCases {
 			testContext.WithUser()
-			testContext.WithAccessToken(testUserID, time.Hour)
+			testContext.WithJWTToken(testUserID, time.Hour)
 
 			requestBody, err := json.Marshal(tc.requestBody)
 			assert.NoError(t, err)
@@ -175,7 +175,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 	t.Run("Successful Password Reset", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithUser()
-		testContext.WithAccessToken(testEmail, time.Hour)
+		testContext.WithJWTToken(testEmail, time.Hour)
 		defer testContext.TearDown()
 
 		request := users.UserPasswordResetRequest{Email: testEmail, ResetToken: testContext.JWTToken, NewPassword: testPassword2}
@@ -195,7 +195,7 @@ func TestUserHandler_PasswordReset(t *testing.T) {
 	t.Run("Reset Password and Login With New Password", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithUser()
-		testContext.WithAccessToken(testEmail, time.Hour)
+		testContext.WithJWTToken(testEmail, time.Hour)
 		defer testContext.TearDown()
 
 		// Reset the password

@@ -36,6 +36,10 @@ type MockTokenService struct {
 	ValidateTokenFunc func(token string) error
 
 	DeleteTokenAsyncFunc func(token string) <-chan error
+
+	GenerateRefreshAndAccessTokensFunc func(subject string) (string, string, error)
+
+	BlacklistTokenFunc func(token string) error
 }
 
 // GenerateToken calls the mock GenerateTokenFunc.
@@ -84,4 +88,12 @@ func (m *MockTokenService) ValidateToken(token string) error {
 
 func (m *MockTokenService) DeleteTokenAsync(token string) <-chan error {
 	return m.DeleteTokenAsyncFunc(token)
+}
+
+func (m *MockTokenService) GenerateRefreshAndAccessTokens(subject string) (string, string, error) {
+	return m.GenerateRefreshAndAccessTokensFunc(subject)
+}
+
+func (m *MockTokenService) BlacklistToken(token string) error {
+	return m.BlacklistTokenFunc(token)
 }
