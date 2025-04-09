@@ -65,7 +65,7 @@ Authorization: Bearer reg-23410913-abewfq.123483
 
 client_id=abc123
 &redirect_uri=https://client.example.com/callback&
-scope=user:read+user:write
+scope=users:read+users:write
 &state=xyz123
 ```
 
@@ -78,7 +78,7 @@ Authorization: Bearer reg-23410913-abewfq.123483
 ```json
 {
     "approved": true,
-    "scopes": "user:read user:write"
+    "scopes": "users:read users:write"
 }
 ```
 
@@ -94,7 +94,7 @@ Authorization: Bearer reg-23410913-abewfq.123483
     "client_id": "abc123",
     "client_name": "Vigilo Auth",
     "redirect_uri": "https://client.example.com/callback",
-    "scopes": "user:read user:write",
+    "scopes": "users:read users:write",
     "consent_endpoint": "https://localhost/oauth/consent",
     "state": "xyz123"
 }

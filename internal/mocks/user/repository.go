@@ -17,6 +17,8 @@ type MockUserRepository struct {
 	UpdateUserFunc func(user *user.User) error
 
 	GetUserByEmailFunc func(email string) *user.User
+
+	GetUserByUsernameFunc func(username string) *user.User
 }
 
 // AddUser calls the mock AddUserFunc.
@@ -41,4 +43,8 @@ func (m *MockUserRepository) UpdateUser(user *user.User) error {
 
 func (m *MockUserRepository) GetUserByEmail(email string) *user.User {
 	return m.GetUserByEmailFunc(email)
+}
+
+func (m *MockUserRepository) GetUserByUsername(username string) *user.User {
+	return m.GetUserByUsernameFunc(username)
 }

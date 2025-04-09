@@ -26,20 +26,6 @@ type ClientService interface {
 	//  error: An error if the regeneration fails.
 	RegenerateClientSecret(clientID string) (*ClientSecretRegenerationResponse, error)
 
-	// AuthenticateClientForCredentialsGrant authenticates the client using provided credentials
-	// and authorizes access by validating required grant types and scopes.
-	//
-	// Parameters:
-	//
-	//	clientID string: The ID of the client.
-	//	clientSecret string: The client secret.
-	//
-	// Returns:
-	//
-	//	*Client: The authenticated client if successful.
-	//	error: An error if authentication or authorization fails.
-	AuthenticateClientForCredentialsGrant(clientID, clientSecret string) (*Client, error)
-
 	// GetClientByID retrieves a client by the given ID.
 	//
 	// Parameters:
@@ -108,4 +94,19 @@ type ClientService interface {
 	//
 	//	error: An error if validation fails or the client cannot be deleted.
 	ValidateAndDeleteClient(clientID, registrationAccessToken string) error
+
+	// AuthenticateClientForPasswordGrant authenticates the client using provided credentials
+	// and authorizes access by validating required grant types and scopes.
+	//
+	// Parameters:
+	//
+	//	clientID string: The ID of the client.
+	//	clientSecret string: The client secret.
+	//	requestedGrant string: The requested grant type to validate.
+	//	scopes string: The scopes to validate.
+	//
+	// Returns:
+	//
+	//	error: An error if authentication or authorization fails.
+	AuthenticateClient(clientID string, clientSecret string, requestedGrant string, requestedScopes string) error
 }

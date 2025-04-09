@@ -32,7 +32,7 @@ This endpoint is a protected route which is responsible for updating the current
 | `client_name`          | `string`        | No       | The name of the client application being updated.                        |
 | `redirect_uris`        | `[]string`   | No       | A list of URIs to which the authorization server will redirect the user after successful authorization. Public clients must use HTTPS. |
 | `grant_types`          | `[]string`   | No       | The grant types associated with the client. Supported values: `authorization_code`, `client_credentials`, `password`, `refresh_token`, `implicit`, `device_code`. |
-| `scopes`               | `[]string`   | No       | The scopes associated with the client. Supported values: `client:read`, `client:write`, `client:delete`, `client:manage`.  |
+| `scopes`               | `[]string`   | No       | The scopes associated with the client. Supported values: `clients:read`, `clients:write`, `clients:delete`, `clients:manage`.  |
 | `response_types`       | `[]string`   | No       | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
 | `token_auth_endpoint`  | `string`        | No       | The token authentication endpoint for the client credentials flow. Required for `client_credentials` grant type. |
 | `jwks_uri`             | `string`    | No       | URL pointing to the client's JSON Web Key Set (JWKS), used for signed requests or tokens |
@@ -55,7 +55,7 @@ Authorization: Bearer reg-23410913-abewfq.123483
         "https://client.example.org/alt"
     ],
     "grant_types": ["authorization_code", "refresh_token"],
-    "scopes": ["client:read", "client:delete"]
+    "scopes": ["clients:read", "clients:delete"]
 }
 ```
 

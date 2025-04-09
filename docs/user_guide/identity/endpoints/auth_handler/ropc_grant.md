@@ -1,4 +1,4 @@
-# OAuth 2.0 Client Credentials Grant
+# OAuth 2.0 Resource Owner Password Credentials Grant
 
 ## Endpoint
 ```http
@@ -8,12 +8,11 @@ POST /oauth/token
 ---
 
 **Description:** 
-This endpoint implements the OAuth 2.0 client credentials flow, allowing authenticated clients to obtain an access and refresh token for machine-to-machine communication.
+This endpoint implements the OAuth 2.0 resource owner password credentials flow, allowing authenticated clients to obtain an access token for machine-to-machine communication.
 
 ---
 
 ## Notes for Developers
-- This implementation follows the OAuth 2.0 specification (RFC 6749) for the client credentials grant type.
 - The client must be authenticated using HTTP Basic Authentication.
 - The token is returned with `Cache-Control: no-store` to prevent caching of sensitive tokens.
 - All error responses follow the OAuth 2.0 error response format.
@@ -33,8 +32,10 @@ This endpoint implements the OAuth 2.0 client credentials flow, allowing authent
 ## Request Body
 | Field        | Type       | Required  | Description                                                                     |
 | :------------|:-----------|:----------|:--------------------------------------------------------------------------------|
-| `grant_type` | `string`   | Yes       | Specifies the type of grant being used. Must be set to `client_credentials`.    |
-| `scopes`     | `[]string` | Yes       | Specified the specific scopes the client is requesting.                         |
+| `grant_type` | `string`   | Yes       | Specifies the type of grant being used. Must be set to `password`.              |
+| `scope`      | `[]string` | Yes       | Specified the specific scopes the client is requesting.                         |
+| `username`   | `string`   | Yes       | Specifies the username for the user being authenticated.                        |
+| `password`   | `string`   | Yes       | Specifies the password for the user being authenticated.                        |
 
 ---
 
@@ -45,7 +46,9 @@ Authorization: Basic dGVzdGNsaWVudDpzZWNyZXQ
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=client_credentials
-&scope=clients:read clients:write
+&scope=users:manage
+&username=john.doe
+&password=123pas$
 ```
 
 ---
@@ -76,31 +79,41 @@ The access token is a JWT that can be used to access protected resources. The `e
 
 ## Error Responses
 
-### 1. Invalid Client ID
+### 1. Invalid Client Credentials
 #### HTTP Status Code: `401 Unauthorized`
 #### Response Body:
 ```json
 {
     "error": "invalid_client",
-    "error_description": "failed to issue token using the client credentials provided",
-    "error_details": "failed to authenticate client: credentials are either missing or invalid"
+    "error_description": "failed to issue tokens for password grant",
+    "error_details": "client credentials are either missing or invalid"
 }
 ```
 
-### 2. Invalid Client Secret
+### 2. Invalid User Credentials
+#### HTTP Status Code: `403 Forbidden`
+#### Response Body:
+```json
+{
+    "error": "invalid_grant",
+    "error_description": "failed to issue tokens for password grant",
+    "error_details": "failed to authenticate user: credentials are either missing or invalid"
+}
+```
+
+### 3. Invalid Client Secret
 #### HTTP Status Code: `401 Unauthorized`
 **Note:** This response only applies to *confidential* clients.
 #### Response Body:
 ```json
 {
-    {
     "error": "invalid_client",
     "error_description": "failed to issue token using the client credentials provided",
     "error_details": "failed to authenticate client: the client credentials are invalid or incorrectly formatted"
 }
 ```
 
-### 3. Missing Required Grant Type
+### 4. Missing Required Grant Type
 #### HTTP Status Code: `403 Forbidden`
 #### Response Body:
 ```json
@@ -111,7 +124,7 @@ The access token is a JWT that can be used to access protected resources. The `e
 }
 ```
 
-### 4. Insufficient Scopes
+### 5. Insufficient Scopes for the Client
 #### HTTP Status Code: `403 Forbidden`
 #### Response Body:
 ```json
@@ -122,3 +135,13 @@ The access token is a JWT that can be used to access protected resources. The `e
 }
 ```
 
+### 6. Insufficient Scopes for Resource Owner
+#### HTTP Status Code: `403 Forbidden`
+#### Response Body:
+```json
+{
+    "error": "insufficient_scope",
+    "error_description": "failed to issue token using the client credentials provided",
+    "error_details": "failed to validate user: user does not have the required scope(s)"
+}
+```

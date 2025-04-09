@@ -34,43 +34,37 @@ This endpoint handles the token exchange for the OAuth 2.0 Authorization Code Fl
 ---
 
 ## Required Headers
-| Key             | Value                         | Description                              |
-| :-------------- | :---------------------------- | :----------------------------------------|
-| Content-Type    | application/json              | Indicates that the request body is JSON. |
-| Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.  |
-| Content-Length  | [Content-Length]              | The length of the request body in bytes. |
+| Key             | Value                              | Description                                     |
+| :-------------- | :----------------------------------| :-----------------------------------------------|
+| Content-Type    | application/x-www-form-urlencoded  | Indicates that the request body is URL-encoded. |
+| Date            | Tue, 03 Dec 2024 19:38:16 GMT      | The date and time the request was made.         |
+| Content-Length  | [Content-Length]                   | The length of the request body in bytes.        |
 
 ---
 
 ## Example Request
 ```http
 POST /oauth/token HTTP/1.1
-Content-Type: application/json
-```
-```json
-{
-    "grant_type": "authorization_code",
-    "code": "SplxlOBeZQQYbYS6WxSbIA",
-    "redirect_uri": "https://client.example.com/callback",
-    "client_id": "s6BhdRkqt3",
-    "state": "xyz123"
-}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code
+&code=SplxlOBeZQQYbYS6WxSbIA
+&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb
+&client_id=s6BhdRkqt3
+&state=xyz123
 ```
 
 ### Example Request with PKCE
 ```http
 POST /oauth/token HTTP/1.1
-Content-Type: application/json
-```
-```json
-{
-    "grant_type": "authorization_code",
-    "code": "SplxlOBeZQQYbYS6WxSbIA",
-    "redirect_uri": "https://client.example.com/callback",
-    "client_id": "s6BhdRkqt3",
-    "state": "xyz123",
-    "code_verifier": "xyz456"
-}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code
+&code=SplxlOBeZQQYbYS6WxSbIA
+&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb
+&client_id=s6BhdRkqt3
+&state=xyz123
+&code_verifier=xyc123
 ```
 
 ---

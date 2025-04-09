@@ -307,7 +307,7 @@ const (
 	DeviceCode        string = "device_code"
 	RefreshToken      string = "refresh_token"
 	ImplicitFlow      string = "implicit_flow"
-	PasswordGrant     string = "password_grant"
+	PasswordGrant     string = "password"
 )
 
 var ValidGrantTypes = map[string]bool{
@@ -342,25 +342,28 @@ var ValidResponseTypes = map[string]bool{
 // Predefined scopes.
 const (
 	// Client Management Scopes
-	ClientRead   string = "client:read"   // Read registered client details.
-	ClientWrite  string = "client:write"  // Modify client details (except 'client_id' & 'client_secret')
-	ClientDelete string = "client:delete" // Delete a registered client.
-	ClientManage string = "client:manage" // Full control over all clients (includes 'read', 'write', and 'delete')
+	ClientRead   string = "clients:read"   // Read registered client details.
+	ClientWrite  string = "clients:write"  // Modify client details (except 'client_id' & 'client_secret')
+	ClientDelete string = "clients:delete" // Delete a registered client.
+	ClientManage string = "clients:manage" // Full control over all clients (includes 'read', 'write', and 'delete')
 
 	// User Management Scopes
-	UserRead   string = "user:read"   // Read user details (e.g., profile, email, etc.).
-	UserWrite  string = "user:write"  // Modify user details.
-	UserDelete string = "user:delete" // Delete a user account.
-	UserManage string = "user:manage" // Full control over users ('read', 'write'. and 'delete').
+	UserRead   string = "users:read"   // Read user details (e.g., profile, email, etc.).
+	UserWrite  string = "users:write"  // Modify user details.
+	UserDelete string = "users:delete" // Delete a user account.
+	UserManage string = "users:manage" // Full control over users ('read', 'write'. and 'delete').
 )
 
 var ValidScopes = map[string]bool{
 	ClientRead:   true,
 	ClientWrite:  true,
+	ClientDelete: true,
 	ClientManage: true,
-	UserManage:   true,
-	UserRead:     true,
-	UserWrite:    true,
+
+	UserManage: true,
+	UserRead:   true,
+	UserDelete: true,
+	UserWrite:  true,
 }
 
 // Predefined code challenge methods.

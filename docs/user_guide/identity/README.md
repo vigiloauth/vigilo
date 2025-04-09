@@ -22,6 +22,7 @@ This documentation provides a comprehensive guide to configuring and utilizing t
 - **Client Management:**
     - [Client Registration](../identity/endpoints/client_handler/client_registration.md)
     - [Client Credentials Flow](../identity/endpoints/auth_handler/client_credentials_grant.md)
+    - [Resource Owner Password Credentials Flow](../identity/endpoints/auth_handler/ropc_grant.md)
     - [Client Secret Regeneration](../identity/endpoints/client_handler/client_secret_regeneration.md)
     - **Client Configuration**
         - [Client Read Request](../identity/endpoints/client_handler/client_read_request.md)

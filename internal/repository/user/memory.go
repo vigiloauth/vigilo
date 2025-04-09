@@ -74,6 +74,21 @@ func (c *InMemoryUserRepository) AddUser(user *user.User) error {
 	return nil
 }
 
+func (c *InMemoryUserRepository) GetUserByUsername(username string) *user.User {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	for _, user := range c.data {
+		if user.Username == username {
+			logger.Debug(module, "GetUserByUsername: User found with the given username=%s", username)
+			return user
+		}
+	}
+
+	logger.Debug(module, "GetUserByUsername: User not found with the given username=%s", username)
+	return nil
+}
+
 // GetUserByID retrieves a user from the store using their ID.
 //
 // Parameters:

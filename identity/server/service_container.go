@@ -8,6 +8,7 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
+	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
@@ -29,6 +30,7 @@ import (
 	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
 
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
+	authService "github.com/vigiloauth/vigilo/internal/service/authentication"
 	authzService "github.com/vigiloauth/vigilo/internal/service/authorization"
 	authzCodeService "github.com/vigiloauth/vigilo/internal/service/authzcode"
 	clientService "github.com/vigiloauth/vigilo/internal/service/client"
@@ -65,6 +67,7 @@ type ServiceContainer struct {
 	loginAttemptServiceOnce  sync.Once
 	authorizationServiceOnce sync.Once
 	httpCookieServiceOnce    sync.Once
+	authServiceOnce          sync.Once
 
 	passwordResetEmailService email.EmailService
 	emailNotificationService  email.EmailService
@@ -78,6 +81,7 @@ type ServiceContainer struct {
 	loginAttemptService       login.LoginAttemptService
 	authorizationService      authz.AuthorizationService
 	httpCookieService         cookie.HTTPCookieService
+	authService               auth.AuthenticationService
 
 	passwordResetEmailServiceInit func() email.EmailService
 	emailNotificationServiceInit  func() email.EmailService
@@ -91,10 +95,11 @@ type ServiceContainer struct {
 	loginAttemptServiceInit       func() login.LoginAttemptService
 	authorizationServiceInit      func() authz.AuthorizationService
 	httpCookieServiceInit         func() cookie.HTTPCookieService
+	authServiceInit               func() auth.AuthenticationService
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
-	authHandler   *handlers.AuthenticationHandler
+	tokenHandler  *handlers.AuthHandler
 	authzHandler  *handlers.AuthorizationHandler
 	oauthHandler  *handlers.OAuthHandler
 
@@ -179,6 +184,10 @@ func (c *ServiceContainer) initializeServices() {
 		c.logger.Debug(c.module, "Initializing AuthorizationService")
 		return authzService.NewAuthorizationServiceImpl(c.getAuthzCodeService(), c.getConsentService(), c.getTokenService(), c.getClientService())
 	}
+	c.authServiceInit = func() auth.AuthenticationService {
+		c.logger.Debug(c.module, "Initializing AuthenticationService")
+		return authService.NewAuthenticationServiceImpl(c.getTokenService(), c.getClientService(), c.getUserService())
+	}
 	c.passwordResetEmailServiceInit = func() email.EmailService {
 		c.logger.Debug(c.module, "Initializing PasswordResetEmailService")
 		service, err := emailService.NewPasswordResetEmailService()
@@ -202,7 +211,7 @@ func (c *ServiceContainer) initializeHandlers() {
 	c.logger.Info(c.module, "Initializing handlers")
 	c.userHandler = handlers.NewUserHandler(c.getUserService(), c.getPasswordResetService(), c.getSessionService())
 	c.clientHandler = handlers.NewClientHandler(c.getClientService())
-	c.authHandler = handlers.NewAuthenticationHandler(c.getTokenService(), c.getClientService())
+	c.tokenHandler = handlers.NewTokenHandler(c.getAuthService())
 	c.authzHandler = handlers.NewAuthorizationHandler(c.getAuthorizationService(), c.getSessionService())
 	c.oauthHandler = handlers.NewOAuthHandler(c.getUserService(), c.getSessionService(), c.getClientService(), c.getConsentService(), c.getAuthzCodeService())
 }
@@ -266,6 +275,11 @@ func (c *ServiceContainer) getSessionService() session.SessionService {
 func (c *ServiceContainer) getUserService() users.UserService {
 	c.userServiceOnce.Do(func() { c.userService = c.userServiceInit() })
 	return c.userService
+}
+
+func (c *ServiceContainer) getAuthService() auth.AuthenticationService {
+	c.authServiceOnce.Do(func() { c.authService = c.authServiceInit() })
+	return c.authService
 }
 
 func (c *ServiceContainer) getLoginAttemptService() login.LoginAttemptService {

@@ -26,7 +26,7 @@ type VigiloIdentityServer struct {
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
-	authHandler   *handlers.AuthenticationHandler
+	tokenHandler  *handlers.AuthHandler
 	authzHandler  *handlers.AuthorizationHandler
 	oauthHandler  *handlers.OAuthHandler
 
@@ -52,7 +52,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 		router:        chi.NewRouter(),
 		userHandler:   container.userHandler,
 		clientHandler: container.clientHandler,
-		authHandler:   container.authHandler,
+		tokenHandler:  container.tokenHandler,
 		authzHandler:  container.authzHandler,
 		oauthHandler:  container.oauthHandler,
 		serverConfig:  serverConfig,
@@ -95,7 +95,6 @@ func (s *VigiloIdentityServer) setupPublicRoutes() {
 		// POST Routes
 		r.Group(func(pr chi.Router) {
 			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
-			pr.Post(web.OAuthEndpoints.TokenExchange, s.authzHandler.TokenExchange)
 			pr.Post(web.OAuthEndpoints.Login, s.oauthHandler.OAuthLogin)
 			pr.Post(web.UserEndpoints.Registration, s.userHandler.Register)
 			pr.Post(web.UserEndpoints.Login, s.userHandler.Login)
@@ -116,7 +115,9 @@ func (s *VigiloIdentityServer) setupFormDataRequiredRoutes() {
 		r.Use(s.middleware.RequiresContentType(contentTypeForm))
 		r.Group(func(pr chi.Router) {
 			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
-			pr.Post(web.OAuthEndpoints.ClientCredentialsToken, s.authHandler.IssueClientCredentialsToken)
+			pr.Post(web.OAuthEndpoints.Token, s.tokenHandler.IssueTokens)
+			pr.Post(web.OAuthEndpoints.TokenExchange, s.authzHandler.TokenExchange)
+
 		})
 	})
 }

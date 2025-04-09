@@ -6,88 +6,97 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
+	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
-// AuthenticationHandler handles HTTP requests related to authentication.
-type AuthenticationHandler struct {
-	tokenService  token.TokenService
-	clientService client.ClientService
-	logger        *config.Logger
-	module        string
+type AuthHandler struct {
+	authService auth.AuthenticationService
+	logger      *config.Logger
+	module      string
 }
 
-// NewAuthenticationHandler creates a new instance of AuthHandler.
-//
-// Parameters:
-//
-//	tokenService token.TokenService: The token service.
-//	clientService client.ClientService: The client service.
-//
-// Returns:
-//
-//	*AuthHandler: A new AuthHandler instance.
-func NewAuthenticationHandler(tokenService token.TokenService, clientService client.ClientService) *AuthenticationHandler {
-	return &AuthenticationHandler{
-		tokenService:  tokenService,
-		clientService: clientService,
-		logger:        config.GetServerConfig().Logger(),
-		module:        "Authentication Handler",
+func NewTokenHandler(authService auth.AuthenticationService) *AuthHandler {
+	return &AuthHandler{
+		authService: authService,
+		logger:      config.GetServerConfig().Logger(),
+		module:      "Token Handler",
 	}
 }
 
-// IssueClientCredentialsToken is the handler responsible for generating new tokens.
-func (h *AuthenticationHandler) IssueClientCredentialsToken(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IssueClientCredentialsToken]", requestID)
-
-	if err := r.ParseForm(); err != nil {
-		h.logger.Warn(h.module, "RequestID=[%s]: Failed to parse form: %v", requestID, err)
-		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "the request body format is invalid"))
-		return
-	}
-
-	if !h.isRequestGrantTypeClientCredentials(r) {
-		h.logger.Warn(h.module, "RequestID=[%s]: Unsupported grant type", requestID)
-		web.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "the provided grant type is not supported"))
-		return
-	}
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IssueToken]", requestID)
 
 	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
 	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "invalid authorization header")
+		wrappedErr := errors.Wrap(err, errors.ErrCodeInvalidClient, "invalid authorization header")
 		h.logger.Error(h.module, "RequestID=[%s]: Invalid authorization header: %v", requestID, err)
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	if _, err := h.clientService.AuthenticateClientForCredentialsGrant(clientID, clientSecret); err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to authenticate client for credentials grant: %v", requestID, err)
-		web.WriteError(w, errors.Wrap(err, "", "the client credentials are invalid or incorrectly formatted"))
-		return
-	}
-
-	tokenExpirationTime := 30 * time.Minute
-	accessToken, err := h.tokenService.GenerateToken(clientID, tokenExpirationTime)
+	err = r.ParseForm()
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to generate access token: %v", requestID, err)
-		wrappedErr := errors.Wrap(err, "", "failed to generate access token")
-		web.WriteError(w, wrappedErr)
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "unable to parse form"))
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Request=[IssueClientCredentialsGrant] successful", requestID)
-	web.SetNoStoreHeader(w)
-	web.WriteJSON(w, http.StatusOK, &token.TokenResponse{
-		AccessToken: accessToken,
-		TokenType:   token.BearerToken,
-		ExpiresIn:   int(tokenExpirationTime.Seconds()),
-	})
+	requestedGrantType := r.FormValue(common.GrantType)
+	requestedScopes := r.FormValue(common.Scope)
+
+	switch requestedGrantType {
+	case client.ClientCredentials:
+		h.handleClientCredentialsRequest(w, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
+		return
+	case client.PasswordGrant:
+		h.handlePasswordGrantRequest(w, r, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
+		return
+	default:
+		h.logger.Warn(h.module, "RequestID=[%s]: Unsupported grant type", requestID)
+		web.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "the provided grant type is not supported"))
+		return
+	}
 }
 
-func (h *AuthenticationHandler) isRequestGrantTypeClientCredentials(r *http.Request) bool {
-	return r.Form.Get(common.GrantType) == common.ClientCredentials
+func (h *AuthHandler) handleClientCredentialsRequest(w http.ResponseWriter, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+	response, err := h.authService.IssueClientCredentialsToken(clientID, clientSecret, requestedGrantType, requestedScopes)
+	if err != nil {
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to issue token for client credentials grant: %v", requestID, err)
+		web.WriteError(w, errors.Wrap(err, "", "invalid client credentials or unauthorized grant type/scopes"))
+		return
+	}
+
+	web.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *AuthHandler) handlePasswordGrantRequest(w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+	if r.URL.Query().Get(common.Password) != "" {
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "password must not be in the URL"))
+		return
+	}
+
+	username := r.FormValue(common.Username)
+	password := r.FormValue(common.Password)
+
+	loginAttempt := &user.UserLoginAttempt{
+		Username:        username,
+		Password:        password,
+		IPAddress:       r.RemoteAddr,
+		Timestamp:       time.Now(),
+		RequestMetadata: r.Header.Get(common.XForwardedHeader),
+		UserAgent:       r.UserAgent(),
+	}
+
+	tokenResponse, err := h.authService.IssueResourceOwnerToken(clientID, clientSecret, requestedGrantType, requestedScopes, loginAttempt)
+	if err != nil {
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to issue tokens for password grant: %v", requestID, err)
+		web.WriteError(w, errors.Wrap(err, "", "invalid credentials or unauthorized grant type/scopes"))
+		return
+	}
+
+	web.WriteJSON(w, http.StatusOK, tokenResponse)
 }

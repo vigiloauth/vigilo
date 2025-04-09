@@ -155,7 +155,7 @@ import (
 )
 
 func main() {
-    loginConfig := config.NwwLoginConfig(
+    loginConfig := config.NewLoginConfig(
         config.WithMaxFailedAttempts(10),
         config.WithDelay(time.Duration(600) * time.Millisecond),
     )

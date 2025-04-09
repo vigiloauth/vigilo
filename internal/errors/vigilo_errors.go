@@ -78,7 +78,7 @@ func NewRequestValidationError(err error) error {
 }
 
 func NewRequestBodyDecodingError(err error) error {
-	return New(ErrCodeBadRequest, "missing one or more required fields in the request")
+	return New(ErrCodeInvalidRequest, "missing one or more required fields in the request")
 }
 
 func NewMethodNotAllowedError(method string) error {

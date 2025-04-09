@@ -33,7 +33,7 @@ For information on how to use `client_configuration_endpoint` and `registration_
 | `redirect_uris`        | `[]string`   | Yes      | A list of URIs to which the authorization server will redirect the user after successful authorization. Public clients must use HTTPS. |
 | `client_type`          | `string`        | Yes      | The type of client. Must be either `public` or `confidential`.             |
 | `grant_types`          | `[]string`  | Yes      | The grant types associated with the client. Supported values: `authorization_code`, `client_credentials`, `password`, `refresh_token`, `implicit`, `device_code`, `pkce`. |
-| `scopes`               | `[]string`  | No       | The scopes associated with the client. Supported values: `client:read`, `client:write`, `client:delete`, `client:manage`.  |
+| `scopes`               | `[]string`  | No       | The scopes associated with the client. Supported values: `clients:read`, `clients:write`, `clients:delete`, `clients:manage`.  |
 | `response_types`       | `[]string`  | Yes      | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
 | `token_auth_endpoint`  | `string`    | No       | The token authentication endpoint for the client credentials flow. Required for `client_credentials` grant type. |
 | `jwks_uri`             | `string`    | No       | URL pointing to the client's JSON Web Key Set (JWKS), used for signed requests or tokens |
@@ -55,7 +55,7 @@ Accept: application/json
   ],
   "client_type": "confidential",
   "grant_types": ["authorization_code", "client_credentials"],
-  "scopes": ["client:read", "client:write"],
+  "scopes": ["clients:read", "clients:write"],
   "response_types": ["code", "token"]
 }
 ```

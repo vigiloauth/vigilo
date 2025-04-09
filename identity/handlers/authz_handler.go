@@ -103,11 +103,20 @@ func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Requ
 	requestID := common.GetRequestID(r.Context())
 	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[TokenExchange]", requestID)
 
-	tokenRequest, err := web.DecodeJSONRequest[token.TokenRequest](w, r)
+	err := r.ParseForm()
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to decode token request body: %v", requestID, err)
-		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "unable to parse form"))
 		return
+	}
+
+	tokenRequest := &token.TokenRequest{
+		GrantType:         r.FormValue(common.GrantType),
+		AuthorizationCode: r.FormValue(common.AuthzCode),
+		RedirectURI:       r.FormValue(common.RedirectURI),
+		ClientID:          r.FormValue(common.ClientID),
+		ClientSecret:      r.FormValue(common.ClientSecret),
+		State:             r.FormValue(common.State),
+		CodeVerifier:      r.FormValue(common.CodeVerifier),
 	}
 
 	sessionData, err := h.sessionService.GetSessionData(r)
@@ -135,14 +144,14 @@ func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Requ
 	response, err := h.authorizationService.GenerateTokens(authzCodeData)
 	if err != nil {
 		h.logger.Error(h.module, "RequestID=[%s]: Failed to generate access and refresh tokens: %v", requestID, err)
-		wrappedErr := errors.Wrap(err, "", "failed to generate access & refresh tokens")
+		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access & refresh tokens")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
 	if err := h.sessionService.ClearStateFromSession(sessionData); err != nil {
 		h.logger.Error(h.module, "RequestID=[%s]: Failed to clear state from the current session: %v", requestID, err)
-		wrappedErr := errors.Wrap(err, "", "failed to clear state from session")
+		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to clear state from session")
 		web.WriteError(w, wrappedErr)
 		return
 	}
