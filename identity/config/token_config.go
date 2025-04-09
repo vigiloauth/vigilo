@@ -114,7 +114,7 @@ func WithExpirationTime(duration time.Duration) TokenOption {
 func WithAccessTokenDuration(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
 		if !isInMinutes(duration) {
-			c.logger.Warn(c.module, "Access token duration is not in hours, using default value")
+			c.logger.Warn(c.module, "Access token duration is not in minutes, using default value")
 			c.accessTokenDuration = defaultAccessTokenDuration
 			return
 		}
@@ -197,8 +197,8 @@ func (j *TokenConfig) String() string {
 			"\tExpirationTime: %s\n"+
 			"\tRefreshTokenDuration: %s\n"+
 			"\tAccessTokenDuration: %s\n",
-		j.expirationTime,
 		j.signingMethod.Alg(),
+		j.expirationTime,
 		j.refreshTokenDuration,
 		j.accessTokenDuration,
 	)

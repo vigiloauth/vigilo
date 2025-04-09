@@ -47,4 +47,6 @@ type TokenRepository interface {
 	//
 	//   error: An error if the token deletion fails.
 	DeleteToken(token string) error
+
+	BlacklistToken(token string) error
 }

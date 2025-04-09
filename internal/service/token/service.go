@@ -140,6 +140,10 @@ func (ts *TokenServiceImpl) IsTokenBlacklisted(token string) bool {
 	return ts.tokenRepo.IsTokenBlacklisted(token)
 }
 
+func (ts *TokenServiceImpl) BlacklistToken(token string) error {
+	return ts.tokenRepo.BlacklistToken(token)
+}
+
 // SaveToken adds a token to the token store.
 //
 // Parameters:
@@ -254,6 +258,9 @@ func (ts *TokenServiceImpl) IsTokenExpired(token string) bool {
 //
 //	error: An error if the token is blacklisted or expired.
 func (ts *TokenServiceImpl) ValidateToken(token string) error {
+	if _, err := ts.ParseToken(token); err != nil {
+		return errors.New(errors.ErrCodeInvalidGrant, "invalid token format")
+	}
 	if ts.IsTokenExpired(token) {
 		logger.Warn(module, "ValidateToken: Token=[%s] is expired", common.TruncateSensitive(token))
 		return errors.New(errors.ErrCodeExpiredToken, "the token is expired")
@@ -262,6 +269,31 @@ func (ts *TokenServiceImpl) ValidateToken(token string) error {
 		return errors.New(errors.ErrCodeUnauthorized, "the token is blacklisted")
 	}
 	return nil
+}
+
+// GenerateRefreshAndAccessTokens generates new tokens with the given subject.
+//
+// Parameters:
+//
+//	subject string: The subject for the token claims.
+//
+//	Returns:
+//
+//	refreshToken string: A new refresh token.
+//	accessToken string: A new access token.
+//	error: An error if an error occurs during generation.
+func (ts *TokenServiceImpl) GenerateRefreshAndAccessTokens(subject string) (string, string, error) {
+	refreshToken, err := ts.generateAndStoreToken(subject, "", config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+	if err != nil {
+		return "", "", err
+	}
+
+	accessToken, err := ts.generateAndStoreToken(subject, "", config.GetServerConfig().TokenConfig().AccessTokenDuration())
+	if err != nil {
+		return "", "", err
+	}
+
+	return refreshToken, accessToken, nil
 }
 
 // generateAndStoreToken creates a signed JWT (JSON Web Token) with standard claims

@@ -26,4 +26,5 @@ const (
 	Username                      string = "username"
 	Password                      string = "password"
 	CodeVerifier                  string = "code_verifier"
+	RefreshToken                  string = "refresh_token"
 )

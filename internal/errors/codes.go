@@ -93,6 +93,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeEmailTemplateParseFailed:  http.StatusBadRequest,
 	ErrCodeUnsupportedEncryptionType: http.StatusBadRequest,
 	ErrCodeMissingHeader:             http.StatusBadRequest,
+	ErrCodeUnauthorizedClient:        http.StatusBadRequest,
 	ErrCodeClientSecretNotAllowed:    http.StatusBadRequest,
 	ErrCodeInvalidResponseType:       http.StatusBadRequest,
 	ErrCodeInvalidContentType:        http.StatusBadRequest,
@@ -101,6 +102,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeBadRequest:                http.StatusBadRequest,
 	ErrCodeInvalidClientMetadata:     http.StatusBadRequest,
 	ErrCodeInvalidGrant:              http.StatusBadRequest,
+	ErrCodeInsufficientScope:         http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -125,8 +127,6 @@ var statusCodeMap = map[string]int{
 
 	// 403 Forbidden
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,
-	ErrCodeUnauthorizedClient: http.StatusForbidden,
-	ErrCodeInsufficientScope:  http.StatusForbidden,
 	ErrCodeAccessDenied:       http.StatusForbidden,
 
 	// 409 Conflict

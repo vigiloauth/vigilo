@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -58,6 +59,11 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	requestedGrantType := r.FormValue(common.GrantType)
 	requestedScopes := r.FormValue(common.Scope)
 
+	if requestedGrantType == "" {
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "one or more required parameters are missing"))
+		return
+	}
+
 	switch requestedGrantType {
 	case client.ClientCredentials:
 		h.handleClientCredentialsRequest(w, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
@@ -68,9 +74,12 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	case client.AuthorizationCode, client.PKCE:
 		h.handleAuthorizationCodeTokenExchange(w, r, requestID, clientID, clientSecret)
 		return
+	case client.RefreshToken:
+		h.handleRefreshTokenRequest(w, r, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
 	default:
 		h.logger.Warn(h.module, "RequestID=[%s]: Unsupported grant type", requestID)
-		web.WriteError(w, errors.New(errors.ErrCodeUnsupportedGrantType, "the provided grant type is not supported"))
+		err := errors.New(errors.ErrCodeUnsupportedGrantType, fmt.Sprintf("the provided grant type [%s] is not supported", requestedGrantType))
+		web.WriteError(w, err)
 		return
 	}
 }
@@ -172,6 +181,23 @@ func (h *TokenHandler) handleAuthorizationCodeTokenExchange(w http.ResponseWrite
 	}
 
 	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[TokenExchange]", requestID)
+	web.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *TokenHandler) handleRefreshTokenRequest(w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+	refreshToken := r.FormValue(common.RefreshToken)
+	if refreshToken == "" || requestedScopes == "" {
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "one or more required parameters are missing"))
+		return
+	}
+
+	response, err := h.authService.RefreshAccessToken(clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes)
+	if err != nil {
+		h.logger.Error(h.module, "RequestID=[%s]: Failed to issue new access token: %v", requestID, err)
+		web.WriteError(w, errors.Wrap(err, "", "failed to issue new access and refresh tokens"))
+		return
+	}
+
 	web.WriteJSON(w, http.StatusOK, response)
 }
 

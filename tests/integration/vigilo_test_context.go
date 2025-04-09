@@ -132,8 +132,8 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 	clientRepo.GetInMemoryClientRepository().SaveClient(c)
 }
 
-// WithAccessToken creates and adds a user JWT token to the system.
-func (tc *VigiloTestContext) WithAccessToken(id string, duration time.Duration) *VigiloTestContext {
+// WithJWTToken creates and adds a user JWT token to the system.
+func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *VigiloTestContext {
 	if tc.User == nil {
 		tc.WithUser()
 	}
@@ -145,6 +145,16 @@ func (tc *VigiloTestContext) WithAccessToken(id string, duration time.Duration) 
 	tc.JWTToken = token
 	tokenRepo.GetInMemoryTokenRepository().SaveToken(token, id, time.Now().Add(duration))
 
+	return tc
+}
+
+func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
+	tokenService := tokenService.NewTokenServiceImpl(tokenRepo.GetInMemoryTokenRepository())
+	token, err := tokenService.GenerateToken(id, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+	assert.NoError(tc.T, err)
+
+	tc.JWTToken = token
+	tokenRepo.GetInMemoryTokenRepository().BlacklistToken(token)
 	return tc
 }
 
@@ -198,7 +208,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 
 // WithExpiredToken generates an expired token for testing.
 func (tc *VigiloTestContext) WithExpiredToken() *VigiloTestContext {
-	return tc.WithAccessToken(testEmail, -1*time.Hour)
+	return tc.WithJWTToken(testEmail, -1*time.Hour)
 }
 
 // WithPasswordResetToken generates a password reset token.

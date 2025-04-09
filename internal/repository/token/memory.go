@@ -20,8 +20,9 @@ const module = "InMemoryTokenRepository"
 
 // InMemoryTokenRepository implements a token store using an in-memory map.
 type InMemoryTokenRepository struct {
-	tokens map[string]*domain.TokenData
-	mu     sync.RWMutex
+	tokens    map[string]*domain.TokenData
+	blacklist map[string]struct{}
+	mu        sync.RWMutex
 }
 
 // GetInMemoryTokenRepository returns the singleton instance of InMemoryTokenStore.
@@ -33,7 +34,10 @@ type InMemoryTokenRepository struct {
 func GetInMemoryTokenRepository() *InMemoryTokenRepository {
 	once.Do(func() {
 		logger.Debug(module, "Creating new instance of InMemoryTokenRepository")
-		instance = &InMemoryTokenRepository{tokens: make(map[string]*domain.TokenData)}
+		instance = &InMemoryTokenRepository{
+			tokens:    make(map[string]*domain.TokenData),
+			blacklist: make(map[string]struct{}),
+		}
 		go instance.cleanupExpiredTokens()
 	})
 	return instance
@@ -45,6 +49,7 @@ func ResetInMemoryTokenRepository() {
 		logger.Debug(module, "Resetting instance")
 		instance.mu.Lock()
 		instance.tokens = make(map[string]*domain.TokenData)
+		instance.blacklist = make(map[string]struct{})
 		instance.mu.Unlock()
 	}
 }
@@ -59,6 +64,12 @@ func ResetInMemoryTokenRepository() {
 func (b *InMemoryTokenRepository) SaveToken(tokenStr string, id string, expiration time.Time) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	if _, blacklisted := b.blacklist[tokenStr]; blacklisted {
+		logger.Debug(module, "SaveToken: Token=%s is blacklisted and will not be saved", truncateToken(tokenStr))
+		return
+	}
+
 	b.tokens[tokenStr] = &domain.TokenData{
 		ID:        id,
 		ExpiresAt: expiration,
@@ -101,6 +112,21 @@ func (b *InMemoryTokenRepository) GetToken(token string, id string) (*domain.Tok
 	return data, nil
 }
 
+func (b *InMemoryTokenRepository) BlacklistToken(token string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	data, exists := b.tokens[token]
+	if !exists || time.Now().After(data.ExpiresAt) {
+		logger.Debug(module, "BlacklistToken: Token=%s not found or expired", truncateToken(token))
+		return errors.New(errors.ErrCodeTokenNotFound, "token not found or expired")
+	}
+
+	b.blacklist[token] = struct{}{}
+	logger.Debug(module, "BlacklistToken: Token=%s has been blacklisted", truncateToken(token))
+	return nil
+}
+
 // IsTokenBlacklisted checks if a token is blacklisted.
 //
 // Parameters:
@@ -113,6 +139,12 @@ func (b *InMemoryTokenRepository) GetToken(token string, id string) (*domain.Tok
 func (b *InMemoryTokenRepository) IsTokenBlacklisted(token string) bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
+
+	_, blacklisted := b.blacklist[token]
+	if blacklisted {
+		logger.Debug(module, "IsTokenBlacklisted: Token=%s is blacklisted", truncateToken(token))
+		return true
+	}
 
 	data, exists := b.tokens[token]
 	if !exists {
@@ -149,6 +181,8 @@ func (b *InMemoryTokenRepository) DeleteToken(token string) error {
 	}
 
 	delete(b.tokens, token)
+	delete(b.blacklist, token)
+
 	logger.Debug(module, "DeleteToken: Successfully deleted token=%s", truncateToken(token))
 	return nil
 }
@@ -164,6 +198,7 @@ func (b *InMemoryTokenRepository) cleanupExpiredTokens() {
 			if now.After(data.ExpiresAt) {
 				logger.Debug(module, "Deleting expired token=%s", truncateToken(token))
 				delete(b.tokens, token)
+				delete(b.blacklist, token)
 			}
 		}
 		b.mu.Unlock()
