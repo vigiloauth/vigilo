@@ -463,7 +463,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		headers := map[string]string{common.Bearer: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodPut, endpoint, nil, headers)
 
-		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing one or more required fields in the request")
+		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidRequest, "missing one or more required fields in the request")
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
