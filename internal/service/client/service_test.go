@@ -222,7 +222,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		assert.Equal(t, actual.Error(), expected.Error())
 	})
 
-	t.Run("Error is returned when client does not have required scope", func(t *testing.T) {
+	t.Run("Error is returned when client does not have the required scopes", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
 		testClient.Secret = testClientSecret
@@ -267,7 +267,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 
 		cs := NewClientServiceImpl(mockClientStore, nil)
-		expected := errors.New(errors.ErrCodeUnauthorizedClient, "failed to validate client: client is not confidential")
+		expected := errors.New(errors.ErrCodeUnauthorizedClient, "invalid credentials")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
 		assert.Error(t, actual)
@@ -653,7 +653,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 		err := service.AuthenticateClient(testClientID, testClientSecret, client.PasswordGrant, client.ClientManage)
 
 		assert.Error(t, err)
-		assert.Equal(t, "client does not exist with the given ID", err.Error())
+		assert.Equal(t, "client credentials are either missing or invalid", err.Error())
 	})
 
 	t.Run("Client does not have required grant type", func(t *testing.T) {

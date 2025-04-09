@@ -274,7 +274,7 @@ func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsEr
 	endpoint := fmt.Sprintf("%s/invalid-id", web.ClientEndpoints.RegenerateSecret)
 	rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, nil)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 func TestClientHandler_GetClient(t *testing.T) {

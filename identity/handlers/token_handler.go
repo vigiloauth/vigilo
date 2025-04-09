@@ -30,10 +30,11 @@ func NewTokenHandler(
 	authorizationService authz.AuthorizationService,
 ) *TokenHandler {
 	return &TokenHandler{
-		authService:    authService,
-		sessionService: sessionService,
-		logger:         config.GetServerConfig().Logger(),
-		module:         "Token Handler",
+		authService:          authService,
+		sessionService:       sessionService,
+		authorizationService: authorizationService,
+		logger:               config.GetServerConfig().Logger(),
+		module:               "Token Handler",
 	}
 }
 
@@ -41,17 +42,16 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	requestID := common.GetRequestID(r.Context())
 	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IssueToken]", requestID)
 
-	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
+	err := r.ParseForm()
 	if err != nil {
-		wrappedErr := errors.Wrap(err, errors.ErrCodeInvalidClient, "invalid authorization header")
-		h.logger.Error(h.module, "RequestID=[%s]: Invalid authorization header: %v", requestID, err)
-		web.WriteError(w, wrappedErr)
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "unable to parse form"))
 		return
 	}
 
-	err = r.ParseForm()
+	clientID, clientSecret, err := h.exractClientCredentials(r)
 	if err != nil {
-		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "unable to parse form"))
+		h.logger.Error(h.module, "RequestID=[%s]: Invalid client credentials: %v", requestID, err)
+		web.WriteError(w, err)
 		return
 	}
 
@@ -122,9 +122,16 @@ func (h *TokenHandler) handleAuthorizationCodeTokenExchange(w http.ResponseWrite
 		AuthorizationCode: r.FormValue(common.AuthzCode),
 		RedirectURI:       r.FormValue(common.RedirectURI),
 		ClientID:          clientID,
-		ClientSecret:      clientSecret,
 		State:             r.FormValue(common.State),
-		CodeVerifier:      r.FormValue(common.CodeVerifier),
+	}
+
+	codeVerifier := r.FormValue(common.CodeVerifier)
+	if codeVerifier != "" {
+		tokenRequest.CodeVerifier = codeVerifier
+	}
+
+	if clientSecret != "" {
+		tokenRequest.ClientSecret = clientSecret
 	}
 
 	sessionData, err := h.sessionService.GetSessionData(r)
@@ -166,4 +173,17 @@ func (h *TokenHandler) handleAuthorizationCodeTokenExchange(w http.ResponseWrite
 
 	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[TokenExchange]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *TokenHandler) exractClientCredentials(r *http.Request) (string, string, error) {
+	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
+	if err != nil {
+		clientID = r.FormValue(common.ClientID)
+		clientSecret = r.FormValue(common.ClientSecret)
+		if clientID == "" {
+			return "", "", errors.New(errors.ErrCodeInvalidClient, "missing client identification")
+		}
+	}
+
+	return clientID, clientSecret, nil
 }

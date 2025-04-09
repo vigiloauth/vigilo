@@ -23,7 +23,7 @@ const (
 	testClientName     string = "testClient"
 	testClientID       string = "clientID"
 	testClientSecret   string = "secret"
-	testScope          string = "client:manage"
+	testScope          string = "clients:manage"
 	testRedirectURI    string = "http://localhost/callback"
 	testCode           string = "12314324code"
 	validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_"
@@ -262,13 +262,13 @@ func createClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 	return &client.ClientAuthorizationRequest{
 		ClientID:    testClientID,
 		UserID:      testUserID,
-		Scope:       "client:manage",
+		Scope:       testScope,
 		RedirectURI: testRedirectURI,
 		Client: &client.Client{
 			Type:          client.Public,
 			ResponseTypes: []string{client.CodeResponseType},
 			GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
-			Scopes:        []string{"client:manage"},
+			Scopes:        []string{testScope},
 			RedirectURIS:  []string{testRedirectURI},
 		},
 		ResponseType:        client.CodeResponseType,

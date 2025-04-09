@@ -150,7 +150,11 @@ func (cs *ClientServiceImpl) RegenerateClientSecret(clientID string) (*client.Cl
 		logger.Error(module, "RegenerateClientSecret: Failed to retrieve client=[%s]: %v", common.TruncateSensitive(clientID), err)
 		return nil, err
 	}
-	if err := cs.validateClientAuthorization(retrievedClient, "", client.ClientCredentials, client.ClientManage); err != nil {
+	if !retrievedClient.IsConfidential() {
+		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
+	}
+
+	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, client.ClientCredentials, client.ClientManage); err != nil {
 		logger.Error(module, "RegenerateClientSecret: Failed to validate client=[%s]: %v", common.TruncateSensitive(clientID), err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
