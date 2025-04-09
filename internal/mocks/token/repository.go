@@ -23,6 +23,8 @@ type MockTokenRepository struct {
 	DeleteTokenFunc func(token string) error
 
 	BlacklistTokenFunc func(token string) error
+
+	ExistsByTokenIDFunc func(tokenID string) bool
 }
 
 // AddToken calls the mock AddTokenFunc.
@@ -47,4 +49,8 @@ func (m *MockTokenRepository) DeleteToken(token string) error {
 
 func (m *MockTokenRepository) BlacklistToken(token string) error {
 	return m.BlacklistTokenFunc(token)
+}
+
+func (m *MockTokenRepository) ExistsByTokenID(tokenID string) bool {
+	return m.ExistsByTokenIDFunc(tokenID)
 }

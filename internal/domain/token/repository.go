@@ -49,4 +49,6 @@ type TokenRepository interface {
 	DeleteToken(token string) error
 
 	BlacklistToken(token string) error
+
+	ExistsByTokenID(tokenID string) bool
 }

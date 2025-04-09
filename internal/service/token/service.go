@@ -155,10 +155,7 @@ func (ts *TokenServiceImpl) BlacklistToken(token string) error {
 //	id string: The id associated with the token.
 //	expirationTime time.Time: The token's expiration time.
 func (ts *TokenServiceImpl) SaveToken(token string, id string, expirationTime time.Time) {
-	hashedToken, err := crypto.HashString(token)
-	if err != nil {
-		logger.Error(module, "Error while encrypting token: %v", err)
-	}
+	hashedToken := crypto.HashSHA256(token)
 	ts.tokenRepo.SaveToken(hashedToken, id, expirationTime)
 }
 
@@ -318,34 +315,54 @@ func (ts *TokenServiceImpl) GenerateRefreshAndAccessTokens(subject string) (stri
 //	string: A signed JWT token string.
 //	error: An error if token generation or signing fails.
 func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience string, duration time.Duration) (string, error) {
-	logger.Info(module, "Generating token for subject=[%s], duration=[%s]",
-		common.TruncateSensitive(subject),
-		duration,
-	)
+	maximumRetries := 5
+	currentRetry := 0
 
-	tokenExpiration := time.Now().Add(duration)
+	for currentRetry < maximumRetries {
+		tokenExpiration := time.Now().Add(duration)
+		claims, err := ts.generateStandardClaims(subject, audience, tokenExpiration.Unix())
+		if err != nil {
+			logger.Warn(module, "Failed to generate JWT Standard Claims. Incrementing retry count")
+			currentRetry++
+			continue
+		}
+
+		token := jwt.NewWithClaims(ts.tokenConfig.SigningMethod(), claims)
+		signedToken, err := token.SignedString([]byte(ts.tokenConfig.SecretKey()))
+		if err != nil {
+			logger.Warn(module, "Failed to sign token. Incrementing retry count")
+			currentRetry++
+			continue
+		}
+
+		hashedToken := crypto.HashSHA256(signedToken)
+		ts.tokenRepo.SaveToken(hashedToken, subject, tokenExpiration)
+		logger.Info(module, "Successfully generated token after %d retries", currentRetry)
+		return signedToken, nil
+	}
+
+	return "", errors.New(errors.ErrCodeInternalServerError, "failed to generate and store after maximum retries reached")
+}
+
+func (ts *TokenServiceImpl) generateStandardClaims(subject, audience string, tokenExpiration int64) (*jwt.StandardClaims, error) {
 	claims := &jwt.StandardClaims{
 		Subject:   subject,
 		Issuer:    tokenIssuer,
 		IssuedAt:  time.Now().Unix(),
-		ExpiresAt: tokenExpiration.Unix(),
+		ExpiresAt: tokenExpiration,
+	}
+
+	tokenID, err := crypto.GenerateRandomString(32)
+	if err != nil || ts.tokenRepo.ExistsByTokenID(tokenID) {
+		logger.Warn(module, "failed to generate JWT Standard Claims: %v", err)
+		return nil, err
+	} else {
+		claims.Id = tokenID
 	}
 
 	if audience != "" {
-		logger.Debug(module, "Adding audience=[%s] to token claims", common.TruncateSensitive(audience))
 		claims.Audience = audience
 	}
 
-	token := jwt.NewWithClaims(ts.tokenConfig.SigningMethod(), claims)
-	signedToken, err := token.SignedString([]byte(ts.tokenConfig.SecretKey()))
-	if err != nil {
-		logger.Error(module, "Failed to generate token: %v", err)
-		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
-	}
-
-	logger.Info(module, "Token generated successfully for subject=[%s]", common.TruncateSensitive(subject))
-	hashedToken := crypto.HashSHA256(signedToken)
-	ts.tokenRepo.SaveToken(hashedToken, subject, tokenExpiration)
-	logger.Info(module, "Token stored successfully for subject=[%s]", common.TruncateSensitive(subject))
-	return signedToken, nil
+	return claims, nil
 }

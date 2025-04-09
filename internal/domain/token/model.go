@@ -7,6 +7,7 @@ type TokenData struct {
 	Token     string    // The token string.
 	ID        string    // The id associated with the token.
 	ExpiresAt time.Time // The token's expiration time.
+	TokenID   string
 }
 
 // TokenResponse represents the structure of an OAuth token response.

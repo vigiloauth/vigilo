@@ -187,6 +187,16 @@ func (b *InMemoryTokenRepository) DeleteToken(token string) error {
 	return nil
 }
 
+func (b *InMemoryTokenRepository) ExistsByTokenID(tokenID string) bool {
+	for _, data := range b.tokens {
+		if data.TokenID == tokenID {
+			return true
+		}
+	}
+
+	return false
+}
+
 // cleanupExpiredTokens periodically removes expired tokens from the store.
 func (b *InMemoryTokenRepository) cleanupExpiredTokens() {
 	logger.Debug(module, "Starting cleanup of expired tokens")
