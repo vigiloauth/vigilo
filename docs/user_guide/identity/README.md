@@ -21,8 +21,8 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [Password Reset Email Request](../identity/endpoints/user_handler/password_reset_request.md)
 - **Client Management:**
     - [Client Registration](../identity/endpoints/client_handler/client_registration.md)
-    - [Client Credentials Flow](../identity/endpoints/auth_handler/client_credentials_grant.md)
-    - [Resource Owner Password Credentials Flow](../identity/endpoints/auth_handler/ropc_grant.md)
+    - [Client Credentials Flow](../identity/endpoints/token_handler/client_credentials_grant.md)
+    - [Resource Owner Password Credentials Flow](../identity/endpoints/token_handler/ropc_grant.md)
     - [Client Secret Regeneration](../identity/endpoints/client_handler/client_secret_regeneration.md)
     - **Client Configuration**
         - [Client Read Request](../identity/endpoints/client_handler/client_read_request.md)
@@ -32,5 +32,5 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [Client Authorization](../identity/endpoints/authz_handler/authorize_client.md)
     - [User Authentication](../identity/endpoints/oauth_handler/user_authentication.md)
     - [User Consent](../identity/endpoints/oauth_handler/user_consent.md)
-    - [Token Exchange](../identity/endpoints/authz_handler/token_exchange.md)
+    - [Token Exchange](../identity/endpoints/token_handler/token_exchange.md)
 

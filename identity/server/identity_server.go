@@ -26,7 +26,7 @@ type VigiloIdentityServer struct {
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
-	tokenHandler  *handlers.AuthHandler
+	tokenHandler  *handlers.TokenHandler
 	authzHandler  *handlers.AuthorizationHandler
 	oauthHandler  *handlers.OAuthHandler
 
@@ -116,8 +116,6 @@ func (s *VigiloIdentityServer) setupFormDataRequiredRoutes() {
 		r.Group(func(pr chi.Router) {
 			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
 			pr.Post(web.OAuthEndpoints.Token, s.tokenHandler.IssueTokens)
-			pr.Post(web.OAuthEndpoints.TokenExchange, s.authzHandler.TokenExchange)
-
 		})
 	})
 }

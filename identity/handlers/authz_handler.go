@@ -10,7 +10,6 @@ import (
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
@@ -88,76 +87,6 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 
 	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[AuthorizeClient]", requestID)
 	http.Redirect(w, r, redirectURL, http.StatusFound)
-}
-
-// TokenExchange handles the token endpoint for OAuth 2.0 authorization code grant.
-//
-// It decodes the token request, validates it, authorizes the token exchange,
-// generates access and refresh tokens, and writes the token response as JSON.
-//
-// Parameters:
-//
-//	w http.ResponseWriter: The HTTP response writer.
-//	r *http.Request: The HTTP request.
-func (h *AuthorizationHandler) TokenExchange(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[TokenExchange]", requestID)
-
-	err := r.ParseForm()
-	if err != nil {
-		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "unable to parse form"))
-		return
-	}
-
-	tokenRequest := &token.TokenRequest{
-		GrantType:         r.FormValue(common.GrantType),
-		AuthorizationCode: r.FormValue(common.AuthzCode),
-		RedirectURI:       r.FormValue(common.RedirectURI),
-		ClientID:          r.FormValue(common.ClientID),
-		ClientSecret:      r.FormValue(common.ClientSecret),
-		State:             r.FormValue(common.State),
-		CodeVerifier:      r.FormValue(common.CodeVerifier),
-	}
-
-	sessionData, err := h.sessionService.GetSessionData(r)
-	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to retrieve session data: %v", requestID, err)
-		web.WriteError(w, errors.NewInvalidSessionError())
-		return
-	}
-
-	if sessionData.State != tokenRequest.State {
-		err := errors.New(errors.ErrCodeInvalidRequest, "state mismatch between session and request")
-		h.logger.Error(h.module, "RequestID=[%s]: State mismatch between session and request", requestID)
-		web.WriteError(w, err)
-		return
-	}
-
-	authzCodeData, err := h.authorizationService.AuthorizeTokenExchange(tokenRequest)
-	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Authorization failed for token exchange: %v", requestID, err)
-		wrappedErr := errors.Wrap(err, "", "authorization failed for token exchange")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
-	response, err := h.authorizationService.GenerateTokens(authzCodeData)
-	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to generate access and refresh tokens: %v", requestID, err)
-		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access & refresh tokens")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
-	if err := h.sessionService.ClearStateFromSession(sessionData); err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to clear state from the current session: %v", requestID, err)
-		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to clear state from session")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[TokenExchange]", requestID)
-	web.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state, requestID string) string {

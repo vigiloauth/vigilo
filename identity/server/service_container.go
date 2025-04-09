@@ -99,7 +99,7 @@ type ServiceContainer struct {
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
-	tokenHandler  *handlers.AuthHandler
+	tokenHandler  *handlers.TokenHandler
 	authzHandler  *handlers.AuthorizationHandler
 	oauthHandler  *handlers.OAuthHandler
 
@@ -211,7 +211,7 @@ func (c *ServiceContainer) initializeHandlers() {
 	c.logger.Info(c.module, "Initializing handlers")
 	c.userHandler = handlers.NewUserHandler(c.getUserService(), c.getPasswordResetService(), c.getSessionService())
 	c.clientHandler = handlers.NewClientHandler(c.getClientService())
-	c.tokenHandler = handlers.NewTokenHandler(c.getAuthService())
+	c.tokenHandler = handlers.NewTokenHandler(c.getAuthService(), c.getSessionService(), c.getAuthorizationService())
 	c.authzHandler = handlers.NewAuthorizationHandler(c.getAuthorizationService(), c.getSessionService())
 	c.oauthHandler = handlers.NewOAuthHandler(c.getUserService(), c.getSessionService(), c.getClientService(), c.getConsentService(), c.getAuthzCodeService())
 }

@@ -176,19 +176,16 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 	}
 
 	auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
-	formData := "grant_type=client_credentials"
+	formData := url.Values{}
+	formData.Add(common.GrantType, client.ClientCredentials)
+	formData.Add(common.Scope, client.ClientManage)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		web.OAuthEndpoints.Token,
-		strings.NewReader(formData),
-	)
+	headers := map[string]string{
+		"Content-Type":  "application/x-www-form-urlencoded",
+		"Authorization": "Basic " + auth,
+	}
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Authorization", "Basic "+auth)
-
-	rr := httptest.NewRecorder()
-	tc.VigiloServer.Router().ServeHTTP(rr, req)
+	rr := tc.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
 
 	var tokenResponse token.TokenResponse
 	err := json.NewDecoder(rr.Body).Decode(&tokenResponse)

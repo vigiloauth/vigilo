@@ -263,18 +263,18 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 
 func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsError(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
 	testContext.WithClient(
 		client.Confidential,
 		[]string{client.ClientManage},
 		[]string{client.ClientCredentials},
 	)
 	testContext.WithClientCredentialsToken()
-	defer testContext.TearDown()
 
 	endpoint := fmt.Sprintf("%s/invalid-id", web.ClientEndpoints.RegenerateSecret)
 	rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, nil)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 func TestClientHandler_GetClient(t *testing.T) {
