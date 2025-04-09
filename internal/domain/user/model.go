@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"slices"
 	"time"
 )
 
@@ -10,15 +11,17 @@ type User struct {
 	Username        string    // User's username.
 	Email           string    // User's email address.
 	Password        string    // User's password (hashed).
+	Scopes          []string  // User's scopes (permissions).
 	LastFailedLogin time.Time // Timestamp of the last failed login attempt.
 	AccountLocked   bool      // Indicates if the user's account is locked.
 }
 
 // UserRegistrationRequest represents the registration request payload.
 type UserRegistrationRequest struct {
-	Username string `json:"username"` // Username for the new user.
-	Email    string `json:"email"`    // Email address for the new user.
-	Password string `json:"password"` // Password for the new user.
+	Username string   `json:"username"`         // Username for the new user.
+	Email    string   `json:"email"`            // Email address for the new user.
+	Password string   `json:"password"`         // Password for the new user.
+	Scopes   []string `json:"scopes,omitempty"` // Scopes for the new user.
 }
 
 // UserRegistrationResponse represents the registration response payload.
@@ -31,7 +34,7 @@ type UserRegistrationResponse struct {
 // UserLoginRequest represents the login request payload.
 type UserLoginRequest struct {
 	ID       string `json:"user_id"`  // User's ID.
-	Email    string `json:"email"`    // User's email address.
+	Username string `json:"username"` // User's username.
 	Password string `json:"password"` // User's password.
 }
 
@@ -59,8 +62,11 @@ type UserPasswordResetResponse struct {
 
 // UserLoginAttempt represents a user's login attempt.
 type UserLoginAttempt struct {
-	UserID          string    // UserID associated with the login attempt.
-	IPAddress       string    // IP address from which the login attempt was made.
+	UserID          string // UserID associated with the login attempt.
+	IPAddress       string // IP address from which the login attempt was made.
+	Username        string
+	Password        string
+	ForwardedFor    string    // X-Forwarded-For header value (if present).
 	Timestamp       time.Time // Timestamp of the login attempt.
 	RequestMetadata string    // Additional request metadata (e.g., headers).
 	Details         string    // Details about the login attempt (e.g., error messages).
@@ -131,16 +137,16 @@ func NewUserRegistrationResponse(user *User, jwtToken string) *UserRegistrationR
 // Parameters:
 //
 //	id string: The user's id.
-//	email string: The email for the login request.
+//	username string: The username for the login request.
 //	password string: The password for the login request.
 //
 // Returns:
 //
 //	*UserLoginRequest: A new UserLoginRequest instance.
-func NewUserLoginRequest(id, email, password string) *UserLoginRequest {
+func NewUserLoginRequest(id, username, password string) *UserLoginRequest {
 	return &UserLoginRequest{
 		ID:       id,
-		Email:    email,
+		Username: username,
 		Password: password,
 	}
 }
@@ -186,4 +192,8 @@ func NewUserLoginAttempt(ipAddress, requestMetadata, details, userAgent string) 
 		UserAgent:       userAgent,
 		FailedAttempts:  0,
 	}
+}
+
+func (u *User) HasScope(scope string) bool {
+	return slices.Contains(u.Scopes, scope)
 }

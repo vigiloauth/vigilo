@@ -2,6 +2,7 @@ package common
 
 const (
 	ClientID                      string = "client_id"
+	ClientSecret                  string = "client_secret"
 	RedirectURI                   string = "redirect_uri"
 	Scope                         string = "scope"
 	State                         string = "state"
@@ -22,4 +23,7 @@ const (
 	RequestID                     string = "requestID"
 	CodeChallenge                 string = "code_challenge"
 	CodeChallengeMethod           string = "code_challenge_method"
+	Username                      string = "username"
+	Password                      string = "password"
+	CodeVerifier                  string = "code_verifier"
 )

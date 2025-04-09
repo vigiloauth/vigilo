@@ -150,7 +150,7 @@ func (cs *ClientServiceImpl) RegenerateClientSecret(clientID string) (*client.Cl
 		logger.Error(module, "RegenerateClientSecret: Failed to retrieve client=[%s]: %v", common.TruncateSensitive(clientID), err)
 		return nil, err
 	}
-	if err := cs.validateClientAuthorization(retrievedClient, "", client.ClientManage, client.ClientCredentials); err != nil {
+	if err := cs.validateClientAuthorization(retrievedClient, "", client.ClientCredentials, client.ClientManage); err != nil {
 		logger.Error(module, "RegenerateClientSecret: Failed to validate client=[%s]: %v", common.TruncateSensitive(clientID), err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
@@ -182,38 +182,32 @@ func (cs *ClientServiceImpl) RegenerateClientSecret(clientID string) (*client.Cl
 	}, nil
 }
 
-// AuthenticateClientForCredentialsGrant authenticates the client using provided credentials
+// AuthenticateClientForPasswordGrant authenticates the client using provided credentials
 // and authorizes access by validating required grant types and scopes.
 //
 // Parameters:
 //
 //	clientID string: The ID of the client.
 //	clientSecret string: The client secret.
+//	requestedGrant string: The requested grant type to validate.
+//	scopes string: The scopes to validate.
 //
 // Returns:
 //
-//	*client.Client: The authenticated client if successful.
 //	error: An error if authentication or authorization fails.
-func (cs *ClientServiceImpl) AuthenticateClientForCredentialsGrant(clientID, clientSecret string) (*client.Client, error) {
-	if clientID == "" || clientSecret == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "missing required parameter")
-		logger.Error(module, "AuthenticateClientForCredentialsGrant: Failed to authenticate client: %v", err)
-		return nil, err
-	}
-
+func (cs *ClientServiceImpl) AuthenticateClient(clientID string, clientSecret string, requestedGrant string, requestedScopes string) error {
 	existingClient := cs.clientRepo.GetClientByID(clientID)
 	if existingClient == nil {
-		logger.Error(module, "AuthenticateClientForCredentialsGrant: Failed to authenticate client. Client does not exist with ID=[%s]",
-			common.TruncateSensitive(clientID),
-		)
-		return nil, errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
-	}
-	if err := cs.validateClientAuthorization(existingClient, clientSecret, client.ClientManage, client.ClientCredentials); err != nil {
-		logger.Error(module, "AuthenticateClientForCredentialsGrant: Failed to validate client authorization: %v", err)
-		return nil, errors.Wrap(err, "", "failed to validate client")
+		logger.Error(module, "AuthenticateClient: Failed to authenticate client. Client does not exist with the ID=[%s]", common.TruncateSensitive(clientID))
+		return errors.New(errors.ErrCodeInvalidClient, "client credentials are either missing or invalid")
 	}
 
-	return existingClient, nil
+	if err := cs.validateClientAuthorization(existingClient, clientSecret, requestedGrant, requestedScopes); err != nil {
+		logger.Error(module, "AuthenticateClient: Failed to validate client authorization: %v", err)
+		return errors.Wrap(err, "", "failed to validate client")
+	}
+
+	return nil
 }
 
 // GetClientByID retrieves a client by the given ID.
@@ -223,7 +217,7 @@ func (cs *ClientServiceImpl) AuthenticateClientForCredentialsGrant(clientID, cli
 //	clientID string: The ID of the client.
 //
 // Returns:
-
+//
 // client *client.Client: Returns the client if they exist, otherwise nil.
 func (cs *ClientServiceImpl) GetClientByID(clientID string) *client.Client {
 	return cs.clientRepo.GetClientByID(clientID)
@@ -423,21 +417,24 @@ func (cs *ClientServiceImpl) ValidateAndDeleteClient(clientID, registrationAcces
 // Returns:
 //
 //	error: An error indicating why the client is not authorized, or nil if the client is valid.
-func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.Client, clientSecret, scope, grantType string) error {
-	if !existingClient.IsConfidential() {
-		return errors.New(errors.ErrCodeUnauthorizedClient, "client is not confidential")
-	}
-
+func (cs *ClientServiceImpl) validateClientAuthorization(existingClient *client.Client, clientSecret string, requestedGrant string, requestedScopes string) error {
 	if clientSecret != "" {
+		if !existingClient.IsConfidential() {
+			return errors.New(errors.ErrCodeUnauthorizedClient, "client is not confidential")
+		}
 		if !existingClient.SecretsMatch(clientSecret) {
 			return errors.New(errors.ErrCodeInvalidClient, "the client credentials are invalid or incorrectly formatted")
 		}
 	}
 
-	if !existingClient.HasScope(scope) {
-		return errors.New(errors.ErrCodeInsufficientScope, "client does not have the required scope(s)")
+	scopesArr := strings.Split(requestedScopes, " ")
+	for _, scope := range scopesArr {
+		if !existingClient.HasScope(scope) {
+			return errors.New(errors.ErrCodeInsufficientScope, "client does not have the required scope(s)")
+		}
 	}
-	if !existingClient.HasGrantType(grantType) {
+
+	if !existingClient.HasGrantType(requestedGrant) {
 		return errors.New(errors.ErrCodeInvalidGrant, "client does not have the required grant type")
 	}
 	return nil

@@ -28,6 +28,9 @@ func WriteError(w http.ResponseWriter, err error) {
 		WriteJSON(w, http.StatusBadRequest, err)
 	} else if stdErr, ok := err.(*errors.VigiloAuthError); ok {
 		statusCode := errors.StatusCode(stdErr.ErrorCode)
+		if stdErr.ErrorCode == errors.ErrCodeInvalidClient {
+			w.Header().Set("WWW-Authenticate", `Basic realm="auth", error="invalid_client", error_description="Client authentication failed"`)
+		}
 		WriteJSON(w, statusCode, stdErr)
 	} else {
 		genericErr := createGenericError(err)

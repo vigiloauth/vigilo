@@ -71,7 +71,7 @@ const (
 	ErrCodeRequestLimitExceeded = "request_limit_exceeded"
 
 	// System errors
-	ErrCodeInternalServerError = "internal_server_error"
+	ErrCodeInternalServerError = "server_error"
 
 	// Authorization Code Errors
 	ErrCodeInvalidAuthorizationCode  = "invalid_authorization_code"
@@ -100,9 +100,11 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidRequest:            http.StatusBadRequest,
 	ErrCodeBadRequest:                http.StatusBadRequest,
 	ErrCodeInvalidClientMetadata:     http.StatusBadRequest,
+	ErrCodeInvalidGrant:              http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
+	ErrCodeInvalidClient:            http.StatusUnauthorized,
 	ErrCodeUnauthorized:             http.StatusUnauthorized,
 	ErrCodeExpiredToken:             http.StatusUnauthorized,
 	ErrCodeInvalidToken:             http.StatusUnauthorized,
@@ -111,7 +113,6 @@ var statusCodeMap = map[string]int{
 	ErrCodeLoginRequired:            http.StatusUnauthorized,
 	ErrCodeConsentRequired:          http.StatusUnauthorized,
 	ErrCodeInvalidSession:           http.StatusUnauthorized,
-	ErrCodeInvalidClient:            http.StatusUnauthorized,
 	ErrCodeInvalidAuthorizationCode: http.StatusUnauthorized,
 	ErrCodeExpiredAuthorizationCode: http.StatusUnauthorized,
 
@@ -125,7 +126,6 @@ var statusCodeMap = map[string]int{
 	// 403 Forbidden
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,
 	ErrCodeUnauthorizedClient: http.StatusForbidden,
-	ErrCodeInvalidGrant:       http.StatusForbidden,
 	ErrCodeInsufficientScope:  http.StatusForbidden,
 	ErrCodeAccessDenied:       http.StatusForbidden,
 

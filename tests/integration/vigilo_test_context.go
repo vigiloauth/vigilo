@@ -45,7 +45,7 @@ const (
 	testClientID        string = "test-client-id"
 	testUserID          string = "test-user-id"
 	testClientSecret    string = "a-string-secret-at-least-256-bits-long-enough"
-	testScope           string = "client:manage user:manage"
+	testScope           string = "clients:manage users:manage"
 	encodedTestScope    string = "client%3Amanage%20user%3Amanage"
 	testRedirectURI     string = "https://vigiloauth.com/callback"
 	testConsentApproved string = "true"
@@ -94,6 +94,7 @@ func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
 
 	user.Password = hashedPassword
 	user.ID = testUserID
+	user.Scopes = []string{client.UserManage}
 	userRepo.GetInMemoryUserRepository().AddUser(user)
 
 	tc.User = user
@@ -179,7 +180,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 
 	req := httptest.NewRequest(
 		http.MethodPost,
-		web.OAuthEndpoints.ClientCredentialsToken,
+		web.OAuthEndpoints.Token,
 		strings.NewReader(formData),
 	)
 
@@ -241,7 +242,7 @@ func (tc *VigiloTestContext) ClearSession() {
 func (tc *VigiloTestContext) WithOAuthLogin() {
 	loginRequest := users.UserLoginRequest{
 		ID:       testUserID,
-		Email:    testEmail,
+		Username: testUsername,
 		Password: testPassword1,
 	}
 

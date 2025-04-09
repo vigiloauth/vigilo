@@ -1,11 +1,13 @@
 package domain
 
 import (
+	"fmt"
 	"net/mail"
 	"strings"
 	"unicode"
 
 	"github.com/vigiloauth/vigilo/identity/config"
+	domain "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
@@ -18,8 +20,17 @@ func (req *UserRegistrationRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
 	if req.Username == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "`username` is empty")
+		err := errors.New(errors.ErrCodeEmptyInput, "'username' is empty")
 		errorCollection.Add(err)
+	}
+
+	if len(req.Scopes) > 0 {
+		for _, scope := range req.Scopes {
+			if _, ok := domain.ValidScopes[scope]; !ok {
+				err := errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid scope '%s'", scope))
+				errorCollection.Add(err)
+			}
+		}
 	}
 
 	validateEmail(req.Email, errorCollection)
@@ -55,10 +66,13 @@ func (req *UserPasswordResetRequest) Validate() error {
 //	error: An ErrorCollection if validation fails, or nil if validation succeeds.
 func (req *UserLoginRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
-	validateEmail(req.Email, errorCollection)
 
 	if req.Password == "" {
 		err := errors.New(errors.ErrCodeEmptyInput, "'password' is empty")
+		errorCollection.Add(err)
+	}
+	if req.Username == "" {
+		err := errors.New(errors.ErrCodeEmptyInput, "'username' is empty")
 		errorCollection.Add(err)
 	}
 

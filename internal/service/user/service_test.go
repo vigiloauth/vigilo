@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/crypto"
+	domain "github.com/vigiloauth/vigilo/internal/domain/client"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	mLoginService "github.com/vigiloauth/vigilo/internal/mocks/login"
@@ -337,7 +338,9 @@ func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
 }
 
 func createNewUser() *users.User {
-	return users.NewUser(testUsername, testEmail, testPassword1)
+	user := users.NewUser(testUsername, testEmail, testPassword1)
+	user.Scopes = []string{domain.UserRead}
+	return user
 }
 
 func configurePasswordPolicy() {
@@ -355,7 +358,7 @@ func configurePasswordPolicy() {
 func createTestUserLoginRequest() *users.UserLoginRequest {
 	return &users.UserLoginRequest{
 		ID:       testUserID,
-		Email:    testEmail,
+		Username: testUsername,
 		Password: testPassword1,
 	}
 }

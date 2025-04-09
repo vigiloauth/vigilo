@@ -100,7 +100,7 @@ func TestClientService_Register(t *testing.T) {
 	})
 }
 
-func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
+func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 	mockClientStore := &mockClient.MockClientRepository{}
 
 	t.Run("Success", func(t *testing.T) {
@@ -116,9 +116,8 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 		}
 
 		cs := NewClientServiceImpl(mockClientStore, nil)
-		result, err := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
+		err := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
-		assert.NotNil(t, result)
 		assert.NoError(t, err)
 	})
 
@@ -126,10 +125,9 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
 		cs := NewClientServiceImpl(mockClientStore, nil)
-		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
+		err := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
-		assert.Nil(t, result)
-		assert.Error(t, expected)
+		assert.Error(t, err)
 	})
 
 	t.Run("Client Secrets Do Not Match", func(t *testing.T) {
@@ -144,10 +142,9 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 		}
 
 		cs := NewClientServiceImpl(mockClientStore, nil)
-		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
+		err := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
-		assert.Nil(t, result)
-		assert.Error(t, expected)
+		assert.Error(t, err)
 	})
 
 	t.Run("Missing 'client_credentials' Grant Type", func(t *testing.T) {
@@ -164,9 +161,8 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 
 		cs := NewClientServiceImpl(mockClientStore, nil)
 		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have the required grant type")
-		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
+		expected := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
-		assert.Nil(t, result)
 		assert.Error(t, expected)
 		assert.Equal(t, expected.Error(), actual.Error())
 	})
@@ -185,20 +181,10 @@ func TestClientService_AuthenticateClientForCredentialsGrant(t *testing.T) {
 
 		cs := NewClientServiceImpl(mockClientStore, nil)
 		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have the required scope(s)")
-		result, expected := cs.AuthenticateClientForCredentialsGrant(testClientID, testClientSecret)
+		expected := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
-		assert.Nil(t, result)
 		assert.Error(t, expected)
 		assert.Equal(t, expected.Error(), actual.Error())
-	})
-
-	t.Run("Empty Parameters Returns an Error", func(t *testing.T) {
-		cs := NewClientServiceImpl(mockClientStore, nil)
-		expected := errors.New(errors.ErrCodeEmptyInput, "missing required parameter")
-		_, actual := cs.AuthenticateClientForCredentialsGrant("", "")
-
-		assert.Error(t, actual)
-		assert.Equal(t, actual.Error(), expected.Error())
 	})
 }
 
@@ -616,6 +602,92 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, "the registration access token has expired", err.Error())
+	})
+}
+
+func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
+	t.Run("Successful authentication", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			IsConfidential bool
+		}{
+			{
+				name:           "Successful authentication for public client",
+				IsConfidential: false,
+			},
+			{
+				name:           "Successful authentication for confidential client",
+				IsConfidential: true,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				req := createTestClient()
+				req.GrantTypes = append(req.GrantTypes, client.PasswordGrant)
+
+				if test.IsConfidential {
+					req.Type = client.Confidential
+					req.Secret = testClientSecret
+				}
+
+				mockClientRepo := &mockClient.MockClientRepository{
+					GetClientByIDFunc: func(clientID string) *client.Client {
+						return req
+					},
+				}
+
+				service := NewClientServiceImpl(mockClientRepo, nil)
+				err := service.AuthenticateClient(req.ID, req.Secret, client.PasswordGrant, client.ClientManage)
+				assert.NoError(t, err, "error is not expected")
+			})
+		}
+	})
+
+	t.Run("Client does not exist", func(t *testing.T) {
+		mockClientRepo := &mockClient.MockClientRepository{
+			GetClientByIDFunc: func(clientID string) *client.Client { return nil },
+		}
+
+		service := NewClientServiceImpl(mockClientRepo, nil)
+		err := service.AuthenticateClient(testClientID, testClientSecret, client.PasswordGrant, client.ClientManage)
+
+		assert.Error(t, err)
+		assert.Equal(t, "client does not exist with the given ID", err.Error())
+	})
+
+	t.Run("Client does not have required grant type", func(t *testing.T) {
+		req := createTestClient()
+		mockClientRepo := &mockClient.MockClientRepository{
+			GetClientByIDFunc: func(clientID string) *client.Client {
+				return req
+			},
+		}
+
+		service := NewClientServiceImpl(mockClientRepo, nil)
+		err := service.AuthenticateClient(req.ID, req.Secret, client.PasswordGrant, client.ClientManage)
+
+		assert.Error(t, err)
+		assert.Equal(t, "failed to validate client: client does not have the required grant type", err.Error())
+	})
+
+	t.Run("Client secret does not match", func(t *testing.T) {
+		req := createTestClient()
+		req.Type = client.Confidential
+		req.Secret = testClientSecret
+
+		mockClientRepo := &mockClient.MockClientRepository{
+			GetClientByIDFunc: func(clientID string) *client.Client {
+				return req
+			},
+		}
+
+		service := NewClientServiceImpl(mockClientRepo, nil)
+		expectedErr := "failed to validate client: the client credentials are invalid or incorrectly formatted"
+		err := service.AuthenticateClient(req.ID, "invalid_secret", client.PasswordGrant, client.ClientManage)
+
+		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err.Error())
 	})
 }
 

@@ -41,11 +41,13 @@ const (
 //	*JWTConfig: A new JWTConfig instance.
 func NewTokenConfig(opts ...TokenOption) *TokenConfig {
 	config := &TokenConfig{
-		secretKey:      defaultSecret,
-		expirationTime: defaultExpirationTime,
-		signingMethod:  jwt.SigningMethodHS256,
-		logger:         GetLogger(),
-		module:         "TokenConfig",
+		secretKey:            defaultSecret,
+		expirationTime:       defaultExpirationTime,
+		accessTokenDuration:  defaultAccessTokenDuration,
+		refreshTokenDuration: defaultRefreshTokenDuration,
+		signingMethod:        jwt.SigningMethodHS256,
+		logger:               GetLogger(),
+		module:               "TokenConfig",
 	}
 
 	if len(opts) > 0 {

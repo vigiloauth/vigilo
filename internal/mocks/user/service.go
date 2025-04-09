@@ -7,6 +7,7 @@ type MockUserService struct {
 	HandleOAuthLoginFunc            func(request *user.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error)
 	AuthenticateUserWithRequestFunc func(request *user.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error)
 	GetUserByIDFunc                 func(userID string) *user.User
+	GetUserByUsernameFunc           func(username string) *user.User
 }
 
 func (m *MockUserService) CreateUser(user *user.User) (*user.UserRegistrationResponse, error) {
@@ -23,4 +24,8 @@ func (m *MockUserService) AuthenticateUserWithRequest(request *user.UserLoginReq
 
 func (m *MockUserService) GetUserByID(userID string) *user.User {
 	return m.GetUserByIDFunc(userID)
+}
+
+func (m *MockUserService) GetUserByUsername(username string) *user.User {
+	return m.GetUserByUsernameFunc(username)
 }

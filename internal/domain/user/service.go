@@ -13,6 +13,8 @@ type UserService interface {
 	//	error: An error if any occurred during the process.
 	CreateUser(user *User) (*UserRegistrationResponse, error)
 
+	GetUserByUsername(username string) *User
+
 	// HandleOAuthLogin authenticates a user based on an OAuth login request.
 	//
 	// This method constructs a User object and a UserLoginAttempt object from the provided
@@ -52,6 +54,8 @@ type UserService interface {
 	//   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 	//   - error: An error if authentication fails or if the input is invalid.
 	AuthenticateUserWithRequest(request *UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*UserLoginResponse, error)
+
+	// AuthenticateUser authenticates a user based on their username and password.
 
 	// GetUserByID retrieves a user from the store using their ID.
 	//

@@ -30,7 +30,7 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 
 		loginRequest := users.UserLoginRequest{
 			ID:       testUserID,
-			Email:    testEmail,
+			Username: testUsername,
 			Password: testPassword1,
 		}
 
@@ -63,7 +63,7 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 
 		loginRequest := users.UserLoginRequest{
 			ID:       testUserID,
-			Email:    testEmail,
+			Username: testUsername,
 			Password: testPassword1,
 		}
 

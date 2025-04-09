@@ -88,6 +88,10 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 	return users.NewUserRegistrationResponse(user, jwtToken), nil
 }
 
+func (u *UserServiceImpl) GetUserByUsername(username string) *users.User {
+	return u.userRepo.GetUserByUsername(username)
+}
+
 // HandleOAuthLogin authenticates a user based on an OAuth login request.
 //
 // This method constructs a User object and a UserLoginAttempt object from the provided
@@ -108,12 +112,6 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 //   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 //   - error: An error if authentication fails or if the input is invalid.
 func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
-	if clientID == "" || redirectURI == "" {
-		err := errors.New(errors.ErrCodeBadRequest, "missing one or more required parameters")
-		logger.Error(module, "HandleOAuthLogin: Failed to login: %v", err)
-		return nil, err
-	}
-
 	if err := request.Validate(); err != nil {
 		logger.Error(module, "HandleOAuthLogin: Failed to validate request: %v", err)
 		return nil, err
@@ -122,7 +120,7 @@ func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clie
 	response, err := u.AuthenticateUserWithRequest(request, remoteAddr, forwardedFor, userAgent)
 	if err != nil {
 		logger.Error(module, "HandleOAuthLogin: Failed to authenticate user: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeUnauthorized, "failed to authenticate user")
+		return nil, errors.New(errors.ErrCodeUnauthorized, "credentials are either missing or invalid")
 	}
 
 	return response, nil
@@ -148,13 +146,13 @@ func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clie
 func (u *UserServiceImpl) AuthenticateUserWithRequest(request *users.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
 	user := &users.User{
 		ID:       request.ID,
-		Email:    request.Email,
+		Username: request.Username,
 		Password: request.Password,
 	}
 
 	loginAttempt := users.NewUserLoginAttempt(remoteAddr, forwardedFor, "", userAgent)
 	logger.Info(module, "AuthenticateUserWithRequest: Authenticating user=[%s] for remoteAddr=[%s], forwardedFor=[%s], userAgent=[%s]",
-		common.TruncateSensitive(user.Email),
+		user.Username,
 		common.TruncateSensitive(remoteAddr),
 		forwardedFor, userAgent,
 	)
@@ -198,10 +196,7 @@ func (u *UserServiceImpl) applyArtificialDelay(startTime time.Time) {
 //
 //	*users.UserLoginResponse: The user login response containing user information and JWT token.
 //	error: An error if authentication fails.
-func (u *UserServiceImpl) authenticateUser(
-	loginUser *users.User,
-	loginAttempt *users.UserLoginAttempt,
-) (*users.UserLoginResponse, error) {
+func (u *UserServiceImpl) authenticateUser(loginUser *users.User, loginAttempt *users.UserLoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
 	defer u.applyArtificialDelay(startTime)
 

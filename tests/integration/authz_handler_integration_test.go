@@ -1,17 +1,15 @@
 package integration
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
@@ -257,7 +255,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidGrant, "failed to authorize client", "public clients are required to use PKCE")
-		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Error is returned when the code challenge is not provided", func(t *testing.T) {
@@ -390,32 +388,22 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 		defer testContext.TearDown()
 
 		authzCode := testContext.GetAuthzCode()
-		tokenRequest := &token.TokenRequest{
-			AuthorizationCode: authzCode,
-			RedirectURI:       testRedirectURI,
-			State:             testContext.State,
-			ClientID:          testClientID,
-			ClientSecret:      testClientSecret,
-			GrantType:         client.AuthorizationCode,
+
+		formData := url.Values{}
+		formData.Add(common.AuthzCode, authzCode)
+		formData.Add(common.RedirectURI, testRedirectURI)
+		formData.Add(common.State, testContext.State)
+		formData.Add(common.ClientID, testClientID)
+		formData.Add(common.ClientSecret, testClientSecret)
+		formData.Add(common.GrantType, client.AuthorizationCode)
+
+		headers := map[string]string{
+			"Cookie":       testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
+			"Content-Type": "application/x-www-form-urlencoded",
 		}
-
-		requestBody, err := json.Marshal(tokenRequest)
-		assert.NoError(t, err)
-
-		headers := map[string]string{"Cookie": testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value}
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
+		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
 
 		assert.Equal(t, http.StatusOK, rr.Code, "Expected a successful token exchange")
-	})
-
-	t.Run("Missing or Invalid JSON in Request Body", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader([]byte("invalid-json")), nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing one or more required fields in the request")
 	})
 
 	t.Run("State Mismatch", func(t *testing.T) {
@@ -429,22 +417,19 @@ func TestAuthorizationHandler_TokenExchange(t *testing.T) {
 		testContext.WithUserSession()
 		defer testContext.TearDown()
 
-		tokenRequest := &token.TokenRequest{
-			AuthorizationCode: "valid-auth-code",
-			RedirectURI:       testRedirectURI,
-			State:             "invalid-state",
-			ClientID:          testClientID,
-			ClientSecret:      testClientSecret,
-			GrantType:         client.AuthorizationCode,
+		formData := url.Values{}
+		formData.Add(common.AuthzCode, "valid-code")
+		formData.Add(common.RedirectURI, testRedirectURI)
+		formData.Add(common.State, "invalid-state")
+		formData.Add(common.ClientID, testClientID)
+		formData.Add(common.ClientSecret, testClientSecret)
+		formData.Add(common.GrantType, client.AuthorizationCode)
+
+		headers := map[string]string{
+			"Cookie":       testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
+			"Content-Type": "application/x-www-form-urlencoded",
 		}
-
-		requestBody, err := json.Marshal(tokenRequest)
-		assert.NoError(t, err)
-
-		sessionCookie := testContext.GetSessionCookie()
-		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
-
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
+		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidRequest, "state mismatch between session and request")
@@ -502,24 +487,24 @@ func TestAuthorizationHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			testContext.WithUserConsent()
 
 			authorizationCode := testContext.GetAuthzCodeWithPKCE(test.codeChallenge, test.codeChallengeMethod)
-			tokenRequest := &token.TokenRequest{
-				AuthorizationCode: authorizationCode,
-				RedirectURI:       testRedirectURI,
-				State:             testContext.State,
-				ClientID:          testClientID,
-				GrantType:         client.PKCE,
-				CodeVerifier:      test.codeVerifier,
-			}
+
+			formData := url.Values{}
+			formData.Add(common.AuthzCode, authorizationCode)
+			formData.Add(common.RedirectURI, testRedirectURI)
+			formData.Add(common.State, testContext.State)
+			formData.Add(common.ClientID, testClientID)
+			formData.Add(common.GrantType, client.PKCE)
+			formData.Add(common.CodeVerifier, test.codeVerifier)
 
 			if test.clientType == client.Confidential {
-				tokenRequest.ClientSecret = testClientSecret
+				formData.Add(common.ClientSecret, testClientSecret)
 			}
 
-			requestBody, err := json.Marshal(tokenRequest)
-			assert.NoError(t, err)
-
-			headers := map[string]string{"Cookie": testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value}
-			rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
+			headers := map[string]string{
+				"Cookie":       testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
+				"Content-Type": "application/x-www-form-urlencoded",
+			}
+			rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
 
 			assert.Equal(t, http.StatusOK, rr.Code)
 			testContext.TearDown()
@@ -562,24 +547,24 @@ func TestAuthorizationHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			testContext.WithUserConsent()
 
 			authorizationCode := testContext.GetAuthzCodeWithPKCE(testContext.PlainCodeChallenge, client.Plain)
-			tokenRequest := &token.TokenRequest{
-				AuthorizationCode: authorizationCode,
-				RedirectURI:       testRedirectURI,
-				State:             testContext.State,
-				ClientID:          testClientID,
-				GrantType:         client.PKCE,
-				CodeVerifier:      test.codeVerifier,
-			}
+
+			formData := url.Values{}
+			formData.Add(common.AuthzCode, authorizationCode)
+			formData.Add(common.RedirectURI, testRedirectURI)
+			formData.Add(common.State, testContext.State)
+			formData.Add(common.ClientID, testClientID)
+			formData.Add(common.GrantType, client.PKCE)
+			formData.Add(common.CodeVerifier, test.codeVerifier)
 
 			if test.clientType == client.Confidential {
-				tokenRequest.ClientSecret = testClientSecret
+				formData.Add(common.ClientSecret, testClientSecret)
 			}
 
-			requestBody, err := json.Marshal(tokenRequest)
-			assert.NoError(t, err)
-
-			headers := map[string]string{"Cookie": testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value}
-			rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
+			headers := map[string]string{
+				"Cookie":       testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
+				"Content-Type": "application/x-www-form-urlencoded",
+			}
+			rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
 
 			assert.Equal(t, http.StatusBadRequest, rr.Code)
 			testContext.TearDown()
