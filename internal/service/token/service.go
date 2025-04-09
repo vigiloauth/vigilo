@@ -7,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/crypto"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
@@ -137,11 +138,13 @@ func (ts *TokenServiceImpl) ParseToken(tokenString string) (*jwt.StandardClaims,
 //
 //	bool: True if the token is blacklisted, false otherwise.
 func (ts *TokenServiceImpl) IsTokenBlacklisted(token string) bool {
-	return ts.tokenRepo.IsTokenBlacklisted(token)
+	hashedToken := crypto.HashSHA256(token)
+	return ts.tokenRepo.IsTokenBlacklisted(hashedToken)
 }
 
 func (ts *TokenServiceImpl) BlacklistToken(token string) error {
-	return ts.tokenRepo.BlacklistToken(token)
+	hashedToken := crypto.HashSHA256(token)
+	return ts.tokenRepo.BlacklistToken(hashedToken)
 }
 
 // SaveToken adds a token to the token store.
@@ -152,7 +155,11 @@ func (ts *TokenServiceImpl) BlacklistToken(token string) error {
 //	id string: The id associated with the token.
 //	expirationTime time.Time: The token's expiration time.
 func (ts *TokenServiceImpl) SaveToken(token string, id string, expirationTime time.Time) {
-	ts.tokenRepo.SaveToken(token, id, expirationTime)
+	hashedToken, err := crypto.HashString(token)
+	if err != nil {
+		logger.Error(module, "Error while encrypting token: %v", err)
+	}
+	ts.tokenRepo.SaveToken(hashedToken, id, expirationTime)
 }
 
 // GetToken retrieves a token from the token store and validates it.
@@ -167,11 +174,13 @@ func (ts *TokenServiceImpl) SaveToken(token string, id string, expirationTime ti
 //	*TokenData: The TokenData if the token is valid, or nil if not found or invalid.
 //	error: An error if the token is not found, expired, or the id doesn't match.
 func (ts *TokenServiceImpl) GetToken(id string, token string) (*token.TokenData, error) {
-	retrievedToken, err := ts.tokenRepo.GetToken(token, id)
+	hashedToken := crypto.HashSHA256(token)
+	retrievedToken, err := ts.tokenRepo.GetToken(hashedToken, id)
 	if err != nil {
 		logger.Error(module, "GetToken: Failed to retrieve token for ID=[%s]: %v", common.TruncateSensitive(id), err)
 		return nil, errors.Wrap(err, errors.ErrCodeTokenNotFound, "failed to retrieve token")
 	}
+
 	return retrievedToken, nil
 }
 
@@ -335,7 +344,8 @@ func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience string, dura
 	}
 
 	logger.Info(module, "Token generated successfully for subject=[%s]", common.TruncateSensitive(subject))
-	ts.tokenRepo.SaveToken(signedToken, subject, tokenExpiration)
+	hashedToken := crypto.HashSHA256(signedToken)
+	ts.tokenRepo.SaveToken(hashedToken, subject, tokenExpiration)
 	logger.Info(module, "Token stored successfully for subject=[%s]", common.TruncateSensitive(subject))
 	return signedToken, nil
 }

@@ -154,7 +154,8 @@ func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext 
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
-	tokenRepo.GetInMemoryTokenRepository().BlacklistToken(token)
+	tokenService.BlacklistToken(token)
+
 	return tc
 }
 
