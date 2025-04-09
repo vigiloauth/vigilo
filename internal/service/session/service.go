@@ -111,7 +111,7 @@ func (s *SessionServiceImpl) InvalidateSession(w http.ResponseWriter, r *http.Re
 
 	expiration := time.Unix(claims.ExpiresAt, 0)
 	if expiration.After(time.Now()) {
-		s.tokenService.SaveToken(tokenString, claims.Subject, expiration)
+		s.tokenService.BlacklistToken(tokenString)
 	}
 
 	sessionID := claims.Subject

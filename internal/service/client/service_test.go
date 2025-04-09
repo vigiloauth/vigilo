@@ -160,7 +160,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 		}
 
 		cs := NewClientServiceImpl(mockClientStore, nil)
-		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have the required grant type")
+		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client authorization: client does not have the required grant type")
 		expected := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
 		assert.Error(t, expected)
@@ -180,7 +180,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 		}
 
 		cs := NewClientServiceImpl(mockClientStore, nil)
-		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client: client does not have the required scope(s)")
+		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client authorization: client does not have the required scope(s)")
 		expected := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
 		assert.Error(t, expected)
@@ -668,7 +668,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 		err := service.AuthenticateClient(req.ID, req.Secret, client.PasswordGrant, client.ClientManage)
 
 		assert.Error(t, err)
-		assert.Equal(t, "failed to validate client: client does not have the required grant type", err.Error())
+		assert.Equal(t, "failed to validate client authorization: client does not have the required grant type", err.Error())
 	})
 
 	t.Run("Client secret does not match", func(t *testing.T) {
@@ -683,7 +683,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 		}
 
 		service := NewClientServiceImpl(mockClientRepo, nil)
-		expectedErr := "failed to validate client: the client credentials are invalid or incorrectly formatted"
+		expectedErr := "failed to validate client authorization: the client credentials are invalid or incorrectly formatted"
 		err := service.AuthenticateClient(req.ID, "invalid_secret", client.PasswordGrant, client.ClientManage)
 
 		assert.Error(t, err)
