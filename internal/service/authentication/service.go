@@ -96,7 +96,7 @@ func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecr
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to authenticate user")
 	}
 
-	accessToken, refreshToken, err := s.tokenService.GenerateTokenPair(loginResponse.UserID, clientID, requestedScopes)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(loginResponse.UserID, clientID, requestedScopes)
 	if err != nil {
 		s.logger.Error(s.module, "Failed to generate token pair: %v", err)
 		return nil, err

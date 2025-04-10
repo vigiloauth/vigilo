@@ -159,7 +159,7 @@ func TestTokenService_GenerateTokenPair(t *testing.T) {
 	}
 
 	tokenService := NewTokenServiceImpl(mockTokenRepo)
-	accessToken, refreshToken, err := tokenService.GenerateTokenPair(testID, testScopes, testClientID)
+	accessToken, refreshToken, err := tokenService.GenerateTokensWithAudience(testID, testScopes, testClientID)
 
 	assert.NoError(t, err)
 	assert.NotEqual(t, "", accessToken)

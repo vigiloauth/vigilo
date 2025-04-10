@@ -301,7 +301,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 func TestAuthorizationService_GenerateTokens(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokenPairFunc: func(userID, clientID, scopes string) (string, string, error) {
+			GenerateTokensWithAudienceFunc: func(userID, clientID, scopes string) (string, string, error) {
 				return testAccessToken, testRefreshToken, nil
 			},
 		}
@@ -324,7 +324,7 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 
 	t.Run("Error is returned generating access token", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokenPairFunc: func(userID, clientID, scopes string) (string, string, error) {
+			GenerateTokensWithAudienceFunc: func(userID, clientID, scopes string) (string, string, error) {
 				return "", "", errors.NewInternalServerError()
 			},
 		}

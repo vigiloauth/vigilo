@@ -21,8 +21,11 @@ const module string = "Token Service"
 
 // TokenServiceImpl implements the TokenManager interface using JWT.
 type TokenServiceImpl struct {
-	tokenConfig *config.TokenConfig
-	tokenRepo   token.TokenRepository
+	tokenRepo            token.TokenRepository
+	secretKey            string
+	signingMethod        jwt.SigningMethod
+	accessTokenDuration  time.Duration
+	refreshTokenDuration time.Duration
 }
 
 // NewTokenServiceImpl creates a new TokenService instance.
@@ -36,8 +39,11 @@ type TokenServiceImpl struct {
 //	*TokenService: A new TokenService instance.
 func NewTokenServiceImpl(tokenRepo token.TokenRepository) *TokenServiceImpl {
 	return &TokenServiceImpl{
-		tokenConfig: config.GetServerConfig().TokenConfig(),
-		tokenRepo:   tokenRepo,
+		tokenRepo:            tokenRepo,
+		secretKey:            config.GetServerConfig().TokenConfig().SecretKey(),
+		signingMethod:        config.GetServerConfig().TokenConfig().SigningMethod(),
+		accessTokenDuration:  config.GetServerConfig().TokenConfig().AccessTokenDuration(),
+		refreshTokenDuration: config.GetServerConfig().TokenConfig().RefreshTokenDuration(),
 	}
 }
 
@@ -62,7 +68,7 @@ func (ts *TokenServiceImpl) GenerateToken(subject, scopes string, expirationTime
 	return tokenString, nil
 }
 
-// GenerateTokenPair generates an access & refresh token.
+// GenerateTokensWithAudience generates an access & refresh token.
 //
 // Parameters:
 //
@@ -74,8 +80,8 @@ func (ts *TokenServiceImpl) GenerateToken(subject, scopes string, expirationTime
 //	string: The access token.
 //	string: The refresh token.
 //	error: An error if an error occurs while generating the tokens.
-func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID, scopes string) (string, string, error) {
-	accessToken, err := ts.generateAndStoreToken(userID, clientID, scopes, ts.tokenConfig.AccessTokenDuration())
+func (ts *TokenServiceImpl) GenerateTokensWithAudience(userID, clientID, scopes string) (string, string, error) {
+	accessToken, err := ts.generateAndStoreToken(userID, clientID, scopes, ts.accessTokenDuration)
 	if err != nil {
 		logger.Error(module, "GenerateTokenPair: Failed to generate access token for user=[%s], client=[%s]: %v",
 			common.TruncateSensitive(userID),
@@ -85,7 +91,7 @@ func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID, scopes string) (
 		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access token")
 	}
 
-	refreshToken, err := ts.generateAndStoreToken(userID, clientID, scopes, ts.tokenConfig.RefreshTokenDuration())
+	refreshToken, err := ts.generateAndStoreToken(userID, clientID, scopes, ts.refreshTokenDuration)
 	if err != nil {
 		logger.Error(module, "GenerateTokenPair: Failed to generate refresh token for user=[%s], client=[%s]: %v",
 			common.TruncateSensitive(userID),
@@ -113,7 +119,7 @@ func (ts *TokenServiceImpl) ParseToken(tokenString string) (*token.TokenClaims, 
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
 		}
-		return []byte(ts.tokenConfig.SecretKey()), nil
+		return []byte(ts.secretKey), nil
 	})
 
 	if err != nil {
@@ -301,12 +307,12 @@ func (ts *TokenServiceImpl) ValidateToken(token string) error {
 //	accessToken string: A new access token.
 //	error: An error if an error occurs during generation.
 func (ts *TokenServiceImpl) GenerateRefreshAndAccessTokens(subject, scopes string) (string, string, error) {
-	refreshToken, err := ts.generateAndStoreToken(subject, "", scopes, ts.tokenConfig.RefreshTokenDuration())
+	refreshToken, err := ts.generateAndStoreToken(subject, "", scopes, ts.refreshTokenDuration)
 	if err != nil {
 		return "", "", err
 	}
 
-	accessToken, err := ts.generateAndStoreToken(subject, "", scopes, ts.tokenConfig.AccessTokenDuration())
+	accessToken, err := ts.generateAndStoreToken(subject, "", scopes, ts.accessTokenDuration)
 	if err != nil {
 		return "", "", err
 	}
@@ -339,8 +345,8 @@ func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience, scopes stri
 			continue
 		}
 
-		token := jwt.NewWithClaims(ts.tokenConfig.SigningMethod(), claims)
-		signedToken, err := token.SignedString([]byte(ts.tokenConfig.SecretKey()))
+		token := jwt.NewWithClaims(ts.signingMethod, claims)
+		signedToken, err := token.SignedString([]byte(ts.secretKey))
 		if err != nil {
 			logger.Warn(module, "Failed to sign token. Incrementing retry count")
 			currentRetry++
@@ -364,7 +370,7 @@ func (ts *TokenServiceImpl) generateStandardClaims(subject, audience, scopes str
 			IssuedAt:  time.Now().Unix(),
 			ExpiresAt: tokenExpiration,
 		},
-		Scopes: scopes, // Add the scopes here
+		Scopes: scopes,
 	}
 
 	tokenID, err := crypto.GenerateRandomString(32)

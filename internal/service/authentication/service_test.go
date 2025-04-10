@@ -122,7 +122,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokenPairFunc: func(userID, clientID, scopes string) (string, string, error) {
+			GenerateTokensWithAudienceFunc: func(userID, clientID, scopes string) (string, string, error) {
 				return "mocked-access-token", "mocked-refresh-token", nil
 			},
 		}
@@ -153,7 +153,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokenPairFunc: func(userID, clientID, scopes string) (string, string, error) {
+			GenerateTokensWithAudienceFunc: func(userID, clientID, scopes string) (string, string, error) {
 				return "", "", errors.NewInternalServerError()
 			},
 		}
