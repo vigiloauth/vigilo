@@ -208,7 +208,8 @@ func (ts *TokenServiceImpl) GetToken(token string) (*token.TokenData, error) {
 //
 //	error: An error if the token deletion fails.
 func (ts *TokenServiceImpl) DeleteToken(token string) error {
-	return ts.tokenRepo.DeleteToken(token)
+	hashedToken := crypto.HashSHA256(token)
+	return ts.tokenRepo.DeleteToken(hashedToken)
 }
 
 // DeleteToken removes a token from the token repository asynchronously.
@@ -229,7 +230,8 @@ func (ts *TokenServiceImpl) DeleteTokenAsync(token string) <-chan error {
 		var deleteErr error
 
 		for i := range maxRetries {
-			if err := ts.tokenRepo.DeleteToken(token); err == nil {
+			hashedToken := crypto.HashSHA256(token)
+			if err := ts.tokenRepo.DeleteToken(hashedToken); err == nil {
 				errChan <- nil
 				return
 			} else {
