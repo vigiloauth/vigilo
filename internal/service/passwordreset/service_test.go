@@ -6,6 +6,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/crypto"
+	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
@@ -34,8 +35,12 @@ func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User {
 		return existingUser
 	}
-	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-		return &jwt.StandardClaims{Subject: existingUser.Email}, nil
+	mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		return &domain.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				Subject: existingUser.Email,
+			},
+		}, nil
 	}
 	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
 	mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
@@ -65,7 +70,7 @@ func TestPasswordResetService_ResetPasswordInvalidToken(t *testing.T) {
 	mockEmailService := &mEmailService.MockEmailService{}
 	existingUser := createTestUser(t)
 
-	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+	mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
 		return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
 	}
 
@@ -82,8 +87,12 @@ func TestPasswordResetService_InvalidJWTClaims(t *testing.T) {
 	mockUserRepo := &mUserRepo.MockUserRepository{}
 	mockEmailService := &mEmailService.MockEmailService{}
 
-	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-		return &jwt.StandardClaims{Subject: "invalidEmail@test.com"}, nil
+	mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		return &domain.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				Subject: "invalid@email.com",
+			},
+		}, nil
 	}
 
 	ps := NewPasswordResetService(mockTokenService, mockUserRepo, mockEmailService)
@@ -105,8 +114,12 @@ func TestPasswordResetService_TokenDeletionFailed(t *testing.T) {
 		return existingUser
 	}
 	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
-	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-		return &jwt.StandardClaims{Subject: userEmail}, nil
+	mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		return &domain.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				Subject: userEmail,
+			},
+		}, nil
 	}
 
 	mockTokenService.DeleteTokenFunc = func(token string) error {
@@ -136,8 +149,12 @@ func TestPasswordResetService_ErrorUpdatingUser(t *testing.T) {
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User {
 		return existingUser
 	}
-	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-		return &jwt.StandardClaims{Subject: userEmail}, nil
+	mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		return &domain.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				Subject: userEmail,
+			},
+		}, nil
 	}
 
 	mockUserRepo.UpdateUserFunc = func(user *users.User) error {
@@ -169,8 +186,12 @@ func TestPasswordResetService_LockedAccount_UnlockedAfterUpdate(t *testing.T) {
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User {
 		return existingUser
 	}
-	mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-		return &jwt.StandardClaims{Subject: userEmail}, nil
+	mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		return &domain.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				Subject: userEmail,
+			},
+		}, nil
 	}
 
 	mockUserRepo.UpdateUserFunc = func(user *users.User) error {

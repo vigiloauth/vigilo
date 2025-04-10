@@ -44,9 +44,14 @@ type TokenRequest struct {
 	CodeVerifier      string `json:"code_verifier,omitempty"`
 }
 
+type TokenClaims struct {
+	Scopes string `json:"scopes,omitempty"`
+	*jwt.StandardClaims
+}
+
 const BearerToken string = "Bearer"
 
-func NewTokenIntrospectionResponse(claims *jwt.StandardClaims) *TokenIntrospectionResponse {
+func NewTokenIntrospectionResponse(claims *TokenClaims) *TokenIntrospectionResponse {
 	response := &TokenIntrospectionResponse{
 		ExpiresAt:       int(claims.ExpiresAt),
 		IssuedAt:        int(claims.IssuedAt),

@@ -3,7 +3,6 @@ package mocks
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 )
 
@@ -19,7 +18,7 @@ type MockTokenService struct {
 	SaveTokenFunc func(token, id string, expiry time.Time)
 
 	// ParseTokenFunc is a mock function for the ParseToken method.
-	ParseTokenFunc func(token string) (*jwt.StandardClaims, error)
+	ParseTokenFunc func(token string) (*token.TokenClaims, error)
 
 	// IsTokenBlacklistedFunc is a mock function for the IsTokenBlacklisted method.
 	IsTokenBlacklistedFunc func(token string) bool
@@ -58,7 +57,7 @@ func (m *MockTokenService) SaveToken(token, id string, expiry time.Time) {
 }
 
 // ParseToken calls the mock ParseTokenFunc.
-func (m *MockTokenService) ParseToken(token string) (*jwt.StandardClaims, error) {
+func (m *MockTokenService) ParseToken(token string) (*token.TokenClaims, error) {
 	return m.ParseTokenFunc(token)
 }
 

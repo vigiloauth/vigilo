@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
@@ -301,7 +300,7 @@ func (s *SessionServiceImpl) parseTokenFromAuthzHeader(r *http.Request) (string,
 //
 //	*jwt.StandardClaims: The standard claims.
 //	error: An error if token parsing fails.
-func (s *SessionServiceImpl) generateStandardClaims(token string) (*jwt.StandardClaims, error) {
+func (s *SessionServiceImpl) generateStandardClaims(token string) (*token.TokenClaims, error) {
 	claims, err := s.tokenService.ParseToken(token)
 	if err != nil {
 		logger.Error(module, "Failed to generate token with standard claims: %v", err)

@@ -2,8 +2,6 @@ package domain
 
 import (
 	"time"
-
-	"github.com/golang-jwt/jwt"
 )
 
 // TokenService defines the interface for managing JWT tokens.
@@ -43,9 +41,9 @@ type TokenService interface {
 	//
 	// Returns:
 	//
-	//   *jwt.StandardClaims: The parsed standard claims from the token.
+	//   *TokenClaims: The parsed standard claims from the token.
 	//   error: An error if token parsing or validation fails.
-	ParseToken(tokenString string) (*jwt.StandardClaims, error)
+	ParseToken(tokenString string) (*TokenClaims, error)
 
 	// IsTokenBlacklisted checks if a token is blacklisted.
 	//

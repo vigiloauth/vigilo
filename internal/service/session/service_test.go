@@ -12,6 +12,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
+	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	mCookieService "github.com/vigiloauth/vigilo/internal/mocks/cookies"
 	mSessionRepo "github.com/vigiloauth/vigilo/internal/mocks/session"
@@ -59,8 +60,12 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
 		return testToken, nil
 	}
-	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
-		return &jwt.StandardClaims{Subject: testEmail}, nil
+	mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		return &domain.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				Subject: testEmail,
+			},
+		}, nil
 	}
 	mockCookieService.ClearSessionCookieFunc = func(w http.ResponseWriter) {}
 
@@ -101,8 +106,12 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 			Value: expectedToken,
 		})
 
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{Subject: expectedUserID}, nil
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject: expectedUserID,
+				},
+			}, nil
 		}
 
 		userID := ss.GetUserIDFromSession(req)
@@ -122,7 +131,7 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 			Value: expectedToken,
 		})
 
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
 			return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
 		}
 

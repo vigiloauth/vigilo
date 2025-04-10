@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	mockClient "github.com/vigiloauth/vigilo/internal/mocks/client"
 	mockToken "github.com/vigiloauth/vigilo/internal/mocks/token"
@@ -314,10 +315,12 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		testClient.Type = client.Public
 
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{
-				Subject:   testClientID,
-				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   testClientID,
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
 			}, nil
 		}
 		mockTokenService.DeleteTokenAsyncFunc = func(token string) <-chan error { return nil }
@@ -339,10 +342,12 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		testClient.Secret = testClientSecret
 
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{
-				Subject:   testClientID,
-				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   testClientID,
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
 			}, nil
 		}
 
@@ -373,8 +378,13 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		testClient.Type = client.Confidential
 
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{}, nil
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   testClientID,
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
+			}, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
@@ -391,8 +401,13 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		testClient.Type = client.Confidential
 
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{Subject: "invalid-id"}, nil
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   "invalid-id",
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
+			}, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
@@ -412,10 +427,12 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client {
 			return createTestClient()
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{
-				Subject:   testClientID,
-				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   testClientID,
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
 			}, nil
 		}
 		mockClientRepo.UpdateClientFunc = func(client *client.Client) error { return nil }
@@ -453,8 +470,13 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		testClient.ID = testClientID
 
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{Subject: "invalid-id"}, nil
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   "invalid-id",
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
+			}, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
@@ -472,8 +494,13 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		testClient.Type = client.Confidential
 
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{}, nil
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   testClientID,
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
+			}, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
@@ -491,8 +518,13 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		testClient.Secret = testClientSecret
 
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{}, nil
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   testClientID,
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
+			}, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
@@ -519,10 +551,12 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client {
 			return createTestClient()
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{
-				Subject:   testClientID,
-				ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   testClientID,
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
 			}, nil
 		}
 		mockTokenService.DeleteTokenAsyncFunc = func(token string) <-chan error {
@@ -556,8 +590,13 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		testClient.ID = testClientID
 
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{Subject: "invalid"}, nil
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   "invalid",
+					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+				},
+			}, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
@@ -589,10 +628,12 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		testClient.ID = testClientID
 
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
-		mockTokenService.ParseTokenFunc = func(token string) (*jwt.StandardClaims, error) {
-			return &jwt.StandardClaims{
-				Subject:   testClientID,
-				ExpiresAt: time.Now().Add(-1 * time.Hour).Unix(),
+		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject:   testClientID,
+					ExpiresAt: time.Now().Add(-1 * time.Hour).Unix(),
+				},
 			}, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }

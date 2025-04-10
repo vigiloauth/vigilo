@@ -49,8 +49,8 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 					},
 				}
 				mockTokenService := &mTokenService.MockTokenService{
-					GenerateTokenFunc: func(clientID, scopes string, duration time.Duration) (string, error) {
-						return "mocked-token", nil
+					GenerateRefreshAndAccessTokensFunc: func(subject, scopes string) (string, string, error) {
+						return "refresh", "access", nil
 					},
 				}
 
@@ -70,8 +70,8 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokenFunc: func(clientID, scopes string, duration time.Duration) (string, error) {
-				return "", errors.NewInternalServerError()
+			GenerateRefreshAndAccessTokensFunc: func(subject, scopes string) (string, string, error) {
+				return "", "", errors.NewInternalServerError()
 			},
 		}
 
@@ -250,8 +250,17 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 					GenerateRefreshAndAccessTokensFunc: func(subject, scopes string) (string, string, error) {
 						return "refresh-token", "access-token", nil
 					},
-					ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
-						return &jwt.StandardClaims{Subject: testClientID}, nil
+					ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+						return &domain.TokenClaims{
+							StandardClaims: &jwt.StandardClaims{
+								ExpiresAt: time.Now().Add(10).Unix(),
+								IssuedAt:  time.Now().Unix(),
+								Subject:   testClientID,
+								Issuer:    "test-issuer",
+								Id:        testTokenID,
+								Audience:  "testAudience",
+							},
+						}, nil
 					},
 					BlacklistTokenFunc: func(token string) error { return nil },
 				}
@@ -326,14 +335,16 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 					TokenID:   testTokenID,
 				}, nil
 			},
-			ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
-				return &jwt.StandardClaims{
-					ExpiresAt: time.Now().Add(10).Unix(),
-					IssuedAt:  time.Now().Unix(),
-					Subject:   testClientID,
-					Issuer:    "test-issuer",
-					Id:        testTokenID,
-					Audience:  "testAudience",
+			ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+				return &domain.TokenClaims{
+					StandardClaims: &jwt.StandardClaims{
+						ExpiresAt: time.Now().Add(10).Unix(),
+						IssuedAt:  time.Now().Unix(),
+						Subject:   testClientID,
+						Issuer:    "test-issuer",
+						Id:        testTokenID,
+						Audience:  "testAudience",
+					},
 				}, nil
 			},
 			IsTokenExpiredFunc:     func(token string) bool { return false },
@@ -370,7 +381,7 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 					TokenID:   testTokenID,
 				}, nil
 			},
-			ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
+			ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
 				return nil, errors.NewInternalServerError()
 			},
 		}
@@ -391,14 +402,16 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 					TokenID:   testTokenID,
 				}, nil
 			},
-			ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
-				return &jwt.StandardClaims{
-					ExpiresAt: time.Now().Add(10).Unix(),
-					IssuedAt:  time.Now().Unix(),
-					Subject:   testClientID,
-					Issuer:    "test-issuer",
-					Id:        testTokenID,
-					Audience:  "testAudience",
+			ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+				return &domain.TokenClaims{
+					StandardClaims: &jwt.StandardClaims{
+						ExpiresAt: time.Now().Add(10).Unix(),
+						IssuedAt:  time.Now().Unix(),
+						Subject:   testClientID,
+						Issuer:    "test-issuer",
+						Id:        testTokenID,
+						Audience:  "testAudience",
+					},
 				}, nil
 			},
 			IsTokenExpiredFunc:     func(token string) bool { return true },
@@ -421,14 +434,16 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 					TokenID:   testTokenID,
 				}, nil
 			},
-			ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
-				return &jwt.StandardClaims{
-					ExpiresAt: time.Now().Add(10).Unix(),
-					IssuedAt:  time.Now().Unix(),
-					Subject:   testClientID,
-					Issuer:    "test-issuer",
-					Id:        testTokenID,
-					Audience:  "testAudience",
+			ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+				return &domain.TokenClaims{
+					StandardClaims: &jwt.StandardClaims{
+						ExpiresAt: time.Now().Add(10).Unix(),
+						IssuedAt:  time.Now().Unix(),
+						Subject:   testClientID,
+						Issuer:    "test-issuer",
+						Id:        testTokenID,
+						Audience:  "testAudience",
+					},
 				}, nil
 			},
 			IsTokenExpiredFunc:     func(token string) bool { return false },

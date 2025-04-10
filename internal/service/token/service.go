@@ -108,8 +108,8 @@ func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID, scopes string) (
 //
 //	*jwt.StandardClaims: The parsed standard claims from the token.
 //	error: An error if token parsing or validation fails.
-func (ts *TokenServiceImpl) ParseToken(tokenString string) (*jwt.StandardClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (any, error) {
+func (ts *TokenServiceImpl) ParseToken(tokenString string) (*token.TokenClaims, error) {
+	tokenClaims, err := jwt.ParseWithClaims(tokenString, &token.TokenClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
 		}
@@ -121,7 +121,7 @@ func (ts *TokenServiceImpl) ParseToken(tokenString string) (*jwt.StandardClaims,
 		return nil, errors.Wrap(wrappedErr, errors.ErrCodeTokenParsing, "failed to parse JWT with claims")
 	}
 
-	if claims, ok := token.Claims.(*jwt.StandardClaims); ok && token.Valid {
+	if claims, ok := tokenClaims.Claims.(*token.TokenClaims); ok && tokenClaims.Valid {
 		return claims, nil
 	}
 
@@ -356,12 +356,15 @@ func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience, scopes stri
 	return "", errors.New(errors.ErrCodeInternalServerError, "failed to generate and store after maximum retries reached")
 }
 
-func (ts *TokenServiceImpl) generateStandardClaims(subject, audience, scopes string, tokenExpiration int64) (*jwt.StandardClaims, error) {
-	claims := &jwt.StandardClaims{
-		Subject:   subject,
-		Issuer:    tokenIssuer,
-		IssuedAt:  time.Now().Unix(),
-		ExpiresAt: tokenExpiration,
+func (ts *TokenServiceImpl) generateStandardClaims(subject, audience, scopes string, tokenExpiration int64) (*token.TokenClaims, error) {
+	claims := &token.TokenClaims{
+		StandardClaims: &jwt.StandardClaims{
+			Subject:   subject,
+			Issuer:    tokenIssuer,
+			IssuedAt:  time.Now().Unix(),
+			ExpiresAt: tokenExpiration,
+		},
+		Scopes: scopes, // Add the scopes here
 	}
 
 	tokenID, err := crypto.GenerateRandomString(32)
