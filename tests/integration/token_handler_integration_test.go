@@ -69,7 +69,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, common.Bearer, tokenResponse.TokenType)
+				assert.Equal(t, common.BearerAuthHeader, tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -276,7 +276,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, common.Bearer, tokenResponse.TokenType)
+				assert.Equal(t, common.BearerAuthHeader, tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -606,7 +606,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, common.Bearer, tokenResponse.TokenType)
+				assert.Equal(t, common.BearerAuthHeader, tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -777,6 +777,104 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
+}
+
+func TestTokenHandler_IntrospectToken(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			clientType string
+		}{
+			{
+				name:       "Successful response for confidential clients",
+				clientType: client.Confidential,
+			},
+			{
+				name:       "Successful response for public clients",
+				clientType: client.Public,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				testContext := NewVigiloTestContext(t)
+				defer testContext.TearDown()
+
+				testContext.WithClient(test.clientType, []string{client.ClientIntrospect}, []string{client.ClientCredentials})
+				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
+
+				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
+				if test.clientType == client.Confidential {
+					headers["Authorization"] = "Basic " + encodeClientCredentials(testClientID, testClientSecret)
+				} else {
+					headers["Authorization"] = "Bearer " + testContext.JWTToken
+				}
+
+				formValue := url.Values{}
+				formValue.Add(common.Token, testContext.JWTToken)
+				rr := testContext.SendHTTPRequest(
+					http.MethodPost,
+					web.OAuthEndpoints.Introspect,
+					strings.NewReader(formValue.Encode()),
+					headers,
+				)
+
+				assert.Equal(t, http.StatusOK, rr.Code)
+			})
+		}
+	})
+
+	t.Run("Invalid client is returned for invalid client credentials", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			clientType string
+			headers    map[string]string
+		}{
+			{
+				name:       "Invalid client error is returned for confidential client",
+				clientType: client.Confidential,
+				headers:    map[string]string{},
+			},
+			{
+				name:       "Invalid client error is returned for public clients",
+				clientType: client.Public,
+				headers:    map[string]string{},
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {})
+		}
+	})
+
+	t.Run("Unauthorized client error is returned when the client does not have the required grant type", func(t *testing.T) {
+		tests := []struct {
+			name       string
+			clientType string
+			headers    map[string]string
+		}{
+			{
+				name:       "Unauthorized client error is returned for confidential client",
+				clientType: client.Confidential,
+				headers:    map[string]string{},
+			},
+			{
+				name:       "Unauthorized client error is returned for public clients",
+				clientType: client.Public,
+				headers:    map[string]string{},
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {})
+		}
+	})
+
+	t.Run("Active is set to false when there is an error parsing the request token", func(t *testing.T) {})
+
+	t.Run("Active is set to false when the requested token is expired", func(t *testing.T) {})
+
+	t.Run("Active is set to false when the requested token is blacklisted", func(t *testing.T) {})
 }
 
 func generateHeaderWithCredentials(id, secret string) map[string]string {

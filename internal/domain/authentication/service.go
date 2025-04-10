@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"net/http"
+
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 )
@@ -69,4 +71,17 @@ type AuthenticationService interface {
 	//     validity, expiration, and any associated metadata. If the token is valid, this
 	//     response will include all relevant claims associated with the token.
 	IntrospectToken(token string) *token.TokenIntrospectionResponse
+
+	// AuthenticateClientRequest validates the provided Authorization header.
+	// It supports both "Basic" and "Bearer" authentication schemes.
+	//
+	// For "Basic" authentication, it decodes the base64-encoded credentials
+	// and checks that the client ID and secret are correctly formatted.
+	//
+	// For "Bearer" authentication, it validates the token structure and
+	// verifies its authenticity (e.g., signature, expiry, and claims).
+	//
+	// Returns an error if the header is malformed, the credentials are invalid,
+	// or the token fails validation.
+	AuthenticateClientRequest(r *http.Request) error
 }

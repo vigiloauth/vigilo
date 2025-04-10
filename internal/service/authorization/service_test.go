@@ -215,7 +215,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 
 func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 	authzCodeData := getTestAuthzCodeData()
-	authzCodeData.CodeChallenge = crypto.HashSHA256(codeVerifier)
+	authzCodeData.CodeChallenge = crypto.EncodeSHA256(codeVerifier)
 
 	t.Run("Successful authorization for request using PKCE", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{

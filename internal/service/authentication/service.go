@@ -1,6 +1,7 @@
 package service
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/vigiloauth/vigilo/identity/config"
@@ -10,6 +11,7 @@ import (
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/web"
 )
 
 var _ auth.AuthenticationService = (*AuthenticationServiceImpl)(nil)
@@ -65,7 +67,7 @@ func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, client
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.Bearer,
+		TokenType:    common.BearerAuthHeader,
 		Scope:        requestedScopes,
 	}, nil
 }
@@ -106,7 +108,7 @@ func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecr
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.Bearer,
+		TokenType:    common.BearerAuthHeader,
 		Scope:        requestedScopes,
 	}, nil
 }
@@ -164,7 +166,7 @@ func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, r
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.Bearer,
+		TokenType:    common.BearerAuthHeader,
 	}, nil
 }
 
@@ -187,7 +189,7 @@ func (s *AuthenticationServiceImpl) IntrospectToken(tokenStr string) *token.Toke
 		return &token.TokenIntrospectionResponse{Active: false}
 	}
 
-	claims, err := s.tokenService.ParseToken(retrievedToken.Token)
+	claims, err := s.tokenService.ParseToken(tokenStr)
 	if err != nil {
 		s.logger.Error(s.module, "Failed to parse token: %v", err)
 		return &token.TokenIntrospectionResponse{Active: false}
@@ -201,6 +203,56 @@ func (s *AuthenticationServiceImpl) IntrospectToken(tokenStr string) *token.Toke
 	}
 
 	return response
+}
+
+// AuthenticateClientRequest validates the provided Authorization header.
+// It supports both "Basic" and "Bearer" authentication schemes.
+//
+// For "Basic" authentication, it decodes the base64-encoded credentials
+// and checks that the client ID and secret are correctly formatted.
+//
+// For "Bearer" authentication, it validates the token structure and
+// verifies its authenticity (e.g., signature, expiry, and claims).
+//
+// Returns an error if the header is malformed, the credentials are invalid,
+// or the token fails validation.
+func (s *AuthenticationServiceImpl) AuthenticateClientRequest(r *http.Request) error {
+	authHeader := r.Header.Get(common.Authorization)
+	if strings.HasPrefix(authHeader, common.BasicAuthHeader) {
+		clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
+		if err != nil {
+			return err
+		}
+
+		if err := s.clientService.AuthenticateClient(clientID, clientSecret, client.ClientCredentials, client.ClientIntrospect); err != nil {
+			return errors.Wrap(err, "", "failed to authenticate client")
+		}
+
+	} else if strings.HasPrefix(authHeader, common.BearerAuthHeader) {
+		bearerToken, err := web.ExtractBearerToken(r)
+		if err != nil {
+			return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to extract bearer token")
+		}
+
+		if err := s.tokenService.ValidateToken(bearerToken); err != nil {
+			return errors.Wrap(err, "", "failed to validate bearer token")
+		}
+
+		claims, err := s.tokenService.ParseToken(bearerToken)
+		if err != nil {
+			return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
+		}
+
+		clientID := claims.Subject
+		if err := s.clientService.AuthenticateClient(clientID, "", client.ClientCredentials, client.ClientIntrospect); err != nil {
+			return errors.Wrap(err, "", "failed to authenticate client")
+		}
+
+	} else {
+		return errors.New(errors.ErrCodeInvalidClient, "failed to authorize client: missing authorization header")
+	}
+
+	return nil
 }
 
 func (s *AuthenticationServiceImpl) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {

@@ -1,11 +1,13 @@
 package service
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -23,6 +25,8 @@ const (
 	testUserID       string = "test-user-id"
 	testRefreshToken string = "valid-refresh-token"
 	testTokenID      string = "test-token-id"
+	testURL          string = "https://localhost.com"
+	bearerToken      string = "bearer-token"
 )
 
 func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
@@ -455,4 +459,96 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 
 		assert.False(t, response.Active)
 	})
+}
+
+func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		tests := []struct {
+			name              string
+			requestType       string
+			mockClientService *mClientService.MockClientService
+			mockTokenService  *mTokenService.MockTokenService
+		}{
+			{
+				name:        "Success when using Basic authorization",
+				requestType: common.BasicAuthHeader,
+				mockClientService: &mClientService.MockClientService{
+					AuthenticateClientFunc: func(clientID, clientSecret, grantType, scopes string) error {
+						return nil
+					},
+				},
+				mockTokenService: nil,
+			},
+			{
+				name:        "Success when using Bearer token authorization",
+				requestType: common.BearerAuthHeader,
+				mockClientService: &mClientService.MockClientService{
+					AuthenticateClientFunc: func(clientID, clientSecret, grantType, scopes string) error {
+						return nil
+					},
+				},
+				mockTokenService: &mTokenService.MockTokenService{
+					ValidateTokenFunc: func(token string) error { return nil },
+					ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+						return &domain.TokenClaims{
+							StandardClaims: &jwt.StandardClaims{
+								Subject: testClientID,
+							},
+						}, nil
+					},
+				},
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				req, err := http.NewRequest(http.MethodGet, testURL, nil)
+				assert.NoError(t, err)
+
+				if test.requestType == common.BasicAuthHeader {
+					req.SetBasicAuth(testClientID, testClientSecret)
+				} else {
+					req.Header.Set(common.Authorization, common.BearerAuthHeader+bearerToken)
+				}
+
+				service := NewAuthenticationServiceImpl(test.mockTokenService, test.mockClientService, nil)
+				err = service.AuthenticateClientRequest(req)
+				assert.NoError(t, err)
+			})
+		}
+	})
+
+	t.Run("Error is returned extracting client credentials from basic authorization header", func(t *testing.T) {})
+
+	t.Run("Error is returned authenticating the client", func(t *testing.T) {
+		tests := []struct {
+			name              string
+			requestType       string
+			mockClientService *mClientService.MockClientService
+			mockTokenService  *mTokenService.MockTokenService
+		}{
+			{
+				name:              "Error is returned authenticating the client using basic authorization",
+				requestType:       common.BasicAuthHeader,
+				mockClientService: nil,
+				mockTokenService:  nil,
+			},
+			{
+				name:              "Error is returned authenticating the client using bearer token authorization",
+				requestType:       common.BearerAuthHeader,
+				mockClientService: nil,
+				mockTokenService:  nil,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {})
+		}
+	})
+
+	t.Run("Error is returned extracting the bearer token", func(t *testing.T) {})
+
+	t.Run("Error is returned validating the bearer token", func(t *testing.T) {})
+
+	t.Run("Error is returned parsing the bearer token", func(t *testing.T) {})
 }

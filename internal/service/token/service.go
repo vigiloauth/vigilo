@@ -143,7 +143,7 @@ func (ts *TokenServiceImpl) ParseToken(tokenString string) (*token.TokenClaims, 
 //
 //	bool: True if the token is blacklisted, false otherwise.
 func (ts *TokenServiceImpl) IsTokenBlacklisted(token string) bool {
-	hashedToken := crypto.HashSHA256(token)
+	hashedToken := crypto.EncodeSHA256(token)
 	return ts.tokenRepo.IsTokenBlacklisted(hashedToken)
 }
 
@@ -161,7 +161,7 @@ func (ts *TokenServiceImpl) IsTokenBlacklisted(token string) bool {
 //		error: An error if the token is not found in the token store or if it has already
 //	    expired, in which case it cannot be blacklisted.
 func (ts *TokenServiceImpl) BlacklistToken(token string) error {
-	hashedToken := crypto.HashSHA256(token)
+	hashedToken := crypto.EncodeSHA256(token)
 	return ts.tokenRepo.BlacklistToken(hashedToken)
 }
 
@@ -173,7 +173,7 @@ func (ts *TokenServiceImpl) BlacklistToken(token string) error {
 //	id string: The id associated with the token.
 //	expirationTime time.Time: The token's expiration time.
 func (ts *TokenServiceImpl) SaveToken(token string, id string, expirationTime time.Time) {
-	hashedToken := crypto.HashSHA256(token)
+	hashedToken := crypto.EncodeSHA256(token)
 	ts.tokenRepo.SaveToken(hashedToken, id, expirationTime)
 }
 
@@ -188,9 +188,9 @@ func (ts *TokenServiceImpl) SaveToken(token string, id string, expirationTime ti
 //	*TokenData: The TokenData if the token is valid, or nil if not found or invalid.
 //	error: An error if the token is not found, expired, or the id doesn't match.
 func (ts *TokenServiceImpl) GetToken(token string) (*token.TokenData, error) {
-	hashedToken := crypto.HashSHA256(token)
+	hashedToken := crypto.EncodeSHA256(token)
 	retrievedToken := ts.tokenRepo.GetToken(hashedToken)
-	if retrievedToken != nil {
+	if retrievedToken == nil {
 		return nil, errors.New(errors.ErrCodeTokenNotFound, "failed to retrieve token")
 	}
 
@@ -207,7 +207,7 @@ func (ts *TokenServiceImpl) GetToken(token string) (*token.TokenData, error) {
 //
 //	error: An error if the token deletion fails.
 func (ts *TokenServiceImpl) DeleteToken(token string) error {
-	hashedToken := crypto.HashSHA256(token)
+	hashedToken := crypto.EncodeSHA256(token)
 	return ts.tokenRepo.DeleteToken(hashedToken)
 }
 
@@ -229,7 +229,7 @@ func (ts *TokenServiceImpl) DeleteTokenAsync(token string) <-chan error {
 		var deleteErr error
 
 		for i := range maxRetries {
-			hashedToken := crypto.HashSHA256(token)
+			hashedToken := crypto.EncodeSHA256(token)
 			if err := ts.tokenRepo.DeleteToken(hashedToken); err == nil {
 				errChan <- nil
 				return
@@ -354,7 +354,7 @@ func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience, scopes stri
 			continue
 		}
 
-		hashedToken := crypto.HashSHA256(signedToken)
+		hashedToken := crypto.EncodeSHA256(signedToken)
 		ts.tokenRepo.SaveToken(hashedToken, subject, tokenExpiration)
 		logger.Info(module, "Successfully generated token after %d retries", currentRetry)
 		return signedToken, nil

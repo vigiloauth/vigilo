@@ -24,11 +24,13 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [Client Credentials Flow](../identity/endpoints/token_handler/client_credentials_grant.md)
     - [Resource Owner Password Credentials Flow](../identity/endpoints/token_handler/ropc_grant.md)
     - [Client Secret Regeneration](../identity/endpoints/client_handler/client_secret_regeneration.md)
-    - [Token Refresh](../identity/endpoints/token_handler/token_refresh.md)
     - **Client Configuration**
         - [Client Read Request](../identity/endpoints/client_handler/client_read_request.md)
         - [Client Update Request](../identity/endpoints/client_handler/client_update_request.md)
         - [Client Delete Request](../identity/endpoints/client_handler/client_delete_request.md)
+- **Token Management:**
+    - [Token Refresh](../identity/endpoints/token_handler/token_refresh.md)
+    - [Token Introspection](../identity/endpoints/token_handler/token_introspection.md)
 - **Authorization Code Flow:**
     - [Client Authorization](../identity/endpoints/authz_handler/authorize_client.md)
     - [User Authentication](../identity/endpoints/oauth_handler/user_authentication.md)

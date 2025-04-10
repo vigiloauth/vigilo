@@ -14,7 +14,7 @@ import (
 // client_id:client_secret>". If the header is invalid, an error is returned.
 func ExtractClientBasicAuth(r *http.Request) (string, string, error) {
 	authHeader := r.Header.Get(common.Authorization)
-	if !strings.HasPrefix(authHeader, "Basic ") {
+	if !strings.HasPrefix(authHeader, common.BasicAuthHeader) {
 		return "", "", errors.New(errors.ErrCodeInvalidClient, "the authorization header is invalid or missing")
 	}
 
@@ -49,7 +49,7 @@ func ExtractBearerToken(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	return strings.TrimPrefix(authHeader, common.Bearer), nil
+	return strings.TrimPrefix(authHeader, common.BearerAuthHeader), nil
 }
 
 // SetNoStoreHeader sets the Cache-Control header of an HTTP response to "no-store".

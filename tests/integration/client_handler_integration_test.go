@@ -246,7 +246,7 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 	defer testContext.TearDown()
 
 	endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.RegenerateSecret, testClientID)
-	headers := map[string]string{common.Bearer: testContext.ClientAuthToken}
+	headers := map[string]string{common.BearerAuthHeader: testContext.ClientAuthToken}
 
 	rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, headers)
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -289,7 +289,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -311,7 +311,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -335,7 +335,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/invalid-id", web.ClientEndpoints.ClientConfiguration)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeUnauthorized, "failed to validate and retrieve client information")
@@ -353,7 +353,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		t.Log(rr.Body.String())
@@ -376,7 +376,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		// Update client name
 		request.Name = testClientName2
@@ -418,7 +418,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		// Update client name
 		request.Name = testClientName2
@@ -460,7 +460,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodPut, endpoint, nil, headers)
 
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidRequest, "missing one or more required fields in the request")
@@ -479,7 +479,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		// Attempt to update with invalid redirect URIs
 		request.RedirectURIS = append(request.RedirectURIS, "http://test.com/callback", "https://example.com/*")
@@ -508,7 +508,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		// Attempt to update with invalid response types.
 		// Client Credentials is not allowed with Authorization Code.
@@ -539,7 +539,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -566,7 +566,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -593,7 +593,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, "invalid-client-id")
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -621,7 +621,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -648,7 +648,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.Bearer: testContext.JWTToken}
+		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)

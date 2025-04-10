@@ -211,7 +211,7 @@ func (c *AuthorizationCodeServiceImpl) GetAuthorizationCode(code string) (*authz
 //	  or if the code challenge method is unsupported. Returns nil if validation succeeds.
 func (c *AuthorizationCodeServiceImpl) ValidatePKCE(authzCodeData *authz.AuthorizationCodeData, codeVerifier string) error {
 	if authzCodeData.CodeChallengeMethod == authz.S256 {
-		hashedVerifier := crypto.HashSHA256(codeVerifier)
+		hashedVerifier := crypto.EncodeSHA256(codeVerifier)
 		if hashedVerifier != authzCodeData.CodeChallenge {
 			return errors.New(errors.ErrCodeInvalidGrant, "invalid code verifier")
 		}

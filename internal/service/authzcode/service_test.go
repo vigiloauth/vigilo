@@ -155,7 +155,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 
 func TestAuthorizationCodeService_ValidatePKCE(t *testing.T) {
 	codeVerifier := "validCodeVerifier123"
-	codeChallenge := crypto.HashSHA256(codeVerifier)
+	codeChallenge := crypto.EncodeSHA256(codeVerifier)
 
 	tests := []struct {
 		name         string

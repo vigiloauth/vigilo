@@ -4,6 +4,7 @@ const (
 	defaultAuthEndpoint   string = "/auth"
 	defaultClientEndpoint string = "/client"
 	defaultOAuthEndpoint  string = "/oauth"
+	defaultTokenEndpoint  string = "/token"
 )
 
 var UserEndpoints = struct {
@@ -41,5 +42,5 @@ var OAuthEndpoints = struct {
 	Login:         defaultOAuthEndpoint + "/login/authorization",
 	UserConsent:   defaultOAuthEndpoint + "/consent",
 	TokenExchange: defaultOAuthEndpoint + "/token",
-	Introspect:    defaultAuthEndpoint + "/introspect",
+	Introspect:    defaultAuthEndpoint + defaultTokenEndpoint + "/introspect",
 }

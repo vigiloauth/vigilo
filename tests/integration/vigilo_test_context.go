@@ -75,7 +75,7 @@ func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
 	return &VigiloTestContext{
 		T:                  t,
 		VigiloServer:       server.NewVigiloIdentityServer(),
-		SH256CodeChallenge: crypto.HashSHA256(testClientSecret),
+		SH256CodeChallenge: crypto.EncodeSHA256(testClientSecret),
 		PlainCodeChallenge: testClientSecret,
 	}
 }
@@ -169,11 +169,6 @@ func (tc *VigiloTestContext) GetSessionCookie() *http.Cookie {
 	}
 	assert.NotNil(tc.T, sessionCookie)
 	return sessionCookie
-}
-
-func (tc *VigiloTestContext) WithClientRegistrationAccessToken() string {
-
-	return ""
 }
 
 // WithClientCredentialsToken generates and adds a client credentials token

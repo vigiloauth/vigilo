@@ -280,7 +280,7 @@ func (s *SessionServiceImpl) parseTokenFromAuthzHeader(r *http.Request) (string,
 		return "", err
 	}
 
-	token := strings.TrimPrefix(authHeader, common.Bearer)
+	token := strings.TrimPrefix(authHeader, common.BearerAuthHeader)
 	if token == authHeader {
 		err := errors.New(errors.ErrCodeInvalidFormat, "malformed authorization header")
 		logger.Error(module, "Failed to parse token from authorization header: %v", err)
