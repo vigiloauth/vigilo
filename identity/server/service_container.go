@@ -12,7 +12,6 @@ import (
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
-	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
 	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
@@ -35,7 +34,6 @@ import (
 	authzCodeService "github.com/vigiloauth/vigilo/internal/service/authzcode"
 	clientService "github.com/vigiloauth/vigilo/internal/service/client"
 	cookieService "github.com/vigiloauth/vigilo/internal/service/cookies"
-	emailService "github.com/vigiloauth/vigilo/internal/service/email"
 	loginService "github.com/vigiloauth/vigilo/internal/service/login"
 	passwordService "github.com/vigiloauth/vigilo/internal/service/passwordreset"
 	sessionService "github.com/vigiloauth/vigilo/internal/service/session"
@@ -55,8 +53,6 @@ type ServiceContainer struct {
 	sessionRepo      session.SessionRepository
 
 	// Lazy-loaded services using sync.Once to ensure thread safety
-	passwordResetEmailOnce   sync.Once
-	emailNotificationOnce    sync.Once
 	tokenServiceOnce         sync.Once
 	sessionServiceOnce       sync.Once
 	userServiceOnce          sync.Once
@@ -69,33 +65,29 @@ type ServiceContainer struct {
 	httpCookieServiceOnce    sync.Once
 	authServiceOnce          sync.Once
 
-	passwordResetEmailService email.EmailService
-	emailNotificationService  email.EmailService
-	tokenService              token.TokenService
-	sessionService            session.SessionService
-	userService               users.UserService
-	passwordResetService      password.PasswordResetService
-	clientService             client.ClientService
-	consentService            userConsent.UserConsentService
-	authzCodeService          authzCode.AuthorizationCodeService
-	loginAttemptService       login.LoginAttemptService
-	authorizationService      authz.AuthorizationService
-	httpCookieService         cookie.HTTPCookieService
-	authService               auth.AuthenticationService
+	tokenService         token.TokenService
+	sessionService       session.SessionService
+	userService          users.UserService
+	passwordResetService password.PasswordResetService
+	clientService        client.ClientService
+	consentService       userConsent.UserConsentService
+	authzCodeService     authzCode.AuthorizationCodeService
+	loginAttemptService  login.LoginAttemptService
+	authorizationService authz.AuthorizationService
+	httpCookieService    cookie.HTTPCookieService
+	authService          auth.AuthenticationService
 
-	passwordResetEmailServiceInit func() email.EmailService
-	emailNotificationServiceInit  func() email.EmailService
-	tokenServiceInit              func() token.TokenService
-	sessionServiceInit            func() session.SessionService
-	userServiceInit               func() users.UserService
-	passwordResetServiceInit      func() password.PasswordResetService
-	clientServiceInit             func() client.ClientService
-	consentServiceInit            func() userConsent.UserConsentService
-	authzCodeServiceInit          func() authzCode.AuthorizationCodeService
-	loginAttemptServiceInit       func() login.LoginAttemptService
-	authorizationServiceInit      func() authz.AuthorizationService
-	httpCookieServiceInit         func() cookie.HTTPCookieService
-	authServiceInit               func() auth.AuthenticationService
+	tokenServiceInit         func() token.TokenService
+	sessionServiceInit       func() session.SessionService
+	userServiceInit          func() users.UserService
+	passwordResetServiceInit func() password.PasswordResetService
+	clientServiceInit        func() client.ClientService
+	consentServiceInit       func() userConsent.UserConsentService
+	authzCodeServiceInit     func() authzCode.AuthorizationCodeService
+	loginAttemptServiceInit  func() login.LoginAttemptService
+	authorizationServiceInit func() authz.AuthorizationService
+	httpCookieServiceInit    func() cookie.HTTPCookieService
+	authServiceInit          func() auth.AuthenticationService
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
@@ -166,7 +158,7 @@ func (c *ServiceContainer) initializeServices() {
 	}
 	c.passwordResetServiceInit = func() password.PasswordResetService {
 		c.logger.Debug(c.module, "Initializing PasswordResetService")
-		return passwordService.NewPasswordResetService(c.getTokenService(), c.userRepo, c.getPasswordResetEmailService())
+		return passwordService.NewPasswordResetService(c.getTokenService(), c.userRepo)
 	}
 	c.clientServiceInit = func() client.ClientService {
 		c.logger.Debug(c.module, "Initializing ClientService")
@@ -187,22 +179,6 @@ func (c *ServiceContainer) initializeServices() {
 	c.authServiceInit = func() auth.AuthenticationService {
 		c.logger.Debug(c.module, "Initializing AuthenticationService")
 		return authService.NewAuthenticationServiceImpl(c.getTokenService(), c.getClientService(), c.getUserService())
-	}
-	c.passwordResetEmailServiceInit = func() email.EmailService {
-		c.logger.Debug(c.module, "Initializing PasswordResetEmailService")
-		service, err := emailService.NewPasswordResetEmailService()
-		if err != nil {
-			panic(err)
-		}
-		return service
-	}
-	c.emailNotificationServiceInit = func() email.EmailService {
-		c.logger.Debug(c.module, "Initializing EmailNotificationService")
-		service, err := emailService.NewEmailNotificationService()
-		if err != nil {
-			panic(err)
-		}
-		return service
 	}
 }
 
@@ -310,16 +286,6 @@ func (c *ServiceContainer) getPasswordResetService() password.PasswordResetServi
 func (c *ServiceContainer) getAuthorizationService() authz.AuthorizationService {
 	c.authorizationServiceOnce.Do(func() { c.authorizationService = c.authorizationServiceInit() })
 	return c.authorizationService
-}
-
-func (c *ServiceContainer) getPasswordResetEmailService() email.EmailService {
-	c.passwordResetEmailOnce.Do(func() { c.passwordResetEmailService = c.passwordResetEmailServiceInit() })
-	return c.passwordResetEmailService
-}
-
-func (c *ServiceContainer) getEmailNotificationService() email.EmailService {
-	c.emailNotificationOnce.Do(func() { c.emailNotificationService = c.emailNotificationServiceInit() })
-	return c.emailNotificationService
 }
 
 func (c *ServiceContainer) getHTTPSessionCookieService() cookie.HTTPCookieService {

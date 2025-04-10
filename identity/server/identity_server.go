@@ -98,7 +98,6 @@ func (s *VigiloIdentityServer) setupPublicRoutes() {
 			pr.Post(web.OAuthEndpoints.Login, s.oauthHandler.OAuthLogin)
 			pr.Post(web.UserEndpoints.Registration, s.userHandler.Register)
 			pr.Post(web.UserEndpoints.Login, s.userHandler.Login)
-			pr.Post(web.UserEndpoints.RequestPasswordReset, s.userHandler.RequestPasswordResetEmail)
 			pr.Post(web.ClientEndpoints.Register, s.clientHandler.RegisterClient)
 		})
 

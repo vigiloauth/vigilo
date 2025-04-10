@@ -7,17 +7,15 @@ const (
 )
 
 var UserEndpoints = struct {
-	Registration         string
-	Login                string
-	Logout               string
-	RequestPasswordReset string
-	ResetPassword        string
+	Registration  string
+	Login         string
+	Logout        string
+	ResetPassword string
 }{
-	Registration:         defaultAuthEndpoint + "/signup",
-	Login:                defaultAuthEndpoint + "/login",
-	Logout:               defaultAuthEndpoint + "/logout",
-	RequestPasswordReset: defaultAuthEndpoint + "/reset-password",
-	ResetPassword:        defaultAuthEndpoint + "/reset-password/confirm",
+	Registration:  defaultAuthEndpoint + "/signup",
+	Login:         defaultAuthEndpoint + "/login",
+	Logout:        defaultAuthEndpoint + "/logout",
+	ResetPassword: defaultAuthEndpoint + "/reset-password/confirm",
 }
 
 var ClientEndpoints = struct {

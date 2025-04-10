@@ -7,7 +7,6 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
-	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -27,7 +26,6 @@ var logger = config.GetServerConfig().Logger()
 type PasswordResetServiceImpl struct {
 	tokenService   token.TokenService
 	userRepository users.UserRepository
-	emailService   email.EmailService
 	tokenDuration  time.Duration
 }
 
@@ -45,53 +43,12 @@ type PasswordResetServiceImpl struct {
 func NewPasswordResetService(
 	tokenService token.TokenService,
 	userRepository users.UserRepository,
-	emailService email.EmailService,
 ) *PasswordResetServiceImpl {
 	return &PasswordResetServiceImpl{
 		tokenService:   tokenService,
 		userRepository: userRepository,
-		emailService:   emailService,
 		tokenDuration:  config.GetServerConfig().TokenConfig().AccessTokenDuration(),
 	}
-}
-
-// SendPasswordResetEmail sends a password reset email to the user.
-//
-// Parameters:
-//
-//	userEmail string: The user's email address.
-//
-// Returns:
-//
-//	*users.UserPasswordResetResponse: A response message.
-//	error: An error if the operation fails.
-func (p *PasswordResetServiceImpl) SendPasswordResetEmail(userEmail string) (*users.UserPasswordResetResponse, error) {
-	if user := p.userRepository.GetUserByID(userEmail); user == nil {
-		logger.Error(module, "SendPasswordResetEmail: Failed to retrieve user by email=[%s]", common.TruncateSensitive(userEmail))
-		return &users.UserPasswordResetResponse{Message: resetResponseMsg}, nil
-	}
-
-	resetToken, err := p.tokenService.GenerateToken(userEmail, "", p.tokenDuration)
-	if err != nil {
-		logger.Error(module, "SendPasswordResetEmail: Failed to generate reset token: %v", err)
-		return nil, errors.Wrap(err, "", "failed to generate reset token")
-	}
-
-	resetURL, err := p.constructResetURL(resetToken)
-	if err != nil {
-		logger.Error(module, "SendPasswordResetEmail: Failed to construct reset URL: %v", err)
-		return nil, errors.Wrap(err, "", "failed to construct reset URL")
-	}
-
-	if err := p.generateAndSendEmail(userEmail, resetURL, resetToken); err != nil {
-		logger.Error(module, "SendPasswordResetEmail: Failed to send password reset email to recipient=[%s]: %v",
-			common.TruncateSensitive(userEmail), err,
-		)
-		return nil, errors.Wrap(err, "", "failed to send password reset email")
-	}
-
-	p.addTokenToStore(resetToken, userEmail)
-	return &users.UserPasswordResetResponse{Message: resetResponseMsg}, nil
 }
 
 // ResetPassword resets the user's password using the provided reset token.
@@ -175,28 +132,6 @@ func (p *PasswordResetServiceImpl) constructResetURL(resetToken string) (string,
 	resetURL := fmt.Sprintf("%s?requestId=%s", resetURLBase, resetToken)
 	logger.Info(module, "Successfully constructed reset URL=[%s]", common.SanitizeURL(resetURL))
 	return resetToken, nil
-}
-
-// generateAndSendEmail generates and sends the password reset email.
-//
-// Parameters:
-//
-//	userEmail string: The user's email address.
-//	resetURL string: The password reset URL.
-//	resetToken string: The reset token.
-//
-// Returns:
-//
-//	error: An error if sending the email fails.
-func (p *PasswordResetServiceImpl) generateAndSendEmail(userEmail, resetURL, resetToken string) error {
-	emailRequest := email.NewPasswordResetRequest(userEmail, resetURL, resetToken, time.Now().Add(p.tokenDuration))
-	emailRequest = *p.emailService.GenerateEmailRequest(emailRequest)
-	if err := p.emailService.SendEmail(emailRequest); err != nil {
-		logger.Error(module, "Failed to send password reset email: %v", err)
-		return errors.Wrap(err, "", "failed to send email")
-	}
-
-	return nil
 }
 
 // addTokenToStore adds the reset token to the token store.
