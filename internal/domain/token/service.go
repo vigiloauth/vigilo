@@ -129,8 +129,8 @@ type TokenService interface {
 	//
 	//	Returns:
 	//
-	//	refreshToken string: A new refresh token.
 	//	accessToken string: A new access token.
+	//	refreshToken string: A new refresh token.
 	//	error: An error if an error occurs during generation.
 	GenerateRefreshAndAccessTokens(subject, scopes string) (string, string, error)
 

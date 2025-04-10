@@ -146,7 +146,7 @@ func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, r
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid refresh token")
 	}
 
-	newRefreshToken, newAccessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, requestedScopes)
+	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, requestedScopes)
 	if err != nil {
 		s.logger.Error(s.module, "[RefreshAccessToken] Failed to generate new tokens: %v", err)
 		if err := s.tokenService.BlacklistToken(refreshToken); err != nil {

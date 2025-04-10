@@ -12,14 +12,13 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
-// Ensure TokenService implements the TokenManager interface.
+// Ensure TokenService implements the TokenService interface.
 var _ token.TokenService = (*TokenServiceImpl)(nil)
 var logger = config.GetServerConfig().Logger()
 
 const tokenIssuer string = "vigilo-auth-server"
 const module string = "Token Service"
 
-// TokenServiceImpl implements the TokenManager interface using JWT.
 type TokenServiceImpl struct {
 	tokenRepo            token.TokenRepository
 	secretKey            string
@@ -305,8 +304,8 @@ func (ts *TokenServiceImpl) ValidateToken(token string) error {
 //
 //	Returns:
 //
-//	refreshToken string: A new refresh token.
 //	accessToken string: A new access token.
+//	refreshToken string: A new refresh token.
 //	error: An error if an error occurs during generation.
 func (ts *TokenServiceImpl) GenerateRefreshAndAccessTokens(subject, scopes string) (string, string, error) {
 	refreshToken, err := ts.generateAndStoreToken(subject, "", scopes, ts.refreshTokenDuration)
@@ -319,7 +318,7 @@ func (ts *TokenServiceImpl) GenerateRefreshAndAccessTokens(subject, scopes strin
 		return "", "", err
 	}
 
-	return refreshToken, accessToken, nil
+	return accessToken, refreshToken, nil
 }
 
 // generateAndStoreToken creates a signed JWT (JSON Web Token) with standard claims
