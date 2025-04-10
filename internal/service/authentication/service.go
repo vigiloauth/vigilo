@@ -56,16 +56,9 @@ func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, client
 		return nil, errors.Wrap(err, "", "failed to authenticate client")
 	}
 
-	accessToken, err := s.tokenService.GenerateToken(clientID, config.GetServerConfig().TokenConfig().AccessTokenDuration())
+	refreshToken, accessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, requestedScopes)
 	if err != nil {
-		s.logger.Error(s.module, "Failed to generate access token: %v", err)
-		return nil, errors.Wrap(err, "", "failed to generate access token")
-	}
-
-	refreshToken, err := s.tokenService.GenerateToken(clientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
-	if err != nil {
-		s.logger.Error(s.module, "Failed to generate refresh token: %v", err)
-		return nil, errors.Wrap(err, "", "failed to generate refresh token")
+		return nil, errors.Wrap(err, "", "failed to issue tokens")
 	}
 
 	return &token.TokenResponse{
@@ -103,7 +96,7 @@ func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecr
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to authenticate user")
 	}
 
-	accessToken, refreshToken, err := s.tokenService.GenerateTokenPair(loginResponse.UserID, clientID)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokenPair(loginResponse.UserID, clientID, requestedScopes)
 	if err != nil {
 		s.logger.Error(s.module, "Failed to generate token pair: %v", err)
 		return nil, err
@@ -153,7 +146,7 @@ func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, r
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid refresh token")
 	}
 
-	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID)
+	newRefreshToken, newAccessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, requestedScopes)
 	if err != nil {
 		s.logger.Error(s.module, "[RefreshAccessToken] Failed to generate new tokens: %v", err)
 		if err := s.tokenService.BlacklistToken(refreshToken); err != nil {
@@ -173,6 +166,41 @@ func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, r
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
 		TokenType:    common.Bearer,
 	}, nil
+}
+
+// IntrospectToken verifies the validity of a given token by introspecting its details.
+// This method checks whether the token is valid, expired, or revoked and returns the
+// associated token information if it is valid.
+//
+// Parameters:
+//
+//	token (string): The token to be introspected.
+//
+// Returns:
+//
+//	*TokenIntrospectionResponse: A struct containing token details such as
+//	  validity, expiration, and any associated metadata. If the token is valid, this
+//	  response will include all relevant claims associated with the token.
+func (s *AuthenticationServiceImpl) IntrospectToken(tokenStr string) *token.TokenIntrospectionResponse {
+	retrievedToken, err := s.tokenService.GetToken(tokenStr)
+	if retrievedToken == nil || err != nil {
+		return &token.TokenIntrospectionResponse{Active: false}
+	}
+
+	claims, err := s.tokenService.ParseToken(retrievedToken.Token)
+	if err != nil {
+		s.logger.Error(s.module, "Failed to parse token: %v", err)
+		return &token.TokenIntrospectionResponse{Active: false}
+	}
+
+	response := token.NewTokenIntrospectionResponse(claims)
+	if s.tokenService.IsTokenBlacklisted(tokenStr) || s.tokenService.IsTokenExpired(tokenStr) {
+		response.Active = false
+	} else {
+		response.Active = true
+	}
+
+	return response
 }
 
 func (s *AuthenticationServiceImpl) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {

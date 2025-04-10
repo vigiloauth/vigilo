@@ -79,7 +79,7 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 		return nil, errors.Wrap(err, "", "failed to create new user")
 	}
 
-	jwtToken, err := u.tokenService.GenerateToken(user.Email, u.jwtConfig.ExpirationTime())
+	jwtToken, err := u.tokenService.GenerateToken(user.Email, "", u.jwtConfig.ExpirationTime())
 	if err != nil {
 		logger.Error(module, "CreateUser: Failed to generate a session token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate session token")
@@ -228,7 +228,7 @@ func (u *UserServiceImpl) authenticateUser(loginUser *users.User, loginAttempt *
 		return nil, err
 	}
 
-	jwtToken, err := u.tokenService.GenerateToken(retrievedUser.ID, u.jwtConfig.ExpirationTime())
+	jwtToken, err := u.tokenService.GenerateToken(retrievedUser.ID, "", u.jwtConfig.ExpirationTime())
 	if err != nil {
 		logger.Error(module, "Failed to generate access token for user=[%s]: %v", common.TruncateSensitive(retrievedUser.ID), err)
 		return nil, errors.NewInternalServerError()

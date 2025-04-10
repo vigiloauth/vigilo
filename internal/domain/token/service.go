@@ -19,7 +19,7 @@ type TokenService interface {
 	//
 	//   string: The generated JWT token string.
 	//   error: An error if token generation fails.
-	GenerateToken(subject string, expirationTime time.Duration) (string, error)
+	GenerateToken(subject, scopes string, expirationTime time.Duration) (string, error)
 
 	// GenerateTokenPair generates an access & refresh token.
 	//
@@ -33,7 +33,7 @@ type TokenService interface {
 	//	string: The access token.
 	//	string: The refresh token.
 	//	error: An error if an error occurs while generating the tokens.
-	GenerateTokenPair(userID, clientID string) (string, string, error)
+	GenerateTokenPair(userID, clientID, scopes string) (string, string, error)
 
 	// ParseToken parses and validates a JWT token string.
 	//
@@ -71,14 +71,13 @@ type TokenService interface {
 	//
 	// Parameters:
 	//
-	//   email string: The email to validate against.
 	//   token string: The token string to retrieve.
 	//
 	// Returns:
 	//
 	//   *TokenData: The TokenData if the token is valid, or nil if not found or invalid.
 	//   error: An error if the token is not found, expired, or the email doesn't match.
-	GetToken(email string, token string) (*TokenData, error)
+	GetToken(token string) (*TokenData, error)
 
 	// DeleteToken removes a token from the token repository.
 	//
@@ -135,7 +134,20 @@ type TokenService interface {
 	//	refreshToken string: A new refresh token.
 	//	accessToken string: A new access token.
 	//	error: An error if an error occurs during generation.
-	GenerateRefreshAndAccessTokens(subject string) (string, string, error)
+	GenerateRefreshAndAccessTokens(subject, scopes string) (string, string, error)
 
+	// BlacklistToken adds the specified token to the blacklist, preventing it from being used
+	// for further authentication or authorization. The token is marked as invalid, even if it
+	// has not yet expired.
+	//
+	// Parameters:
+	//
+	//	token (string): The token to be blacklisted. This is the token that will no longer
+	//     be valid for further use.
+	//
+	// Returns:
+	//
+	// 	error: An error if the token is not found in the token store or if it has already
+	//     expired, in which case it cannot be blacklisted.
 	BlacklistToken(token string) error
 }

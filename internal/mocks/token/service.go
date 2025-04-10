@@ -10,10 +10,10 @@ import (
 // MockTokenService is a mock implementation of the token.TokenManager interface.
 type MockTokenService struct {
 	// GenerateTokenFunc is a mock function for the GenerateToken method.
-	GenerateTokenFunc func(id string, duration time.Duration) (string, error)
+	GenerateTokenFunc func(id, scopes string, duration time.Duration) (string, error)
 
 	// GenerateTokenPairFunc is a mock function for the GenerateTokenPair method.
-	GenerateTokenPairFunc func(userID, clientID string) (string, string, error)
+	GenerateTokenPairFunc func(userID, clientID, scopes string) (string, string, error)
 
 	// SaveTokenFunc is a mock function for the AddToken method.
 	SaveTokenFunc func(token, id string, expiry time.Time)
@@ -25,7 +25,7 @@ type MockTokenService struct {
 	IsTokenBlacklistedFunc func(token string) bool
 
 	// GetTokenFunc is a mock function for the GetToken method.
-	GetTokenFunc func(id string, token string) (*token.TokenData, error)
+	GetTokenFunc func(token string) (*token.TokenData, error)
 
 	// DeleteTokenFunc is a mock function for the DeleteToken method.
 	DeleteTokenFunc func(token string) error
@@ -37,19 +37,19 @@ type MockTokenService struct {
 
 	DeleteTokenAsyncFunc func(token string) <-chan error
 
-	GenerateRefreshAndAccessTokensFunc func(subject string) (string, string, error)
+	GenerateRefreshAndAccessTokensFunc func(subject, scopes string) (string, string, error)
 
 	BlacklistTokenFunc func(token string) error
 }
 
 // GenerateToken calls the mock GenerateTokenFunc.
-func (m *MockTokenService) GenerateToken(id string, duration time.Duration) (string, error) {
-	return m.GenerateTokenFunc(id, duration)
+func (m *MockTokenService) GenerateToken(id, scopes string, duration time.Duration) (string, error) {
+	return m.GenerateTokenFunc(id, scopes, duration)
 }
 
 // GenerateTokens calls the mock GenerateTokensFunc
-func (m *MockTokenService) GenerateTokenPair(userID, clientID string) (string, string, error) {
-	return m.GenerateTokenPairFunc(userID, clientID)
+func (m *MockTokenService) GenerateTokenPair(userID, clientID, scopes string) (string, string, error) {
+	return m.GenerateTokenPairFunc(userID, clientID, scopes)
 }
 
 // AddToken calls the mock AddTokenFunc.
@@ -68,8 +68,8 @@ func (m *MockTokenService) IsTokenBlacklisted(token string) bool {
 }
 
 // GetToken calls the mock GetTokenFunc.
-func (m *MockTokenService) GetToken(id string, token string) (*token.TokenData, error) {
-	return m.GetTokenFunc(id, token)
+func (m *MockTokenService) GetToken(token string) (*token.TokenData, error) {
+	return m.GetTokenFunc(token)
 }
 
 // DeleteToken calls the mock DeleteTokenFunc.
@@ -90,8 +90,8 @@ func (m *MockTokenService) DeleteTokenAsync(token string) <-chan error {
 	return m.DeleteTokenAsyncFunc(token)
 }
 
-func (m *MockTokenService) GenerateRefreshAndAccessTokens(subject string) (string, string, error) {
-	return m.GenerateRefreshAndAccessTokensFunc(subject)
+func (m *MockTokenService) GenerateRefreshAndAccessTokens(subject, scopes string) (string, string, error) {
+	return m.GenerateRefreshAndAccessTokensFunc(subject, scopes)
 }
 
 func (m *MockTokenService) BlacklistToken(token string) error {

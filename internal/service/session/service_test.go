@@ -31,7 +31,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 	mockSessionRepo := &mSessionRepo.MockSessionRepository{}
 	mockCookieService := &mCookieService.MockHTTPCookieService{}
 
-	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
 		return testToken, nil
 	}
 	mockSessionRepo.SaveSessionFunc = func(sessionData *session.SessionData) error {
@@ -56,7 +56,7 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 	mockSessionRepo := &mSessionRepo.MockSessionRepository{}
 	mockCookieService := &mCookieService.MockHTTPCookieService{}
 
-	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
 		return testToken, nil
 	}
 	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {

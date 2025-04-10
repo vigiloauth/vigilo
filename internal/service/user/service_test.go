@@ -36,7 +36,7 @@ func TestUserService_CreateUser_Success(t *testing.T) {
 
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return nil }
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
-	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) { return testToken, nil }
+	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return testToken, nil }
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
 	registeredUser, err := userService.CreateUser(createNewUser())
@@ -71,7 +71,7 @@ func TestUserService_CreateUser_PasswordIsNotStoredInPlainText(t *testing.T) {
 	mockUserRepo.DeleteUserByIDFunc = func(userID string) error { return nil }
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return nil }
-	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) { return testToken, nil }
+	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return testToken, nil }
 
 	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
 
@@ -174,7 +174,7 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 
 	mockUserRepo.AddUserFunc = func(u *users.User) error { return nil }
 	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return user }
-	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) { return "testToken", nil }
+	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return "testToken", nil }
 	mockLoginService.SaveLoginAttemptFunc = func(attempt *users.UserLoginAttempt) error { return nil }
 	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
 

@@ -90,7 +90,12 @@ func (cs *ClientServiceImpl) Register(newClient *client.Client) (*client.ClientR
 		return nil, errors.Wrap(err, "", "failed to create new client")
 	}
 
-	accessToken, err := cs.tokenService.GenerateToken(newClient.ID, config.GetServerConfig().TokenConfig().AccessTokenDuration())
+	accessToken, err := cs.tokenService.GenerateToken(
+		newClient.ID,
+		strings.Join(newClient.Scopes, " "),
+		config.GetServerConfig().TokenConfig().AccessTokenDuration(),
+	)
+
 	if err != nil {
 		logger.Error(module, "Register: Failed to generate registration access token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate the registration access token")

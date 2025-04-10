@@ -17,7 +17,7 @@ type MockTokenRepository struct {
 	IsTokenBlacklistedFunc func(token string) bool
 
 	// GetTokenFunc is a mock function for the GetToken method.
-	GetTokenFunc func(token string, id string) (*token.TokenData, error)
+	GetTokenFunc func(token string) *token.TokenData
 
 	// DeleteTokenFunc is a mock function for the DeleteToken method.
 	DeleteTokenFunc func(token string) error
@@ -38,8 +38,8 @@ func (m *MockTokenRepository) IsTokenBlacklisted(token string) bool {
 }
 
 // GetToken calls the mock GetTokenFunc.
-func (m *MockTokenRepository) GetToken(token string, id string) (*token.TokenData, error) {
-	return m.GetTokenFunc(token, id)
+func (m *MockTokenRepository) GetToken(token string) *token.TokenData {
+	return m.GetTokenFunc(token)
 }
 
 // DeleteToken calls the mock DeleteTokenFunc.

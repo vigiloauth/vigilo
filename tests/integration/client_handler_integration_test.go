@@ -697,8 +697,8 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 		// assert token is deleted.
-		_, err := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken, "invalid-id")
-		assert.Error(t, err)
+		token := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken)
+		assert.Nil(t, token)
 	})
 
 	t.Run("Unauthorized - Expired registration access token", func(t *testing.T) {
@@ -717,8 +717,8 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 		// assert token is deleted.
-		_, err := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken, testClientID)
-		assert.Error(t, err)
+		token := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken)
+		assert.Nil(t, token)
 	})
 
 	t.Run("Unauthorized - Invalid client ID", func(t *testing.T) {
@@ -737,8 +737,8 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 		// assert token is deleted.
-		_, err := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken, testClientID)
-		assert.Error(t, err)
+		token := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken)
+		assert.Nil(t, token)
 	})
 
 	t.Run("Forbidden - Insufficient Scopes", func(t *testing.T) {
@@ -757,8 +757,8 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 
 		// assert token is deleted.
-		_, err := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken, testClientID)
-		assert.Error(t, err)
+		token := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken)
+		assert.Nil(t, token)
 	})
 }
 

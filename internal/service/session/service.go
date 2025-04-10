@@ -61,7 +61,7 @@ func NewSessionServiceImpl(
 //
 //	error: An error if token generation or cookie setting fails.
 func (s *SessionServiceImpl) CreateSession(w http.ResponseWriter, r *http.Request, userID string, sessionExpiration time.Duration) error {
-	sessionToken, err := s.tokenService.GenerateToken(userID, sessionExpiration)
+	sessionToken, err := s.tokenService.GenerateToken(userID, "", sessionExpiration)
 	if err != nil {
 		logger.Error(module, "CreateSession: Failed to generate session token for user=[%s]: %v", common.TruncateSensitive(userID), err)
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate session token")

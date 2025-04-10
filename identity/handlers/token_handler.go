@@ -39,6 +39,10 @@ func NewTokenHandler(
 	}
 }
 
+func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	requestID := common.GetRequestID(r.Context())
 	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IssueToken]", requestID)

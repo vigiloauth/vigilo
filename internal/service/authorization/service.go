@@ -149,7 +149,7 @@ func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.To
 //	*token.TokenResponse: A fully formed token response with access and refresh tokens.
 //	error: An error if token generation fails.
 func (s *AuthorizationServiceImpl) GenerateTokens(authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
-	accessToken, refreshToken, err := s.tokenService.GenerateTokenPair(authCodeData.UserID, authCodeData.ClientID)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokenPair(authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate tokens")
 	}

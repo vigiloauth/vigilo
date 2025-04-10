@@ -52,8 +52,8 @@ func NewTokenServiceImpl(tokenRepo token.TokenRepository) *TokenServiceImpl {
 //
 //	string: The generated JWT token string.
 //	error: An error if token generation fails.
-func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Duration) (string, error) {
-	tokenString, err := ts.generateAndStoreToken(subject, "", expirationTime)
+func (ts *TokenServiceImpl) GenerateToken(subject, scopes string, expirationTime time.Duration) (string, error) {
+	tokenString, err := ts.generateAndStoreToken(subject, "", scopes, expirationTime)
 	if err != nil {
 		logger.Error(module, "GenerateToken: Failed to generate token for subject=[%s]: %v", common.TruncateSensitive(subject), err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
@@ -74,8 +74,8 @@ func (ts *TokenServiceImpl) GenerateToken(subject string, expirationTime time.Du
 //	string: The access token.
 //	string: The refresh token.
 //	error: An error if an error occurs while generating the tokens.
-func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID string) (string, string, error) {
-	accessToken, err := ts.generateAndStoreToken(userID, clientID, ts.tokenConfig.AccessTokenDuration())
+func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID, scopes string) (string, string, error) {
+	accessToken, err := ts.generateAndStoreToken(userID, clientID, scopes, ts.tokenConfig.AccessTokenDuration())
 	if err != nil {
 		logger.Error(module, "GenerateTokenPair: Failed to generate access token for user=[%s], client=[%s]: %v",
 			common.TruncateSensitive(userID),
@@ -85,7 +85,7 @@ func (ts *TokenServiceImpl) GenerateTokenPair(userID, clientID string) (string, 
 		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access token")
 	}
 
-	refreshToken, err := ts.generateAndStoreToken(userID, clientID, ts.tokenConfig.RefreshTokenDuration())
+	refreshToken, err := ts.generateAndStoreToken(userID, clientID, scopes, ts.tokenConfig.RefreshTokenDuration())
 	if err != nil {
 		logger.Error(module, "GenerateTokenPair: Failed to generate refresh token for user=[%s], client=[%s]: %v",
 			common.TruncateSensitive(userID),
@@ -142,6 +142,19 @@ func (ts *TokenServiceImpl) IsTokenBlacklisted(token string) bool {
 	return ts.tokenRepo.IsTokenBlacklisted(hashedToken)
 }
 
+// BlacklistToken adds the specified token to the blacklist, preventing it from being used
+// for further authentication or authorization. The token is marked as invalid, even if it
+// has not yet expired.
+//
+// Parameters:
+//
+//		token (string): The token to be blacklisted. This is the token that will no longer
+//	    be valid for further use.
+//
+// Returns:
+//
+//		error: An error if the token is not found in the token store or if it has already
+//	    expired, in which case it cannot be blacklisted.
 func (ts *TokenServiceImpl) BlacklistToken(token string) error {
 	hashedToken := crypto.HashSHA256(token)
 	return ts.tokenRepo.BlacklistToken(hashedToken)
@@ -163,19 +176,17 @@ func (ts *TokenServiceImpl) SaveToken(token string, id string, expirationTime ti
 //
 // Parameters:
 //
-//	id string: The id to validate against.
 //	token string: The token string to retrieve.
 //
 // Returns:
 //
 //	*TokenData: The TokenData if the token is valid, or nil if not found or invalid.
 //	error: An error if the token is not found, expired, or the id doesn't match.
-func (ts *TokenServiceImpl) GetToken(id string, token string) (*token.TokenData, error) {
+func (ts *TokenServiceImpl) GetToken(token string) (*token.TokenData, error) {
 	hashedToken := crypto.HashSHA256(token)
-	retrievedToken, err := ts.tokenRepo.GetToken(hashedToken, id)
-	if err != nil {
-		logger.Error(module, "GetToken: Failed to retrieve token for ID=[%s]: %v", common.TruncateSensitive(id), err)
-		return nil, errors.Wrap(err, errors.ErrCodeTokenNotFound, "failed to retrieve token")
+	retrievedToken := ts.tokenRepo.GetToken(hashedToken)
+	if retrievedToken != nil {
+		return nil, errors.New(errors.ErrCodeTokenNotFound, "failed to retrieve token")
 	}
 
 	return retrievedToken, nil
@@ -251,6 +262,7 @@ func (ts *TokenServiceImpl) IsTokenExpired(token string) bool {
 		logger.Warn(module, "IsTokenExpired: Token=[%s] is expired", common.TruncateSensitive(token))
 		return true
 	}
+
 	return time.Now().Unix() > claims.ExpiresAt
 }
 
@@ -288,13 +300,13 @@ func (ts *TokenServiceImpl) ValidateToken(token string) error {
 //	refreshToken string: A new refresh token.
 //	accessToken string: A new access token.
 //	error: An error if an error occurs during generation.
-func (ts *TokenServiceImpl) GenerateRefreshAndAccessTokens(subject string) (string, string, error) {
-	refreshToken, err := ts.generateAndStoreToken(subject, "", config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+func (ts *TokenServiceImpl) GenerateRefreshAndAccessTokens(subject, scopes string) (string, string, error) {
+	refreshToken, err := ts.generateAndStoreToken(subject, "", scopes, ts.tokenConfig.RefreshTokenDuration())
 	if err != nil {
 		return "", "", err
 	}
 
-	accessToken, err := ts.generateAndStoreToken(subject, "", config.GetServerConfig().TokenConfig().AccessTokenDuration())
+	accessToken, err := ts.generateAndStoreToken(subject, "", scopes, ts.tokenConfig.AccessTokenDuration())
 	if err != nil {
 		return "", "", err
 	}
@@ -314,13 +326,13 @@ func (ts *TokenServiceImpl) GenerateRefreshAndAccessTokens(subject string) (stri
 //
 //	string: A signed JWT token string.
 //	error: An error if token generation or signing fails.
-func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience string, duration time.Duration) (string, error) {
+func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience, scopes string, duration time.Duration) (string, error) {
 	maximumRetries := 5
 	currentRetry := 0
 
 	for currentRetry < maximumRetries {
 		tokenExpiration := time.Now().Add(duration)
-		claims, err := ts.generateStandardClaims(subject, audience, tokenExpiration.Unix())
+		claims, err := ts.generateStandardClaims(subject, audience, scopes, tokenExpiration.Unix())
 		if err != nil {
 			logger.Warn(module, "Failed to generate JWT Standard Claims. Incrementing retry count")
 			currentRetry++
@@ -344,7 +356,7 @@ func (ts *TokenServiceImpl) generateAndStoreToken(subject, audience string, dura
 	return "", errors.New(errors.ErrCodeInternalServerError, "failed to generate and store after maximum retries reached")
 }
 
-func (ts *TokenServiceImpl) generateStandardClaims(subject, audience string, tokenExpiration int64) (*jwt.StandardClaims, error) {
+func (ts *TokenServiceImpl) generateStandardClaims(subject, audience, scopes string, tokenExpiration int64) (*jwt.StandardClaims, error) {
 	claims := &jwt.StandardClaims{
 		Subject:   subject,
 		Issuer:    tokenIssuer,

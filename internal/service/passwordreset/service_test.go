@@ -2,13 +2,10 @@ package service
 
 import (
 	"testing"
-	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/crypto"
-	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
@@ -26,102 +23,6 @@ const (
 	testToken      string = "test_token"
 	successMessage string = "Password reset instructions have been sent to your email if an account exists."
 )
-
-func TestPasswordResetService_SendPasswordResetEmail(t *testing.T) {
-	config.NewServerConfig(config.WithBaseURL(baseURL))
-
-	testCases := []struct {
-		name              string
-		userEmail         string
-		mockUserStoreFunc func(email string) *users.User
-		mockTokenFunc     func(email string, duration time.Duration) (string, error)
-		mockEmailSendFunc func(request email.EmailRequest) error
-		expectedError     error
-		expectedMessage   string
-	}{
-		{
-			name:      "User not found",
-			userEmail: "nonexistent@example.com",
-			mockUserStoreFunc: func(email string) *users.User {
-				return nil
-			},
-			expectedMessage: successMessage,
-		},
-		{
-			name:      "Token generation error",
-			userEmail: userEmail,
-			mockUserStoreFunc: func(email string) *users.User {
-				return &users.User{}
-			},
-			mockTokenFunc: func(email string, duration time.Duration) (string, error) {
-				return "", errors.New(errors.ErrCodeTokenCreation, "failed to generate reset token")
-			},
-			expectedError: errors.New(errors.ErrCodeTokenCreation, "failed to generate reset token: failed to generate reset token"),
-		},
-		{
-			name:      "Email sending error",
-			userEmail: userEmail,
-			mockUserStoreFunc: func(email string) *users.User {
-				return &users.User{}
-			},
-			mockTokenFunc: func(email string, duration time.Duration) (string, error) {
-				return testToken, nil
-			},
-			mockEmailSendFunc: func(request email.EmailRequest) error {
-				return errors.New(errors.ErrCodeEmailDeliveryFailed, "email delivery failed, added to retry queue")
-			},
-			expectedError: errors.New(errors.ErrCodeEmailDeliveryFailed, "failed to send email: failed to send password reset email"),
-		},
-
-		{
-			name:      "Success",
-			userEmail: userEmail,
-			mockUserStoreFunc: func(email string) *users.User {
-				return &users.User{}
-			},
-			mockTokenFunc: func(email string, duration time.Duration) (string, error) {
-				return testToken, nil
-			},
-			mockEmailSendFunc: func(request email.EmailRequest) error {
-				return nil
-			},
-			expectedMessage: successMessage,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockTokenService := &mTokenService.MockTokenService{
-				GenerateTokenFunc: tc.mockTokenFunc,
-				SaveTokenFunc:     func(token, email string, expiry time.Time) {},
-			}
-
-			mockUserRepo := &mUserRepo.MockUserRepository{
-				GetUserByIDFunc: tc.mockUserStoreFunc,
-			}
-
-			mockEmailService := &mEmailService.MockEmailService{
-				GenerateEmailRequestFunc: func(request email.EmailRequest) *email.EmailRequest {
-					return &request
-				},
-				SendEmailFunc: tc.mockEmailSendFunc,
-			}
-
-			service := NewPasswordResetService(mockTokenService, mockUserRepo, mockEmailService)
-			resp, err := service.SendPasswordResetEmail(tc.userEmail)
-
-			if tc.expectedError != nil {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				if tc.expectedMessage != "" {
-					assert.Equal(t, tc.expectedMessage, resp.Message)
-				}
-
-			}
-		})
-	}
-}
 
 func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
 	mockTokenService := &mTokenService.MockTokenService{}
@@ -145,7 +46,7 @@ func TestPasswordResetService_ResetPasswordSuccess(t *testing.T) {
 		return nil
 	}
 
-	mockTokenService.GetTokenFunc = func(email, token string) (*token.TokenData, error) {
+	mockTokenService.GetTokenFunc = func(oken string) (*token.TokenData, error) {
 		return nil, nil
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	mClientService "github.com/vigiloauth/vigilo/internal/mocks/client"
@@ -21,6 +22,7 @@ const (
 	testPassword     string = "test-password"
 	testUserID       string = "test-user-id"
 	testRefreshToken string = "valid-refresh-token"
+	testTokenID      string = "test-token-id"
 )
 
 func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
@@ -47,7 +49,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 					},
 				}
 				mockTokenService := &mTokenService.MockTokenService{
-					GenerateTokenFunc: func(clientID string, duration time.Duration) (string, error) {
+					GenerateTokenFunc: func(clientID, scopes string, duration time.Duration) (string, error) {
 						return "mocked-token", nil
 					},
 				}
@@ -68,7 +70,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokenFunc: func(clientID string, duration time.Duration) (string, error) {
+			GenerateTokenFunc: func(clientID, scopes string, duration time.Duration) (string, error) {
 				return "", errors.NewInternalServerError()
 			},
 		}
@@ -120,7 +122,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokenPairFunc: func(userID, clientID string) (string, string, error) {
+			GenerateTokenPairFunc: func(userID, clientID, scopes string) (string, string, error) {
 				return "mocked-access-token", "mocked-refresh-token", nil
 			},
 		}
@@ -151,7 +153,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokenPairFunc: func(userID, clientID string) (string, string, error) {
+			GenerateTokenPairFunc: func(userID, clientID, scopes string) (string, string, error) {
 				return "", "", errors.NewInternalServerError()
 			},
 		}
@@ -245,7 +247,7 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 				}
 				mockTokenService := &mTokenService.MockTokenService{
 					ValidateTokenFunc: func(token string) error { return nil },
-					GenerateRefreshAndAccessTokensFunc: func(subject string) (string, string, error) {
+					GenerateRefreshAndAccessTokensFunc: func(subject, scopes string) (string, string, error) {
 						return "refresh-token", "access-token", nil
 					},
 					ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
@@ -310,5 +312,132 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
+	})
+}
+
+func TestAuthenticationService_IntrospectToken(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		mockTokenService := &mTokenService.MockTokenService{
+			GetTokenFunc: func(token string) (*domain.TokenData, error) {
+				return &domain.TokenData{
+					Token:     testRefreshToken,
+					ID:        testClientID,
+					ExpiresAt: time.Now().Add(10),
+					TokenID:   testTokenID,
+				}, nil
+			},
+			ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
+				return &jwt.StandardClaims{
+					ExpiresAt: time.Now().Add(10).Unix(),
+					IssuedAt:  time.Now().Unix(),
+					Subject:   testClientID,
+					Issuer:    "test-issuer",
+					Id:        testTokenID,
+					Audience:  "testAudience",
+				}, nil
+			},
+			IsTokenExpiredFunc:     func(token string) bool { return false },
+			IsTokenBlacklistedFunc: func(token string) bool { return false },
+		}
+
+		service := NewAuthenticationServiceImpl(mockTokenService, nil, nil)
+		response := service.IntrospectToken(testRefreshToken)
+
+		assert.NotNil(t, response)
+		assert.True(t, response.Active)
+	})
+
+	t.Run("Active is set to false when the token does not exist", func(t *testing.T) {
+		mockTokenService := &mTokenService.MockTokenService{
+			GetTokenFunc: func(token string) (*domain.TokenData, error) {
+				return nil, nil
+			},
+		}
+
+		service := NewAuthenticationServiceImpl(mockTokenService, nil, nil)
+		response := service.IntrospectToken(testRefreshToken)
+
+		assert.False(t, response.Active)
+	})
+
+	t.Run("Active is set to false when their is an error parsing the token", func(t *testing.T) {
+		mockTokenService := &mTokenService.MockTokenService{
+			GetTokenFunc: func(token string) (*domain.TokenData, error) {
+				return &domain.TokenData{
+					Token:     testRefreshToken,
+					ID:        testClientID,
+					ExpiresAt: time.Now().Add(10),
+					TokenID:   testTokenID,
+				}, nil
+			},
+			ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
+				return nil, errors.NewInternalServerError()
+			},
+		}
+
+		service := NewAuthenticationServiceImpl(mockTokenService, nil, nil)
+		response := service.IntrospectToken(testRefreshToken)
+
+		assert.False(t, response.Active)
+	})
+
+	t.Run("Active is set to false when the token is expired", func(t *testing.T) {
+		mockTokenService := &mTokenService.MockTokenService{
+			GetTokenFunc: func(token string) (*domain.TokenData, error) {
+				return &domain.TokenData{
+					Token:     testRefreshToken,
+					ID:        testClientID,
+					ExpiresAt: time.Now().Add(10),
+					TokenID:   testTokenID,
+				}, nil
+			},
+			ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
+				return &jwt.StandardClaims{
+					ExpiresAt: time.Now().Add(10).Unix(),
+					IssuedAt:  time.Now().Unix(),
+					Subject:   testClientID,
+					Issuer:    "test-issuer",
+					Id:        testTokenID,
+					Audience:  "testAudience",
+				}, nil
+			},
+			IsTokenExpiredFunc:     func(token string) bool { return true },
+			IsTokenBlacklistedFunc: func(token string) bool { return false },
+		}
+
+		service := NewAuthenticationServiceImpl(mockTokenService, nil, nil)
+		response := service.IntrospectToken(testRefreshToken)
+
+		assert.False(t, response.Active)
+	})
+
+	t.Run("Active is set to false when the token is blacklisted", func(t *testing.T) {
+		mockTokenService := &mTokenService.MockTokenService{
+			GetTokenFunc: func(token string) (*domain.TokenData, error) {
+				return &domain.TokenData{
+					Token:     testRefreshToken,
+					ID:        testClientID,
+					ExpiresAt: time.Now().Add(10),
+					TokenID:   testTokenID,
+				}, nil
+			},
+			ParseTokenFunc: func(token string) (*jwt.StandardClaims, error) {
+				return &jwt.StandardClaims{
+					ExpiresAt: time.Now().Add(10).Unix(),
+					IssuedAt:  time.Now().Unix(),
+					Subject:   testClientID,
+					Issuer:    "test-issuer",
+					Id:        testTokenID,
+					Audience:  "testAudience",
+				}, nil
+			},
+			IsTokenExpiredFunc:     func(token string) bool { return false },
+			IsTokenBlacklistedFunc: func(token string) bool { return true },
+		}
+
+		service := NewAuthenticationServiceImpl(mockTokenService, nil, nil)
+		response := service.IntrospectToken(testRefreshToken)
+
+		assert.False(t, response.Active)
 	})
 }

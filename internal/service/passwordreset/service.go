@@ -71,7 +71,7 @@ func (p *PasswordResetServiceImpl) SendPasswordResetEmail(userEmail string) (*us
 		return &users.UserPasswordResetResponse{Message: resetResponseMsg}, nil
 	}
 
-	resetToken, err := p.tokenService.GenerateToken(userEmail, p.tokenDuration)
+	resetToken, err := p.tokenService.GenerateToken(userEmail, "", p.tokenDuration)
 	if err != nil {
 		logger.Error(module, "SendPasswordResetEmail: Failed to generate reset token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate reset token")
