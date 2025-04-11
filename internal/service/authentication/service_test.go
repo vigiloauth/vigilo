@@ -518,7 +518,16 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		}
 	})
 
-	t.Run("Error is returned extracting client credentials from basic authorization header", func(t *testing.T) {})
+	t.Run("Error is returned extracting client credentials from basic authorization header", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, testURL, nil)
+		assert.NoError(t, err)
+		req.Header.Set(common.Authorization, common.BasicAuthHeader+testClientID)
+
+		service := NewAuthenticationService(nil, nil, nil)
+		err = service.AuthenticateClientRequest(req)
+
+		assert.Error(t, err)
+	})
 
 	t.Run("Error is returned authenticating the client", func(t *testing.T) {
 		tests := []struct {
@@ -528,27 +537,99 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 			mockTokenService  *mTokenService.MockTokenService
 		}{
 			{
-				name:              "Error is returned authenticating the client using basic authorization",
-				requestType:       common.BasicAuthHeader,
-				mockClientService: nil,
-				mockTokenService:  nil,
+				name:        "Error is returned authenticating the client using basic authorization",
+				requestType: common.BasicAuthHeader,
+				mockClientService: &mClientService.MockClientService{
+					AuthenticateClientFunc: func(clientID, clientSecret, grantType, scopes string) error {
+						return errors.New(errors.ErrCodeInvalidClient, "error message")
+					},
+				},
+				mockTokenService: nil,
 			},
 			{
-				name:              "Error is returned authenticating the client using bearer token authorization",
-				requestType:       common.BearerAuthHeader,
-				mockClientService: nil,
-				mockTokenService:  nil,
+				name:        "Error is returned authenticating the client using bearer token authorization",
+				requestType: common.BearerAuthHeader,
+				mockClientService: &mClientService.MockClientService{
+					AuthenticateClientFunc: func(clientID, clientSecret, grantType, scopes string) error {
+						return errors.New(errors.ErrCodeInvalidClient, "error message")
+					},
+				},
+				mockTokenService: &mTokenService.MockTokenService{
+					ValidateTokenFunc: func(token string) error { return nil },
+					ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+						return &domain.TokenClaims{
+							StandardClaims: &jwt.StandardClaims{
+								Subject: testClientID,
+							},
+						}, nil
+					},
+				},
 			},
 		}
 
 		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {})
+			t.Run(test.name, func(t *testing.T) {
+				req, err := http.NewRequest(http.MethodGet, testURL, nil)
+				assert.NoError(t, err)
+
+				if test.requestType == common.BasicAuthHeader {
+					req.SetBasicAuth(testClientID, testClientSecret)
+				} else {
+					req.Header.Set(common.Authorization, common.BearerAuthHeader+testRefreshToken)
+				}
+
+				service := NewAuthenticationService(test.mockTokenService, test.mockClientService, nil)
+				err = service.AuthenticateClientRequest(req)
+
+				assert.Error(t, err)
+			})
 		}
 	})
 
-	t.Run("Error is returned extracting the bearer token", func(t *testing.T) {})
+	t.Run("Error is returned extracting the bearer token", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, testURL, nil)
+		assert.NoError(t, err)
 
-	t.Run("Error is returned validating the bearer token", func(t *testing.T) {})
+		service := NewAuthenticationService(nil, nil, nil)
+		err = service.AuthenticateClientRequest(req)
 
-	t.Run("Error is returned parsing the bearer token", func(t *testing.T) {})
+		assert.Error(t, err)
+	})
+
+	t.Run("Error is returned validating the bearer token", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, testURL, nil)
+		assert.NoError(t, err)
+		req.Header.Set(common.Authorization, common.BearerAuthHeader+testRefreshToken)
+
+		mockTokenService := &mTokenService.MockTokenService{
+			ValidateTokenFunc: func(token string) error {
+				return errors.NewInternalServerError()
+			},
+		}
+
+		service := NewAuthenticationService(mockTokenService, nil, nil)
+		err = service.AuthenticateClientRequest(req)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Error is returned parsing the bearer token", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, testURL, nil)
+		assert.NoError(t, err)
+		req.Header.Set(common.Authorization, common.BearerAuthHeader+testRefreshToken)
+
+		mockTokenService := &mTokenService.MockTokenService{
+			ValidateTokenFunc: func(token string) error {
+				return nil
+			},
+			ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+				return nil, errors.NewInternalServerError()
+			},
+		}
+
+		service := NewAuthenticationService(mockTokenService, nil, nil)
+		err = service.AuthenticateClientRequest(req)
+
+		assert.Error(t, err)
+	})
 }

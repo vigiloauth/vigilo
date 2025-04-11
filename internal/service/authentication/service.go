@@ -218,41 +218,15 @@ func (s *authenticationService) IntrospectToken(tokenStr string) *token.TokenInt
 // or the token fails validation.
 func (s *authenticationService) AuthenticateClientRequest(r *http.Request) error {
 	authHeader := r.Header.Get(common.Authorization)
-	if strings.HasPrefix(authHeader, common.BasicAuthHeader) {
-		clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
-		if err != nil {
-			return err
-		}
 
-		if err := s.clientService.AuthenticateClient(clientID, clientSecret, client.ClientCredentials, client.ClientIntrospect); err != nil {
-			return errors.Wrap(err, "", "failed to authenticate client")
-		}
-
-	} else if strings.HasPrefix(authHeader, common.BearerAuthHeader) {
-		bearerToken, err := web.ExtractBearerToken(r)
-		if err != nil {
-			return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to extract bearer token")
-		}
-
-		if err := s.tokenService.ValidateToken(bearerToken); err != nil {
-			return errors.Wrap(err, "", "failed to validate bearer token")
-		}
-
-		claims, err := s.tokenService.ParseToken(bearerToken)
-		if err != nil {
-			return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
-		}
-
-		clientID := claims.Subject
-		if err := s.clientService.AuthenticateClient(clientID, "", client.ClientCredentials, client.ClientIntrospect); err != nil {
-			return errors.Wrap(err, "", "failed to authenticate client")
-		}
-
-	} else {
+	switch {
+	case strings.HasPrefix(authHeader, common.BasicAuthHeader):
+		return s.authenticateWithBasicAuth(r)
+	case strings.HasPrefix(authHeader, common.BearerAuthHeader):
+		return s.authenticateWithBearerToken(r)
+	default:
 		return errors.New(errors.ErrCodeInvalidClient, "failed to authorize client: missing authorization header")
 	}
-
-	return nil
 }
 
 func (s *authenticationService) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {
@@ -292,4 +266,40 @@ func (s *authenticationService) authenticateUser(req *user.UserLoginAttempt, cli
 		return nil, err
 	}
 	return loginResponse, nil
+}
+
+func (s *authenticationService) authenticateWithBasicAuth(r *http.Request) error {
+	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
+	if err != nil {
+		return err
+	}
+
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, client.ClientCredentials, client.ClientIntrospect); err != nil {
+		return errors.Wrap(err, "", "failed to authenticate client")
+	}
+
+	return nil
+}
+
+func (s *authenticationService) authenticateWithBearerToken(r *http.Request) error {
+	bearerToken, err := web.ExtractBearerToken(r)
+	if err != nil {
+		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to extract bearer token")
+	}
+
+	if err := s.tokenService.ValidateToken(bearerToken); err != nil {
+		return errors.Wrap(err, "", "failed to validate bearer token")
+	}
+
+	claims, err := s.tokenService.ParseToken(bearerToken)
+	if err != nil {
+		return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
+	}
+
+	clientID := claims.Subject
+	if err := s.clientService.AuthenticateClient(clientID, "", client.ClientCredentials, client.ClientIntrospect); err != nil {
+		return errors.Wrap(err, "", "failed to authenticate client")
+	}
+
+	return nil
 }
