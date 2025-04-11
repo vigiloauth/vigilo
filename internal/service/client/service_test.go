@@ -381,7 +381,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
-					Subject:   testClientID,
+					Subject:   "invalid-id",
 					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 				},
 			}, nil
