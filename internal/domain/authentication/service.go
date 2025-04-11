@@ -83,5 +83,10 @@ type AuthenticationService interface {
 	//
 	// Returns an error if the header is malformed, the credentials are invalid,
 	// or the token fails validation.
-	AuthenticateClientRequest(r *http.Request) error
+	AuthenticateClientRequest(r *http.Request, scope string) error
+
+	// RevokeToken handles revoking the given token. The token can either be an Access token or a Refresh token.
+	// This method has no return values since the content of the response should be ignored by clients.
+	// If an error occurs during the process, the errors will be logged.
+	RevokeToken(token string)
 }

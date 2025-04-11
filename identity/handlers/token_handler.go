@@ -43,15 +43,14 @@ func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
 	requestID := common.GetRequestID(r.Context())
 	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IntrospectToken]", requestID)
 
-	if err := h.authService.AuthenticateClientRequest(r); err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to authenticate request")
-		web.WriteError(w, wrappedErr)
+	if err := h.authService.AuthenticateClientRequest(r, client.TokenIntrospect); err != nil {
+		web.WriteError(w, errors.NewClientAuthenticationError(err))
 		return
 	}
 
 	err := r.ParseForm()
 	if err != nil {
-		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "unable to parse form"))
+		web.WriteError(w, errors.NewFormParsingError(err))
 		return
 	}
 
@@ -61,13 +60,33 @@ func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
+func (h *TokenHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=]%s]: Processing request=[RevokeToken]", requestID)
+
+	if err := h.authService.AuthenticateClientRequest(r, client.TokenRevoke); err != nil {
+		web.WriteError(w, errors.NewClientAuthenticationError(err))
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		web.WriteError(w, errors.NewFormParsingError(err))
+		return
+	}
+
+	tokenRequest := r.FormValue(common.Token)
+	h.authService.RevokeToken(tokenRequest)
+	web.WriteJSON(w, http.StatusOK, nil)
+}
+
 func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	requestID := common.GetRequestID(r.Context())
 	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IssueToken]", requestID)
 
 	err := r.ParseForm()
 	if err != nil {
-		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "unable to parse form"))
+		web.WriteError(w, errors.NewFormParsingError(err))
 		return
 	}
 

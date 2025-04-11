@@ -115,7 +115,8 @@ func (s *VigiloIdentityServer) setupFormDataRequiredRoutes() {
 		r.Group(func(pr chi.Router) {
 			pr.Use(s.middleware.RequireRequestMethod(http.MethodPost))
 			pr.Post(web.OAuthEndpoints.Token, s.tokenHandler.IssueTokens)
-			pr.Post(web.OAuthEndpoints.Introspect, s.tokenHandler.IntrospectToken)
+			pr.Post(web.OAuthEndpoints.IntrospectToken, s.tokenHandler.IntrospectToken)
+			pr.Post(web.OAuthEndpoints.RevokeToken, s.tokenHandler.RevokeToken)
 		})
 	})
 }
