@@ -38,7 +38,7 @@ func TestUserService_CreateUser_Success(t *testing.T) {
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
 	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return testToken, nil }
 
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
 	registeredUser, err := userService.CreateUser(createNewUser())
 
 	assert.NoError(t, err)
@@ -54,7 +54,7 @@ func TestUserService_CreateUser_DuplicateEntry(t *testing.T) {
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return user }
 
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
 
 	expected := errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
 	_, actual := userService.CreateUser(user)
@@ -73,7 +73,7 @@ func TestUserService_CreateUser_PasswordIsNotStoredInPlainText(t *testing.T) {
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return nil }
 	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return testToken, nil }
 
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
 
 	user := createNewUser()
 	_, err := userService.CreateUser(user)
@@ -178,7 +178,7 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 	mockLoginService.SaveLoginAttemptFunc = func(attempt *users.UserLoginAttempt) error { return nil }
 	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
 
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
 	userLoginAttempt := createTestUserLoginRequest()
 
 	_, err = userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
@@ -200,7 +200,7 @@ func TestUserService_AuthenticateUserInvalidPassword(t *testing.T) {
 		return nil
 	}
 
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 
@@ -223,7 +223,7 @@ func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
 	assert.NoError(t, err)
 	loginUser.Password = encryptedPassword
 
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
 	userLoginAttempt := createTestUserLoginRequest()
 
 	expected := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
@@ -231,45 +231,6 @@ func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
 
 	assert.Error(t, actual, "expected error during authentication")
 	assert.Equal(t, actual, expected)
-}
-
-func TestUserService_FailedUserAuthenticationAttempts(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
-
-	user := createNewUser()
-	encryptedPassword, err := crypto.HashString(user.Password)
-	assert.NoError(t, err)
-	user.Password = encryptedPassword
-
-	mockUserRepo.AddUserFunc = func(u *users.User) error { return nil }
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return user }
-	mockLoginService.HandleFailedLoginAttemptFunc = func(user *users.User, attempt *users.UserLoginAttempt) error {
-		return nil
-	}
-
-	mockLoginService.GetLoginAttemptsFunc = func(userID string) []*users.UserLoginAttempt {
-		attempts := []*users.UserLoginAttempt{}
-		totalAttempts := 5
-		for range totalAttempts {
-			attempts = append(attempts, &users.UserLoginAttempt{})
-		}
-		return attempts
-	}
-
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
-	user.Password = testInvalidPassword
-	userLoginAttempt := createTestUserLoginRequest()
-
-	expectedAttempts := 5
-	for range expectedAttempts {
-		_, err := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
-		assert.NotNil(t, err, "expected error to not be nil during authentication")
-	}
-
-	attempts := userService.loginService.GetLoginAttempts(user.ID)
-	assert.Equal(t, len(attempts), expectedAttempts)
 }
 
 func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
@@ -289,7 +250,7 @@ func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
 		return nil
 	}
 
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 
@@ -320,7 +281,7 @@ func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
 		return nil
 	}
 
-	userService := NewUserServiceImpl(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 

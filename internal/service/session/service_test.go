@@ -40,7 +40,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 	}
 	mockCookieService.SetSessionCookieFunc = func(w http.ResponseWriter, token string, expirationTime time.Duration) {}
 
-	sessionService := NewSessionServiceImpl(mockTokenService, mockSessionRepo, mockCookieService)
+	sessionService := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService)
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/", nil)
@@ -74,7 +74,7 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 	mockTokenService.IsTokenBlacklistedFunc = func(tokenString string) bool { return tokenString == testToken }
 	mockSessionRepo.DeleteSessionByIDFunc = func(sessionID string) error { return nil }
 
-	sessionService := NewSessionServiceImpl(mockTokenService, mockSessionRepo, mockCookieService)
+	sessionService := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService)
 
 	r := httptest.NewRequest("POST", "/invalidate", nil)
 	r.Header.Set("Authorization", "Bearer "+testToken)
@@ -95,7 +95,7 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 			return testToken, nil
 		}
 
-		ss := NewSessionServiceImpl(mockTokenService, mockSessionRepo, mockCookieService)
+		ss := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService)
 
 		expectedUserID := "test-user-id"
 		expectedToken := "valid-token"
@@ -135,7 +135,7 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 			return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
 		}
 
-		ss := NewSessionServiceImpl(mockTokenService, mockSessionRepo, mockCookieService)
+		ss := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService)
 		userID := ss.GetUserIDFromSession(req)
 		assert.Equal(t, "", userID)
 	})
@@ -155,7 +155,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 			return nil
 		}
 
-		service := NewSessionServiceImpl(mockTokenService, mockSessionRepo, mockCookieService)
+		service := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService)
 
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.AddCookie(&http.Cookie{
@@ -175,7 +175,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 			return errors.NewInternalServerError()
 		}
 
-		service := NewSessionServiceImpl(mockTokenService, mockSessionRepo, mockCookieService)
+		service := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService)
 
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.AddCookie(&http.Cookie{
@@ -191,7 +191,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 func TestSessionService_GetSessionData(t *testing.T) {
 	mockSessionRepo := &mSessionRepo.MockSessionRepository{}
 	mockCookieService := &mCookieService.MockHTTPCookieService{}
-	sessionService := NewSessionServiceImpl(nil, mockSessionRepo, mockCookieService)
+	sessionService := NewSessionService(nil, mockSessionRepo, mockCookieService)
 
 	testSessionID := "test-session-id"
 	testSessionData := &session.SessionData{
@@ -279,7 +279,7 @@ func TestSessionService_ClearStateFromSession(t *testing.T) {
 
 		session := getTestSessionData()
 		session.State = "testState"
-		service := NewSessionServiceImpl(nil, mockSessionRepo, nil)
+		service := NewSessionService(nil, mockSessionRepo, nil)
 
 		err := service.ClearStateFromSession(session)
 		assert.NoError(t, err)
@@ -294,7 +294,7 @@ func TestSessionService_ClearStateFromSession(t *testing.T) {
 
 		session := getTestSessionData()
 		session.State = "testState"
-		service := NewSessionServiceImpl(nil, mockSessionRepo, nil)
+		service := NewSessionService(nil, mockSessionRepo, nil)
 
 		err := service.ClearStateFromSession(session)
 		assert.Error(t, err)
@@ -320,7 +320,7 @@ func TestSessionService_ValidateSessionState(t *testing.T) {
 			},
 		}
 
-		session := NewSessionServiceImpl(nil, mockSessionRepo, mockCookieService)
+		session := NewSessionService(nil, mockSessionRepo, mockCookieService)
 		result, err := session.ValidateSessionState(req)
 
 		assert.NoError(t, err)
@@ -341,7 +341,7 @@ func TestSessionService_ValidateSessionState(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/test&state=testState", nil)
 
-		session := NewSessionServiceImpl(nil, mockSessionRepo, mockCookieService)
+		session := NewSessionService(nil, mockSessionRepo, mockCookieService)
 		result, err := session.ValidateSessionState(req)
 
 		assert.Error(t, err)
@@ -362,7 +362,7 @@ func TestSessionService_ValidateSessionState(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/test&state=testState", nil)
 
-		session := NewSessionServiceImpl(nil, mockSessionRepo, mockCookieService)
+		session := NewSessionService(nil, mockSessionRepo, mockCookieService)
 		result, err := session.ValidateSessionState(req)
 
 		assert.Error(t, err)

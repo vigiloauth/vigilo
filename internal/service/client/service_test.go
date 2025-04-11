@@ -35,7 +35,7 @@ func TestClientService_Register(t *testing.T) {
 		}
 		mockClientStore.SaveClientFunc = func(client *client.Client) error { return nil }
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
 		t.Log(response.ConfigurationEndpoint)
@@ -48,7 +48,7 @@ func TestClientService_Register(t *testing.T) {
 		testClient.Type = client.Public
 		mockClientStore.IsExistingIDFunc = func(clientID string) bool { return true }
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
 		assert.Error(t, err)
@@ -63,7 +63,7 @@ func TestClientService_Register(t *testing.T) {
 			return testToken, nil
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
 		assert.NoError(t, err)
@@ -78,7 +78,7 @@ func TestClientService_Register(t *testing.T) {
 			return errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
 		assert.Error(t, err)
@@ -93,7 +93,7 @@ func TestClientService_Register(t *testing.T) {
 			return "", errors.NewInternalServerError()
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		response, err := cs.Register(testClient)
 
 		assert.Error(t, err)
@@ -116,7 +116,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 			return testClient
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		err := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
 		assert.NoError(t, err)
@@ -125,7 +125,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 	t.Run("Client Does Not Exist", func(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		err := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
 		assert.Error(t, err)
@@ -142,7 +142,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 			return testClient
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		err := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
 		assert.Error(t, err)
@@ -160,7 +160,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 			return testClient
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client authorization: client does not have the required grant type")
 		expected := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
@@ -180,7 +180,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 			return testClient
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client authorization: client does not have the required scope(s)")
 		expected := cs.AuthenticateClient(testClientID, testClientSecret, client.ClientCredentials, client.ClientManage)
 
@@ -201,7 +201,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 		mockClientStore.UpdateClientFunc = func(client *client.Client) error { return nil }
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		response, err := cs.RegenerateClientSecret(testClientID)
 
 		assert.NoError(t, err)
@@ -214,7 +214,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 	t.Run("Error is returned when 'client_id' is invalid", func(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		expected := errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
@@ -233,7 +233,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		expected := errors.New(errors.ErrCodeInsufficientScope, "failed to validate client: client does not have the required scope(s)")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
@@ -253,7 +253,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 			return errors.New(errors.ErrCodeClientNotFound, "client doest exist with the given ID")
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		response, err := cs.RegenerateClientSecret(testClientID)
 
 		assert.Error(t, err)
@@ -267,7 +267,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		expected := errors.New(errors.ErrCodeUnauthorizedClient, "invalid credentials")
 		response, actual := cs.RegenerateClientSecret(testClientID)
 
@@ -288,7 +288,7 @@ func TestClientService_GetClientByID(t *testing.T) {
 			return expected
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		actual := cs.GetClientByID(testClientID)
 
 		assert.NotNil(t, actual)
@@ -298,7 +298,7 @@ func TestClientService_GetClientByID(t *testing.T) {
 
 	t.Run("Client does not exist with the given ID", func(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
-		cs := NewClientServiceImpl(mockClientStore, nil)
+		cs := NewClientService(mockClientStore, nil)
 		response := cs.GetClientByID(testClientID)
 
 		assert.Nil(t, response)
@@ -325,7 +325,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenAsyncFunc = func(token string) <-chan error { return nil }
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
 
 		assert.NoError(t, err)
@@ -351,7 +351,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 			}, nil
 		}
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
 
 		assert.NoError(t, err)
@@ -365,7 +365,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
 
 		assert.Error(t, err)
@@ -388,7 +388,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
 
 		assert.Error(t, err)
@@ -411,7 +411,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		cs := NewClientServiceImpl(mockClientStore, mockTokenService)
+		cs := NewClientService(mockClientStore, mockTokenService)
 		clientInformation, err := cs.ValidateAndRetrieveClient(testClientID, testToken)
 
 		assert.Error(t, err)
@@ -437,7 +437,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		}
 		mockClientRepo.UpdateClientFunc = func(client *client.Client) error { return nil }
 
-		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		service := NewClientService(mockClientRepo, mockTokenService)
 		request := createClientUpdateRequest()
 		response, err := service.ValidateAndUpdateClient(testClientID, testToken, request)
 
@@ -456,7 +456,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		service := NewClientService(mockClientRepo, mockTokenService)
 		request := createClientUpdateRequest()
 		request.Scopes = []string{}
 		response, err := service.ValidateAndUpdateClient(testClientID, testToken, request)
@@ -480,7 +480,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		cs := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		cs := NewClientService(mockClientRepo, mockTokenService)
 		request := createClientUpdateRequest()
 		clientInformation, err := cs.ValidateAndUpdateClient(testClientID, testToken, request)
 
@@ -504,7 +504,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		cs := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		cs := NewClientService(mockClientRepo, mockTokenService)
 		clientInformation, err := cs.ValidateAndUpdateClient(testClientID, testToken, createClientUpdateRequest())
 
 		assert.Error(t, err)
@@ -528,7 +528,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		cs := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		cs := NewClientService(mockClientRepo, mockTokenService)
 		request := createClientUpdateRequest()
 		request.Secret = "invalid-secret"
 		clientInformation, err := cs.ValidateAndUpdateClient(testClientID, testToken, request)
@@ -567,7 +567,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		}
 		mockClientRepo.DeleteClientByIDFunc = func(clientID string) error { return nil }
 
-		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		service := NewClientService(mockClientRepo, mockTokenService)
 		err := service.ValidateAndDeleteClient(testClientID, testToken)
 		assert.NoError(t, err)
 	})
@@ -576,7 +576,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		service := NewClientService(mockClientRepo, mockTokenService)
 		expectedErrMessage := "the provided client ID is invalid or does not match the registered credentials"
 		err := service.ValidateAndDeleteClient(testClientID, testToken)
 
@@ -600,7 +600,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		service := NewClientService(mockClientRepo, mockTokenService)
 		err := service.ValidateAndDeleteClient(testClientID, testToken)
 
 		assert.Error(t, err)
@@ -615,7 +615,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(clientID string) *client.Client { return testClient }
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		service := NewClientService(mockClientRepo, mockTokenService)
 		err := service.ValidateAndDeleteClient(testClientID, testToken)
 
 		assert.Error(t, err)
@@ -638,7 +638,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		}
 		mockTokenService.DeleteTokenFunc = func(token string) error { return nil }
 
-		service := NewClientServiceImpl(mockClientRepo, mockTokenService)
+		service := NewClientService(mockClientRepo, mockTokenService)
 		err := service.ValidateAndDeleteClient(testClientID, testToken)
 
 		assert.Error(t, err)
@@ -678,7 +678,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 					},
 				}
 
-				service := NewClientServiceImpl(mockClientRepo, nil)
+				service := NewClientService(mockClientRepo, nil)
 				err := service.AuthenticateClient(req.ID, req.Secret, client.PasswordGrant, client.ClientManage)
 				assert.NoError(t, err, "error is not expected")
 			})
@@ -690,7 +690,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 			GetClientByIDFunc: func(clientID string) *client.Client { return nil },
 		}
 
-		service := NewClientServiceImpl(mockClientRepo, nil)
+		service := NewClientService(mockClientRepo, nil)
 		err := service.AuthenticateClient(testClientID, testClientSecret, client.PasswordGrant, client.ClientManage)
 
 		assert.Error(t, err)
@@ -705,7 +705,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 			},
 		}
 
-		service := NewClientServiceImpl(mockClientRepo, nil)
+		service := NewClientService(mockClientRepo, nil)
 		err := service.AuthenticateClient(req.ID, req.Secret, client.PasswordGrant, client.ClientManage)
 
 		assert.Error(t, err)
@@ -723,7 +723,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 			},
 		}
 
-		service := NewClientServiceImpl(mockClientRepo, nil)
+		service := NewClientService(mockClientRepo, nil)
 		expectedErr := "failed to validate client authorization: the client credentials are invalid or incorrectly formatted"
 		err := service.AuthenticateClient(req.ID, "invalid_secret", client.PasswordGrant, client.ClientManage)
 

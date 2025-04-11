@@ -42,7 +42,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 			return nil
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		code, err := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
 		assert.NoError(t, err)
@@ -57,7 +57,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 			return errors.NewInternalServerError()
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		code, err := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
 		assert.Error(t, err)
@@ -67,7 +67,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 	t.Run("Error is returned when the user does not exist with the given ID", func(t *testing.T) {
 		mockUserService.GetUserByIDFunc = func(userID string) *user.User { return nil }
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := errors.New(errors.ErrCodeUnauthorized, "invalid user ID: testU[REDACTED]")
 		code, actual := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
@@ -80,7 +80,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 		mockUserService.GetUserByIDFunc = func(userID string) *user.User { return createTestUser() }
 		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := errors.New(errors.ErrCodeUnauthorized, "invalid client ID")
 		code, actual := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
@@ -104,7 +104,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return nil
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		data, err := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
 
 		assert.NotNil(t, data)
@@ -116,7 +116,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return nil, errors.NewInternalServerError()
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
 
 		assert.Nil(t, code)
@@ -129,7 +129,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return createAuthzCodeData(), nil
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := "failed to validate authorization code: authorization code client ID and request client ID do no match"
 		code, actual := service.ValidateAuthorizationCode(testCode, "invalidID", testRedirectURI)
 
@@ -143,7 +143,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return createAuthzCodeData(), nil
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := "failed to validate authorization code: authorization code redirect URI and request redirect URI do no match"
 		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, "testRedirectURI")
 
@@ -215,7 +215,7 @@ func TestAuthorizationCodeService_ValidatePKCE(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := NewAuthorizationCodeServiceImpl(nil, nil, nil)
+		service := NewAuthorizationCodeService(nil, nil, nil)
 		err := service.ValidatePKCE(test.codeData, test.codeVerifier)
 
 		if test.wantErr {

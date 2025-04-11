@@ -19,11 +19,11 @@ const (
 )
 
 // Ensure PasswordResetService implements the PasswordReset interface.
-var _ password.PasswordResetService = (*PasswordResetServiceImpl)(nil)
+var _ password.PasswordResetService = (*passwordResetService)(nil)
 var logger = config.GetServerConfig().Logger()
 
-// PasswordResetServiceImpl provides password reset functionality.
-type PasswordResetServiceImpl struct {
+// passwordResetService provides password reset functionality.
+type passwordResetService struct {
 	tokenService   token.TokenService
 	userRepository users.UserRepository
 	tokenDuration  time.Duration
@@ -43,8 +43,8 @@ type PasswordResetServiceImpl struct {
 func NewPasswordResetService(
 	tokenService token.TokenService,
 	userRepository users.UserRepository,
-) *PasswordResetServiceImpl {
-	return &PasswordResetServiceImpl{
+) password.PasswordResetService {
+	return &passwordResetService{
 		tokenService:   tokenService,
 		userRepository: userRepository,
 		tokenDuration:  config.GetServerConfig().TokenConfig().AccessTokenDuration(),
@@ -63,7 +63,7 @@ func NewPasswordResetService(
 //
 //	*users.UserPasswordResetResponse: A response message.
 //	error: An error if the operation fails.
-func (p *PasswordResetServiceImpl) ResetPassword(userEmail, newPassword, resetToken string) (*users.UserPasswordResetResponse, error) {
+func (p *passwordResetService) ResetPassword(userEmail, newPassword, resetToken string) (*users.UserPasswordResetResponse, error) {
 	storedToken, err := p.tokenService.ParseToken(resetToken)
 	if err != nil {
 		logger.Error(module, "ResetPassword: Failed to parse reset token=[%s]: %v", common.TruncateSensitive(resetToken), err)
@@ -122,7 +122,7 @@ func (p *PasswordResetServiceImpl) ResetPassword(userEmail, newPassword, resetTo
 //
 //	string: The password reset URL.
 //	error: An error if the base URL is not configured.
-func (p *PasswordResetServiceImpl) constructResetURL(resetToken string) (string, error) {
+func (p *passwordResetService) constructResetURL(resetToken string) (string, error) {
 	resetURLBase := config.GetServerConfig().BaseURL()
 	if resetURLBase == "" {
 		logger.Error(module, "Failed to construct reset URL. Base URL is empty")
@@ -140,7 +140,7 @@ func (p *PasswordResetServiceImpl) constructResetURL(resetToken string) (string,
 //
 //	resetToken string: The reset token.
 //	userEmail string: The user's email address.
-func (p *PasswordResetServiceImpl) addTokenToStore(resetToken, userEmail string) {
+func (p *passwordResetService) addTokenToStore(resetToken, userEmail string) {
 	tokenExpirationTime := time.Now().Add(p.tokenDuration)
 	p.tokenService.SaveToken(resetToken, userEmail, tokenExpirationTime)
 }

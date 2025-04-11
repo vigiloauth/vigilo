@@ -138,7 +138,7 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 		tc.WithUser()
 	}
 
-	tokenService := tokenService.NewTokenServiceImpl(tokenRepo.GetInMemoryTokenRepository())
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
 	token, err := tokenService.GenerateToken(id, testScope, duration)
 	assert.NoError(tc.T, err)
 
@@ -149,7 +149,7 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 }
 
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
-	tokenService := tokenService.NewTokenServiceImpl(tokenRepo.GetInMemoryTokenRepository())
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
 	token, err := tokenService.GenerateToken(id, testScope, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 	assert.NoError(tc.T, err)
 
@@ -213,7 +213,7 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 		tc.WithUser()
 	}
 
-	tokenService := tokenService.NewTokenServiceImpl(tokenRepo.GetInMemoryTokenRepository())
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
 	resetToken, err := tokenService.GenerateToken(tc.User.Email, testScope, duration)
 	assert.NoError(tc.T, err)
 

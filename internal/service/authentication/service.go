@@ -14,9 +14,9 @@ import (
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
-var _ auth.AuthenticationService = (*AuthenticationServiceImpl)(nil)
+var _ auth.AuthenticationService = (*authenticationService)(nil)
 
-type AuthenticationServiceImpl struct {
+type authenticationService struct {
 	tokenService  token.TokenService
 	clientService client.ClientService
 	userService   user.UserService
@@ -25,12 +25,12 @@ type AuthenticationServiceImpl struct {
 	module string
 }
 
-func NewAuthenticationServiceImpl(
+func NewAuthenticationService(
 	tokenService token.TokenService,
 	clientService client.ClientService,
 	userService user.UserService,
-) *AuthenticationServiceImpl {
-	return &AuthenticationServiceImpl{
+) auth.AuthenticationService {
+	return &authenticationService{
 		tokenService:  tokenService,
 		clientService: clientService,
 		userService:   userService,
@@ -52,13 +52,13 @@ func NewAuthenticationServiceImpl(
 // Returns:
 //
 //	A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails
-func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, clientSecret, requestedGrantType, requestedScopes string) (*token.TokenResponse, error) {
-	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
+func (s *authenticationService) IssueClientCredentialsToken(clientID, clientSecret, grantType, scopes string) (*token.TokenResponse, error) {
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, "Failed to authenticate client: %v", err)
 		return nil, errors.Wrap(err, "", "failed to authenticate client")
 	}
 
-	refreshToken, accessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, requestedScopes)
+	refreshToken, accessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, scopes)
 	if err != nil {
 		return nil, errors.Wrap(err, "", "failed to issue tokens")
 	}
@@ -68,7 +68,7 @@ func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, client
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
 		TokenType:    common.BearerAuthHeader,
-		Scope:        requestedScopes,
+		Scope:        scopes,
 	}, nil
 }
 
@@ -86,19 +86,19 @@ func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, client
 // Returns:
 //
 //	A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails
-func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecret, requestedGrantType, requestedScopes string, req *user.UserLoginAttempt) (*token.TokenResponse, error) {
-	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
+func (s *authenticationService) IssueResourceOwnerToken(clientID, clientSecret, grantType, scopes string, req *user.UserLoginAttempt) (*token.TokenResponse, error) {
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, "Failed to authenticate client: %v", err)
 		return nil, err
 	}
 
-	loginResponse, err := s.authenticateUser(req, clientID, requestedScopes)
+	loginResponse, err := s.authenticateUser(req, clientID, scopes)
 	if err != nil {
 		s.logger.Error(s.module, "Failed to authenticate user: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to authenticate user")
 	}
 
-	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(loginResponse.UserID, clientID, requestedScopes)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(loginResponse.UserID, clientID, scopes)
 	if err != nil {
 		s.logger.Error(s.module, "Failed to generate token pair: %v", err)
 		return nil, err
@@ -109,7 +109,7 @@ func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecr
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
 		TokenType:    common.BearerAuthHeader,
-		Scope:        requestedScopes,
+		Scope:        scopes,
 	}, nil
 }
 
@@ -127,8 +127,8 @@ func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecr
 // Returns:
 //
 //	A TokenResponse containing the newly generated access token and related metadata, or an error if token refresh fails
-func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes string) (*token.TokenResponse, error) {
-	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
+func (s *authenticationService) RefreshAccessToken(clientID, clientSecret, grantType, refreshToken, scopes string) (*token.TokenResponse, error) {
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, "[RefreshAccessToken] Failed to authenticate client: %v", err)
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, r
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid refresh token")
 	}
 
-	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, requestedScopes)
+	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, scopes)
 	if err != nil {
 		s.logger.Error(s.module, "[RefreshAccessToken] Failed to generate new tokens: %v", err)
 		if err := s.tokenService.BlacklistToken(refreshToken); err != nil {
@@ -183,7 +183,7 @@ func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, r
 //	*TokenIntrospectionResponse: A struct containing token details such as
 //	  validity, expiration, and any associated metadata. If the token is valid, this
 //	  response will include all relevant claims associated with the token.
-func (s *AuthenticationServiceImpl) IntrospectToken(tokenStr string) *token.TokenIntrospectionResponse {
+func (s *authenticationService) IntrospectToken(tokenStr string) *token.TokenIntrospectionResponse {
 	retrievedToken, err := s.tokenService.GetToken(tokenStr)
 	if retrievedToken == nil || err != nil {
 		return &token.TokenIntrospectionResponse{Active: false}
@@ -216,7 +216,7 @@ func (s *AuthenticationServiceImpl) IntrospectToken(tokenStr string) *token.Toke
 //
 // Returns an error if the header is malformed, the credentials are invalid,
 // or the token fails validation.
-func (s *AuthenticationServiceImpl) AuthenticateClientRequest(r *http.Request) error {
+func (s *authenticationService) AuthenticateClientRequest(r *http.Request) error {
 	authHeader := r.Header.Get(common.Authorization)
 	if strings.HasPrefix(authHeader, common.BasicAuthHeader) {
 		clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
@@ -255,7 +255,7 @@ func (s *AuthenticationServiceImpl) AuthenticateClientRequest(r *http.Request) e
 	return nil
 }
 
-func (s *AuthenticationServiceImpl) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {
+func (s *authenticationService) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {
 	if err := s.tokenService.ValidateToken(refreshToken); err != nil {
 		return false, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to validate refresh token")
 	}
@@ -273,14 +273,14 @@ func (s *AuthenticationServiceImpl) validateRefreshTokenAndMatchClient(clientID,
 	return true, nil
 }
 
-func (s *AuthenticationServiceImpl) authenticateUser(req *user.UserLoginAttempt, clientID string, requestedScopes string) (*user.UserLoginResponse, error) {
+func (s *authenticationService) authenticateUser(req *user.UserLoginAttempt, clientID string, scopes string) (*user.UserLoginResponse, error) {
 	existingUser := s.userService.GetUserByUsername(req.Username)
 	if existingUser == nil {
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "user not found")
 	}
 
-	scopes := strings.Split(requestedScopes, " ")
-	for _, scope := range scopes {
+	scopeArr := strings.Split(scopes, " ")
+	for _, scope := range scopeArr {
 		if !existingUser.HasScope(scope) {
 			return nil, errors.New(errors.ErrCodeInsufficientScope, "user does not have the required scope(s)")
 		}

@@ -46,7 +46,7 @@ func TestTokenService_GenerateToken(t *testing.T) {
 				SaveTokenFunc:       func(token, id string, expiration time.Time) {},
 				ExistsByTokenIDFunc: func(tokenID string) bool { return false },
 			}
-			tokenService := NewTokenServiceImpl(mockTokenRepo)
+			tokenService := NewTokenService(mockTokenRepo)
 
 			tokenString, err := tokenService.GenerateToken(tt.subject, testScopes, tt.expirationTime)
 
@@ -93,7 +93,7 @@ func TestTokenService_ParseToken(t *testing.T) {
 				SaveTokenFunc:       func(token, id string, expiration time.Time) {},
 				ExistsByTokenIDFunc: func(tokenID string) bool { return false },
 			}
-			tokenService := NewTokenServiceImpl(mockTokenRepo)
+			tokenService := NewTokenService(mockTokenRepo)
 
 			if tt.tokenString == "valid_token_string" {
 				validToken, err := tokenService.GenerateToken(tt.expectedSubject, testScopes, time.Hour)
@@ -123,7 +123,7 @@ func TestTokenService_GetToken(t *testing.T) {
 		},
 	}
 
-	tokenService := NewTokenServiceImpl(mockTokenRepo)
+	tokenService := NewTokenService(mockTokenRepo)
 
 	result, err := tokenService.GetToken(testToken)
 	assert.NoError(t, err)
@@ -135,7 +135,7 @@ func TestTokenService_IsTokenBlacklisted(t *testing.T) {
 		IsTokenBlacklistedFunc: func(token string) bool { return true },
 	}
 
-	tokenService := NewTokenServiceImpl(mockTokenRepo)
+	tokenService := NewTokenService(mockTokenRepo)
 
 	isBlacklisted := tokenService.IsTokenBlacklisted(testToken)
 	assert.True(t, isBlacklisted)
@@ -146,7 +146,7 @@ func TestTokenService_DeleteToken(t *testing.T) {
 		DeleteTokenFunc: func(token string) error { return nil },
 	}
 
-	tokenService := NewTokenServiceImpl(mockTokenRepo)
+	tokenService := NewTokenService(mockTokenRepo)
 
 	err := tokenService.DeleteToken(testToken)
 	assert.NoError(t, err)
@@ -158,7 +158,7 @@ func TestTokenService_GenerateTokenPair(t *testing.T) {
 		ExistsByTokenIDFunc: func(tokenID string) bool { return false },
 	}
 
-	tokenService := NewTokenServiceImpl(mockTokenRepo)
+	tokenService := NewTokenService(mockTokenRepo)
 	accessToken, refreshToken, err := tokenService.GenerateTokensWithAudience(testID, testScopes, testClientID)
 
 	assert.NoError(t, err)
@@ -174,7 +174,7 @@ func TestTokenService_DeleteTokenAsync(t *testing.T) {
 			},
 		}
 
-		service := NewTokenServiceImpl(mockTokenRepo)
+		service := NewTokenService(mockTokenRepo)
 		errChan := service.DeleteTokenAsync("test-token")
 
 		select {
@@ -192,7 +192,7 @@ func TestTokenService_DeleteTokenAsync(t *testing.T) {
 			},
 		}
 
-		service := NewTokenServiceImpl(mockTokenRepo)
+		service := NewTokenService(mockTokenRepo)
 		errChan := service.DeleteTokenAsync("test-token")
 
 		select {
@@ -216,7 +216,7 @@ func TestTokenService_DeleteTokenAsync(t *testing.T) {
 			},
 		}
 
-		service := NewTokenServiceImpl(mockTokenRepo)
+		service := NewTokenService(mockTokenRepo)
 		errChan := service.DeleteTokenAsync("test-token")
 
 		select {

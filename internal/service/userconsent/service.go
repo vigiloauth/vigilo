@@ -19,15 +19,15 @@ import (
 )
 
 // Compile-time interface implementation check
-var _ consent.UserConsentService = (*UserConsentServiceImpl)(nil)
+var _ consent.UserConsentService = (*userConsentService)(nil)
 var logger = config.GetServerConfig().Logger()
 
 const module = "User Consent Service"
 
-// UserConsentServiceImpl implements the UserConsentService interface
+// userConsentService implements the UserConsentService interface
 // and manages user consent-related operations by coordinating
 // between consent and user repositories.
-type UserConsentServiceImpl struct {
+type userConsentService struct {
 	consentRepo      consent.UserConsentRepository
 	userRepo         users.UserRepository
 	sessionService   session.SessionService
@@ -35,7 +35,7 @@ type UserConsentServiceImpl struct {
 	authzCodeService authz.AuthorizationCodeService
 }
 
-// NewUserConsentServiceImpl creates a new instance of UserConsentServiceImpl.
+// NewUserConsentService creates a new instance of UserConsentServiceImpl.
 //
 // Parameters:
 //
@@ -45,14 +45,14 @@ type UserConsentServiceImpl struct {
 // Returns:
 //
 //   - A configured UserConsentServiceImpl instance
-func NewUserConsentServiceImpl(
+func NewUserConsentService(
 	consentRepo consent.UserConsentRepository,
 	userRepo users.UserRepository,
 	sessionService session.SessionService,
 	clientService clients.ClientService,
 	authzCodeService authz.AuthorizationCodeService,
-) *UserConsentServiceImpl {
-	return &UserConsentServiceImpl{
+) consent.UserConsentService {
+	return &userConsentService{
 		consentRepo:      consentRepo,
 		userRepo:         userRepo,
 		sessionService:   sessionService,
@@ -74,7 +74,7 @@ func NewUserConsentServiceImpl(
 //
 //	bool: True if consent exists, false if consent is needed.
 //	error: An error if the consent check operation fails.
-func (c *UserConsentServiceImpl) CheckUserConsent(userID, clientID, scope string) (bool, error) {
+func (c *userConsentService) CheckUserConsent(userID, clientID, scope string) (bool, error) {
 	if user := c.userRepo.GetUserByID(userID); user == nil {
 		err := errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
 		logger.Error(module, "CheckUserConsent: Failed to check if user has granted consent: %v", err)
@@ -95,7 +95,7 @@ func (c *UserConsentServiceImpl) CheckUserConsent(userID, clientID, scope string
 // Returns:
 //
 //	error: An error if the consent cannot be saved, or nil if successful.
-func (c *UserConsentServiceImpl) SaveUserConsent(userID, clientID, scope string) error {
+func (c *userConsentService) SaveUserConsent(userID, clientID, scope string) error {
 	if user := c.userRepo.GetUserByID(userID); user == nil {
 		err := errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
 		logger.Error(module, "SaveUserConsent: Failed to save user consent: %v", err)
@@ -115,7 +115,7 @@ func (c *UserConsentServiceImpl) SaveUserConsent(userID, clientID, scope string)
 // Returns:
 //
 //	error: An error if the consent cannot be revoked, or nil if successful.
-func (c *UserConsentServiceImpl) RevokeConsent(userID, clientID string) error {
+func (c *userConsentService) RevokeConsent(userID, clientID string) error {
 	if user := c.userRepo.GetUserByID(userID); user == nil {
 		err := errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
 		logger.Error(module, "RevokeConsent: Failed to revoke user consent: %v", err)
@@ -142,7 +142,7 @@ func (c *UserConsentServiceImpl) RevokeConsent(userID, clientID string) error {
 //
 //   - *consent.UserConsentResponse: The response containing client and scope details for the consent process.
 //   - error: An error if the details cannot be retrieved or prepared.
-func (c *UserConsentServiceImpl) GetConsentDetails(userID, clientID, redirectURI, scope string, r *http.Request) (*consent.UserConsentResponse, error) {
+func (c *userConsentService) GetConsentDetails(userID, clientID, redirectURI, scope string, r *http.Request) (*consent.UserConsentResponse, error) {
 	if err := c.validateRequest(userID, clientID, redirectURI, scope); err != nil {
 		logger.Error(module, "GetConsentDetails: Failed to retrieve consent details: %v", err)
 		wrappedErr := errors.Wrap(err, "", "invalid request parameters")
@@ -199,7 +199,7 @@ func (c *UserConsentServiceImpl) GetConsentDetails(userID, clientID, redirectURI
 //
 //   - *consent.UserConsentResponse: The response containing the result of the consent process (e.g., success or denial).
 //   - error: An error if the consent decision cannot be processed or stored.
-func (c *UserConsentServiceImpl) ProcessUserConsent(
+func (c *userConsentService) ProcessUserConsent(
 	userID, clientID, redirectURI, scope string,
 	consentRequest *consent.UserConsentRequest, r *http.Request,
 ) (*consent.UserConsentResponse, error) {
@@ -224,7 +224,7 @@ func (c *UserConsentServiceImpl) ProcessUserConsent(
 	return c.processApprovedConsent(userID, clientID, redirectURI, scope, consentRequest, sessionData)
 }
 
-func (c *UserConsentServiceImpl) handleDeniedConsent(state, redirectURI string) *consent.UserConsentResponse {
+func (c *userConsentService) handleDeniedConsent(state, redirectURI string) *consent.UserConsentResponse {
 	errorURL := fmt.Sprintf("%s?error=access_denied&error_description=%s",
 		redirectURI, url.QueryEscape("user denied access to the requested scope"))
 
@@ -238,7 +238,7 @@ func (c *UserConsentServiceImpl) handleDeniedConsent(state, redirectURI string) 
 	}
 }
 
-func (c *UserConsentServiceImpl) validateRequest(userID, clientID, redirectURI, scope string) error {
+func (c *userConsentService) validateRequest(userID, clientID, redirectURI, scope string) error {
 	if userID == "" || clientID == "" || redirectURI == "" || scope == "" {
 		logger.Error(module, "Missing required OAuth parameters in request")
 		return errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters")
@@ -246,14 +246,14 @@ func (c *UserConsentServiceImpl) validateRequest(userID, clientID, redirectURI, 
 	return nil
 }
 
-func (c *UserConsentServiceImpl) getApprovedScopes(defaultScopes string, requestScopes []string) string {
+func (c *userConsentService) getApprovedScopes(defaultScopes string, requestScopes []string) string {
 	if len(requestScopes) > 0 {
 		return strings.Join(requestScopes, " ")
 	}
 	return defaultScopes
 }
 
-func (c *UserConsentServiceImpl) processApprovedConsent(
+func (c *userConsentService) processApprovedConsent(
 	userID, clientID, redirectURI, scope string,
 	consentRequest *consent.UserConsentRequest,
 	sessionData *session.SessionData,
@@ -298,7 +298,7 @@ func (c *UserConsentServiceImpl) processApprovedConsent(
 	return c.buildSuccessResponse(redirectURI, code, sessionData.State), nil
 }
 
-func (c *UserConsentServiceImpl) buildSuccessResponse(redirectURI, code, state string) *consent.UserConsentResponse {
+func (c *userConsentService) buildSuccessResponse(redirectURI, code, state string) *consent.UserConsentResponse {
 	logger.Debug(module, "Building success response with redirectURI=%s, code=%s, state=%s",
 		common.SanitizeURL(redirectURI), common.TruncateSensitive(code), common.TruncateSensitive(state))
 
@@ -315,7 +315,7 @@ func (c *UserConsentServiceImpl) buildSuccessResponse(redirectURI, code, state s
 	return response
 }
 
-func (c *UserConsentServiceImpl) updateSessionWithConsentDetails(r *http.Request, sessionData *session.SessionData, state, clientID, redirectURI string) error {
+func (c *userConsentService) updateSessionWithConsentDetails(r *http.Request, sessionData *session.SessionData, state, clientID, redirectURI string) error {
 	logger.Info(module, "Updating session with consent details for sessionID=%s, clientID=%s, redirectURI=%s",
 		common.TruncateSensitive(sessionData.ID), common.TruncateSensitive(clientID), common.SanitizeURL(redirectURI))
 
@@ -333,6 +333,6 @@ func (c *UserConsentServiceImpl) updateSessionWithConsentDetails(r *http.Request
 	return nil
 }
 
-func (c *UserConsentServiceImpl) parseScopes(scope string) []string {
+func (c *userConsentService) parseScopes(scope string) []string {
 	return strings.Split(scope, " ")
 }

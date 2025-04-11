@@ -35,7 +35,7 @@ func TestLoginService_SaveLoginAttempt(t *testing.T) {
 		)
 		mockLoginAttemptRepo.SaveLoginAttemptFunc = func(attempt *user.UserLoginAttempt) error { return nil }
 
-		service := NewLoginAttemptServiceImpl(mockUserRepository, mockLoginAttemptRepo)
+		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
 		err := service.SaveLoginAttempt(attempt)
 
 		assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestLoginService_SaveLoginAttempt(t *testing.T) {
 			return errors.NewInternalServerError()
 		}
 
-		service := NewLoginAttemptServiceImpl(mockUserRepository, mockLoginAttemptRepo)
+		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
 		err := service.SaveLoginAttempt(attempt)
 
 		assert.Error(t, err)
@@ -76,7 +76,7 @@ func TestLoginService_GetLoginAttempts(t *testing.T) {
 			}
 		}
 
-		service := NewLoginAttemptServiceImpl(mockUserRepository, mockLoginAttemptRepo)
+		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
 		response := service.GetLoginAttempts(testUserID)
 
 		assert.Equal(t, 1, len(response))
@@ -87,7 +87,7 @@ func TestLoginService_GetLoginAttempts(t *testing.T) {
 			return []*user.UserLoginAttempt{}
 		}
 
-		service := NewLoginAttemptServiceImpl(mockUserRepository, mockLoginAttemptRepo)
+		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
 		response := service.GetLoginAttempts(testUserID)
 
 		assert.Empty(t, response)
@@ -128,7 +128,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 			},
 		}
 
-		service := NewLoginAttemptServiceImpl(mockUserRepo, mockLoginRepo)
+		service := NewLoginAttemptService(mockUserRepo, mockLoginRepo)
 		attempt := user.NewUserLoginAttempt(
 			testIPAddress,
 			testRequestMetadata,
@@ -186,7 +186,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 			},
 		}
 
-		service := NewLoginAttemptServiceImpl(mockUserRepo, mockLoginRepo)
+		service := NewLoginAttemptService(mockUserRepo, mockLoginRepo)
 		attempt := user.NewUserLoginAttempt(
 			testIPAddress,
 			testRequestMetadata,
@@ -227,7 +227,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 			},
 		}
 
-		service := NewLoginAttemptServiceImpl(mockUserRepo, mockLoginRepo)
+		service := NewLoginAttemptService(mockUserRepo, mockLoginRepo)
 		attempt := user.NewUserLoginAttempt(
 			testIPAddress,
 			testRequestMetadata,
