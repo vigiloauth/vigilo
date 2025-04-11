@@ -31,6 +31,7 @@ This documentation provides a comprehensive guide to configuring and utilizing t
 - **Token Management:**
     - [Token Refresh](../identity/endpoints/token_handler/token_refresh.md)
     - [Token Introspection](../identity/endpoints/token_handler/token_introspection.md)
+    - [Token Revocation](../identity/endpoints/token_handler/token_revocation.md)
 - **Authorization Code Flow:**
     - [Client Authorization](../identity/endpoints/authz_handler/authorize_client.md)
     - [User Authentication](../identity/endpoints/oauth_handler/user_authentication.md)

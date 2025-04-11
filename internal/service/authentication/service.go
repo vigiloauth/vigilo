@@ -216,17 +216,46 @@ func (s *authenticationService) IntrospectToken(tokenStr string) *token.TokenInt
 //
 // Returns an error if the header is malformed, the credentials are invalid,
 // or the token fails validation.
-func (s *authenticationService) AuthenticateClientRequest(r *http.Request) error {
+func (s *authenticationService) AuthenticateClientRequest(r *http.Request, scope string) error {
 	authHeader := r.Header.Get(common.Authorization)
 
 	switch {
 	case strings.HasPrefix(authHeader, common.BasicAuthHeader):
-		return s.authenticateWithBasicAuth(r)
+		return s.authenticateWithBasicAuth(r, scope)
 	case strings.HasPrefix(authHeader, common.BearerAuthHeader):
-		return s.authenticateWithBearerToken(r)
+		return s.authenticateWithBearerToken(r, scope)
 	default:
 		return errors.New(errors.ErrCodeInvalidClient, "failed to authorize client: missing authorization header")
 	}
+}
+
+// RevokeToken handles revoking the given token. The token can either be an Access token or a Refresh token.
+// This method has no return values since the content of the response should be ignored by clients.
+// If an error occurs during the process, the errors will be logged.
+func (s *authenticationService) RevokeToken(tokenStr string) {
+	retrievedToken, err := s.tokenService.GetToken(tokenStr)
+	if retrievedToken == nil || err != nil {
+		s.logger.Error(s.module, "[RevokeToken]: Failed to revoke token")
+		if err != nil {
+			s.logger.Error(s.module, "[RevokeToken]: Error: %v", err)
+		}
+		s.tokenService.BlacklistToken(tokenStr)
+		return
+	}
+
+	if _, err := s.tokenService.ParseToken(tokenStr); err != nil {
+		s.logger.Error(s.module, "[RevokeToken]: Failed to parse token: %v", err)
+		s.tokenService.BlacklistToken(tokenStr)
+		return
+	}
+
+	if err := s.tokenService.BlacklistToken(tokenStr); err != nil {
+		s.logger.Error(s.module, "[RevokeToken]: Failed to blacklist token: %v", err)
+		s.tokenService.BlacklistToken(tokenStr)
+		return
+	}
+
+	s.logger.Info(s.module, "[RevokeToken]: Successfully revoked the token")
 }
 
 func (s *authenticationService) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {
@@ -268,20 +297,20 @@ func (s *authenticationService) authenticateUser(req *user.UserLoginAttempt, cli
 	return loginResponse, nil
 }
 
-func (s *authenticationService) authenticateWithBasicAuth(r *http.Request) error {
+func (s *authenticationService) authenticateWithBasicAuth(r *http.Request, scope string) error {
 	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
 	if err != nil {
 		return err
 	}
 
-	if err := s.clientService.AuthenticateClient(clientID, clientSecret, "", client.TokenIntrospect); err != nil {
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, "", scope); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *authenticationService) authenticateWithBearerToken(r *http.Request) error {
+func (s *authenticationService) authenticateWithBearerToken(r *http.Request, scope string) error {
 	bearerToken, err := web.ExtractBearerToken(r)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to extract bearer token")
@@ -297,7 +326,7 @@ func (s *authenticationService) authenticateWithBearerToken(r *http.Request) err
 	}
 
 	clientID := claims.Subject
-	if err := s.clientService.AuthenticateClient(clientID, "", "", client.TokenIntrospect); err != nil {
+	if err := s.clientService.AuthenticateClient(clientID, "", "", scope); err != nil {
 		return err
 	}
 

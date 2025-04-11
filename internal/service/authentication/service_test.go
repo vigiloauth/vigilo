@@ -512,7 +512,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 				}
 
 				service := NewAuthenticationService(test.mockTokenService, test.mockClientService, nil)
-				err = service.AuthenticateClientRequest(req)
+				err = service.AuthenticateClientRequest(req, client.TokenIntrospect)
 				assert.NoError(t, err)
 			})
 		}
@@ -524,7 +524,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		req.Header.Set(common.Authorization, common.BasicAuthHeader+testClientID)
 
 		service := NewAuthenticationService(nil, nil, nil)
-		err = service.AuthenticateClientRequest(req)
+		err = service.AuthenticateClientRequest(req, client.TokenIntrospect)
 
 		assert.Error(t, err)
 	})
@@ -579,7 +579,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 				}
 
 				service := NewAuthenticationService(test.mockTokenService, test.mockClientService, nil)
-				err = service.AuthenticateClientRequest(req)
+				err = service.AuthenticateClientRequest(req, client.TokenIntrospect)
 
 				assert.Error(t, err)
 			})
@@ -591,7 +591,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		assert.NoError(t, err)
 
 		service := NewAuthenticationService(nil, nil, nil)
-		err = service.AuthenticateClientRequest(req)
+		err = service.AuthenticateClientRequest(req, client.TokenIntrospect)
 
 		assert.Error(t, err)
 	})
@@ -608,7 +608,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, nil, nil)
-		err = service.AuthenticateClientRequest(req)
+		err = service.AuthenticateClientRequest(req, client.TokenIntrospect)
 
 		assert.Error(t, err)
 	})
@@ -628,8 +628,82 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, nil, nil)
-		err = service.AuthenticateClientRequest(req)
+		err = service.AuthenticateClientRequest(req, client.TokenIntrospect)
 
 		assert.Error(t, err)
+	})
+}
+
+func TestAuthenticationService_RevokeToken(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		tokenService := &mTokenService.MockTokenService{
+			GetTokenFunc: func(token string) (*domain.TokenData, error) {
+				return &domain.TokenData{}, nil
+			},
+			ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+				return &domain.TokenClaims{}, nil
+			},
+			BlacklistTokenFunc: func(token string) error {
+				return nil
+			},
+			IsTokenBlacklistedFunc: func(token string) bool {
+				return true
+			},
+		}
+
+		service := NewAuthenticationService(tokenService, nil, nil)
+		service.RevokeToken(testRefreshToken)
+
+		assert.True(t, tokenService.IsTokenBlacklistedFunc(testRefreshToken))
+	})
+
+	t.Run("Errors", func(t *testing.T) {
+		tests := []struct {
+			name         string
+			tokenService *mTokenService.MockTokenService
+		}{
+			{
+				name: "Error while retrieving the token",
+				tokenService: &mTokenService.MockTokenService{
+					GetTokenFunc: func(token string) (*domain.TokenData, error) {
+						return nil, nil
+					},
+					BlacklistTokenFunc: func(token string) error { return nil },
+				},
+			},
+			{
+				name: "Error while parsing the token",
+				tokenService: &mTokenService.MockTokenService{
+					GetTokenFunc: func(token string) (*domain.TokenData, error) {
+						return &domain.TokenData{}, nil
+					},
+					ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+						return nil, errors.NewInternalServerError()
+					},
+					BlacklistTokenFunc: func(token string) error { return nil },
+				},
+			},
+			{
+				name: "Error while adding the token to the blacklist",
+				tokenService: &mTokenService.MockTokenService{
+					GetTokenFunc: func(token string) (*domain.TokenData, error) {
+						return &domain.TokenData{}, nil
+					},
+					ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+						return &domain.TokenClaims{}, nil
+					},
+					BlacklistTokenFunc: func(token string) error {
+						return errors.NewInternalServerError()
+					},
+				},
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				service := NewAuthenticationService(test.tokenService, nil, nil)
+				service.RevokeToken(testRefreshToken)
+			})
+		}
 	})
 }

@@ -1,6 +1,8 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // VigiloAuthError represents a standardized error structure
 type VigiloAuthError struct {
@@ -95,6 +97,14 @@ func NewInvalidSessionError() error {
 		ErrorDescription: "unable to retrieve session data",
 		ErrorDetails:     "session not found or expired",
 	}
+}
+
+func NewClientAuthenticationError(err error) error {
+	return Wrap(err, "", "failed to authenticate request")
+}
+
+func NewFormParsingError(err error) error {
+	return Wrap(err, ErrCodeInvalidRequest, "unable to parse form")
 }
 
 // Wrap wraps an existing error with additional context
