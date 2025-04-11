@@ -22,7 +22,6 @@ type ServerConfig struct {
 
 	tokenConfig    *TokenConfig    // JWT configuration.
 	loginConfig    *LoginConfig    // Login configuration.
-	smtpConfig     *SMTPConfig     // SMTP configuration.
 	passwordConfig *PasswordConfig // Password configuration.
 
 	logger *Logger // Logging Configuration
@@ -266,21 +265,6 @@ func WithLoginConfig(loginConfig *LoginConfig) ServerConfigOptions {
 	}
 }
 
-// WithSMTPConfig configures the SMTP configuration.
-//
-// Parameters:
-//
-//	smtpConfig *SMTPConfig: The SMTP configuration.
-//
-// Returns:
-//
-//	ServerConfigOptions: A function that configures the SMTP configuration.
-func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
-	return func(sc *ServerConfig) {
-		sc.smtpConfig = smtpConfig
-	}
-}
-
 // WithPasswordConfig configures the password configuration.
 //
 // Parameters:
@@ -408,20 +392,6 @@ func (sc *ServerConfig) TokenConfig() *TokenConfig {
 //	*LoginConfig: The login configuration.
 func (sc *ServerConfig) LoginConfig() *LoginConfig {
 	return sc.loginConfig
-}
-
-// SMTPConfig returns the SMTP configuration.
-//
-// Returns:
-//
-//	*SMTPConfig: The SMTP configuration, or nil if not set.
-//	Prints a warning to standard output if the configuration is not set.
-func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
-	if sc.smtpConfig == nil {
-		sc.logger.Warn(sc.module, "SMTP Configuration is not set, email functionality is disabled")
-		return nil
-	}
-	return sc.smtpConfig
 }
 
 // PasswordConfig returns the password configuration.

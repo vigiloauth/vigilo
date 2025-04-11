@@ -12,15 +12,16 @@ import (
 
 const module = "Login Service"
 
+var _ login.LoginAttemptService = (*loginAttemptService)(nil)
 var logger = config.GetServerConfig().Logger()
 
-type LoginAttemptServiceImpl struct {
+type loginAttemptService struct {
 	userRepo               user.UserRepository
 	loginRepo              login.LoginAttemptRepository
 	maxFailedLoginAttempts int
 }
 
-// NewLoginAttemptServiceImpl creates a new LoginServiceImpl instance.
+// NewLoginAttemptService creates a new LoginServiceImpl instance.
 //
 // Parameters:
 //
@@ -29,11 +30,11 @@ type LoginAttemptServiceImpl struct {
 // Returns:
 //
 //	*LoginServiceImpl: A new LoginServiceImpl instance.
-func NewLoginAttemptServiceImpl(
+func NewLoginAttemptService(
 	userRepo user.UserRepository,
 	loginRepo login.LoginAttemptRepository,
-) *LoginAttemptServiceImpl {
-	return &LoginAttemptServiceImpl{
+) login.LoginAttemptService {
+	return &loginAttemptService{
 		userRepo:               userRepo,
 		loginRepo:              loginRepo,
 		maxFailedLoginAttempts: config.GetServerConfig().LoginConfig().MaxFailedAttempts(),
@@ -45,7 +46,7 @@ func NewLoginAttemptServiceImpl(
 // Parameters:
 //
 //	attempt *UserLoginAttempt: The login attempt to save.
-func (s *LoginAttemptServiceImpl) SaveLoginAttempt(attempt *user.UserLoginAttempt) error {
+func (s *loginAttemptService) SaveLoginAttempt(attempt *user.UserLoginAttempt) error {
 	if err := s.loginRepo.SaveLoginAttempt(attempt); err != nil {
 		logger.Error(module, "SaveLoginAttempt: Failed to save login attempt for user=[%s]: %v",
 			common.TruncateSensitive(attempt.UserID), err,
@@ -64,7 +65,7 @@ func (s *LoginAttemptServiceImpl) SaveLoginAttempt(attempt *user.UserLoginAttemp
 // Returns:
 //
 //	[]*UserLoginAttempt: A slice of login attempts for the user.
-func (s *LoginAttemptServiceImpl) GetLoginAttempts(userID string) []*user.UserLoginAttempt {
+func (s *loginAttemptService) GetLoginAttempts(userID string) []*user.UserLoginAttempt {
 	return s.loginRepo.GetLoginAttempts(userID)
 }
 
@@ -79,7 +80,7 @@ func (s *LoginAttemptServiceImpl) GetLoginAttempts(userID string) []*user.UserLo
 // Returns:
 //
 //	error: An error if an operation fails.
-func (s *LoginAttemptServiceImpl) HandleFailedLoginAttempt(user *user.User, attempt *user.UserLoginAttempt) error {
+func (s *loginAttemptService) HandleFailedLoginAttempt(user *user.User, attempt *user.UserLoginAttempt) error {
 	logger.Info(module, "HandleFailedLoginAttempt: Authentication failed for user=[%s]", common.TruncateSensitive(user.ID))
 
 	user.LastFailedLogin = time.Now()
@@ -116,7 +117,7 @@ func (s *LoginAttemptServiceImpl) HandleFailedLoginAttempt(user *user.User, atte
 // Returns:
 //
 //	bool: True if the account should be locked, false otherwise.
-func (s *LoginAttemptServiceImpl) shouldLockAccount(userID string) bool {
+func (s *loginAttemptService) shouldLockAccount(userID string) bool {
 	loginAttempts := s.loginRepo.GetLoginAttempts(userID)
 	return len(loginAttempts) >= s.maxFailedLoginAttempts
 }
@@ -130,7 +131,7 @@ func (s *LoginAttemptServiceImpl) shouldLockAccount(userID string) bool {
 // Returns:
 //
 //	error: An error if the update fails.
-func (s *LoginAttemptServiceImpl) lockAccount(retrievedUser *user.User) error {
+func (s *loginAttemptService) lockAccount(retrievedUser *user.User) error {
 	retrievedUser.AccountLocked = true
 	return s.userRepo.UpdateUser(retrievedUser)
 }

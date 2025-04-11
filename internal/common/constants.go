@@ -10,7 +10,7 @@ const (
 	Approved                      string = "approved"
 	GrantType                     string = "grant_type"
 	ClientCredentials             string = "client_credentials"
-	Bearer                        string = "Bearer "
+	BearerAuthHeader              string = "Bearer "
 	Authorization                 string = "Authorization"
 	SessionToken                  string = "vigilo-auth-session-token"
 	ResponseType                  string = "response_type"
@@ -27,4 +27,6 @@ const (
 	Password                      string = "password"
 	CodeVerifier                  string = "code_verifier"
 	RefreshToken                  string = "refresh_token"
+	Token                         string = "token"
+	BasicAuthHeader               string = "Basic "
 )

@@ -75,7 +75,7 @@ func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
 	return &VigiloTestContext{
 		T:                  t,
 		VigiloServer:       server.NewVigiloIdentityServer(),
-		SH256CodeChallenge: crypto.HashSHA256(testClientSecret),
+		SH256CodeChallenge: crypto.EncodeSHA256(testClientSecret),
 		PlainCodeChallenge: testClientSecret,
 	}
 }
@@ -138,8 +138,8 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 		tc.WithUser()
 	}
 
-	tokenService := tokenService.NewTokenServiceImpl(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(id, duration)
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
+	token, err := tokenService.GenerateToken(id, testScope, duration)
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
@@ -149,8 +149,8 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 }
 
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
-	tokenService := tokenService.NewTokenServiceImpl(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(id, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
+	token, err := tokenService.GenerateToken(id, testScope, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
@@ -169,11 +169,6 @@ func (tc *VigiloTestContext) GetSessionCookie() *http.Cookie {
 	}
 	assert.NotNil(tc.T, sessionCookie)
 	return sessionCookie
-}
-
-func (tc *VigiloTestContext) WithClientRegistrationAccessToken() string {
-
-	return ""
 }
 
 // WithClientCredentialsToken generates and adds a client credentials token
@@ -218,8 +213,8 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 		tc.WithUser()
 	}
 
-	tokenService := tokenService.NewTokenServiceImpl(tokenRepo.GetInMemoryTokenRepository())
-	resetToken, err := tokenService.GenerateToken(tc.User.Email, duration)
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
+	resetToken, err := tokenService.GenerateToken(tc.User.Email, testScope, duration)
 	assert.NoError(tc.T, err)
 
 	tokenRepo.GetInMemoryTokenRepository().SaveToken(resetToken, tc.User.Email, time.Now().Add(duration))

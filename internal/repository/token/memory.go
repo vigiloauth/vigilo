@@ -81,35 +81,22 @@ func (b *InMemoryTokenRepository) SaveToken(tokenStr string, id string, expirati
 //
 // Parameters:
 //
-//	id string: The ID that the token is associated to (e.g. client_id, user_id)
+//	tokenStr string: The token string to retrieve.
 //
 // Returns:
 //
-//	*TokenData: The TokenData if the token is valid, or nil if not found or invalid.
-//	error: An error if the token is not found, expired, or the id doesn't match.
-func (b *InMemoryTokenRepository) GetToken(token string, id string) (*domain.TokenData, error) {
+//	*TokenData: The TokenData if the token is valid, or nil if not found.
+func (b *InMemoryTokenRepository) GetToken(token string) *domain.TokenData {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
 	data, exists := b.tokens[token]
 	if !exists {
 		logger.Debug(module, "GetToken: Token not found")
-		return nil, errors.New(errors.ErrCodeTokenNotFound, "token not found")
+		return nil
 	}
 
-	if time.Now().After(data.ExpiresAt) {
-		logger.Debug(module, "GetToken: Deleting expired token=%s", token)
-		delete(b.tokens, token)
-		return nil, errors.New(errors.ErrCodeTokenNotFound, "token is expired")
-	}
-
-	if data.ID != id {
-		logger.Error(module, "GetToken: TokenData ID and given ID do not match")
-		return nil, errors.New(errors.ErrCodeInvalidFormat, "ID's do not match")
-	}
-
-	data.Token = token
-	return data, nil
+	return data
 }
 
 func (b *InMemoryTokenRepository) BlacklistToken(token string) error {

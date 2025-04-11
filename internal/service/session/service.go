@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
@@ -15,19 +14,19 @@ import (
 )
 
 // Ensure SessionService implements the Session interface.
-var _ session.SessionService = (*SessionServiceImpl)(nil)
+var _ session.SessionService = (*sessionService)(nil)
 var logger = config.GetServerConfig().Logger()
 
 const module = "Session Service"
 
-// SessionServiceImpl handles session management.
-type SessionServiceImpl struct {
+// sessionService handles session management.
+type sessionService struct {
 	tokenService      token.TokenService
 	sessionRepo       session.SessionRepository
 	httpCookieService cookie.HTTPCookieService
 }
 
-// NewSessionServiceImpl creates a new instance of SessionService with the required dependencies.
+// NewSessionService creates a new instance of SessionService with the required dependencies.
 //
 // Parameters:
 //
@@ -37,12 +36,12 @@ type SessionServiceImpl struct {
 // Returns:
 //
 //	*SessionService: A new SessionService instance.
-func NewSessionServiceImpl(
+func NewSessionService(
 	tokenService token.TokenService,
 	sessionRepo session.SessionRepository,
 	httpCookieService cookie.HTTPCookieService,
-) *SessionServiceImpl {
-	return &SessionServiceImpl{
+) session.SessionService {
+	return &sessionService{
 		tokenService:      tokenService,
 		sessionRepo:       sessionRepo,
 		httpCookieService: httpCookieService,
@@ -60,8 +59,8 @@ func NewSessionServiceImpl(
 // Returns:
 //
 //	error: An error if token generation or cookie setting fails.
-func (s *SessionServiceImpl) CreateSession(w http.ResponseWriter, r *http.Request, userID string, sessionExpiration time.Duration) error {
-	sessionToken, err := s.tokenService.GenerateToken(userID, sessionExpiration)
+func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, userID string, sessionExpiration time.Duration) error {
+	sessionToken, err := s.tokenService.GenerateToken(userID, "", sessionExpiration)
 	if err != nil {
 		logger.Error(module, "CreateSession: Failed to generate session token for user=[%s]: %v", common.TruncateSensitive(userID), err)
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate session token")
@@ -96,7 +95,7 @@ func (s *SessionServiceImpl) CreateSession(w http.ResponseWriter, r *http.Reques
 // Returns:
 //
 //	error: An error if token parsing or blacklist addition fails.
-func (s *SessionServiceImpl) InvalidateSession(w http.ResponseWriter, r *http.Request) error {
+func (s *sessionService) InvalidateSession(w http.ResponseWriter, r *http.Request) error {
 	tokenString, err := s.parseTokenFromAuthzHeader(r)
 	if tokenString == "" || err != nil {
 		logger.Error(module, "InvalidateSession: Failed to invalidate session url=[%s]: %v", common.SanitizeURL(r.URL.String()), err)
@@ -135,7 +134,7 @@ func (s *SessionServiceImpl) InvalidateSession(w http.ResponseWriter, r *http.Re
 //
 //	string: The user ID.
 //	error: An error if retrieving the user ID fails.
-func (s *SessionServiceImpl) GetUserIDFromSession(r *http.Request) string {
+func (s *sessionService) GetUserIDFromSession(r *http.Request) string {
 	tokenString, err := s.httpCookieService.GetSessionToken(r)
 	if err != nil {
 		err = errors.Wrap(err, errors.ErrCodeMissingHeader, "session cookie not found in header")
@@ -163,7 +162,7 @@ func (s *SessionServiceImpl) GetUserIDFromSession(r *http.Request) string {
 // Returns:
 //
 //	error: If an error occurs during the update.
-func (s *SessionServiceImpl) UpdateSession(r *http.Request, sessionData *session.SessionData) error {
+func (s *sessionService) UpdateSession(r *http.Request, sessionData *session.SessionData) error {
 	sessionID, err := s.httpCookieService.GetSessionToken(r)
 	if err != nil {
 		logger.Error(module, "UpdateSession: Failed to retrieve session ID: %v", err)
@@ -197,7 +196,7 @@ func (s *SessionServiceImpl) UpdateSession(r *http.Request, sessionData *session
 //
 //	*SessionData: The session data is successful.
 //	error: An error if retrieval fails.
-func (s *SessionServiceImpl) GetSessionData(r *http.Request) (*session.SessionData, error) {
+func (s *sessionService) GetSessionData(r *http.Request) (*session.SessionData, error) {
 	sessionID, err := s.httpCookieService.GetSessionToken(r)
 	if err != nil {
 		logger.Error(module, "GetSessionData: Failed to retrieve session data: %v", err)
@@ -222,7 +221,7 @@ func (s *SessionServiceImpl) GetSessionData(r *http.Request) (*session.SessionDa
 // Returns:
 //
 //	error: An error if the session update fails, or nil if successful.
-func (s *SessionServiceImpl) ClearStateFromSession(sessionData *session.SessionData) error {
+func (s *sessionService) ClearStateFromSession(sessionData *session.SessionData) error {
 	sessionData.State = ""
 	if err := s.sessionRepo.UpdateSessionByID(sessionData.ID, sessionData); err != nil {
 		logger.Error(module, "UpdateSession: Failed to update session=[%s]: %v", common.TruncateSensitive(sessionData.ID), err)
@@ -243,7 +242,7 @@ func (s *SessionServiceImpl) ClearStateFromSession(sessionData *session.SessionD
 //
 //	*SessionData: The retrieved session data if validation is successful.
 //	error: An error if retrieving session data fails or if the state parameter does not match.
-func (s *SessionServiceImpl) ValidateSessionState(r *http.Request) (*session.SessionData, error) {
+func (s *sessionService) ValidateSessionState(r *http.Request) (*session.SessionData, error) {
 	sessionData, err := s.GetSessionData(r)
 	if err != nil {
 		logger.Error(module, "ValidateSessionState: Failed to retrieve session data: %v", err)
@@ -273,7 +272,7 @@ func (s *SessionServiceImpl) ValidateSessionState(r *http.Request) (*session.Ses
 //
 //	string: The token string.
 //	error: An error if the token is invalid or missing.
-func (s *SessionServiceImpl) parseTokenFromAuthzHeader(r *http.Request) (string, error) {
+func (s *sessionService) parseTokenFromAuthzHeader(r *http.Request) (string, error) {
 	authHeader := r.Header.Get(common.Authorization)
 	if authHeader == "" {
 		err := errors.New(errors.ErrCodeMissingHeader, "authorization header is missing")
@@ -281,7 +280,7 @@ func (s *SessionServiceImpl) parseTokenFromAuthzHeader(r *http.Request) (string,
 		return "", err
 	}
 
-	token := strings.TrimPrefix(authHeader, common.Bearer)
+	token := strings.TrimPrefix(authHeader, common.BearerAuthHeader)
 	if token == authHeader {
 		err := errors.New(errors.ErrCodeInvalidFormat, "malformed authorization header")
 		logger.Error(module, "Failed to parse token from authorization header: %v", err)
@@ -301,7 +300,7 @@ func (s *SessionServiceImpl) parseTokenFromAuthzHeader(r *http.Request) (string,
 //
 //	*jwt.StandardClaims: The standard claims.
 //	error: An error if token parsing fails.
-func (s *SessionServiceImpl) generateStandardClaims(token string) (*jwt.StandardClaims, error) {
+func (s *sessionService) generateStandardClaims(token string) (*token.TokenClaims, error) {
 	claims, err := s.tokenService.ParseToken(token)
 	if err != nil {
 		logger.Error(module, "Failed to generate token with standard claims: %v", err)

@@ -39,6 +39,28 @@ func NewTokenHandler(
 	}
 }
 
+func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IntrospectToken]", requestID)
+
+	if err := h.authService.AuthenticateClientRequest(r); err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to authenticate request")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "unable to parse form"))
+		return
+	}
+
+	tokenRequest := r.FormValue(common.Token)
+	response := h.authService.IntrospectToken(tokenRequest)
+
+	web.WriteJSON(w, http.StatusOK, response)
+}
+
 func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	requestID := common.GetRequestID(r.Context())
 	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IssueToken]", requestID)
@@ -49,7 +71,7 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientID, clientSecret, err := h.exractClientCredentials(r)
+	clientID, clientSecret, err := h.extractClientCredentials(r)
 	if err != nil {
 		h.logger.Error(h.module, "RequestID=[%s]: Invalid client credentials: %v", requestID, err)
 		web.WriteError(w, err)
@@ -201,7 +223,7 @@ func (h *TokenHandler) handleRefreshTokenRequest(w http.ResponseWriter, r *http.
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *TokenHandler) exractClientCredentials(r *http.Request) (string, string, error) {
+func (h *TokenHandler) extractClientCredentials(r *http.Request) (string, string, error) {
 	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
 	if err != nil {
 		clientID = r.FormValue(common.ClientID)

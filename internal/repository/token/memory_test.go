@@ -56,13 +56,12 @@ func TestTokenStore_DeleteToken(t *testing.T) {
 	expiration := time.Now().Add(1 * time.Hour)
 
 	tokenStore.SaveToken(testToken, testID, expiration)
-	_, err := tokenStore.GetToken(testToken, testID)
+	token := tokenStore.GetToken(testToken)
+	assert.NotNil(t, token)
+
+	err := tokenStore.DeleteToken(testToken)
 	assert.NoError(t, err)
 
-	err = tokenStore.DeleteToken(testToken)
-	assert.NoError(t, err)
-
-	retrievedToken, err := tokenStore.GetToken(testToken, testID)
-	assert.Error(t, err)
+	retrievedToken := tokenStore.GetToken(testToken)
 	assert.Nil(t, retrievedToken)
 }

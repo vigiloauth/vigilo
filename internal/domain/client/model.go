@@ -342,10 +342,11 @@ var ValidResponseTypes = map[string]bool{
 // Predefined scopes.
 const (
 	// Client Management Scopes
-	ClientRead   string = "clients:read"   // Read registered client details.
-	ClientWrite  string = "clients:write"  // Modify client details (except 'client_id' & 'client_secret')
-	ClientDelete string = "clients:delete" // Delete a registered client.
-	ClientManage string = "clients:manage" // Full control over all clients (includes 'read', 'write', and 'delete')
+	ClientRead      string = "clients:read"   // Read registered client details.
+	ClientWrite     string = "clients:write"  // Modify client details (except 'client_id' & 'client_secret')
+	ClientDelete    string = "clients:delete" // Delete a registered client.
+	ClientManage    string = "clients:manage" // Full control over all clients (includes 'read', 'write', and 'delete')
+	TokenIntrospect string = "tokens:introspect"
 
 	// User Management Scopes
 	UserRead   string = "users:read"   // Read user details (e.g., profile, email, etc.).
@@ -355,10 +356,11 @@ const (
 )
 
 var ValidScopes = map[string]bool{
-	ClientRead:   true,
-	ClientWrite:  true,
-	ClientDelete: true,
-	ClientManage: true,
+	ClientRead:      true,
+	ClientWrite:     true,
+	ClientDelete:    true,
+	ClientManage:    true,
+	TokenIntrospect: true,
 
 	UserManage: true,
 	UserRead:   true,

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/vigiloauth/vigilo/identity/config"
@@ -10,11 +11,12 @@ import (
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/web"
 )
 
-var _ auth.AuthenticationService = (*AuthenticationServiceImpl)(nil)
+var _ auth.AuthenticationService = (*authenticationService)(nil)
 
-type AuthenticationServiceImpl struct {
+type authenticationService struct {
 	tokenService  token.TokenService
 	clientService client.ClientService
 	userService   user.UserService
@@ -23,12 +25,12 @@ type AuthenticationServiceImpl struct {
 	module string
 }
 
-func NewAuthenticationServiceImpl(
+func NewAuthenticationService(
 	tokenService token.TokenService,
 	clientService client.ClientService,
 	userService user.UserService,
-) *AuthenticationServiceImpl {
-	return &AuthenticationServiceImpl{
+) auth.AuthenticationService {
+	return &authenticationService{
 		tokenService:  tokenService,
 		clientService: clientService,
 		userService:   userService,
@@ -50,30 +52,23 @@ func NewAuthenticationServiceImpl(
 // Returns:
 //
 //	A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails
-func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, clientSecret, requestedGrantType, requestedScopes string) (*token.TokenResponse, error) {
-	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
+func (s *authenticationService) IssueClientCredentialsToken(clientID, clientSecret, grantType, scopes string) (*token.TokenResponse, error) {
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, "Failed to authenticate client: %v", err)
 		return nil, errors.Wrap(err, "", "failed to authenticate client")
 	}
 
-	accessToken, err := s.tokenService.GenerateToken(clientID, config.GetServerConfig().TokenConfig().AccessTokenDuration())
+	refreshToken, accessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, scopes)
 	if err != nil {
-		s.logger.Error(s.module, "Failed to generate access token: %v", err)
-		return nil, errors.Wrap(err, "", "failed to generate access token")
-	}
-
-	refreshToken, err := s.tokenService.GenerateToken(clientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
-	if err != nil {
-		s.logger.Error(s.module, "Failed to generate refresh token: %v", err)
-		return nil, errors.Wrap(err, "", "failed to generate refresh token")
+		return nil, errors.Wrap(err, "", "failed to issue tokens")
 	}
 
 	return &token.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.Bearer,
-		Scope:        requestedScopes,
+		TokenType:    common.BearerAuthHeader,
+		Scope:        scopes,
 	}, nil
 }
 
@@ -91,19 +86,19 @@ func (s *AuthenticationServiceImpl) IssueClientCredentialsToken(clientID, client
 // Returns:
 //
 //	A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails
-func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecret, requestedGrantType, requestedScopes string, req *user.UserLoginAttempt) (*token.TokenResponse, error) {
-	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
+func (s *authenticationService) IssueResourceOwnerToken(clientID, clientSecret, grantType, scopes string, req *user.UserLoginAttempt) (*token.TokenResponse, error) {
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, "Failed to authenticate client: %v", err)
 		return nil, err
 	}
 
-	loginResponse, err := s.authenticateUser(req, clientID, requestedScopes)
+	loginResponse, err := s.authenticateUser(req, clientID, scopes)
 	if err != nil {
 		s.logger.Error(s.module, "Failed to authenticate user: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to authenticate user")
 	}
 
-	accessToken, refreshToken, err := s.tokenService.GenerateTokenPair(loginResponse.UserID, clientID)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(loginResponse.UserID, clientID, scopes)
 	if err != nil {
 		s.logger.Error(s.module, "Failed to generate token pair: %v", err)
 		return nil, err
@@ -113,8 +108,8 @@ func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecr
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.Bearer,
-		Scope:        requestedScopes,
+		TokenType:    common.BearerAuthHeader,
+		Scope:        scopes,
 	}, nil
 }
 
@@ -132,8 +127,8 @@ func (s *AuthenticationServiceImpl) IssueResourceOwnerToken(clientID, clientSecr
 // Returns:
 //
 //	A TokenResponse containing the newly generated access token and related metadata, or an error if token refresh fails
-func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes string) (*token.TokenResponse, error) {
-	if err := s.clientService.AuthenticateClient(clientID, clientSecret, requestedGrantType, requestedScopes); err != nil {
+func (s *authenticationService) RefreshAccessToken(clientID, clientSecret, grantType, refreshToken, scopes string) (*token.TokenResponse, error) {
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, "[RefreshAccessToken] Failed to authenticate client: %v", err)
 		return nil, err
 	}
@@ -153,7 +148,7 @@ func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, r
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid refresh token")
 	}
 
-	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID)
+	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(clientID, scopes)
 	if err != nil {
 		s.logger.Error(s.module, "[RefreshAccessToken] Failed to generate new tokens: %v", err)
 		if err := s.tokenService.BlacklistToken(refreshToken); err != nil {
@@ -171,11 +166,70 @@ func (s *AuthenticationServiceImpl) RefreshAccessToken(clientID, clientSecret, r
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.Bearer,
+		TokenType:    common.BearerAuthHeader,
 	}, nil
 }
 
-func (s *AuthenticationServiceImpl) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {
+// IntrospectToken verifies the validity of a given token by introspecting its details.
+// This method checks whether the token is valid, expired, or revoked and returns the
+// associated token information if it is valid.
+//
+// Parameters:
+//
+//	token (string): The token to be introspected.
+//
+// Returns:
+//
+//	*TokenIntrospectionResponse: A struct containing token details such as
+//	  validity, expiration, and any associated metadata. If the token is valid, this
+//	  response will include all relevant claims associated with the token.
+func (s *authenticationService) IntrospectToken(tokenStr string) *token.TokenIntrospectionResponse {
+	retrievedToken, err := s.tokenService.GetToken(tokenStr)
+	if retrievedToken == nil || err != nil {
+		return &token.TokenIntrospectionResponse{Active: false}
+	}
+
+	claims, err := s.tokenService.ParseToken(tokenStr)
+	if err != nil {
+		s.logger.Error(s.module, "Failed to parse token: %v", err)
+		return &token.TokenIntrospectionResponse{Active: false}
+	}
+
+	response := token.NewTokenIntrospectionResponse(claims)
+	if s.tokenService.IsTokenBlacklisted(tokenStr) || s.tokenService.IsTokenExpired(tokenStr) {
+		response.Active = false
+	} else {
+		response.Active = true
+	}
+
+	return response
+}
+
+// AuthenticateClientRequest validates the provided Authorization header.
+// It supports both "Basic" and "Bearer" authentication schemes.
+//
+// For "Basic" authentication, it decodes the base64-encoded credentials
+// and checks that the client ID and secret are correctly formatted.
+//
+// For "Bearer" authentication, it validates the token structure and
+// verifies its authenticity (e.g., signature, expiry, and claims).
+//
+// Returns an error if the header is malformed, the credentials are invalid,
+// or the token fails validation.
+func (s *authenticationService) AuthenticateClientRequest(r *http.Request) error {
+	authHeader := r.Header.Get(common.Authorization)
+
+	switch {
+	case strings.HasPrefix(authHeader, common.BasicAuthHeader):
+		return s.authenticateWithBasicAuth(r)
+	case strings.HasPrefix(authHeader, common.BearerAuthHeader):
+		return s.authenticateWithBearerToken(r)
+	default:
+		return errors.New(errors.ErrCodeInvalidClient, "failed to authorize client: missing authorization header")
+	}
+}
+
+func (s *authenticationService) validateRefreshTokenAndMatchClient(clientID, refreshToken string) (bool, error) {
 	if err := s.tokenService.ValidateToken(refreshToken); err != nil {
 		return false, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to validate refresh token")
 	}
@@ -193,14 +247,14 @@ func (s *AuthenticationServiceImpl) validateRefreshTokenAndMatchClient(clientID,
 	return true, nil
 }
 
-func (s *AuthenticationServiceImpl) authenticateUser(req *user.UserLoginAttempt, clientID string, requestedScopes string) (*user.UserLoginResponse, error) {
+func (s *authenticationService) authenticateUser(req *user.UserLoginAttempt, clientID string, scopes string) (*user.UserLoginResponse, error) {
 	existingUser := s.userService.GetUserByUsername(req.Username)
 	if existingUser == nil {
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "user not found")
 	}
 
-	scopes := strings.Split(requestedScopes, " ")
-	for _, scope := range scopes {
+	scopeArr := strings.Split(scopes, " ")
+	for _, scope := range scopeArr {
 		if !existingUser.HasScope(scope) {
 			return nil, errors.New(errors.ErrCodeInsufficientScope, "user does not have the required scope(s)")
 		}
@@ -212,4 +266,40 @@ func (s *AuthenticationServiceImpl) authenticateUser(req *user.UserLoginAttempt,
 		return nil, err
 	}
 	return loginResponse, nil
+}
+
+func (s *authenticationService) authenticateWithBasicAuth(r *http.Request) error {
+	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
+	if err != nil {
+		return err
+	}
+
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, "", client.TokenIntrospect); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *authenticationService) authenticateWithBearerToken(r *http.Request) error {
+	bearerToken, err := web.ExtractBearerToken(r)
+	if err != nil {
+		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to extract bearer token")
+	}
+
+	if err := s.tokenService.ValidateToken(bearerToken); err != nil {
+		return errors.Wrap(err, "", "failed to validate bearer token")
+	}
+
+	claims, err := s.tokenService.ParseToken(bearerToken)
+	if err != nil {
+		return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
+	}
+
+	clientID := claims.Subject
+	if err := s.clientService.AuthenticateClient(clientID, "", "", client.TokenIntrospect); err != nil {
+		return err
+	}
+
+	return nil
 }
