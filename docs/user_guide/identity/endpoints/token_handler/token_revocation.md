@@ -1,8 +1,8 @@
-# OAuth 2.0 Token Introspection
+#  OAuth 2.0 Token Revocation
 
 ## Endpoint
 ```http
-POST /oauth/token/introspect
+POST /oauth/token/revoke
 
 ```
 
@@ -20,16 +20,16 @@ POST /oauth/token/introspect
 ## Request Body
 | Field        | Type       | Required  | Description                           |
 | :------------|:-----------|:----------|:--------------------------------------|
-| `token`      | `string`   | Yes       | The requested token to introspect.    |
+| `token`      | `string`   | Yes       | The requested token to revoke.        |
 
 ---
 
 ## Example Request
-*Note:* The client must have the `tokens:introspect` scope for this request.
+*Note:* The client must have the `tokens:revoke` scope for this request.
 
 #### Example request for confidential clients:
 ```http
-POST /oauth/token/introspect HTTP/1.1
+POST /oauth/token/revoke HTTP/1.1
 Authorization: Basic dGVzdGNsaWVudDpzZWNyZXQ
 Content-Type: application/x-www-form-urlencoded
 
@@ -38,7 +38,7 @@ token=1FF3ZcYmriDTmziexguayay90HCgHJYR2UUGNcEwvC0
 
 #### Example request for public clients:
 ```http
-POST /oauth/token/introspect HTTP/1.1
+POST /oauth/token/revoke HTTP/1.1
 Authorization: Bearer dGVzdGNsaWVudDpzZWNyZXQ
 Content-Type: application/x-www-form-urlencoded
 
@@ -47,32 +47,14 @@ token=1FF3ZcYmriDTmziexguayay90HCgHJYR2UUGNcEwvC0
 
 ---
 
-## Responses
+## Success Response
+VigiloAuth will respond with a `200 OK` status code regardless if the token has been successfully blacklisted or if the client submitted an invalid token.
+Invalid tokens do not cause an error response since the client cannot handle a response of that kind reasonably.
 
-### Success Response
-#### HTTP Status Code: `200 OK`
-#### Response Body:
-```json
-{
-    "active": true,
-    "exp": "1744310667",
-    "iat": "1744310067",
-    "subject": "client-id",
-    "iss": "vigilo-auth-server",
-    "jti": "1FF3ZcYmriDTmziexguayay90HCgHJYR2UUGNcEwvC0"
-}
+```http
+Status 200 OK
+Content-Type: application/json
 ```
-
-### Success Response
-#### HTTP Status Code: `200 OK`
-#### Response Body:
-```json
-{
-    "active": false,
-}
-```
-
-*Note:* If the token in the request is valid, but is either expired, or has been previously revoked, `active` will be set to false.
 
 ---
 
