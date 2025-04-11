@@ -274,8 +274,8 @@ func (s *authenticationService) authenticateWithBasicAuth(r *http.Request) error
 		return err
 	}
 
-	if err := s.clientService.AuthenticateClient(clientID, clientSecret, client.ClientCredentials, client.ClientIntrospect); err != nil {
-		return errors.Wrap(err, "", "failed to authenticate client")
+	if err := s.clientService.AuthenticateClient(clientID, clientSecret, "", client.TokenIntrospect); err != nil {
+		return err
 	}
 
 	return nil
@@ -297,8 +297,8 @@ func (s *authenticationService) authenticateWithBearerToken(r *http.Request) err
 	}
 
 	clientID := claims.Subject
-	if err := s.clientService.AuthenticateClient(clientID, "", client.ClientCredentials, client.ClientIntrospect); err != nil {
-		return errors.Wrap(err, "", "failed to authenticate client")
+	if err := s.clientService.AuthenticateClient(clientID, "", "", client.TokenIntrospect); err != nil {
+		return err
 	}
 
 	return nil

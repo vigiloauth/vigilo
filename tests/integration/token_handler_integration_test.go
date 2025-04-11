@@ -800,7 +800,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{client.ClientIntrospect}, []string{client.ClientCredentials})
+				testContext.WithClient(test.clientType, []string{client.TokenIntrospect}, []string{client.PKCE})
 				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
@@ -826,55 +826,124 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 
 	t.Run("Invalid client is returned for invalid client credentials", func(t *testing.T) {
 		tests := []struct {
-			name       string
-			clientType string
-			headers    map[string]string
+			name           string
+			clientType     string
+			headers        map[string]string
+			expectedStatus int
 		}{
 			{
-				name:       "Invalid client error is returned for confidential client",
-				clientType: client.Confidential,
-				headers:    map[string]string{},
+				name:           "Invalid client error is returned for confidential client with an invalid client ID",
+				clientType:     client.Confidential,
+				expectedStatus: http.StatusUnauthorized,
+				headers: map[string]string{
+					"Content-Type":  "application/x-www-form-urlencoded",
+					"Authorization": common.BasicAuthHeader + encodeClientCredentials("invalidID", testClientSecret),
+				},
 			},
 			{
-				name:       "Invalid client error is returned for public clients",
-				clientType: client.Public,
-				headers:    map[string]string{},
+				name:           "Invalid client error is returned for confidential client with an invalid client secret",
+				expectedStatus: http.StatusUnauthorized,
+				clientType:     client.Confidential,
+				headers: map[string]string{
+					"Content-Type":  "application/x-www-form-urlencoded",
+					"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, "invalidSecret"),
+				},
+			},
+			{
+				name:           "Invalid client error is returned for public clients",
+				expectedStatus: http.StatusBadRequest,
+				clientType:     client.Public,
+				headers: map[string]string{
+					"Content-Type":  "application/x-www-form-urlencoded",
+					"Authorization": common.BearerAuthHeader + "invalid-token",
+				},
 			},
 		}
 
 		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {})
+			t.Run(test.name, func(t *testing.T) {
+				testContext := NewVigiloTestContext(t)
+				defer testContext.TearDown()
+
+				testContext.WithClient(test.clientType, []string{client.TokenIntrospect}, []string{client.ClientCredentials})
+				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
+
+				formValue := url.Values{}
+				formValue.Add(common.Token, testContext.JWTToken)
+
+				rr := testContext.SendHTTPRequest(
+					http.MethodPost,
+					web.OAuthEndpoints.Introspect,
+					strings.NewReader(formValue.Encode()),
+					test.headers,
+				)
+
+				assert.Equal(t, test.expectedStatus, rr.Code)
+			})
 		}
 	})
 
-	t.Run("Unauthorized client error is returned when the client does not have the required grant type", func(t *testing.T) {
-		tests := []struct {
-			name       string
-			clientType string
-			headers    map[string]string
-		}{
-			{
-				name:       "Unauthorized client error is returned for confidential client",
-				clientType: client.Confidential,
-				headers:    map[string]string{},
-			},
-			{
-				name:       "Unauthorized client error is returned for public clients",
-				clientType: client.Public,
-				headers:    map[string]string{},
-			},
+	t.Run("Active is set to false when the requested token is expired", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithClient(client.Confidential, []string{client.TokenIntrospect}, []string{client.ClientCredentials})
+		testContext.WithExpiredToken()
+
+		formValue := url.Values{}
+		formValue.Add(common.Token, testContext.JWTToken)
+
+		headers := map[string]string{
+			"Content-Type":  "application/x-www-form-urlencoded",
+			"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
 		}
 
-		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {})
-		}
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Introspect,
+			strings.NewReader(formValue.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var tokenResponse token.TokenIntrospectionResponse
+		err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
+		assert.NoError(t, err)
+
+		assert.False(t, tokenResponse.Active)
 	})
 
-	t.Run("Active is set to false when there is an error parsing the request token", func(t *testing.T) {})
+	t.Run("Active is set to false when the requested token is blacklisted", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
 
-	t.Run("Active is set to false when the requested token is expired", func(t *testing.T) {})
+		testContext.WithClient(client.Confidential, []string{client.TokenIntrospect}, []string{client.ClientCredentials})
+		testContext.WithBlacklistedToken(testClientID)
 
-	t.Run("Active is set to false when the requested token is blacklisted", func(t *testing.T) {})
+		formValue := url.Values{}
+		formValue.Add(common.Token, testContext.JWTToken)
+
+		headers := map[string]string{
+			"Content-Type":  "application/x-www-form-urlencoded",
+			"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
+		}
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			web.OAuthEndpoints.Introspect,
+			strings.NewReader(formValue.Encode()),
+			headers,
+		)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var tokenResponse token.TokenIntrospectionResponse
+		err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
+		assert.NoError(t, err)
+
+		assert.False(t, tokenResponse.Active)
+	})
 }
 
 func generateHeaderWithCredentials(id, secret string) map[string]string {

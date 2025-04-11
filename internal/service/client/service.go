@@ -414,7 +414,8 @@ func (cs *clientService) ValidateAndDeleteClient(clientID, registrationAccessTok
 
 // validateClientAuthorization checks if the client is authorized to perform certain actions
 // based on its configuration, including its type, client secret, grant type, and scope.
-// Note: If the client secret is not needed for validation, it can be passed as and empty string.
+// Note: If the client secret is not needed for validation, it can be passed as an empty string.
+// Note: If the grant type is not needed for validation, it can be passed as an empty string.
 //
 // Parameters:
 //
@@ -443,9 +444,10 @@ func (cs *clientService) validateClientAuthorization(existingClient *client.Clie
 		}
 	}
 
-	if !existingClient.HasGrantType(requestedGrant) {
+	if requestedGrant != "" && !existingClient.HasGrantType(requestedGrant) {
 		return errors.New(errors.ErrCodeUnauthorizedClient, "client does not have the required grant type")
 	}
+
 	return nil
 }
 
