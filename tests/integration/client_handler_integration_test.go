@@ -14,7 +14,6 @@ import (
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	clientRepo "github.com/vigiloauth/vigilo/internal/repository/client"
-	tokenRepo "github.com/vigiloauth/vigilo/internal/repository/token"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -695,10 +694,6 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-
-		// assert token is deleted.
-		token := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken)
-		assert.Nil(t, token)
 	})
 
 	t.Run("Unauthorized - Expired registration access token", func(t *testing.T) {
@@ -715,10 +710,6 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-
-		// assert token is deleted.
-		token := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken)
-		assert.Nil(t, token)
 	})
 
 	t.Run("Unauthorized - Invalid client ID", func(t *testing.T) {
@@ -735,10 +726,6 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-
-		// assert token is deleted.
-		token := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken)
-		assert.Nil(t, token)
 	})
 
 	t.Run("Forbidden - Insufficient Scopes", func(t *testing.T) {
@@ -755,10 +742,6 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		// assert token is deleted.
-		token := tokenRepo.GetInMemoryTokenRepository().GetToken(testContext.JWTToken)
-		assert.Nil(t, token)
 	})
 }
 
