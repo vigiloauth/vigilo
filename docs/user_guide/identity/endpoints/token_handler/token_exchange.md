@@ -24,8 +24,6 @@ This endpoint handles the token exchange for the OAuth 2.0 Authorization Code Fl
 | :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
 | `grant_type`         | `string`      | Yes      | Specifies the type of grant being used. Must be set to `authorization_code`.|
 | `code`               | `string`      | Yes      | The authorization code received from the [authorize endpoint](authorize_client.md). |
-| `client_id`          | `string`      | Yes      | The unique identifier of the OAuth client.                                 |
-| `client_secret`      | `string`      | Yes      | The client's secret key.                                                   |
 | `redirect_uri`       | `string`      | Yes      | Must match the redirect URI used in the [authorize step](authorize_client.md). |
 | `state`              | `string`      | Yes      | An opaque value used to maintain state between the request and callback. This helps prevent CSRF attacks. |
 | `code_verifier`      | string | No       | The code verifier used for PKCE. Required if PKCE was used during the authorization request. |
@@ -34,44 +32,40 @@ This endpoint handles the token exchange for the OAuth 2.0 Authorization Code Fl
 ---
 
 ## Required Headers
-| Key             | Value                         | Description                              |
-| :-------------- | :---------------------------- | :----------------------------------------|
-| Content-Type    | application/json              | Indicates that the request body is JSON. |
-| Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.  |
-| Content-Length  | [Content-Length]              | The length of the request body in bytes. |
+| Key             | Value                              | Description                                     |
+| :-------------- | :----------------------------------| :-----------------------------------------------|
+| Content-Type    | application/x-www-form-urlencoded  | Indicates that the request body is URL-encoded. |
+| Date            | Tue, 03 Dec 2024 19:38:16 GMT      | The date and time the request was made.         |
+| Content-Length  | [Content-Length]                   | The length of the request body in bytes.        |
 
 ---
 
 ## Example Request
 ```http
 POST /oauth/token HTTP/1.1
-Content-Type: application/json
-```
-```json
-{
-    "grant_type": "authorization_code",
-    "code": "SplxlOBeZQQYbYS6WxSbIA",
-    "redirect_uri": "https://client.example.com/callback",
-    "client_id": "s6BhdRkqt3",
-    "state": "xyz123"
-}
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic base64(client_id:client_secret)
+
+grant_type=authorization_code
+&code=SplxlOBeZQQYbYS6WxSbIA
+&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb
+&state=xyz123
 ```
 
 ### Example Request with PKCE
 ```http
 POST /oauth/token HTTP/1.1
-Content-Type: application/json
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic base64(client_id:client_secret)
+
+grant_type=authorization_code
+&code=SplxlOBeZQQYbYS6WxSbIA
+&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb
+&state=xyz123
+&code_verifier=xyc123
 ```
-```json
-{
-    "grant_type": "authorization_code",
-    "code": "SplxlOBeZQQYbYS6WxSbIA",
-    "redirect_uri": "https://client.example.com/callback",
-    "client_id": "s6BhdRkqt3",
-    "state": "xyz123",
-    "code_verifier": "xyz456"
-}
-```
+
+**Note:** The client secret is only applicable for confidential clients. Public clients do not inclue the `Authorization` header and must instead send the `client_id` in the body.
 
 ---
 

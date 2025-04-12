@@ -23,7 +23,7 @@ const (
 	testClientName     string = "testClient"
 	testClientID       string = "clientID"
 	testClientSecret   string = "secret"
-	testScope          string = "client:manage"
+	testScope          string = "clients:manage"
 	testRedirectURI    string = "http://localhost/callback"
 	testCode           string = "12314324code"
 	validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_"
@@ -42,7 +42,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 			return nil
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		code, err := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
 		assert.NoError(t, err)
@@ -57,7 +57,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 			return errors.NewInternalServerError()
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		code, err := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
 		assert.Error(t, err)
@@ -67,7 +67,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 	t.Run("Error is returned when the user does not exist with the given ID", func(t *testing.T) {
 		mockUserService.GetUserByIDFunc = func(userID string) *user.User { return nil }
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := errors.New(errors.ErrCodeUnauthorized, "invalid user ID: testU[REDACTED]")
 		code, actual := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
@@ -80,7 +80,7 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 		mockUserService.GetUserByIDFunc = func(userID string) *user.User { return createTestUser() }
 		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := errors.New(errors.ErrCodeUnauthorized, "invalid client ID")
 		code, actual := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
 
@@ -104,7 +104,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return nil
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		data, err := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
 
 		assert.NotNil(t, data)
@@ -116,7 +116,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return nil, errors.NewInternalServerError()
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
 
 		assert.Nil(t, code)
@@ -129,7 +129,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return createAuthzCodeData(), nil
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := "failed to validate authorization code: authorization code client ID and request client ID do no match"
 		code, actual := service.ValidateAuthorizationCode(testCode, "invalidID", testRedirectURI)
 
@@ -143,7 +143,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 			return createAuthzCodeData(), nil
 		}
 
-		service := NewAuthorizationCodeServiceImpl(mockAuthzCodeRepo, mockUserService, mockClientService)
+		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := "failed to validate authorization code: authorization code redirect URI and request redirect URI do no match"
 		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, "testRedirectURI")
 
@@ -155,7 +155,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 
 func TestAuthorizationCodeService_ValidatePKCE(t *testing.T) {
 	codeVerifier := "validCodeVerifier123"
-	codeChallenge := crypto.HashSHA256(codeVerifier)
+	codeChallenge := crypto.EncodeSHA256(codeVerifier)
 
 	tests := []struct {
 		name         string
@@ -215,7 +215,7 @@ func TestAuthorizationCodeService_ValidatePKCE(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		service := NewAuthorizationCodeServiceImpl(nil, nil, nil)
+		service := NewAuthorizationCodeService(nil, nil, nil)
 		err := service.ValidatePKCE(test.codeData, test.codeVerifier)
 
 		if test.wantErr {
@@ -262,13 +262,13 @@ func createClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 	return &client.ClientAuthorizationRequest{
 		ClientID:    testClientID,
 		UserID:      testUserID,
-		Scope:       "client:manage",
+		Scope:       testScope,
 		RedirectURI: testRedirectURI,
 		Client: &client.Client{
 			Type:          client.Public,
 			ResponseTypes: []string{client.CodeResponseType},
 			GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
-			Scopes:        []string{"client:manage"},
+			Scopes:        []string{testScope},
 			RedirectURIS:  []string{testRedirectURI},
 		},
 		ResponseType:        client.CodeResponseType,

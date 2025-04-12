@@ -82,7 +82,7 @@ Content-Type: application/x-www-form-urlencoded
 
 client_id=abc123&
 redirect_uri=https://client.example.com/callback&
-scope=user:profile&
+scope=users:manage&
 approved=true&
 state=xyz&
 response_type=code
@@ -96,7 +96,7 @@ Content-Type: application/x-www-form-urlencoded
 
 client_id=abc123&
 redirect_uri=https://client.example.com/callback&
-scope=user:profile&
+scope=users:manage&
 approved=true&
 state=xyz&
 response_type=code&
@@ -210,7 +210,7 @@ code_challenge_method=S256
 ```
 
 ### 10. Public Client Missing PKCE Grant Type
-#### HTTP Status Code: `403 Forbidden`
+#### HTTP Status Code: `400 Bad Request`
 #### Response Body:
 ```json
 {

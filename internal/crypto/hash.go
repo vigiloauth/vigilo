@@ -64,8 +64,8 @@ func GenerateUUID() string {
 	return uuid
 }
 
-// HashSHA256 hashes the input using SHA-256 and encodes it in base64 URL format.
-func HashSHA256(input string) string {
+// EncodeSHA256 hashes the input using SHA-256 and encodes it in base64 URL format.
+func EncodeSHA256(input string) string {
 	hash := sha256.Sum256([]byte(input))
 	return base64.RawURLEncoding.EncodeToString(hash[:])
 }

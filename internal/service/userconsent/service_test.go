@@ -40,7 +40,7 @@ func TestUserConsentService_CheckUserConsent(t *testing.T) {
 			return true, nil
 		}
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService, mockAuthzCodeService)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService, mockAuthzCodeService)
 		hasConsent, err := cs.CheckUserConsent(testUserID, testClientID, testScope)
 
 		assert.NoError(t, err)
@@ -55,7 +55,7 @@ func TestUserConsentService_CheckUserConsent(t *testing.T) {
 			return false, nil
 		}
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService, mockAuthzCodeService)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService, mockAuthzCodeService)
 		hasConsent, err := cs.CheckUserConsent(testUserID, testClientID, testScope)
 
 		assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestUserConsentService_CheckUserConsent(t *testing.T) {
 			return true, errors.NewInternalServerError()
 		}
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService, mockAuthzCodeService)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService, mockAuthzCodeService)
 		hasConsent, err := cs.CheckUserConsent(testUserID, testClientID, testScope)
 
 		assert.Error(t, err)
@@ -86,7 +86,7 @@ func TestUserConsentService_SaveUserConsent(t *testing.T) {
 		}
 		mockConsentRepo.SaveConsentFunc = func(userID, clientID, scope string) error { return nil }
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, nil, nil, nil)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil, nil)
 		err := cs.SaveUserConsent(testUserID, testClientID, testScope)
 
 		assert.NoError(t, err)
@@ -100,7 +100,7 @@ func TestUserConsentService_SaveUserConsent(t *testing.T) {
 			return errors.NewInternalServerError()
 		}
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, nil, nil, nil)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil, nil)
 		err := cs.SaveUserConsent(testUserID, testClientID, testScope)
 
 		assert.Error(t, err)
@@ -109,7 +109,7 @@ func TestUserConsentService_SaveUserConsent(t *testing.T) {
 	t.Run("Error is returned when the user does not exist", func(t *testing.T) {
 		mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return nil }
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, nil, nil, nil)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil, nil)
 		err := cs.SaveUserConsent(testUserID, testClientID, testScope)
 
 		assert.Error(t, err)
@@ -126,7 +126,7 @@ func TestUserConsentService_RevokeUserConsent(t *testing.T) {
 		}
 		mockConsentRepo.RevokeConsentFunc = func(userID, clientID string) error { return nil }
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, nil, nil, nil)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil, nil)
 		err := cs.RevokeConsent(testUserID, testClientID)
 
 		assert.NoError(t, err)
@@ -140,7 +140,7 @@ func TestUserConsentService_RevokeUserConsent(t *testing.T) {
 			return errors.NewInternalServerError()
 		}
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, nil, nil, nil)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil, nil)
 		err := cs.RevokeConsent(testUserID, testClientID)
 
 		assert.Error(t, err)
@@ -149,7 +149,7 @@ func TestUserConsentService_RevokeUserConsent(t *testing.T) {
 	t.Run("Error is returned when the user does not exist", func(t *testing.T) {
 		mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return nil }
 
-		cs := NewUserConsentServiceImpl(mockConsentRepo, mockUserRepo, nil, nil, nil)
+		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil, nil)
 		err := cs.RevokeConsent(testUserID, testClientID)
 
 		assert.Error(t, err)
@@ -172,7 +172,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 			},
 		}
 
-		service := NewUserConsentServiceImpl(nil, nil, mockSessionService, mockClientService, nil)
+		service := NewUserConsentService(nil, nil, mockSessionService, mockClientService, nil)
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testScope, nil)
 
 		assert.NoError(t, err)
@@ -181,7 +181,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the request is not valid", func(t *testing.T) {
-		service := NewUserConsentServiceImpl(nil, nil, nil, nil, nil)
+		service := NewUserConsentService(nil, nil, nil, nil, nil)
 		response, err := service.GetConsentDetails("", testClientID, testRedirectURI, testScope, nil)
 
 		assert.Error(t, err)
@@ -200,7 +200,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 			},
 		}
 
-		service := NewUserConsentServiceImpl(nil, nil, mockSessionService, mockClientService, nil)
+		service := NewUserConsentService(nil, nil, mockSessionService, mockClientService, nil)
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testScope, nil)
 
 		assert.Error(t, err)
@@ -222,7 +222,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 			},
 		}
 
-		service := NewUserConsentServiceImpl(nil, nil, mockSessionService, mockClientService, nil)
+		service := NewUserConsentService(nil, nil, mockSessionService, mockClientService, nil)
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testScope, nil)
 
 		assert.Error(t, err)
@@ -236,7 +236,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 			},
 		}
 
-		service := NewUserConsentServiceImpl(nil, nil, nil, mockClientService, nil)
+		service := NewUserConsentService(nil, nil, nil, mockClientService, nil)
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testScope, nil)
 
 		assert.Error(t, err)
@@ -250,7 +250,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 	mockConsentRepo := &mConsentRepo.MockUserConsentRepository{}
 
 	t.Run("Error is returned for invalid request parameters", func(t *testing.T) {
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
+		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent("", testClientID, testRedirectURI, testScope, nil, nil)
 
 		assert.Error(t, err)
@@ -262,7 +262,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 			return nil, errors.NewInternalServerError()
 		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
+		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, nil, nil)
 
 		assert.Error(t, err)
@@ -274,7 +274,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 			return &session.SessionData{State: testState}, nil
 		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
+		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: false}, nil)
 
 		assert.NoError(t, err)
@@ -290,7 +290,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 			return errors.NewInternalServerError()
 		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
+		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: true}, nil)
 
 		assert.Error(t, err)
@@ -313,7 +313,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 			},
 		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
+		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: true}, nil)
 
 		assert.Error(t, err)
@@ -339,7 +339,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 			},
 		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
+		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: true}, nil)
 
 		assert.Error(t, err)
@@ -365,7 +365,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 			},
 		}
 
-		service := NewUserConsentServiceImpl(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
+		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, mockClientService, mockAuthzCodeService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: true}, nil)
 
 		assert.NoError(t, err)

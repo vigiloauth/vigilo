@@ -2,8 +2,6 @@ package domain
 
 import (
 	"time"
-
-	"github.com/golang-jwt/jwt"
 )
 
 // TokenService defines the interface for managing JWT tokens.
@@ -19,9 +17,9 @@ type TokenService interface {
 	//
 	//   string: The generated JWT token string.
 	//   error: An error if token generation fails.
-	GenerateToken(subject string, expirationTime time.Duration) (string, error)
+	GenerateToken(subject, scopes string, expirationTime time.Duration) (string, error)
 
-	// GenerateTokenPair generates an access & refresh token.
+	// GenerateTokensWithAudience generates an access & refresh token.
 	//
 	// Parameters:
 	//
@@ -33,7 +31,7 @@ type TokenService interface {
 	//	string: The access token.
 	//	string: The refresh token.
 	//	error: An error if an error occurs while generating the tokens.
-	GenerateTokenPair(userID, clientID string) (string, string, error)
+	GenerateTokensWithAudience(userID, clientID, scopes string) (string, string, error)
 
 	// ParseToken parses and validates a JWT token string.
 	//
@@ -43,9 +41,9 @@ type TokenService interface {
 	//
 	// Returns:
 	//
-	//   *jwt.StandardClaims: The parsed standard claims from the token.
+	//   *TokenClaims: The parsed standard claims from the token.
 	//   error: An error if token parsing or validation fails.
-	ParseToken(tokenString string) (*jwt.StandardClaims, error)
+	ParseToken(tokenString string) (*TokenClaims, error)
 
 	// IsTokenBlacklisted checks if a token is blacklisted.
 	//
@@ -71,14 +69,13 @@ type TokenService interface {
 	//
 	// Parameters:
 	//
-	//   email string: The email to validate against.
 	//   token string: The token string to retrieve.
 	//
 	// Returns:
 	//
 	//   *TokenData: The TokenData if the token is valid, or nil if not found or invalid.
 	//   error: An error if the token is not found, expired, or the email doesn't match.
-	GetToken(email string, token string) (*TokenData, error)
+	GetToken(token string) (*TokenData, error)
 
 	// DeleteToken removes a token from the token repository.
 	//
@@ -123,4 +120,32 @@ type TokenService interface {
 	//
 	//	error: An error if the token is blacklisted or expired.
 	ValidateToken(token string) error
+
+	// GenerateRefreshAndAccessTokens generates new tokens with the given subject.
+	//
+	// Parameters:
+	//
+	//	subject string: The subject for the token claims.
+	//
+	//	Returns:
+	//
+	//	accessToken string: A new access token.
+	//	refreshToken string: A new refresh token.
+	//	error: An error if an error occurs during generation.
+	GenerateRefreshAndAccessTokens(subject, scopes string) (string, string, error)
+
+	// BlacklistToken adds the specified token to the blacklist, preventing it from being used
+	// for further authentication or authorization. The token is marked as invalid, even if it
+	// has not yet expired.
+	//
+	// Parameters:
+	//
+	//	token (string): The token to be blacklisted. This is the token that will no longer
+	//     be valid for further use.
+	//
+	// Returns:
+	//
+	// 	error: An error if the token is not found in the token store or if it has already
+	//     expired, in which case it cannot be blacklisted.
+	BlacklistToken(token string) error
 }

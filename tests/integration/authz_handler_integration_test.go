@@ -1,8 +1,6 @@
 package integration
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
@@ -257,7 +254,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidGrant, "failed to authorize client", "public clients are required to use PKCE")
-		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Error is returned when the code challenge is not provided", func(t *testing.T) {
@@ -371,217 +368,6 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext.AssertErrorResponse(rr, test.expectedErrCode, test.expectedErrDescription, test.expectedErrDetails)
 			assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-			testContext.TearDown()
-		}
-	})
-}
-
-func TestAuthorizationHandler_TokenExchange(t *testing.T) {
-	t.Run("Valid Token Request - Success", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		testContext.WithClient(
-			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
-		)
-		testContext.WithUser()
-		testContext.WithUserSession()
-		testContext.WithUserConsent()
-		defer testContext.TearDown()
-
-		authzCode := testContext.GetAuthzCode()
-		tokenRequest := &token.TokenRequest{
-			AuthorizationCode: authzCode,
-			RedirectURI:       testRedirectURI,
-			State:             testContext.State,
-			ClientID:          testClientID,
-			ClientSecret:      testClientSecret,
-			GrantType:         client.AuthorizationCode,
-		}
-
-		requestBody, err := json.Marshal(tokenRequest)
-		assert.NoError(t, err)
-
-		headers := map[string]string{"Cookie": testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value}
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
-
-		assert.Equal(t, http.StatusOK, rr.Code, "Expected a successful token exchange")
-	})
-
-	t.Run("Missing or Invalid JSON in Request Body", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader([]byte("invalid-json")), nil)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing one or more required fields in the request")
-	})
-
-	t.Run("State Mismatch", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		testContext.WithUser()
-		testContext.WithClient(
-			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
-		)
-		testContext.WithUserSession()
-		defer testContext.TearDown()
-
-		tokenRequest := &token.TokenRequest{
-			AuthorizationCode: "valid-auth-code",
-			RedirectURI:       testRedirectURI,
-			State:             "invalid-state",
-			ClientID:          testClientID,
-			ClientSecret:      testClientSecret,
-			GrantType:         client.AuthorizationCode,
-		}
-
-		requestBody, err := json.Marshal(tokenRequest)
-		assert.NoError(t, err)
-
-		sessionCookie := testContext.GetSessionCookie()
-		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
-
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidRequest, "state mismatch between session and request")
-	})
-}
-
-func TestAuthorizationHandler_TokenExchange_UsingPKCE(t *testing.T) {
-	t.Run("Success when client is using PKCE", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		tests := []struct {
-			name                string
-			clientType          string
-			codeChallengeMethod string
-			codeChallenge       string
-			codeVerifier        string
-		}{
-			{
-				name:                "Success when confidential client uses plain method",
-				clientType:          client.Confidential,
-				codeChallengeMethod: client.Plain,
-				codeChallenge:       testContext.PlainCodeChallenge,
-				codeVerifier:        testContext.PlainCodeChallenge,
-			},
-			{
-				name:                "Success when confidential client uses SHA-256 method",
-				clientType:          client.Confidential,
-				codeChallengeMethod: client.S256,
-				codeChallenge:       testContext.SH256CodeChallenge,
-				codeVerifier:        testClientSecret,
-			},
-			{
-				name:                "Success when public client uses plain method",
-				clientType:          client.Public,
-				codeChallengeMethod: client.Plain,
-				codeChallenge:       testContext.PlainCodeChallenge,
-				codeVerifier:        testContext.PlainCodeChallenge,
-			},
-			{
-				name:                "Success when public client uses SHA-256 method",
-				clientType:          client.Public,
-				codeChallengeMethod: client.S256,
-				codeChallenge:       testContext.SH256CodeChallenge,
-				codeVerifier:        testClientSecret,
-			},
-		}
-
-		for _, test := range tests {
-			testContext.WithClient(
-				test.clientType,
-				[]string{client.ClientManage},
-				[]string{client.AuthorizationCode, client.PKCE},
-			)
-			testContext.WithUser()
-			testContext.WithUserSession()
-			testContext.WithUserConsent()
-
-			authorizationCode := testContext.GetAuthzCodeWithPKCE(test.codeChallenge, test.codeChallengeMethod)
-			tokenRequest := &token.TokenRequest{
-				AuthorizationCode: authorizationCode,
-				RedirectURI:       testRedirectURI,
-				State:             testContext.State,
-				ClientID:          testClientID,
-				GrantType:         client.PKCE,
-				CodeVerifier:      test.codeVerifier,
-			}
-
-			if test.clientType == client.Confidential {
-				tokenRequest.ClientSecret = testClientSecret
-			}
-
-			requestBody, err := json.Marshal(tokenRequest)
-			assert.NoError(t, err)
-
-			headers := map[string]string{"Cookie": testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value}
-			rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
-
-			assert.Equal(t, http.StatusOK, rr.Code)
-			testContext.TearDown()
-		}
-	})
-
-	t.Run("Error is returned for invalid code verifier", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		invalidCodeVerifier := "invalid-code-verifier"
-		tests := []struct {
-			name         string
-			clientType   string
-			codeVerifier string
-		}{
-			{
-				name:         "Invalid code verifier for confidential client",
-				clientType:   client.Confidential,
-				codeVerifier: invalidCodeVerifier,
-			},
-			{
-				name:         "Invalid code verifier for public client",
-				clientType:   client.Public,
-				codeVerifier: invalidCodeVerifier,
-			},
-			{
-				name:         "Code verifier not provided in the request",
-				clientType:   client.Confidential,
-				codeVerifier: "",
-			},
-		}
-
-		for _, test := range tests {
-			testContext.WithClient(
-				test.clientType,
-				[]string{client.ClientManage},
-				[]string{client.AuthorizationCode, client.PKCE},
-			)
-			testContext.WithUser()
-			testContext.WithUserSession()
-			testContext.WithUserConsent()
-
-			authorizationCode := testContext.GetAuthzCodeWithPKCE(testContext.PlainCodeChallenge, client.Plain)
-			tokenRequest := &token.TokenRequest{
-				AuthorizationCode: authorizationCode,
-				RedirectURI:       testRedirectURI,
-				State:             testContext.State,
-				ClientID:          testClientID,
-				GrantType:         client.PKCE,
-				CodeVerifier:      test.codeVerifier,
-			}
-
-			if test.clientType == client.Confidential {
-				tokenRequest.ClientSecret = testClientSecret
-			}
-
-			requestBody, err := json.Marshal(tokenRequest)
-			assert.NoError(t, err)
-
-			headers := map[string]string{"Cookie": testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value}
-			rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.TokenExchange, bytes.NewReader(requestBody), headers)
-
-			assert.Equal(t, http.StatusBadRequest, rr.Code)
 			testContext.TearDown()
 		}
 	})

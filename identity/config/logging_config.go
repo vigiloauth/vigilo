@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -15,6 +16,7 @@ const (
 	INFO
 	WARN
 	ERROR
+	FATAL
 )
 
 var levelNames = map[LogLevel]string{
@@ -22,6 +24,7 @@ var levelNames = map[LogLevel]string{
 	INFO:  "INFO",
 	WARN:  "WARN",
 	ERROR: "ERROR",
+	FATAL: "FATAL",
 }
 
 var levelByName = map[string]LogLevel{
@@ -29,6 +32,7 @@ var levelByName = map[string]LogLevel{
 	"INFO":  INFO,
 	"WARN":  WARN,
 	"ERROR": ERROR,
+	"FATAL": FATAL,
 }
 
 // colors for terminal output
@@ -37,6 +41,7 @@ var colors = map[LogLevel]string{
 	INFO:  "\033[32m", // Green
 	WARN:  "\033[33m", // Yellow
 	ERROR: "\033[31m", // Red
+	FATAL: "\033[31m", // Red
 }
 var colorReset = "\033[0m"
 
@@ -68,7 +73,7 @@ func (l *Logger) SetLevel(level string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	levelUpper := level
+	levelUpper := strings.ToUpper(level)
 	if lvl, exists := levelByName[levelUpper]; exists {
 		l.level = lvl
 		timestamp := time.Now().Format("2006-01-02 15:04:05.000")
@@ -154,6 +159,11 @@ func (l *Logger) Warn(module string, format string, args ...any) {
 // Error logs an error message
 func (l *Logger) Error(module string, format string, args ...any) {
 	l.log(ERROR, module, format, args...)
+}
+
+func (l *Logger) Fatal(module string, format string, args ...any) {
+	l.log(FATAL, module, format, args...)
+	os.Exit(1)
 }
 
 // Package-level convenience functions

@@ -69,7 +69,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 
 			if err := m.tokenService.ValidateToken(tokenString); err != nil {
 				logger.Warn(module, "AuthMiddleware: Failed to validate token: %s", err)
-				wrappedErr := errors.Wrap(err, "", "an error occurred validating the access token")
+				wrappedErr := errors.Wrap(err, errors.ErrCodeUnauthorized, "an error occurred validating the access token")
 				web.WriteError(w, wrappedErr)
 				return
 			}

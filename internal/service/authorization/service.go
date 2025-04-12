@@ -16,21 +16,21 @@ import (
 )
 
 // Compile-time interface implementation check
-var _ authz.AuthorizationService = (*AuthorizationServiceImpl)(nil)
+var _ authz.AuthorizationService = (*authorizationService)(nil)
 var logger = config.GetServerConfig().Logger()
 
 const module = "Authorization Service"
 
-// AuthorizationServiceImpl implements the AuthorizationService interface
+// authorizationService implements the AuthorizationService interface
 // and coordinates authorization-related operations across multiple services.
-type AuthorizationServiceImpl struct {
+type authorizationService struct {
 	authzCodeService   authzCode.AuthorizationCodeService
 	userConsentService consent.UserConsentService
 	tokenService       token.TokenService
 	clientService      client.ClientService
 }
 
-// NewAuthorizationServiceImpl creates a new instance of AuthorizationServiceImpl.
+// NewAuthorizationService creates a new instance of AuthorizationServiceImpl.
 //
 // Parameters:
 //   - codeService AuthorizationCodeService: Handles authorization code-related operations
@@ -40,13 +40,13 @@ type AuthorizationServiceImpl struct {
 //
 // Returns:
 //   - A configured AuthorizationServiceImpl instance
-func NewAuthorizationServiceImpl(
+func NewAuthorizationService(
 	authzCodeService authzCode.AuthorizationCodeService,
 	userConsentService consent.UserConsentService,
 	tokenService token.TokenService,
 	clientService client.ClientService,
-) *AuthorizationServiceImpl {
-	return &AuthorizationServiceImpl{
+) authz.AuthorizationService {
+	return &authorizationService{
 		authzCodeService:   authzCodeService,
 		userConsentService: userConsentService,
 		tokenService:       tokenService,
@@ -76,7 +76,7 @@ func NewAuthorizationServiceImpl(
 // Errors:
 //
 //   - Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
-func (s *AuthorizationServiceImpl) AuthorizeClient(request *client.ClientAuthorizationRequest, consentApproved bool) (string, error) {
+func (s *authorizationService) AuthorizeClient(request *client.ClientAuthorizationRequest, consentApproved bool) (string, error) {
 	request.Client = s.clientService.GetClientByID(request.ClientID)
 	if request.Client == nil {
 		logger.Error(module, "AuthorizeClient: Invalid client ID=[%s]", request.ClientID)
@@ -116,7 +116,7 @@ func (s *AuthorizationServiceImpl) AuthorizeClient(request *client.ClientAuthori
 //
 //	*AuthorizationCodeData: The authorization code data if authorization is successful.
 //	error: An error if the token exchange request is invalid or fails authorization checks.
-func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
+func (s *authorizationService) AuthorizeTokenExchange(tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
 	authzCodeData, err := s.validateAuthorizationCode(tokenRequest)
 	if err != nil {
 		return nil, err
@@ -148,8 +148,8 @@ func (s *AuthorizationServiceImpl) AuthorizeTokenExchange(tokenRequest *token.To
 //
 //	*token.TokenResponse: A fully formed token response with access and refresh tokens.
 //	error: An error if token generation fails.
-func (s *AuthorizationServiceImpl) GenerateTokens(authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
-	accessToken, refreshToken, err := s.tokenService.GenerateTokenPair(authCodeData.UserID, authCodeData.ClientID)
+func (s *authorizationService) GenerateTokens(authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
+	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate tokens")
 	}
@@ -174,7 +174,7 @@ func (s *AuthorizationServiceImpl) GenerateTokens(authCodeData *authzCode.Author
 // Returns:
 //
 //   - error: An error if client validation fails, nil otherwise
-func (s *AuthorizationServiceImpl) validateClient(code *authzCode.AuthorizationCodeData, tokenRequest *token.TokenRequest) error {
+func (s *authorizationService) validateClient(code *authzCode.AuthorizationCodeData, tokenRequest *token.TokenRequest) error {
 	client := s.clientService.GetClientByID(tokenRequest.ClientID)
 	if client == nil {
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client")
@@ -203,7 +203,7 @@ func (s *AuthorizationServiceImpl) validateClient(code *authzCode.AuthorizationC
 // Returns:
 //
 //   - string: A fully constructed consent URL
-func (s *AuthorizationServiceImpl) buildConsentURL(clientID, redirectURI, scope, state string) string {
+func (s *authorizationService) buildConsentURL(clientID, redirectURI, scope, state string) string {
 	URL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s&scope=%s",
 		web.OAuthEndpoints.UserConsent,
 		url.QueryEscape(clientID),
@@ -233,7 +233,7 @@ func (s *AuthorizationServiceImpl) buildConsentURL(clientID, redirectURI, scope,
 // Returns:
 //
 //   - string: A fully constructed redirect URL
-func (s *AuthorizationServiceImpl) buildRedirectURL(redirectURI, code, state string) string {
+func (s *authorizationService) buildRedirectURL(redirectURI, code, state string) string {
 	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, url.QueryEscape(code))
 	if state != "" {
 		logger.Debug(module, "Adding state=[%s] to redirect url=[%s]",
@@ -247,7 +247,7 @@ func (s *AuthorizationServiceImpl) buildRedirectURL(redirectURI, code, state str
 }
 
 // validateAuthorizationCode validates the authorization code and revokes it on failure.
-func (s *AuthorizationServiceImpl) validateAuthorizationCode(tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
+func (s *authorizationService) validateAuthorizationCode(tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
 	authzCodeData, err := s.authzCodeService.ValidateAuthorizationCode(tokenRequest.AuthorizationCode, tokenRequest.ClientID, tokenRequest.RedirectURI)
 	if err != nil {
 		s.revokeAuthorizationCode(tokenRequest.AuthorizationCode)
@@ -258,7 +258,7 @@ func (s *AuthorizationServiceImpl) validateAuthorizationCode(tokenRequest *token
 }
 
 // handlePKCEValidation validates the PKCE parameters if required.
-func (s *AuthorizationServiceImpl) handlePKCEValidation(authzCodeData *authzCode.AuthorizationCodeData, tokenRequest *token.TokenRequest) error {
+func (s *authorizationService) handlePKCEValidation(authzCodeData *authzCode.AuthorizationCodeData, tokenRequest *token.TokenRequest) error {
 	if authzCodeData.CodeChallenge == "" {
 		logger.Debug(module, "PKCE is not required for this request. Skipping validation")
 		return nil
@@ -281,14 +281,14 @@ func (s *AuthorizationServiceImpl) handlePKCEValidation(authzCodeData *authzCode
 }
 
 // revokeAuthorizationCode revokes the authorization code and logs any errors.
-func (s *AuthorizationServiceImpl) revokeAuthorizationCode(code string) {
+func (s *authorizationService) revokeAuthorizationCode(code string) {
 	if err := s.authzCodeService.RevokeAuthorizationCode(code); err != nil {
 		logger.Error(module, "Failed to revoke authorization code: %v", err)
 	}
 }
 
 // handleUserConsent checks and handles user consent logic.
-func (s *AuthorizationServiceImpl) handleUserConsent(request *client.ClientAuthorizationRequest, consentApproved bool) error {
+func (s *authorizationService) handleUserConsent(request *client.ClientAuthorizationRequest, consentApproved bool) error {
 	consentRequired, err := s.userConsentService.CheckUserConsent(request.UserID, request.ClientID, request.Scope)
 	if err != nil {
 		logger.Error(module, "Failed to check user consent, user=[%s]: %v", common.TruncateSensitive(request.UserID), err)
@@ -310,7 +310,7 @@ func (s *AuthorizationServiceImpl) handleUserConsent(request *client.ClientAutho
 }
 
 // generateAuthorizationCode generates an authorization code for the client.
-func (s *AuthorizationServiceImpl) generateAuthorizationCode(request *client.ClientAuthorizationRequest) (string, error) {
+func (s *authorizationService) generateAuthorizationCode(request *client.ClientAuthorizationRequest) (string, error) {
 	code, err := s.authzCodeService.GenerateAuthorizationCode(request)
 	if err != nil {
 		logger.Error(module, "Failed to generate authorization code: %v", err)

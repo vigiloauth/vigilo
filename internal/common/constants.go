@@ -2,6 +2,7 @@ package common
 
 const (
 	ClientID                      string = "client_id"
+	ClientSecret                  string = "client_secret"
 	RedirectURI                   string = "redirect_uri"
 	Scope                         string = "scope"
 	State                         string = "state"
@@ -9,7 +10,7 @@ const (
 	Approved                      string = "approved"
 	GrantType                     string = "grant_type"
 	ClientCredentials             string = "client_credentials"
-	Bearer                        string = "Bearer "
+	BearerAuthHeader              string = "Bearer "
 	Authorization                 string = "Authorization"
 	SessionToken                  string = "vigilo-auth-session-token"
 	ResponseType                  string = "response_type"
@@ -22,4 +23,10 @@ const (
 	RequestID                     string = "requestID"
 	CodeChallenge                 string = "code_challenge"
 	CodeChallengeMethod           string = "code_challenge_method"
+	Username                      string = "username"
+	Password                      string = "password"
+	CodeVerifier                  string = "code_verifier"
+	RefreshToken                  string = "refresh_token"
+	Token                         string = "token"
+	BasicAuthHeader               string = "Basic "
 )

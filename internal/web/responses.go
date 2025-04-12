@@ -11,9 +11,12 @@ import (
 func WriteJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	err := json.NewEncoder(w).Encode(data)
-	if err != nil {
-		panic(err)
+
+	if data != nil {
+		err := json.NewEncoder(w).Encode(data)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -28,6 +31,9 @@ func WriteError(w http.ResponseWriter, err error) {
 		WriteJSON(w, http.StatusBadRequest, err)
 	} else if stdErr, ok := err.(*errors.VigiloAuthError); ok {
 		statusCode := errors.StatusCode(stdErr.ErrorCode)
+		if stdErr.ErrorCode == errors.ErrCodeInvalidClient {
+			w.Header().Set("WWW-Authenticate", `Basic realm="auth", error="invalid_client", error_description="Client authentication failed"`)
+		}
 		WriteJSON(w, statusCode, stdErr)
 	} else {
 		genericErr := createGenericError(err)

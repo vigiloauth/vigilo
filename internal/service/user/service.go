@@ -12,12 +12,12 @@ import (
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
-var _ users.UserService = (*UserServiceImpl)(nil)
+var _ users.UserService = (*userService)(nil)
 var logger = config.GetServerConfig().Logger()
 
 const module = "User Service"
 
-type UserServiceImpl struct {
+type userService struct {
 	userRepo     users.UserRepository
 	tokenService token.TokenService
 	loginService login.LoginAttemptService
@@ -26,7 +26,7 @@ type UserServiceImpl struct {
 	artificialDelay time.Duration
 }
 
-// NewUserServiceImpl creates a new UserServiceImpl instance.
+// NewUserService creates a new UserServiceImpl instance.
 //
 // Parameters:
 //
@@ -35,12 +35,12 @@ type UserServiceImpl struct {
 // Returns:
 //
 //	*UserServiceImpl: A new UserServiceImpl instance.
-func NewUserServiceImpl(
+func NewUserService(
 	userRepo users.UserRepository,
 	tokenService token.TokenService,
 	loginAttemptRepository login.LoginAttemptService,
-) *UserServiceImpl {
-	return &UserServiceImpl{
+) users.UserService {
+	return &userService{
 		userRepo:        userRepo,
 		tokenService:    tokenService,
 		loginService:    loginAttemptRepository,
@@ -59,7 +59,7 @@ func NewUserServiceImpl(
 //
 //	*users.UserRegistrationResponse: The registered user object and JWT token.
 //	error: An error if any occurred during the process.
-func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationResponse, error) {
+func (u *userService) CreateUser(user *users.User) (*users.UserRegistrationResponse, error) {
 	hashedPassword, err := crypto.HashString(user.Password)
 	if err != nil {
 		logger.Error(module, "CreateUser: Failed to create new user: %v", err)
@@ -79,13 +79,17 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 		return nil, errors.Wrap(err, "", "failed to create new user")
 	}
 
-	jwtToken, err := u.tokenService.GenerateToken(user.Email, u.jwtConfig.ExpirationTime())
+	jwtToken, err := u.tokenService.GenerateToken(user.Email, "", u.jwtConfig.ExpirationTime())
 	if err != nil {
 		logger.Error(module, "CreateUser: Failed to generate a session token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate session token")
 	}
 
 	return users.NewUserRegistrationResponse(user, jwtToken), nil
+}
+
+func (u *userService) GetUserByUsername(username string) *users.User {
+	return u.userRepo.GetUserByUsername(username)
 }
 
 // HandleOAuthLogin authenticates a user based on an OAuth login request.
@@ -107,13 +111,7 @@ func (u *UserServiceImpl) CreateUser(user *users.User) (*users.UserRegistrationR
 //
 //   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 //   - error: An error if authentication fails or if the input is invalid.
-func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
-	if clientID == "" || redirectURI == "" {
-		err := errors.New(errors.ErrCodeBadRequest, "missing one or more required parameters")
-		logger.Error(module, "HandleOAuthLogin: Failed to login: %v", err)
-		return nil, err
-	}
-
+func (u *userService) HandleOAuthLogin(request *users.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
 	if err := request.Validate(); err != nil {
 		logger.Error(module, "HandleOAuthLogin: Failed to validate request: %v", err)
 		return nil, err
@@ -122,7 +120,7 @@ func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clie
 	response, err := u.AuthenticateUserWithRequest(request, remoteAddr, forwardedFor, userAgent)
 	if err != nil {
 		logger.Error(module, "HandleOAuthLogin: Failed to authenticate user: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeUnauthorized, "failed to authenticate user")
+		return nil, errors.New(errors.ErrCodeUnauthorized, "credentials are either missing or invalid")
 	}
 
 	return response, nil
@@ -145,16 +143,16 @@ func (u *UserServiceImpl) HandleOAuthLogin(request *users.UserLoginRequest, clie
 //
 //   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 //   - error: An error if authentication fails or if the input is invalid.
-func (u *UserServiceImpl) AuthenticateUserWithRequest(request *users.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
+func (u *userService) AuthenticateUserWithRequest(request *users.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
 	user := &users.User{
 		ID:       request.ID,
-		Email:    request.Email,
+		Username: request.Username,
 		Password: request.Password,
 	}
 
 	loginAttempt := users.NewUserLoginAttempt(remoteAddr, forwardedFor, "", userAgent)
 	logger.Info(module, "AuthenticateUserWithRequest: Authenticating user=[%s] for remoteAddr=[%s], forwardedFor=[%s], userAgent=[%s]",
-		common.TruncateSensitive(user.Email),
+		user.Username,
 		common.TruncateSensitive(remoteAddr),
 		forwardedFor, userAgent,
 	)
@@ -170,7 +168,7 @@ func (u *UserServiceImpl) AuthenticateUserWithRequest(request *users.UserLoginRe
 // Returns:
 //
 //	*User: The User object if found, or nil if not found.
-func (u *UserServiceImpl) GetUserByID(userID string) *users.User {
+func (u *userService) GetUserByID(userID string) *users.User {
 	return u.userRepo.GetUserByID(userID)
 }
 
@@ -179,7 +177,7 @@ func (u *UserServiceImpl) GetUserByID(userID string) *users.User {
 // Parameters:
 //
 //	startTime time.Time: The start time of the login attempt.
-func (u *UserServiceImpl) applyArtificialDelay(startTime time.Time) {
+func (u *userService) applyArtificialDelay(startTime time.Time) {
 	elapsed := time.Since(startTime)
 	if elapsed < u.artificialDelay {
 		time.Sleep(u.artificialDelay - elapsed)
@@ -198,10 +196,7 @@ func (u *UserServiceImpl) applyArtificialDelay(startTime time.Time) {
 //
 //	*users.UserLoginResponse: The user login response containing user information and JWT token.
 //	error: An error if authentication fails.
-func (u *UserServiceImpl) authenticateUser(
-	loginUser *users.User,
-	loginAttempt *users.UserLoginAttempt,
-) (*users.UserLoginResponse, error) {
+func (u *userService) authenticateUser(loginUser *users.User, loginAttempt *users.UserLoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
 	defer u.applyArtificialDelay(startTime)
 
@@ -233,7 +228,7 @@ func (u *UserServiceImpl) authenticateUser(
 		return nil, err
 	}
 
-	jwtToken, err := u.tokenService.GenerateToken(retrievedUser.ID, u.jwtConfig.ExpirationTime())
+	jwtToken, err := u.tokenService.GenerateToken(retrievedUser.ID, "", u.jwtConfig.ExpirationTime())
 	if err != nil {
 		logger.Error(module, "Failed to generate access token for user=[%s]: %v", common.TruncateSensitive(retrievedUser.ID), err)
 		return nil, errors.NewInternalServerError()

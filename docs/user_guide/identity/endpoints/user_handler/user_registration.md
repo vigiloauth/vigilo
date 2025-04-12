@@ -10,20 +10,26 @@ POST /auth/signup
 | Content-Type    | application/json              | Indicates that the request body is JSON. |
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.  |
 | Content-Length  | [Content-Length]              | The length of the request body in bytes. |
+
 ---
+
 ### Request Body
-| Field     | Type    | Required  | Description                    |
-|:----------|:--------|:----------|:-------------------------------|
-| `username`  | `string`  | Yes       | The user's username.
-| `email`     | `string`  | Yes       | The user's email address.      |
-| `password`  | `string`  | Yes       | The password for the account.  |
+| Field       | Type      | Required  | Description                        |
+|:------------|:----------|:----------|:-----------------------------------|
+| `username`  | `string`  | Yes       | The user's username.               |
+| `email`     | `string`  | Yes       | The user's email address.          |
+| `password`  | `string`  | Yes       | The password for the account.      |
+| `scopes`    | `[]string`| Yes       | The user's requested scopes.       |
+
 ---
+
 ### Example Request
 ```json
 {
     "username": "John",
     "email": "john.doe@mail.com",
-    "password": "Pas$_w0rds"
+    "password": "Pas$_w0rds",
+    "scopes": ["users:read"]
 }
 
 ```
@@ -37,7 +43,9 @@ POST /auth/signup
     "email": "john.doe@email.com"
 }
 ```
+
 ---
+
 ## Error Responses
 ## 1. Missing Username Field
 #### HTTP Status Code: `400 Bad Request`

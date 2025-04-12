@@ -1,12 +1,17 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/golang-jwt/jwt"
+)
 
 // TokenData represents the data associated with a token.
 type TokenData struct {
 	Token     string    // The token string.
 	ID        string    // The id associated with the token.
 	ExpiresAt time.Time // The token's expiration time.
+	TokenID   string
 }
 
 // TokenResponse represents the structure of an OAuth token response.
@@ -19,6 +24,16 @@ type TokenResponse struct {
 	Scope        string `json:"scope,omitempty"`
 }
 
+type TokenIntrospectionResponse struct {
+	Active          bool   `json:"active"`
+	ExpiresAt       int    `json:"exp,omitempty"`
+	IssuedAt        int    `json:"iat,omitempty"`
+	Subject         string `json:"subject,omitempty"`
+	Audience        string `json:"aud,omitempty"`
+	Issuer          string `json:"iss,omitempty"`
+	TokenIdentifier string `json:"jti,omitempty"`
+}
+
 type TokenRequest struct {
 	GrantType         string `json:"grant_type"`
 	AuthorizationCode string `json:"code"`
@@ -29,4 +44,25 @@ type TokenRequest struct {
 	CodeVerifier      string `json:"code_verifier,omitempty"`
 }
 
+type TokenClaims struct {
+	Scopes string `json:"scopes,omitempty"`
+	*jwt.StandardClaims
+}
+
 const BearerToken string = "Bearer"
+
+func NewTokenIntrospectionResponse(claims *TokenClaims) *TokenIntrospectionResponse {
+	response := &TokenIntrospectionResponse{
+		ExpiresAt:       int(claims.ExpiresAt),
+		IssuedAt:        int(claims.IssuedAt),
+		Subject:         claims.Subject,
+		Issuer:          claims.Issuer,
+		TokenIdentifier: claims.Id,
+	}
+
+	if claims.Audience != "" {
+		response.Audience = claims.Audience
+	}
+
+	return response
+}

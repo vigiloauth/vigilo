@@ -10,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
+	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	mocks "github.com/vigiloauth/vigilo/internal/mocks/token"
 )
@@ -21,11 +22,15 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 
 	tokenString := "validToken"
 
-	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
-	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
-		return &jwt.StandardClaims{Subject: email}, nil
+	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
+		return &token.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				Subject: email,
+			},
+		}, nil
 	}
 	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
 		return nil
@@ -51,11 +56,15 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 
 	tokenString := "blacklistedToken"
 
-	mockTokenService.GenerateTokenFunc = func(subject string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
-	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
-		return &jwt.StandardClaims{Subject: email}, nil
+	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
+		return &token.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				Subject: email,
+			},
+		}, nil
 	}
 	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
 		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
@@ -82,7 +91,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
 		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
 	}
-	mockTokenService.ParseTokenFunc = func(tokenString string) (*jwt.StandardClaims, error) {
+	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
 		return nil, errors.New(errors.ErrCodeInvalidToken, "invalid-token")
 	}
 

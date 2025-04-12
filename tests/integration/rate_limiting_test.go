@@ -16,7 +16,7 @@ func TestRateLimiting(t *testing.T) {
 	user := users.NewUser("", testEmail, testPassword1)
 	user.ID = testUserID
 
-	request := users.UserLoginRequest{ID: testUserID, Email: testEmail, Password: testPassword1}
+	request := users.UserLoginRequest{ID: testUserID, Username: testUsername, Password: testPassword1}
 	requestBody, err := json.Marshal(request)
 	assert.NoError(t, err, "failed to marshal request body")
 

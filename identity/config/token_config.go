@@ -10,13 +10,14 @@ import (
 
 // TokenConfig holds the configuration for JWT token generation and validation.
 type TokenConfig struct {
-	secret               string            // Secret key used for signing and verifying JWT tokens.
-	expirationTime       time.Duration     // Expiration time for JWT tokens.
+	secretKey            string            // Secret key used for signing and verifying JWT tokens.
+	expirationTime       time.Duration     // Expiration time for JWT tokens in hours
 	signingMethod        jwt.SigningMethod // Signing method used for JWT tokens.
-	accessTokenDuration  time.Duration
-	refreshTokenDuration time.Duration
-	logger               *Logger
-	module               string
+	accessTokenDuration  time.Duration     // Access token duration in minutes
+	refreshTokenDuration time.Duration     // Refresh token duration in days
+
+	logger *Logger
+	module string
 }
 
 // TokenOption is a function type used to configure JWTConfig options.
@@ -24,9 +25,9 @@ type TokenOption func(*TokenConfig)
 
 const (
 	defaultSecret               string        = "fallback_secure_default_key" // Default secret key (should be overridden in production).
-	defaultExpirationTime       time.Duration = 24 * time.Hour                // Default expiration time for JWT tokens (24 hours).
-	defaultAccessTokenDuration  time.Duration = 30 * time.Minute
-	defaultRefreshTokenDuration time.Duration = 30 * 24 * time.Hour
+	defaultExpirationTime       time.Duration = time.Duration(24) * time.Hour // Default expiration time for JWT tokens (24 hours).
+	defaultAccessTokenDuration  time.Duration = time.Duration(30) * time.Minute
+	defaultRefreshTokenDuration time.Duration = time.Duration(1) * 24 * time.Hour
 )
 
 // NewTokenConfig creates a new JWTConfig with default values and applies provided options.
@@ -40,11 +41,13 @@ const (
 //	*JWTConfig: A new JWTConfig instance.
 func NewTokenConfig(opts ...TokenOption) *TokenConfig {
 	config := &TokenConfig{
-		secret:         defaultSecret,
-		expirationTime: defaultExpirationTime,
-		signingMethod:  jwt.SigningMethodHS256,
-		logger:         GetLogger(),
-		module:         "TokenConfig",
+		secretKey:            defaultSecret,
+		expirationTime:       defaultExpirationTime,
+		accessTokenDuration:  defaultAccessTokenDuration,
+		refreshTokenDuration: defaultRefreshTokenDuration,
+		signingMethod:        jwt.SigningMethodHS256,
+		logger:               GetLogger(),
+		module:               "TokenConfig",
 	}
 
 	if len(opts) > 0 {
@@ -73,11 +76,11 @@ func NewTokenConfig(opts ...TokenOption) *TokenConfig {
 func WithSecret(secret string) TokenOption {
 	return func(c *TokenConfig) {
 		c.logger.Debug(c.module, "Configuring TokenConfig with given secret=[%s]", common.TruncateSensitive(secret))
-		c.secret = secret
+		c.secretKey = secret
 	}
 }
 
-// WithExpirationTime configures the expiration time for the JWTConfig.
+// WithExpirationTime configures the expiration time, in minutes, for the Token Config.
 //
 // Parameters:
 //
@@ -88,18 +91,48 @@ func WithSecret(secret string) TokenOption {
 //	JWTOption: A function that configures the expiration time.
 func WithExpirationTime(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
+		if !isInHours(duration) {
+			c.logger.Warn(c.module, "Token expiration time is not in hours, using default value")
+			c.expirationTime = defaultExpirationTime
+			return
+		}
 		c.logger.Debug(c.module, "Configuring TokenConfig with expiration time=[%s]", duration)
 		c.expirationTime = duration
 	}
 }
 
+// WithAccessTokenDuration configures the duration, in minutes, for the access token duration.
+// Default is 30 minutes.
+//
+// Parameters:
+//
+//	duration time.Duration: The expiration time duration.
+//
+// Returns:
+//
+//	JWTOption: A function that configures the expiration time.
 func WithAccessTokenDuration(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
+		if !isInMinutes(duration) {
+			c.logger.Warn(c.module, "Access token duration is not in minutes, using default value")
+			c.accessTokenDuration = defaultAccessTokenDuration
+			return
+		}
 		c.logger.Debug(c.module, "Configuring TokenConfig with access token duration=[%s]", duration)
 		c.accessTokenDuration = duration
 	}
 }
 
+// WithRefreshTokenDuration configures the duration, in days, for the refresh token duration.
+// Default is 30 days.
+//
+// Parameters:
+//
+//	duration time.Duration: The expiration time duration.
+//
+// Returns:
+//
+//	JWTOption: A function that configures the expiration time.
 func WithRefreshTokenDuration(duration time.Duration) TokenOption {
 	return func(c *TokenConfig) {
 		c.logger.Debug(c.module, "Configuring TokenConfig with refresh token duration=[%s]", duration)
@@ -123,13 +156,13 @@ func WithSigningMethod(method jwt.SigningMethod) TokenOption {
 	}
 }
 
-// Secret returns the secret key from the JWTConfig.
+// SecretKey returns the secret key from the JWTConfig.
 //
 // Returns:
 //
 //	string: The secret key.
-func (j *TokenConfig) Secret() string {
-	return j.secret
+func (j *TokenConfig) SecretKey() string {
+	return j.secretKey
 }
 
 // ExpirationTime returns the expiration time from the JWTConfig.
@@ -164,8 +197,8 @@ func (j *TokenConfig) String() string {
 			"\tExpirationTime: %s\n"+
 			"\tRefreshTokenDuration: %s\n"+
 			"\tAccessTokenDuration: %s\n",
-		j.expirationTime,
 		j.signingMethod.Alg(),
+		j.expirationTime,
 		j.refreshTokenDuration,
 		j.accessTokenDuration,
 	)

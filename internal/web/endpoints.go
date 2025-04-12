@@ -4,20 +4,19 @@ const (
 	defaultAuthEndpoint   string = "/auth"
 	defaultClientEndpoint string = "/client"
 	defaultOAuthEndpoint  string = "/oauth"
+	defaultTokenEndpoint  string = "/token"
 )
 
 var UserEndpoints = struct {
-	Registration         string
-	Login                string
-	Logout               string
-	RequestPasswordReset string
-	ResetPassword        string
+	Registration  string
+	Login         string
+	Logout        string
+	ResetPassword string
 }{
-	Registration:         defaultAuthEndpoint + "/signup",
-	Login:                defaultAuthEndpoint + "/login",
-	Logout:               defaultAuthEndpoint + "/logout",
-	RequestPasswordReset: defaultAuthEndpoint + "/reset-password",
-	ResetPassword:        defaultAuthEndpoint + "/reset-password/confirm",
+	Registration:  defaultAuthEndpoint + "/signup",
+	Login:         defaultAuthEndpoint + "/login",
+	Logout:        defaultAuthEndpoint + "/logout",
+	ResetPassword: defaultAuthEndpoint + "/reset-password/confirm",
 }
 
 var ClientEndpoints = struct {
@@ -31,15 +30,19 @@ var ClientEndpoints = struct {
 }
 
 var OAuthEndpoints = struct {
-	ClientCredentialsToken string
-	Authorize              string
-	Login                  string
-	UserConsent            string
-	TokenExchange          string
+	Token           string
+	Authorize       string
+	Login           string
+	UserConsent     string
+	TokenExchange   string
+	IntrospectToken string
+	RevokeToken     string
 }{
-	ClientCredentialsToken: defaultOAuthEndpoint + defaultClientEndpoint + "/token",
-	Authorize:              defaultOAuthEndpoint + "/authorize",
-	Login:                  defaultOAuthEndpoint + "/login/authorization",
-	UserConsent:            defaultOAuthEndpoint + "/consent",
-	TokenExchange:          defaultOAuthEndpoint + "/token",
+	Token:           defaultOAuthEndpoint + "/token",
+	Authorize:       defaultOAuthEndpoint + "/authorize",
+	Login:           defaultOAuthEndpoint + "/login/authorization",
+	UserConsent:     defaultOAuthEndpoint + "/consent",
+	TokenExchange:   defaultOAuthEndpoint + "/token",
+	IntrospectToken: defaultOAuthEndpoint + defaultTokenEndpoint + "/introspect",
+	RevokeToken:     defaultOAuthEndpoint + defaultTokenEndpoint + "/revoke",
 }

@@ -30,7 +30,7 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 
 		loginRequest := users.UserLoginRequest{
 			ID:       testUserID,
-			Email:    testEmail,
+			Username: testUsername,
 			Password: testPassword1,
 		}
 
@@ -63,7 +63,7 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 
 		loginRequest := users.UserLoginRequest{
 			ID:       testUserID,
-			Email:    testEmail,
+			Username: testUsername,
 			Password: testPassword1,
 		}
 
@@ -287,7 +287,7 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		assert.NoError(t, err)
 
 		rr = testContext.SendHTTPRequest(http.MethodPost, postEndpoint, bytes.NewReader(requestBody), headers)
-		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Post Request - user denies consent", func(t *testing.T) {

@@ -29,13 +29,11 @@ type TokenRepository interface {
 	// Parameters:
 	//
 	//   tokenStr string: The token string to retrieve.
-	//   id string: The id to validate against.
 	//
 	// Returns:
 	//
-	//   *TokenData: The TokenData if the token is valid, or nil if not found or invalid.
-	//   error: An error if the token is not found, expired, or the email doesn't match.
-	GetToken(tokenStr string, id string) (*TokenData, error)
+	//   *TokenData: The TokenData if the token is valid, or nil if not found.
+	GetToken(tokenStr string) *TokenData
 
 	// DeleteToken removes a token from the store.
 	//
@@ -47,4 +45,8 @@ type TokenRepository interface {
 	//
 	//   error: An error if the token deletion fails.
 	DeleteToken(token string) error
+
+	BlacklistToken(token string) error
+
+	ExistsByTokenID(tokenID string) bool
 }

@@ -35,7 +35,7 @@ func NewPasswordConfig(opts ...PasswordConfigOption) *PasswordConfig {
 		requireSymbol: false,
 		minLength:     defaultRequiredPasswordLength,
 		logger:        GetLogger(),
-		module:        "PasswordConfig",
+		module:        "Password Config",
 	}
 
 	if len(opts) > 0 {

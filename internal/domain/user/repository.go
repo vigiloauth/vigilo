@@ -56,4 +56,6 @@ type UserRepository interface {
 	//
 	//   error: An error if the user cannot be updated, or nil if successful.
 	UpdateUser(user *User) error
+
+	GetUserByUsername(username string) *User
 }

@@ -141,36 +141,6 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// RequestPasswordResetEmail is HTTP handler for requesting a password reset email.
-// It process the incoming request and sends a password reset email to the user if they
-// exist with the provided email.
-func (h *UserHandler) RequestPasswordResetEmail(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[RequestPasswordResetEmail]", requestID)
-
-	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
-	if err != nil {
-		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
-		return
-	}
-
-	if request.Email == "" {
-		err := errors.New(errors.ErrCodeInvalidFormat, "email is either malformed or missing")
-		web.WriteError(w, err)
-		return
-	}
-
-	response, err := h.passwordResetService.SendPasswordResetEmail(request.Email)
-	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to send password reset email")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[RequestPasswordResetEmail]", requestID)
-	web.WriteJSON(w, http.StatusOK, response)
-}
-
 // ResetPassword handles the password reset request.
 // It decodes the request body into a UserPasswordResetRequest, validates the request,
 // and then calls the passwordResetService to reset the user's password.
