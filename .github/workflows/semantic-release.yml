@@ -3,7 +3,7 @@ name: Run Semantic Release
 # It uses semantic-release to automatically determine the version number and publish the release.
 
 on:
-  pull_request:
+  push:
     branches: [master]
 
 permissions:
@@ -24,9 +24,3 @@ jobs:
           node-version: 'lts/*'
 
       - run: npm install -g semantic-release @semantic-release/github
-
-      - name: Run semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx semantic-release
