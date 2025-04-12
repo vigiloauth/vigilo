@@ -112,7 +112,7 @@ type ServiceContainer struct {
 func NewServiceContainer() *ServiceContainer {
 	container := &ServiceContainer{
 		logger: config.GetLogger(),
-		module: "ServiceContainer",
+		module: "Service Container",
 	}
 	container.initializeInMemoryRepositories()
 	container.initializeServices()
