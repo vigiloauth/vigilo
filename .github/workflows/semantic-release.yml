@@ -1,26 +1,60 @@
-name: Run Semantic Release
-# This workflow is triggered when a new commit is pushed to the master branch.
-# It uses semantic-release to automatically determine the version number and publish the release.
+name: Release
 
 on:
   push:
-    branches: [master]
+    branches: [ master ]
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
+  packages: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
 
-      - run: npm install -g semantic-release @semantic-release/github
+      - name: Install semantic-release
+        run: npm install -g semantic-release @semantic-release/github
+
+      - name: Run semantic-release
+        id: semantic
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx semantic-release
+          echo "new_release_published=${{ env.NEW_RELEASE_PUBLISHED }}" >> $GITHUB_OUTPUT
+          echo "new_release_version=${{ env.NEW_RELEASE_VERSION }}" >> $GITHUB_OUTPUT
+
+      # This crucial step fetches the newly created tag
+      - name: Fetch tags
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: git fetch --tags origin
+
+      - name: Install GoReleaser
+        if: steps.semantic.outputs.new_release_published == 'true'
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          install-only: true
+
+      - name: Run GoReleaser
+        if: steps.semantic.outputs.new_release_published == 'true'
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
