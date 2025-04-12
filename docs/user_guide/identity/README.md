@@ -10,6 +10,8 @@ This documentation provides a comprehensive guide to configuring and utilizing t
 - [Authorization Code Flow](../identity/oauth_flows/authorization_code.md)
 - [Authorization Code Flow with PKCE](../identity/oauth_flows/authorization_code_pkce.md)
 - [Client Credentials Flow](../identity/oauth_flows/client_credentials.md)
+- [Resource Owner Password Credentials Flow](../identity/oauth_flows/ropc_flow.md)
+
 
 ## Documentation
 - [Configuration Guide](../../configuration.md)
