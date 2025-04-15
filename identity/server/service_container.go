@@ -1,17 +1,24 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
+	"github.com/vigiloauth/vigilo/internal/background"
 	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
+	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
 	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
@@ -34,6 +41,7 @@ import (
 	authzCodeService "github.com/vigiloauth/vigilo/internal/service/authzcode"
 	clientService "github.com/vigiloauth/vigilo/internal/service/client"
 	cookieService "github.com/vigiloauth/vigilo/internal/service/cookies"
+	emailService "github.com/vigiloauth/vigilo/internal/service/email"
 	loginService "github.com/vigiloauth/vigilo/internal/service/login"
 	passwordService "github.com/vigiloauth/vigilo/internal/service/passwordreset"
 	sessionService "github.com/vigiloauth/vigilo/internal/service/session"
@@ -64,6 +72,8 @@ type ServiceContainer struct {
 	authorizationServiceOnce sync.Once
 	httpCookieServiceOnce    sync.Once
 	authServiceOnce          sync.Once
+	emailServiceOnce         sync.Once
+	mailerOnce               sync.Once
 
 	tokenService         token.TokenService
 	sessionService       session.SessionService
@@ -76,6 +86,8 @@ type ServiceContainer struct {
 	authorizationService authz.AuthorizationService
 	httpCookieService    cookie.HTTPCookieService
 	authService          auth.AuthenticationService
+	emailService         email.EmailService
+	mailer               email.Mailer
 
 	tokenServiceInit         func() token.TokenService
 	sessionServiceInit       func() session.SessionService
@@ -88,6 +100,8 @@ type ServiceContainer struct {
 	authorizationServiceInit func() authz.AuthorizationService
 	httpCookieServiceInit    func() cookie.HTTPCookieService
 	authServiceInit          func() auth.AuthenticationService
+	emailServiceInit         func() email.EmailService
+	mailerInit               func() email.Mailer
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
@@ -118,6 +132,7 @@ func NewServiceContainer() *ServiceContainer {
 	container.initializeServices()
 	container.initializeHandlers()
 	container.initializeServerConfigs()
+	container.initializeScheduler()
 	return container
 }
 
@@ -180,6 +195,10 @@ func (c *ServiceContainer) initializeServices() {
 		c.logger.Debug(c.module, "Initializing AuthenticationService")
 		return authService.NewAuthenticationService(c.getTokenService(), c.getClientService(), c.getUserService())
 	}
+	c.emailServiceInit = func() email.EmailService {
+		c.logger.Debug(c.module, "Initializing EmailService")
+		return emailService.NewEmailService(c.getGoMailer())
+	}
 }
 
 // initializeHandlers initializes the HTTP handlers used by the service container.
@@ -199,6 +218,33 @@ func (c *ServiceContainer) initializeServerConfigs() {
 	c.middleware = middleware.NewMiddleware(c.getTokenService())
 	c.tlsConfig = initializeTLSConfig()
 	c.httpServer = initializeHTTPServer(c.tlsConfig)
+}
+
+func (c *ServiceContainer) initializeScheduler() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	scheduler := background.NewScheduler()
+
+	healthCheckInterval := 5 * time.Minute
+	queueProcessorInterval := 1 * time.Minute
+	smtpJobs := background.NewSMTPJobs(c.getEmailService(), healthCheckInterval, queueProcessorInterval)
+	scheduler.RegisterJob(smtpJobs.RunHealthCheck)
+	scheduler.RegisterJob(smtpJobs.RunRetryQueueProcessor)
+
+	tokenDeletionInterval := 5 * time.Minute
+	tokenJobs := background.NewTokenJobs(c.getTokenService(), tokenDeletionInterval)
+	scheduler.RegisterJob(tokenJobs.DeleteExpiredTokens)
+
+	go func() {
+		scheduler.StartJobs(ctx)
+	}()
+
+	<-sigCh
+	cancel()
+	scheduler.Wait()
 }
 
 // initializeTLSConfig creates and returns a TLS configuration.
@@ -291,4 +337,14 @@ func (c *ServiceContainer) getAuthorizationService() authz.AuthorizationService 
 func (c *ServiceContainer) getHTTPSessionCookieService() cookie.HTTPCookieService {
 	c.httpCookieServiceOnce.Do(func() { c.httpCookieService = c.httpCookieServiceInit() })
 	return c.httpCookieService
+}
+
+func (c *ServiceContainer) getEmailService() email.EmailService {
+	c.emailServiceOnce.Do(func() { c.emailService = c.emailServiceInit() })
+	return c.emailService
+}
+
+func (c *ServiceContainer) getGoMailer() email.Mailer {
+	c.mailerOnce.Do(func() { c.mailer = c.mailerInit() })
+	return c.mailer
 }

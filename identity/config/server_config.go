@@ -23,6 +23,7 @@ type ServerConfig struct {
 	tokenConfig    *TokenConfig    // JWT configuration.
 	loginConfig    *LoginConfig    // Login configuration.
 	passwordConfig *PasswordConfig // Password configuration.
+	smtpConfig     *SMTPConfig     // SMTP configuration.
 
 	logger *Logger // Logging Configuration
 	module string
@@ -80,6 +81,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 		tokenConfig:               NewTokenConfig(),
 		loginConfig:               NewLoginConfig(),
 		passwordConfig:            NewPasswordConfig(),
+		smtpConfig:                NewSMTPConfig(),
 		requestsPerMinute:         defaultRequestsPerMinute,
 		sessionCookieName:         defaultSessionCookieName,
 		authorizationCodeDuration: defaultAuthorizationCodeDuration,
@@ -301,6 +303,12 @@ func WithAuthorizationCodeDuration(duration time.Duration) ServerConfigOptions {
 	}
 }
 
+func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.smtpConfig = smtpConfig
+	}
+}
+
 func (sc *ServerConfig) SetLoginConfig(loginConfig *LoginConfig) {
 	sc.loginConfig = loginConfig
 }
@@ -311,6 +319,10 @@ func (sc *ServerConfig) SetPasswordConfig(passwordConfig *PasswordConfig) {
 
 func (sc *ServerConfig) SetTokenConfig(tokenConfig *TokenConfig) {
 	sc.tokenConfig = tokenConfig
+}
+
+func (sc *ServerConfig) SetSMTPConfig(smtpConfig *SMTPConfig) {
+	sc.smtpConfig = smtpConfig
 }
 
 // Port returns the servers port from.
@@ -427,6 +439,10 @@ func (sc *ServerConfig) Logger() *Logger {
 
 func (sc *ServerConfig) AuthorizationCodeDuration() time.Duration {
 	return sc.authorizationCodeDuration
+}
+
+func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
+	return sc.smtpConfig
 }
 
 func isInSeconds(duration time.Duration) bool      { return duration%time.Second == 0 }

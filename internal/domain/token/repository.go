@@ -49,4 +49,6 @@ type TokenRepository interface {
 	BlacklistToken(token string) error
 
 	ExistsByTokenID(tokenID string) bool
+
+	GetExpiredTokens() []*TokenData
 }

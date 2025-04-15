@@ -113,13 +113,13 @@ func (u *userService) GetUserByUsername(username string) *users.User {
 //   - error: An error if authentication fails or if the input is invalid.
 func (u *userService) HandleOAuthLogin(request *users.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
 	if err := request.Validate(); err != nil {
-		logger.Error(module, "HandleOAuthLogin: Failed to validate request: %v", err)
+		logger.Error(module, "[HandleOAuthLogin]: Failed to validate request: %v", err)
 		return nil, err
 	}
 
 	response, err := u.AuthenticateUserWithRequest(request, remoteAddr, forwardedFor, userAgent)
 	if err != nil {
-		logger.Error(module, "HandleOAuthLogin: Failed to authenticate user: %v", err)
+		logger.Error(module, "[HandleOAuthLogin]: Failed to authenticate user: %v", err)
 		return nil, errors.New(errors.ErrCodeUnauthorized, "credentials are either missing or invalid")
 	}
 

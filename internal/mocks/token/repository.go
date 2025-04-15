@@ -25,6 +25,8 @@ type MockTokenRepository struct {
 	BlacklistTokenFunc func(token string) error
 
 	ExistsByTokenIDFunc func(tokenID string) bool
+
+	GetExpiredTokensFunc func() []*token.TokenData
 }
 
 // AddToken calls the mock AddTokenFunc.
@@ -53,4 +55,8 @@ func (m *MockTokenRepository) BlacklistToken(token string) error {
 
 func (m *MockTokenRepository) ExistsByTokenID(tokenID string) bool {
 	return m.ExistsByTokenIDFunc(tokenID)
+}
+
+func (m *MockTokenRepository) GetExpiredTokens() []*token.TokenData {
+	return m.GetExpiredTokensFunc()
 }

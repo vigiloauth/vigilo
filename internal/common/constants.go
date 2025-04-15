@@ -29,4 +29,9 @@ const (
 	RefreshToken                  string = "refresh_token"
 	Token                         string = "token"
 	BasicAuthHeader               string = "Basic "
+	FromAddress                   string = "From"
+	EmailSubject                  string = "Subject"
+	Recipient                     string = "To"
+	HTMLBody                      string = "text/html"
+	VerifyEmailAddress            string = "Verify Your Email Address"
 )

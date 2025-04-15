@@ -37,16 +37,8 @@ const (
 	ErrCodeTokenParsing  = "token_parsing"
 
 	// Email errors
-	ErrCodeEmailDeliveryFailed        = "email_delivery_failed"
-	ErrCodeEmailTemplateParseFailed   = "email_template_parse_failed"
-	ErrCodeTemplateRenderingFailed    = "template_rendering_failed"
-	ErrCodeUnsupportedEncryptionType  = "unsupported_encryption_type"
-	ErrCodeSMTPServerConnectionFailed = "smtp_server_connection_failed"
-	ErrCodeTLSConnectionFailed        = "tls_connection_failed"
-	ErrCodeSMTPClientCreationFailed   = "smtp_client_creation_failed"
-	ErrCodeStartTLSFailed             = "starttls_failed"
-	ErrCodeSMTPAuthenticationFailed   = "smtp_authentication_failed"
-	ErrCodeSMTPServerError            = "smtp_server_error"
+	ErrCodeConnectionFailed    = "connection_failed"
+	ErrCodeEmailDeliveryFailed = "delivery_failed"
 
 	// Client errors
 	ErrCodeInvalidClient          = "invalid_client"
@@ -82,27 +74,25 @@ const (
 // HTTP status code mappings
 var statusCodeMap = map[string]int{
 	// 400 Bad Request
-	ErrCodeEmptyInput:                http.StatusBadRequest,
-	ErrCodeMissingNumber:             http.StatusBadRequest,
-	ErrCodeMissingSymbol:             http.StatusBadRequest,
-	ErrCodeMissingUppercase:          http.StatusBadRequest,
-	ErrCodeInvalidPasswordFormat:     http.StatusBadRequest,
-	ErrCodePasswordLength:            http.StatusBadRequest,
-	ErrCodeInvalidEmail:              http.StatusBadRequest,
-	ErrCodeValidationError:           http.StatusBadRequest,
-	ErrCodeEmailTemplateParseFailed:  http.StatusBadRequest,
-	ErrCodeUnsupportedEncryptionType: http.StatusBadRequest,
-	ErrCodeMissingHeader:             http.StatusBadRequest,
-	ErrCodeUnauthorizedClient:        http.StatusBadRequest,
-	ErrCodeClientSecretNotAllowed:    http.StatusBadRequest,
-	ErrCodeInvalidResponseType:       http.StatusBadRequest,
-	ErrCodeInvalidContentType:        http.StatusBadRequest,
-	ErrCodeUnsupportedGrantType:      http.StatusBadRequest,
-	ErrCodeInvalidRequest:            http.StatusBadRequest,
-	ErrCodeBadRequest:                http.StatusBadRequest,
-	ErrCodeInvalidClientMetadata:     http.StatusBadRequest,
-	ErrCodeInvalidGrant:              http.StatusBadRequest,
-	ErrCodeInsufficientScope:         http.StatusBadRequest,
+	ErrCodeEmptyInput:             http.StatusBadRequest,
+	ErrCodeMissingNumber:          http.StatusBadRequest,
+	ErrCodeMissingSymbol:          http.StatusBadRequest,
+	ErrCodeMissingUppercase:       http.StatusBadRequest,
+	ErrCodeInvalidPasswordFormat:  http.StatusBadRequest,
+	ErrCodePasswordLength:         http.StatusBadRequest,
+	ErrCodeInvalidEmail:           http.StatusBadRequest,
+	ErrCodeValidationError:        http.StatusBadRequest,
+	ErrCodeMissingHeader:          http.StatusBadRequest,
+	ErrCodeUnauthorizedClient:     http.StatusBadRequest,
+	ErrCodeClientSecretNotAllowed: http.StatusBadRequest,
+	ErrCodeInvalidResponseType:    http.StatusBadRequest,
+	ErrCodeInvalidContentType:     http.StatusBadRequest,
+	ErrCodeUnsupportedGrantType:   http.StatusBadRequest,
+	ErrCodeInvalidRequest:         http.StatusBadRequest,
+	ErrCodeBadRequest:             http.StatusBadRequest,
+	ErrCodeInvalidClientMetadata:  http.StatusBadRequest,
+	ErrCodeInvalidGrant:           http.StatusBadRequest,
+	ErrCodeInsufficientScope:      http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -110,7 +100,6 @@ var statusCodeMap = map[string]int{
 	ErrCodeUnauthorized:             http.StatusUnauthorized,
 	ErrCodeExpiredToken:             http.StatusUnauthorized,
 	ErrCodeInvalidToken:             http.StatusUnauthorized,
-	ErrCodeSMTPAuthenticationFailed: http.StatusUnauthorized,
 	ErrCodeTokenParsing:             http.StatusUnauthorized,
 	ErrCodeLoginRequired:            http.StatusUnauthorized,
 	ErrCodeConsentRequired:          http.StatusUnauthorized,
@@ -140,20 +129,13 @@ var statusCodeMap = map[string]int{
 	// 423 Locked
 	ErrCodeAccountLocked: http.StatusLocked,
 
-	// 424 Failed Dependency
-	ErrCodeEmailDeliveryFailed: http.StatusFailedDependency,
-
 	// 500 Internal Server Error
-	ErrCodeInternalServerError:      http.StatusInternalServerError,
-	ErrCodeTokenCreation:            http.StatusInternalServerError,
-	ErrCodeTemplateRenderingFailed:  http.StatusInternalServerError,
-	ErrCodeSMTPClientCreationFailed: http.StatusInternalServerError,
+	ErrCodeInternalServerError: http.StatusInternalServerError,
+	ErrCodeTokenCreation:       http.StatusInternalServerError,
+	ErrCodeEmailDeliveryFailed: http.StatusInternalServerError,
 
 	// 502 Bad Gateway
-	ErrCodeSMTPServerConnectionFailed: http.StatusBadGateway,
-	ErrCodeTLSConnectionFailed:        http.StatusBadGateway,
-	ErrCodeStartTLSFailed:             http.StatusBadGateway,
-	ErrCodeSMTPServerError:            http.StatusBadGateway,
+	ErrCodeConnectionFailed: http.StatusBadGateway,
 
 	// 429 Too Many Requests
 	ErrCodeRequestLimitExceeded: http.StatusTooManyRequests,

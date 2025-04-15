@@ -39,7 +39,7 @@ func NewLoginConfig(opts ...LoginConfigOptions) *LoginConfig {
 		delay:             defaultDelay,
 		loginURL:          web.UserEndpoints.Login,
 		logger:            GetLogger(),
-		module:            "LoginConfig",
+		module:            "Login Config",
 	}
 
 	if len(opts) > 0 {
