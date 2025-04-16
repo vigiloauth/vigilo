@@ -113,6 +113,10 @@ type ServiceContainer struct {
 	tlsConfig  *tls.Config
 	httpServer *http.Server
 
+	schedulerCtx    context.Context
+	schedulerCancel context.CancelFunc
+	scheduler       *background.Scheduler
+
 	logger *config.Logger
 	module string
 }
@@ -132,7 +136,7 @@ func NewServiceContainer() *ServiceContainer {
 	container.initializeServices()
 	container.initializeHandlers()
 	container.initializeServerConfigs()
-	container.initializeScheduler()
+	container.initializeSchedulers()
 	return container
 }
 
@@ -150,7 +154,7 @@ func (c *ServiceContainer) initializeInMemoryRepositories() {
 
 // initializeServices defines getter methods for lazy service initialization**
 func (c *ServiceContainer) initializeServices() {
-	c.logger.Info(c.module, "Initializing Services")
+	c.logger.Info(c.module, "Initializing services")
 	c.httpCookieServiceInit = func() cookie.HTTPCookieService {
 		c.logger.Debug(c.module, "Initializing HTTPCookieService")
 		return cookieService.NewHTTPCookieService()
@@ -169,7 +173,7 @@ func (c *ServiceContainer) initializeServices() {
 	}
 	c.userServiceInit = func() users.UserService {
 		c.logger.Debug(c.module, "Initializing UserService")
-		return userService.NewUserService(c.userRepo, c.getTokenService(), c.getLoginAttemptService())
+		return userService.NewUserService(c.userRepo, c.getTokenService(), c.getLoginAttemptService(), c.getEmailService())
 	}
 	c.passwordResetServiceInit = func() password.PasswordResetService {
 		c.logger.Debug(c.module, "Initializing PasswordResetService")
@@ -199,6 +203,10 @@ func (c *ServiceContainer) initializeServices() {
 		c.logger.Debug(c.module, "Initializing EmailService")
 		return emailService.NewEmailService(c.getGoMailer())
 	}
+	c.mailerInit = func() email.Mailer {
+		c.logger.Debug(c.module, "Initializing GoMailer")
+		return emailService.NewGoMailer()
+	}
 }
 
 // initializeHandlers initializes the HTTP handlers used by the service container.
@@ -220,31 +228,49 @@ func (c *ServiceContainer) initializeServerConfigs() {
 	c.httpServer = initializeHTTPServer(c.tlsConfig)
 }
 
-func (c *ServiceContainer) initializeScheduler() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (c *ServiceContainer) initializeSchedulers() {
+	c.logger.Info(c.module, "Initializing schedulers and worker pools")
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	scheduler := background.NewScheduler()
+	// Store the context and cancel function
+	c.schedulerCtx, c.schedulerCancel = context.WithCancel(context.Background())
+	c.scheduler = background.NewScheduler()
 
 	healthCheckInterval := 5 * time.Minute
 	queueProcessorInterval := 1 * time.Minute
 	smtpJobs := background.NewSMTPJobs(c.getEmailService(), healthCheckInterval, queueProcessorInterval)
-	scheduler.RegisterJob(smtpJobs.RunHealthCheck)
-	scheduler.RegisterJob(smtpJobs.RunRetryQueueProcessor)
+	c.scheduler.RegisterJob(smtpJobs.RunHealthCheck)
+	c.scheduler.RegisterJob(smtpJobs.RunRetryQueueProcessor)
 
 	tokenDeletionInterval := 5 * time.Minute
 	tokenJobs := background.NewTokenJobs(c.getTokenService(), tokenDeletionInterval)
-	scheduler.RegisterJob(tokenJobs.DeleteExpiredTokens)
+	c.scheduler.RegisterJob(tokenJobs.DeleteExpiredTokens)
 
 	go func() {
-		scheduler.StartJobs(ctx)
-	}()
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	<-sigCh
-	cancel()
-	scheduler.Wait()
+		go c.scheduler.StartJobs(c.schedulerCtx)
+
+		select {
+		case <-sigCh:
+			c.schedulerCancel()
+		case <-c.schedulerCtx.Done():
+		}
+
+		signal.Stop(sigCh)
+		c.scheduler.Wait()
+	}()
+}
+
+func (c *ServiceContainer) Shutdown() {
+	c.logger.Info(c.module, "Shutting down schedulers and worker pool")
+	if c.schedulerCancel != nil {
+		c.schedulerCancel()
+	}
+
+	if c.scheduler != nil {
+		c.scheduler.Wait()
+	}
 }
 
 // initializeTLSConfig creates and returns a TLS configuration.

@@ -67,4 +67,6 @@ type UserService interface {
 	//
 	//   *User: The User object if found, or nil if not found.
 	GetUserByID(userID string) *User
+
+	ValidateVerificationCode(verificationCode string) error
 }

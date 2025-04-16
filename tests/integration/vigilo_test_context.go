@@ -405,11 +405,16 @@ func (tc *VigiloTestContext) AssertErrorResponse(
 	assert.Equal(tc.T, expectedDetails, errResp.ErrorDetails)
 }
 
+func (tc *VigiloTestContext) WithDebugLogs() {
+	config.GetServerConfig().Logger().SetLevel("DEBUG")
+}
+
 // TearDown performs cleanup operations.
 func (tc *VigiloTestContext) TearDown() {
 	if tc.TestServer != nil {
 		tc.TestServer.Close()
 	}
+	tc.VigiloServer.Shutdown()
 	resetInMemoryStores()
 }
 

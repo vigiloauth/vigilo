@@ -21,7 +21,7 @@ const (
 	defaultFromAddress string = "vigiloauth@gmail.com"
 	defaultUseAuth     bool   = true
 	defaultUsername    string = "vigiloauth@gmail.com"
-	defaultPassword    string = "aiff hhbi hwdk fcbn"
+	defaultPassword    string = "tpkk fdyd hmvp rgpn"
 
 	SSLEncryption string = "ssl"
 	TLSEncryption string = "tls"
@@ -134,5 +134,7 @@ func defaultSMTPConfig() *SMTPConfig {
 		encryption:  TLSEncryption,
 		logger:      GetLogger(),
 		module:      "SMTP Config",
+		username:    defaultUsername,
+		password:    defaultPassword,
 	}
 }

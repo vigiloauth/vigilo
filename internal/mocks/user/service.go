@@ -2,12 +2,15 @@ package mocks
 
 import user "github.com/vigiloauth/vigilo/internal/domain/user"
 
+var _ user.UserService = (*MockUserService)(nil)
+
 type MockUserService struct {
 	CreateUserFunc                  func(user *user.User) (*user.UserRegistrationResponse, error)
 	HandleOAuthLoginFunc            func(request *user.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error)
 	AuthenticateUserWithRequestFunc func(request *user.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error)
 	GetUserByIDFunc                 func(userID string) *user.User
 	GetUserByUsernameFunc           func(username string) *user.User
+	ValidateVerificationCodeFunc    func(verificationCode string) error
 }
 
 func (m *MockUserService) CreateUser(user *user.User) (*user.UserRegistrationResponse, error) {
@@ -28,4 +31,8 @@ func (m *MockUserService) GetUserByID(userID string) *user.User {
 
 func (m *MockUserService) GetUserByUsername(username string) *user.User {
 	return m.GetUserByUsernameFunc(username)
+}
+
+func (m *MockUserService) ValidateVerificationCode(verificationCode string) error {
+	return m.ValidateVerificationCodeFunc(verificationCode)
 }

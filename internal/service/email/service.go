@@ -40,7 +40,7 @@ type emailService struct {
 
 func NewEmailService(mailer domain.Mailer) domain.EmailService {
 	smtpConfig := config.GetServerConfig().SMTPConfig()
-	return &emailService{
+	service := &emailService{
 		smtpConfig:  smtpConfig,
 		host:        smtpConfig.Host(),
 		port:        smtpConfig.Port(),
@@ -54,6 +54,12 @@ func NewEmailService(mailer domain.Mailer) domain.EmailService {
 		logger: config.GetLogger(),
 		module: "Email Service",
 	}
+
+	if err := service.TestConnection(); err != nil {
+		service.logger.Warn(service.module, "SMTP Server is down. Requests will be added to the queue for future processing")
+	}
+
+	return service
 }
 
 func (s *emailService) SendEmail(request *domain.EmailRequest) error {
@@ -76,7 +82,7 @@ func (s *emailService) TestConnection() error {
 	backoff := 5 * time.Second
 
 	var lastError error
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		if attempt > 0 {
 			time.Sleep(backoff)
 			backoff *= 2

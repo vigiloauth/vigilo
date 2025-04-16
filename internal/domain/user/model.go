@@ -14,6 +14,7 @@ type User struct {
 	Scopes          []string  // User's scopes (permissions).
 	LastFailedLogin time.Time // Timestamp of the last failed login attempt.
 	AccountLocked   bool      // Indicates if the user's account is locked.
+	Verified        bool      // Indicates if the user's account has been verified.
 }
 
 // UserRegistrationRequest represents the registration request payload.
@@ -92,6 +93,7 @@ func NewUser(username, email, password string) *User {
 		Password:        password,
 		LastFailedLogin: time.Time{},
 		AccountLocked:   false,
+		Verified:        false,
 	}
 }
 

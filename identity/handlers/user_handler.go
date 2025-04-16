@@ -173,3 +173,18 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[ResetPassword]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }
+
+func (h *UserHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
+	requestID := common.GetRequestID(r.Context())
+	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[ResetPassword]", requestID)
+
+	query := r.URL.Query()
+	verificationToken := query.Get(common.Token)
+	if err := h.userService.ValidateVerificationCode(verificationToken); err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to validate user account")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	web.WriteJSON(w, http.StatusOK, "")
+}
