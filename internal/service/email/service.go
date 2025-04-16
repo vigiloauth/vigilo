@@ -11,13 +11,17 @@ import (
 	"github.com/vigiloauth/vigilo/internal/common"
 	domain "github.com/vigiloauth/vigilo/internal/domain/email"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"gopkg.in/gomail.v2"
 )
 
-var _ domain.EmailService = (*emailService)(nil)
+var (
+	//go:embed templates/account_verification.html
+	accountVerificationTemplate string
 
-//go:embed templates/account_verification.html
-var accountVerificationTemplate string
+	//go:embed templates/account_deletion.html
+	accountDeletionTemplate string
+
+	_ domain.EmailService = (*emailService)(nil)
+)
 
 const (
 	maxRetries int = 5
@@ -69,8 +73,13 @@ func (s *emailService) SendEmail(request *domain.EmailRequest) error {
 		return nil
 	}
 
-	if request.EmailType == domain.AccountVerification {
-		if err := s.sendAccountVerificationEmail(request); err != nil {
+	switch request.EmailType {
+	case domain.AccountVerification:
+		if err := s.sendEmail(request, common.VerifyEmailAddress); err != nil {
+			return errors.Wrap(err, errors.ErrCodeEmailDeliveryFailed, "failed to send verification email")
+		}
+	case domain.AccountDeletion:
+		if err := s.sendEmail(request, common.AccountDeletion); err != nil {
 			return errors.Wrap(err, errors.ErrCodeEmailDeliveryFailed, "failed to send verification email")
 		}
 	}
@@ -121,23 +130,13 @@ func (s *emailService) connectToSMTPServer() error {
 	return nil
 }
 
-func (s *emailService) sendAccountVerificationEmail(request *domain.EmailRequest) error {
-	body, err := s.generateVerificationEmailBody(request)
+func (s *emailService) sendEmail(request *domain.EmailRequest, subject string) error {
+	body, err := s.generateEmailBody(request)
 	if err != nil {
 		return errors.Wrap(err, "", "failed to generate email template")
 	}
 
-	message := s.mailer.NewMessage(request, body, common.VerifyEmailAddress, s.fromAddress)
-	if err := s.sendEmail(message); err != nil {
-		s.logger.Error(s.module, "Failed to send account verification email. Adding to retry queue: %v", err)
-		s.retryQueue.Add(request)
-		return err
-	}
-
-	return nil
-}
-
-func (s *emailService) sendEmail(message *gomail.Message) error {
+	message := s.mailer.NewMessage(request, body, subject, s.fromAddress)
 	if err := s.mailer.DialAndSend(s.host, s.port, s.username, s.password, message); err != nil {
 		s.logger.Error(s.module, "Failed to send account verification email. Adding to retry queue: %v", err)
 		return err
@@ -146,8 +145,25 @@ func (s *emailService) sendEmail(message *gomail.Message) error {
 	return nil
 }
 
-func (s *emailService) generateVerificationEmailBody(request *domain.EmailRequest) (string, error) {
-	tmpl, err := template.New("account_verification").Parse(accountVerificationTemplate)
+func (s *emailService) generateEmailBody(request *domain.EmailRequest) (string, error) {
+	var body string
+	var err error
+	switch request.EmailType {
+	case domain.AccountVerification:
+		body, err = s.generateEmailTemplate(request, accountVerificationTemplate)
+	case domain.AccountDeletion:
+		body, err = s.generateEmailTemplate(request, accountDeletionTemplate)
+	}
+
+	if err != nil {
+		return "", errors.Wrap(err, "", "failed to generate email template")
+	}
+
+	return body, nil
+}
+
+func (s *emailService) generateEmailTemplate(request *domain.EmailRequest, templateName string) (string, error) {
+	tmpl, err := template.New("account_verification").Parse(templateName)
 	if err != nil {
 		s.logger.Error(s.module, "Failed to parse email template file: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to parse email template file")

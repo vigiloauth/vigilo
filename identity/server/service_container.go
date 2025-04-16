@@ -238,12 +238,16 @@ func (c *ServiceContainer) initializeSchedulers() {
 	healthCheckInterval := 5 * time.Minute
 	queueProcessorInterval := 1 * time.Minute
 	smtpJobs := background.NewSMTPJobs(c.getEmailService(), healthCheckInterval, queueProcessorInterval)
-	c.scheduler.RegisterJob(smtpJobs.RunHealthCheck)
-	c.scheduler.RegisterJob(smtpJobs.RunRetryQueueProcessor)
+	c.scheduler.RegisterJob("SMTP Health Check", smtpJobs.RunHealthCheck)
+	c.scheduler.RegisterJob("Email Retry Queue", smtpJobs.RunRetryQueueProcessor)
 
 	tokenDeletionInterval := 5 * time.Minute
 	tokenJobs := background.NewTokenJobs(c.getTokenService(), tokenDeletionInterval)
-	c.scheduler.RegisterJob(tokenJobs.DeleteExpiredTokens)
+	c.scheduler.RegisterJob("Expired Token Deletion", tokenJobs.DeleteExpiredTokens)
+
+	userDeletionInterval := 24 * time.Hour
+	userJobs := background.NewUserJobs(c.getUserService(), userDeletionInterval)
+	c.scheduler.RegisterJob("Unverified User Deletion", userJobs.DeleteUnverifiedUsers)
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)

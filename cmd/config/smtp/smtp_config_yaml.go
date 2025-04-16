@@ -7,12 +7,11 @@ const SSLPort int = 465
 
 type SMTPConfigYAML struct {
 	Host        *string `yaml:"host,omitempty"`
-	Port        *int    `yaml:"port,omitempty`
+	Port        *int    `yaml:"port,omitempty"`
 	Username    *string `yaml:"username,omitempty"`
-	Password    *string `yaml:"password,omitempty`
-	FromAddress *string `yaml:"from_address,omitempty`
-	Encryption  *string `yaml:"encryption,omitempty`
-	UseAuth     *bool   `yaml:"use_auth,omitempty`
+	Password    *string `yaml:"password,omitempty"`
+	FromAddress *string `yaml:"from_address,omitempty"`
+	Encryption  *string `yaml:"encryption,omitempty"`
 }
 
 func (s *SMTPConfigYAML) ToOptions() []config.SMTPConfigOptions {
@@ -40,10 +39,6 @@ func (s *SMTPConfigYAML) ToOptions() []config.SMTPConfigOptions {
 
 	if s.Encryption != nil {
 		options = append(options, config.WithEncryption(*s.Encryption))
-	}
-
-	if s.UseAuth != nil {
-		options = append(options, config.WithAuthentication())
 	}
 
 	return options

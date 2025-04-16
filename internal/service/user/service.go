@@ -90,6 +90,15 @@ func (u *userService) CreateUser(user *users.User) (*users.UserRegistrationRespo
 	return users.NewUserRegistrationResponse(user, accessToken), nil
 }
 
+// GetUserByUsername retrieves a user using their username.
+//
+// Parameter:
+//
+//	username string: The username of the user to retrieve.
+//
+// Returns:
+//
+//	*User: The retrieved user, otherwise nil.
 func (u *userService) GetUserByUsername(username string) *users.User {
 	return u.userRepo.GetUserByUsername(username)
 }
@@ -169,6 +178,16 @@ func (u *userService) GetUserByID(userID string) *users.User {
 	return u.userRepo.GetUserByID(userID)
 }
 
+// ValidateVerificationCode validates the verification code and updates the user
+// if verification was successful.
+//
+// Parameter:
+//
+//	verificationCode string: The verification code to verify.
+//
+// Returns:
+//
+//	error: an error if validation fails, otherwise nil.
 func (u *userService) ValidateVerificationCode(verificationCode string) error {
 	if verificationCode == "" {
 		return errors.New(errors.ErrCodeInvalidRequest, "missing one or more required parameters in the request")
@@ -200,6 +219,15 @@ func (u *userService) ValidateVerificationCode(verificationCode string) error {
 	}
 
 	return nil
+}
+
+// DeleteUnverifiedUsers deletes any user that hasn't verified their account and
+// has been created for over a week.
+func (u *userService) DeleteUnverifiedUsers() {
+	expiredUsers := u.userRepo.FindUnverifiedUsersOlderThanWeek()
+	for _, user := range expiredUsers {
+		u.userRepo.DeleteUserByID(user.ID)
+	}
 }
 
 // applyArtificialDelay applies an artificial delay to normalize response times.
@@ -308,6 +336,7 @@ func (u *userService) saveUser(user *users.User) error {
 		return errors.NewInternalServerError()
 	}
 
+	user.CreatedAt = time.Now()
 	user.ID = crypto.GenerateUUID()
 	if err := u.userRepo.AddUser(user); err != nil {
 		u.logger.Error(u.module, "Failed to save user: %v", err)

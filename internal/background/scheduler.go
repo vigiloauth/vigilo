@@ -25,11 +25,11 @@ func NewScheduler() *Scheduler {
 	}
 }
 
-func (s *Scheduler) RegisterJob(job JobFunc) {
+func (s *Scheduler) RegisterJob(jobName string, job JobFunc) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.jobs = append(s.jobs, job)
-	s.logger.Info(s.module, "Registered a new job. Total jobs: %d", len(s.jobs))
+	s.logger.Info(s.module, "Registered job [%s]. Total jobs: %d", jobName, len(s.jobs))
 }
 
 func (s *Scheduler) StartJobs(ctx context.Context) {

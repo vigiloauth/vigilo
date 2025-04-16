@@ -16,8 +16,8 @@ type PasswordConfig struct {
 	module        string
 }
 
-// PasswordConfigOption is a function type used to configure PasswordConfig options.
-type PasswordConfigOption func(*PasswordConfig)
+// PasswordConfigOptions is a function type used to configure PasswordConfig options.
+type PasswordConfigOptions func(*PasswordConfig)
 
 // NewPasswordConfig creates a new PasswordConfig with default values and applies provided options.
 //
@@ -28,27 +28,11 @@ type PasswordConfigOption func(*PasswordConfig)
 // Returns:
 //
 //	*PasswordConfig: A new PasswordConfig instance.
-func NewPasswordConfig(opts ...PasswordConfigOption) *PasswordConfig {
-	pc := &PasswordConfig{
-		requireUpper:  false,
-		requireNumber: false,
-		requireSymbol: false,
-		minLength:     defaultRequiredPasswordLength,
-		logger:        GetLogger(),
-		module:        "Password Config",
-	}
-
-	if len(opts) > 0 {
-		pc.logger.Info(pc.module, "Creating password config with %d options", len(opts))
-		for _, opt := range opts {
-			opt(pc)
-		}
-	} else {
-		pc.logger.Info(pc.module, "Using default password config")
-	}
-
-	pc.logger.Debug(pc.module, "\n\nPassword config parameters: %s", pc.String())
-	return pc
+func NewPasswordConfig(opts ...PasswordConfigOptions) *PasswordConfig {
+	cfg := defaultPasswordConfig()
+	cfg.loadOptions(opts...)
+	cfg.logger.Debug(cfg.module, "\n\nPassword config parameters: %s", cfg.String())
+	return cfg
 }
 
 // WithUppercase configures the PasswordConfig to require uppercase letters.
@@ -56,7 +40,7 @@ func NewPasswordConfig(opts ...PasswordConfigOption) *PasswordConfig {
 // Returns:
 //
 //	PasswordConfigOption: A function that configures the uppercase requirement.
-func WithUppercase() PasswordConfigOption {
+func WithUppercase() PasswordConfigOptions {
 	return func(pc *PasswordConfig) {
 		pc.logger.Info(pc.module, "Configuring PasswordConfig to require an uppercase")
 		pc.requireUpper = true
@@ -68,7 +52,7 @@ func WithUppercase() PasswordConfigOption {
 // Returns:
 //
 //	PasswordConfigOption: A function that configures the number requirement.
-func WithNumber() PasswordConfigOption {
+func WithNumber() PasswordConfigOptions {
 	return func(pc *PasswordConfig) {
 		pc.logger.Info(pc.module, "Configuring PasswordConfig to require a number")
 		pc.requireNumber = true
@@ -80,7 +64,7 @@ func WithNumber() PasswordConfigOption {
 // Returns:
 //
 //	PasswordConfigOption: A function that configures the symbol requirement.
-func WithSymbol() PasswordConfigOption {
+func WithSymbol() PasswordConfigOptions {
 	return func(pc *PasswordConfig) {
 		pc.logger.Info(pc.module, "Configuring PasswordConfig to require a symbol")
 		pc.requireSymbol = true
@@ -96,7 +80,7 @@ func WithSymbol() PasswordConfigOption {
 // Returns:
 //
 //	PasswordConfigOption: A function that configures the minimum length.
-func WithMinLength(length int) PasswordConfigOption {
+func WithMinLength(length int) PasswordConfigOptions {
 	return func(pc *PasswordConfig) {
 		if length > defaultRequiredPasswordLength {
 			pc.logger.Info(pc.module, "Configuring PasswordConfig minimum length=[%d]", length)
@@ -152,4 +136,26 @@ func (pc *PasswordConfig) String() string {
 		pc.requireSymbol,
 		pc.minLength,
 	)
+}
+
+func defaultPasswordConfig() *PasswordConfig {
+	return &PasswordConfig{
+		requireUpper:  false,
+		requireNumber: false,
+		requireSymbol: false,
+		minLength:     defaultRequiredPasswordLength,
+		logger:        GetLogger(),
+		module:        "Password Config",
+	}
+}
+
+func (cfg *PasswordConfig) loadOptions(opts ...PasswordConfigOptions) {
+	if len(opts) > 0 {
+		cfg.logger.Info(cfg.module, "Creating password config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(cfg)
+		}
+	} else {
+		cfg.logger.Info(cfg.module, "Using default password config")
+	}
 }

@@ -10,6 +10,7 @@
     - [3.2 Token Configuration](#32-token-configuration)
     - [3.3 Login Configuration](#33-login-configuration)
     - [3.4 Password Configuration](#34-password-configuration)
+    - [3.5 SMTP Configuration](#35-smtp-configuration)
   - [4. When to Use](#4-when-to-use)
   - [5. Next Steps](#5-next-steps)
 
@@ -72,7 +73,7 @@ log_level: debug
 server_config:
   port: 8080
   session_cookie_name: test-session-cookie
-  base_url: /identity
+  base_url: localhost:8080/identity
   force_https: true
   read_timeout: 30
   write_timeout: 30
@@ -111,6 +112,20 @@ password_config:
   require_number: true
   require_symbol: true
   minimum_length: 8
+```
+
+---
+
+### 3.5 SMTP Configuration
+Here is an example on how to configure the SMTP configuration to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
+```yaml
+smtp_config:
+  host: smtp.gmail.com
+  port: 587
+  username: vigiloauth@no-reply.com
+  password: 12345
+  from_address: vigiloauth@no-reply.com
+  encryption: tls
 ```
 
 ---

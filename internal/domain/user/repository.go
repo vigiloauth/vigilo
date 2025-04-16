@@ -46,7 +46,7 @@ type UserRepository interface {
 	//   error: An error if the user cannot be deleted, or nil if successful.
 	DeleteUserByID(userID string) error
 
-	// UpdateUser updates an existing user's information in the store.
+	// UpdateUser updates an existing user's information in the repository.
 	//
 	// Parameters:
 	//
@@ -57,5 +57,22 @@ type UserRepository interface {
 	//   error: An error if the user cannot be updated, or nil if successful.
 	UpdateUser(user *User) error
 
+	// GetUserByUsername fetches a user by their username.
+	//
+	// Parameters:
+	//
+	//	username string: The username of the user to retrieve.
+	//
+	// Returns:
+	//
+	//	*User: The retrieved user, otherwise nil.
 	GetUserByUsername(username string) *User
+
+	// FindUnverifiedUsersOlderThanWeek retrieves users that have not been verified
+	// and who's account has been created over a week ago.
+	//
+	// Returns:
+	//
+	//	[]*User: A slice of users.
+	FindUnverifiedUsersOlderThanWeek() []*User
 }

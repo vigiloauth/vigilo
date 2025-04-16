@@ -3,6 +3,8 @@ package config
 import (
 	"sync"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // ServerConfig holds the configuration for the server.
@@ -73,35 +75,11 @@ func GetServerConfig() *ServerConfig {
 //
 //	*ServerConfig: A new ServerConfig instance.
 func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
-	sc := &ServerConfig{
-		port:                      defaultPort,
-		forceHTTPS:                defaultHTTPSRequirement,
-		readTimeout:               defaultReadTimeout,
-		writeTimeout:              defaultWriteTimeout,
-		tokenConfig:               NewTokenConfig(),
-		loginConfig:               NewLoginConfig(),
-		passwordConfig:            NewPasswordConfig(),
-		smtpConfig:                NewSMTPConfig(),
-		requestsPerMinute:         defaultRequestsPerMinute,
-		sessionCookieName:         defaultSessionCookieName,
-		authorizationCodeDuration: defaultAuthorizationCodeDuration,
-		logger:                    GetLogger(),
-		module:                    "Server Config",
-	}
-
-	sc.logger.Info(sc.module, "Initializing server config")
-
-	if len(opts) > 0 {
-		sc.logger.Info(sc.module, "Creating server config with %d options", len(opts))
-		for _, opt := range opts {
-			opt(sc)
-		}
-	} else {
-		sc.logger.Info(sc.module, "Using default server config")
-	}
-
-	serverConfigInstance = sc // Set the singleton instance.
-	return sc
+	cfg := defaultServerConfig()
+	cfg.loadOptions(opts...)
+	cfg.logger.Info(cfg.module, "Initializing server config")
+	serverConfigInstance = cfg
+	return cfg
 }
 
 // WithPort configures the server port.
@@ -449,3 +427,39 @@ func isInSeconds(duration time.Duration) bool      { return duration%time.Second
 func isInHours(duration time.Duration) bool        { return duration%time.Hour == 0 }
 func isInMinutes(duration time.Duration) bool      { return duration%time.Minute == 0 }
 func isInMilliseconds(duration time.Duration) bool { return duration%time.Millisecond == 0 }
+
+func defaultServerConfig() *ServerConfig {
+	cfg := &ServerConfig{
+		port:                      defaultPort,
+		forceHTTPS:                defaultHTTPSRequirement,
+		readTimeout:               defaultReadTimeout,
+		writeTimeout:              defaultWriteTimeout,
+		tokenConfig:               NewTokenConfig(),
+		loginConfig:               NewLoginConfig(),
+		passwordConfig:            NewPasswordConfig(),
+		smtpConfig:                NewSMTPConfig(),
+		requestsPerMinute:         defaultRequestsPerMinute,
+		sessionCookieName:         defaultSessionCookieName,
+		authorizationCodeDuration: defaultAuthorizationCodeDuration,
+		logger:                    GetLogger(),
+		module:                    "Server Config",
+	}
+
+	err := godotenv.Load()
+	if err != nil {
+		cfg.logger.Warn(cfg.module, "No .env file loaded")
+	}
+
+	return cfg
+}
+
+func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
+	if len(opts) > 0 {
+		cfg.logger.Info(cfg.module, "Creating server config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(cfg)
+		}
+	} else {
+		cfg.logger.Info(cfg.module, "Using default server config")
+	}
+}

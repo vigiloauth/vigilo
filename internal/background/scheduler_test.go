@@ -9,11 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const jobName string = "test job"
+
 func TestScheduler_RegisterJob(t *testing.T) {
 	scheduler := NewScheduler()
 	initialJobCount := len(scheduler.GetJobs())
 
-	scheduler.RegisterJob(func(ctx context.Context) {
+	scheduler.RegisterJob(jobName, func(ctx context.Context) {
 		// Register Empty job
 	})
 
@@ -29,7 +31,7 @@ func TestScheduler_StartJobs(t *testing.T) {
 		jobExecuted := false
 		var mu sync.Mutex
 
-		scheduler.RegisterJob(func(ctx context.Context) {
+		scheduler.RegisterJob(jobName, func(ctx context.Context) {
 			mu.Lock()
 			jobExecuted = true
 			mu.Unlock()
@@ -54,7 +56,7 @@ func TestScheduler_StartJobs(t *testing.T) {
 
 		for i := 0; i < jobCount; i++ {
 			jobID := i
-			scheduler.RegisterJob(func(ctx context.Context) {
+			scheduler.RegisterJob(jobName, func(ctx context.Context) {
 				defer wg.Done()
 				executedJobs.Store(jobID, true)
 			})
@@ -77,7 +79,7 @@ func TestScheduler_Wait(t *testing.T) {
 	defer cancel()
 
 	// Create a job that takes some time to complete
-	scheduler.RegisterJob(func(ctx context.Context) {
+	scheduler.RegisterJob(jobName, func(ctx context.Context) {
 		time.Sleep(100 * time.Millisecond)
 	})
 
@@ -103,7 +105,7 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 	jobStarted := make(chan struct{})
 	jobFinished := make(chan struct{})
 
-	scheduler.RegisterJob(func(ctx context.Context) {
+	scheduler.RegisterJob(jobName, func(ctx context.Context) {
 		close(jobStarted)
 		select {
 		case <-ctx.Done():

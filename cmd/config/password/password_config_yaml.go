@@ -9,8 +9,8 @@ type PasswordConfigYAML struct {
 	MinimumLength    *int  `yaml:"minimum_length,omitempty"`
 }
 
-func (pc *PasswordConfigYAML) ToOptions() []config.PasswordConfigOption {
-	options := []config.PasswordConfigOption{}
+func (pc *PasswordConfigYAML) ToOptions() []config.PasswordConfigOptions {
+	options := []config.PasswordConfigOptions{}
 
 	if pc.RequireUppercase != nil {
 		options = append(options, config.WithUppercase())

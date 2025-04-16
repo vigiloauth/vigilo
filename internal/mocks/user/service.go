@@ -11,6 +11,7 @@ type MockUserService struct {
 	GetUserByIDFunc                 func(userID string) *user.User
 	GetUserByUsernameFunc           func(username string) *user.User
 	ValidateVerificationCodeFunc    func(verificationCode string) error
+	DeleteUnverifiedUsersFunc       func()
 }
 
 func (m *MockUserService) CreateUser(user *user.User) (*user.UserRegistrationResponse, error) {
@@ -35,4 +36,8 @@ func (m *MockUserService) GetUserByUsername(username string) *user.User {
 
 func (m *MockUserService) ValidateVerificationCode(verificationCode string) error {
 	return m.ValidateVerificationCodeFunc(verificationCode)
+}
+
+func (m *MockUserService) DeleteUnverifiedUsers() {
+	m.DeleteUnverifiedUsersFunc()
 }

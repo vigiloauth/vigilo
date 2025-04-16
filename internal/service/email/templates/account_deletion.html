@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Verify Your Account</title>
+        <title>Your Account Has Been Deleted</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -65,14 +65,13 @@
         </style>
     </head>
     <body>
-        <div class="email-container">
+        <div class="small-container">
             <div class="header">
                 <div class="logo">VigiloAuth</div>
             </div>
             <div class="content">
                 <p>Hello,</p>
-                <p>Thank you for registering with VigiloAuth. Please verify your email address to complete your account setup and access our services.</p>
-                <a href="https://{{.BaseURL}}/verify?token={{.VerificationToken}}" class="verification-button">Verify My Email</a>
+                <p>Your account has been deleted since it has not been verified in the required timeline.</p>
                 <p class="help-text">If you didn't create an account with VigiloAuth, you can safely ignore this email.</p>
                 <p>Best regards,<br>The VigiloAuth Team</p>
             </div>

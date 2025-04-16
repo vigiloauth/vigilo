@@ -31,6 +31,7 @@ type EmailType string
 
 const (
 	AccountVerification EmailType = "account_verification"
+	AccountDeletion     EmailType = "account_deletion"
 )
 
 func (t EmailType) String() string {
