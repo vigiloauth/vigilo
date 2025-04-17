@@ -22,7 +22,8 @@ var clientURLParam string = fmt.Sprintf("/{%s}", common.ClientID)
 
 // VigiloIdentityServer represents the identity library's functionality.
 type VigiloIdentityServer struct {
-	router chi.Router
+	router    chi.Router
+	container *ServiceContainer
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
@@ -41,7 +42,7 @@ type VigiloIdentityServer struct {
 
 // NewVigiloIdentityServer creates and initializes a new instance of IdentityServer.
 func NewVigiloIdentityServer() *VigiloIdentityServer {
-	module := "VigiloIdentityServer"
+	module := "Vigilo Identity Server"
 	logger := config.GetLogger()
 	logger.Info(module, "Initializing Vigilo Identity Server")
 
@@ -50,6 +51,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 
 	server := &VigiloIdentityServer{
 		router:        chi.NewRouter(),
+		container:     container,
 		userHandler:   container.userHandler,
 		clientHandler: container.clientHandler,
 		tokenHandler:  container.tokenHandler,
@@ -72,6 +74,10 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 	return s.router
 }
 
+func (s *VigiloIdentityServer) Shutdown() {
+	s.container.Shutdown()
+}
+
 // setupRoutes configures the HTTP routes for the VigiloIdentityServer.
 // It applies middleware, sets up user-related endpoints, and groups authenticated routes.
 func (s *VigiloIdentityServer) setupRoutes() {
@@ -90,6 +96,7 @@ func (s *VigiloIdentityServer) setupPublicRoutes() {
 		r.Group(func(gr chi.Router) {
 			gr.Use(s.middleware.RequireRequestMethod(http.MethodGet))
 			gr.Get(web.OAuthEndpoints.Authorize, s.authzHandler.AuthorizeClient)
+			gr.Get(web.UserEndpoints.Verify, s.userHandler.VerifyAccount)
 		})
 
 		// POST Routes

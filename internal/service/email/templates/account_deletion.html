@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Account Has Been Deleted</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            .email-container {
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            .header {
+                background-color: #2c3e50;
+                padding: 24px;
+                text-align: center;
+            }
+            .logo {
+                color: white;
+                font-size: 24px;
+                font-weight: bold;
+            }
+            .content {
+                padding: 24px;
+                background-color: #ffffff;
+            }
+            .verification-button {
+                display: inline-block;
+                background-color: #3498db;
+                color: white;
+                text-decoration: none;
+                padding: 12px 24px;
+                border-radius: 4px;
+                font-weight: bold;
+                margin: 20px 0;
+            }
+            .verification-code {
+                background-color: #f5f5f5;
+                padding: 12px;
+                border-radius: 4px;
+                text-align: center;
+                font-size: 20px;
+                letter-spacing: 2px;
+                margin: 20px 0;
+            }
+            .footer {
+                background-color: #f5f5f5;
+                padding: 16px;
+                text-align: center;
+                font-size: 12px;
+                color: #666666;
+            }
+            .help-text {
+                font-size: 14px;
+                color: #666666;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="small-container">
+            <div class="header">
+                <div class="logo">VigiloAuth</div>
+            </div>
+            <div class="content">
+                <p>Hello,</p>
+                <p>Your account has been deleted since it has not been verified in the required timeline.</p>
+                <p class="help-text">If you didn't create an account with VigiloAuth, you can safely ignore this email.</p>
+                <p>Best regards,<br>The VigiloAuth Team</p>
+            </div>
+            <div class="footer">
+                <p>This email was sent to {{.Recipient}}. If you have any questions, please contact our support team at support@vigiloauth.com</p>
+                <p>&copy; 2025 VigiloAuth. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+</html>

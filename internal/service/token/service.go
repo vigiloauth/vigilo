@@ -321,6 +321,13 @@ func (ts *tokenService) GenerateRefreshAndAccessTokens(subject, scopes string) (
 	return accessToken, refreshToken, nil
 }
 
+func (ts *tokenService) DeleteExpiredTokens() {
+	tokens := ts.tokenRepo.GetExpiredTokens()
+	for _, token := range tokens {
+		ts.tokenRepo.DeleteToken(token.Token)
+	}
+}
+
 // generateAndStoreToken creates a signed JWT (JSON Web Token) with standard claims
 // and then saves it to the TokenRepository.
 //

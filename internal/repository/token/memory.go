@@ -38,7 +38,6 @@ func GetInMemoryTokenRepository() *InMemoryTokenRepository {
 			tokens:    make(map[string]*domain.TokenData),
 			blacklist: make(map[string]struct{}),
 		}
-		go instance.cleanupExpiredTokens()
 	})
 	return instance
 }
@@ -184,23 +183,20 @@ func (b *InMemoryTokenRepository) ExistsByTokenID(tokenID string) bool {
 	return false
 }
 
-// cleanupExpiredTokens periodically removes expired tokens from the store.
-func (b *InMemoryTokenRepository) cleanupExpiredTokens() {
-	logger.Debug(module, "Starting cleanup of expired tokens")
-	ticker := time.NewTicker(1 * time.Minute)
-	for range ticker.C {
-		b.mu.Lock()
-		now := time.Now()
-		for token, data := range b.tokens {
-			if now.After(data.ExpiresAt) {
-				logger.Debug(module, "Deleting expired token=%s", truncateToken(token))
-				delete(b.tokens, token)
-				delete(b.blacklist, token)
-			}
+func (b *InMemoryTokenRepository) GetExpiredTokens() []*domain.TokenData {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	now := time.Now()
+	tokens := []*domain.TokenData{}
+
+	for _, data := range b.tokens {
+		if now.After(data.ExpiresAt) {
+			tokens = append(tokens, data)
 		}
-		b.mu.Unlock()
 	}
-	logger.Debug(module, "Finished cleanup of expired tokens")
+
+	return tokens
 }
 
 // truncateToken truncates a token for safe logging.

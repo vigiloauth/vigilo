@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
+	repository "github.com/vigiloauth/vigilo/internal/repository/user"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -90,6 +92,72 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		defer testContext.TearDown()
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.UserEndpoints.Logout, nil, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+}
+
+func TestUserHandler_VerifyAccount(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		tokenDuration := 5 * time.Minute
+		testContext.WithJWTToken(testEmail, time.Duration(tokenDuration))
+
+		endpoint := web.UserEndpoints.Verify + "?token=" + testContext.JWTToken
+		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		// assert user account is verified
+		userRepo := repository.GetInMemoryUserRepository()
+		retrievedUser := userRepo.GetUserByEmail(testEmail)
+		assert.True(t, retrievedUser.Verified)
+	})
+
+	t.Run("Error is returned when the verification code is missing in the request", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithUser()
+		endpoint := web.UserEndpoints.Verify + "?token="
+		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+		userRepo := repository.GetInMemoryUserRepository()
+		retrievedUser := userRepo.GetUserByEmail(testEmail)
+		assert.False(t, retrievedUser.Verified)
+	})
+
+	t.Run("Error is returned when the verification code is expired", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		tokenDuration := -5 * time.Minute
+		testContext.WithJWTToken(testEmail, time.Duration(tokenDuration))
+
+		endpoint := web.UserEndpoints.Verify + "?token=" + testContext.JWTToken
+		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+
+		// assert user account is not verified
+		userRepo := repository.GetInMemoryUserRepository()
+		retrievedUser := userRepo.GetUserByEmail(testEmail)
+		assert.False(t, retrievedUser.Verified)
+	})
+
+	t.Run("Error is returned when the user does not exist", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		tokenDuration := 5 * time.Minute
+		testContext.WithJWTToken("randomUser", time.Duration(tokenDuration))
+
+		endpoint := web.UserEndpoints.Verify + "?token=" + testContext.JWTToken
+		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})

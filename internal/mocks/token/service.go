@@ -39,6 +39,8 @@ type MockTokenService struct {
 	GenerateRefreshAndAccessTokensFunc func(subject, scopes string) (string, string, error)
 
 	BlacklistTokenFunc func(token string) error
+
+	DeleteExpiredTokensFunc func()
 }
 
 // GenerateToken calls the mock GenerateTokenFunc.
@@ -95,4 +97,8 @@ func (m *MockTokenService) GenerateRefreshAndAccessTokens(subject, scopes string
 
 func (m *MockTokenService) BlacklistToken(token string) error {
 	return m.BlacklistTokenFunc(token)
+}
+
+func (m *MockTokenService) DeleteExpiredTokens() {
+	m.DeleteExpiredTokensFunc()
 }

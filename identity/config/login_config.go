@@ -34,25 +34,10 @@ const (
 //
 //	*LoginConfig: A new LoginConfig instance.
 func NewLoginConfig(opts ...LoginConfigOptions) *LoginConfig {
-	lc := &LoginConfig{
-		maxFailedAttempts: defaultMaxFailedAttempts,
-		delay:             defaultDelay,
-		loginURL:          web.UserEndpoints.Login,
-		logger:            GetLogger(),
-		module:            "LoginConfig",
-	}
-
-	if len(opts) > 0 {
-		lc.logger.Info(lc.module, "Creating login config with %d options", len(opts))
-		for _, opt := range opts {
-			opt(lc)
-		}
-	} else {
-		lc.logger.Info(lc.module, "Using default login config")
-	}
-
-	lc.logger.Debug(lc.module, "\n\nLogin config parameters: %s", lc.String())
-	return lc
+	cfg := defaultLoginConfig()
+	cfg.loadOptions(opts...)
+	cfg.logger.Debug(cfg.module, "\n\nLogin config parameters: %s", cfg.String())
+	return cfg
 }
 
 // WithMaxFailedAttempts configures the maximum number of failed login attempts for the LoginConfig.
@@ -147,4 +132,25 @@ func (lc *LoginConfig) String() string {
 		lc.delay,
 		lc.loginURL,
 	)
+}
+
+func defaultLoginConfig() *LoginConfig {
+	return &LoginConfig{
+		maxFailedAttempts: defaultMaxFailedAttempts,
+		delay:             defaultDelay,
+		loginURL:          web.UserEndpoints.Login,
+		logger:            GetLogger(),
+		module:            "Login Config",
+	}
+}
+
+func (cfg *LoginConfig) loadOptions(opts ...LoginConfigOptions) {
+	if len(opts) > 0 {
+		cfg.logger.Info(cfg.module, "Creating login config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(cfg)
+		}
+	} else {
+		cfg.logger.Info(cfg.module, "Using default login config")
+	}
 }

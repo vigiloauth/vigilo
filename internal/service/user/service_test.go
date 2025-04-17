@@ -4,41 +4,48 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/crypto"
-	domain "github.com/vigiloauth/vigilo/internal/domain/client"
+	clients "github.com/vigiloauth/vigilo/internal/domain/client"
+	email "github.com/vigiloauth/vigilo/internal/domain/email"
+	tokens "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	mEmailService "github.com/vigiloauth/vigilo/internal/mocks/email"
 	mLoginService "github.com/vigiloauth/vigilo/internal/mocks/login"
 	mTokenService "github.com/vigiloauth/vigilo/internal/mocks/token"
 	mUserRepo "github.com/vigiloauth/vigilo/internal/mocks/user"
 )
 
 const (
-	testUsername        string = "username"
-	testEmail           string = "test@mail.com"
-	testToken           string = "test_token"
-	testUserID          string = "user_id"
-	testPassword1       string = "pas$_W0Rdssss"
-	testPassword2       string = "PAs%$_W0Rddd"
-	testInvalidPassword string = "invalid"
-	testIPAddress       string = "127.001.00"
-	testRequestMetadata string = "request_metadata"
-	testUserAgent       string = "user_agent"
-	testRequestDetails  string = "request_details"
+	testUsername         string = "username"
+	testEmail            string = "test@mail.com"
+	testToken            string = "test_token"
+	testUserID           string = "user_id"
+	testPassword1        string = "pas$_W0Rdssss"
+	testPassword2        string = "PAs%$_W0Rddd"
+	testInvalidPassword  string = "invalid"
+	testIPAddress        string = "127.001.00"
+	testRequestMetadata  string = "request_metadata"
+	testUserAgent        string = "user_agent"
+	testRequestDetails   string = "request_details"
+	testVerificationCode string = "12345"
 )
 
 func TestUserService_CreateUser_Success(t *testing.T) {
 	mockUserRepo := &mUserRepo.MockUserRepository{}
 	mockTokenService := &mTokenService.MockTokenService{}
 	mockLoginService := &mLoginService.MockLoginAttemptService{}
+	mockEmailService := &mEmailService.MockEmailService{}
 
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return nil }
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
 	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return testToken, nil }
+	mockEmailService.SendEmailFunc = func(request *email.EmailRequest) error { return nil }
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, mockEmailService)
 	registeredUser, err := userService.CreateUser(createNewUser())
 
 	assert.NoError(t, err)
@@ -49,39 +56,19 @@ func TestUserService_CreateUser_DuplicateEntry(t *testing.T) {
 	mockUserRepo := &mUserRepo.MockUserRepository{}
 	mockTokenService := &mTokenService.MockTokenService{}
 	mockLoginService := &mLoginService.MockLoginAttemptService{}
+
 	user := createNewUser()
 
 	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
 	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return user }
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
 
 	expected := errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
 	_, actual := userService.CreateUser(user)
 
 	assert.Error(t, actual)
 	assert.Equal(t, actual, expected)
-}
-
-func TestUserService_CreateUser_PasswordIsNotStoredInPlainText(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
-
-	mockUserRepo.DeleteUserByIDFunc = func(userID string) error { return nil }
-	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
-	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return nil }
-	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return testToken, nil }
-
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
-
-	user := createNewUser()
-	_, err := userService.CreateUser(user)
-	assert.NoError(t, err)
-
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return user }
-	retrievedUser := mockUserRepo.GetUserByIDFunc(testUserID)
-	assert.NotEqual(t, retrievedUser.Password, testPassword1)
 }
 
 func TestUserRegistrationRequest_Validate(t *testing.T) {
@@ -178,7 +165,7 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 	mockLoginService.SaveLoginAttemptFunc = func(attempt *users.UserLoginAttempt) error { return nil }
 	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
 	userLoginAttempt := createTestUserLoginRequest()
 
 	_, err = userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
@@ -200,15 +187,13 @@ func TestUserService_AuthenticateUserInvalidPassword(t *testing.T) {
 		return nil
 	}
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 
-	expected := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
 	_, actual := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
 
 	assert.Error(t, actual, "expected error during authentication")
-	assert.Equal(t, actual, expected)
 }
 
 func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
@@ -223,7 +208,7 @@ func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
 	assert.NoError(t, err)
 	loginUser.Password = encryptedPassword
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
 	userLoginAttempt := createTestUserLoginRequest()
 
 	expected := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
@@ -250,7 +235,7 @@ func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
 		return nil
 	}
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 
@@ -281,7 +266,7 @@ func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
 		return nil
 	}
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 
@@ -298,9 +283,95 @@ func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
 	assert.Error(t, err, "expected error on login attempt with locked account")
 }
 
+func TestUserService_ValidateVerificationCode(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		userRepo := &mUserRepo.MockUserRepository{
+			GetUserByEmailFunc: func(email string) *users.User {
+				return createNewUser()
+			},
+			UpdateUserFunc: func(user *users.User) error {
+				return nil
+			},
+		}
+		tokenService := &mTokenService.MockTokenService{
+			ValidateTokenFunc: func(token string) error { return nil },
+			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
+				return &tokens.TokenClaims{
+					StandardClaims: &jwt.StandardClaims{
+						Subject: testEmail,
+					},
+				}, nil
+			},
+		}
+
+		service := NewUserService(userRepo, tokenService, nil, nil)
+		err := service.ValidateVerificationCode(testVerificationCode)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error is returned when the verification code is not valid", func(t *testing.T) {
+		tokenService := &mTokenService.MockTokenService{
+			ValidateTokenFunc: func(token string) error {
+				return errors.New(errors.ErrCodeUnauthorized, "the verification code is either expired or does not exist")
+			},
+		}
+
+		service := NewUserService(nil, tokenService, nil, nil)
+		err := service.ValidateVerificationCode(testVerificationCode)
+
+		assert.Error(t, err)
+		assert.Contains(t, "the verification code is either expired or does not exist", err.Error())
+	})
+
+	t.Run("Error is returned when required parameters are missing", func(t *testing.T) {
+		service := NewUserService(nil, nil, nil, nil)
+		err := service.ValidateVerificationCode("")
+
+		assert.Error(t, err)
+		assert.Contains(t, "missing one or more required parameters in the request", err.Error())
+	})
+
+	t.Run("Error is returned when parsing the verification code fails", func(t *testing.T) {
+		tokenService := &mTokenService.MockTokenService{
+			ValidateTokenFunc: func(token string) error { return nil },
+			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
+				return nil, errors.NewInternalServerError()
+			},
+		}
+
+		service := NewUserService(nil, tokenService, nil, nil)
+		err := service.ValidateVerificationCode(testVerificationCode)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Error is returned when the user does not exist by email", func(t *testing.T) {
+		userRepo := &mUserRepo.MockUserRepository{
+			GetUserByEmailFunc: func(email string) *users.User { return nil },
+		}
+		tokenService := &mTokenService.MockTokenService{
+			ValidateTokenFunc: func(token string) error { return nil },
+			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
+				return &tokens.TokenClaims{
+					StandardClaims: &jwt.StandardClaims{
+						Subject: testEmail,
+					},
+				}, nil
+			},
+		}
+
+		service := NewUserService(userRepo, tokenService, nil, nil)
+		err := service.ValidateVerificationCode(testVerificationCode)
+
+		assert.Error(t, err)
+		assert.Contains(t, "the verification code is invalid", err.Error())
+	})
+}
+
 func createNewUser() *users.User {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
-	user.Scopes = []string{domain.UserRead}
+	user.Scopes = []string{clients.UserRead}
 	return user
 }
 

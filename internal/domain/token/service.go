@@ -148,4 +148,6 @@ type TokenService interface {
 	// 	error: An error if the token is not found in the token store or if it has already
 	//     expired, in which case it cannot be blacklisted.
 	BlacklistToken(token string) error
+
+	DeleteExpiredTokens()
 }

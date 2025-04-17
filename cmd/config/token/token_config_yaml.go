@@ -13,8 +13,8 @@ type TokenConfigYAML struct {
 	RefreshTokenDuration *int64  `yaml:"refresh_token_duration,omitempty"`
 }
 
-func (tc *TokenConfigYAML) ToOptions() []config.TokenOption {
-	options := []config.TokenOption{}
+func (tc *TokenConfigYAML) ToOptions() []config.TokenConfigOptions {
+	options := []config.TokenConfigOptions{}
 
 	if tc.SecretKey != nil {
 		options = append(options, config.WithSecret(*tc.SecretKey))

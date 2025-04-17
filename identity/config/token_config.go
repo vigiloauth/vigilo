@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -20,11 +21,10 @@ type TokenConfig struct {
 	module string
 }
 
-// TokenOption is a function type used to configure JWTConfig options.
-type TokenOption func(*TokenConfig)
+// TokenConfigOptions is a function type used to configure JWTConfig options.
+type TokenConfigOptions func(*TokenConfig)
 
 const (
-	defaultSecret               string        = "fallback_secure_default_key" // Default secret key (should be overridden in production).
 	defaultExpirationTime       time.Duration = time.Duration(24) * time.Hour // Default expiration time for JWT tokens (24 hours).
 	defaultAccessTokenDuration  time.Duration = time.Duration(30) * time.Minute
 	defaultRefreshTokenDuration time.Duration = time.Duration(1) * 24 * time.Hour
@@ -39,29 +39,11 @@ const (
 // Returns:
 //
 //	*JWTConfig: A new JWTConfig instance.
-func NewTokenConfig(opts ...TokenOption) *TokenConfig {
-	config := &TokenConfig{
-		secretKey:            defaultSecret,
-		expirationTime:       defaultExpirationTime,
-		accessTokenDuration:  defaultAccessTokenDuration,
-		refreshTokenDuration: defaultRefreshTokenDuration,
-		signingMethod:        jwt.SigningMethodHS256,
-		logger:               GetLogger(),
-		module:               "TokenConfig",
-	}
-
-	if len(opts) > 0 {
-		config.logger.Info(config.module, "Creating token config with %d options", len(opts))
-		for _, opt := range opts {
-			opt(config)
-		}
-	} else {
-		config.logger.Info(config.module, "Using default token config")
-	}
-
-	config.logger.Debug(config.module, "\n\nToken config parameters: %v", config.String())
-
-	return config
+func NewTokenConfig(opts ...TokenConfigOptions) *TokenConfig {
+	cfg := defaultTokenConfig()
+	cfg.loadOptions(opts...)
+	cfg.logger.Debug(cfg.module, "\n\nToken config parameters: %v", cfg.String())
+	return cfg
 }
 
 // WithSecret configures the secret key for the JWTConfig.
@@ -73,7 +55,7 @@ func NewTokenConfig(opts ...TokenOption) *TokenConfig {
 // Returns:
 //
 //	JWTOption: A function that configures the secret key.
-func WithSecret(secret string) TokenOption {
+func WithSecret(secret string) TokenConfigOptions {
 	return func(c *TokenConfig) {
 		c.logger.Debug(c.module, "Configuring TokenConfig with given secret=[%s]", common.TruncateSensitive(secret))
 		c.secretKey = secret
@@ -89,7 +71,7 @@ func WithSecret(secret string) TokenOption {
 // Returns:
 //
 //	JWTOption: A function that configures the expiration time.
-func WithExpirationTime(duration time.Duration) TokenOption {
+func WithExpirationTime(duration time.Duration) TokenConfigOptions {
 	return func(c *TokenConfig) {
 		if !isInHours(duration) {
 			c.logger.Warn(c.module, "Token expiration time is not in hours, using default value")
@@ -111,7 +93,7 @@ func WithExpirationTime(duration time.Duration) TokenOption {
 // Returns:
 //
 //	JWTOption: A function that configures the expiration time.
-func WithAccessTokenDuration(duration time.Duration) TokenOption {
+func WithAccessTokenDuration(duration time.Duration) TokenConfigOptions {
 	return func(c *TokenConfig) {
 		if !isInMinutes(duration) {
 			c.logger.Warn(c.module, "Access token duration is not in minutes, using default value")
@@ -133,7 +115,7 @@ func WithAccessTokenDuration(duration time.Duration) TokenOption {
 // Returns:
 //
 //	JWTOption: A function that configures the expiration time.
-func WithRefreshTokenDuration(duration time.Duration) TokenOption {
+func WithRefreshTokenDuration(duration time.Duration) TokenConfigOptions {
 	return func(c *TokenConfig) {
 		c.logger.Debug(c.module, "Configuring TokenConfig with refresh token duration=[%s]", duration)
 		c.refreshTokenDuration = duration
@@ -149,7 +131,7 @@ func WithRefreshTokenDuration(duration time.Duration) TokenOption {
 // Returns:
 //
 //	JWTOption: A function that configures the signing method.
-func WithSigningMethod(method jwt.SigningMethod) TokenOption {
+func WithSigningMethod(method jwt.SigningMethod) TokenConfigOptions {
 	return func(c *TokenConfig) {
 		c.logger.Debug(c.module, "Configuring TokenConfig with signing method=[%s]", method.Alg())
 		c.signingMethod = method
@@ -202,4 +184,28 @@ func (j *TokenConfig) String() string {
 		j.refreshTokenDuration,
 		j.accessTokenDuration,
 	)
+}
+
+func defaultTokenConfig() *TokenConfig {
+	secretKey := os.Getenv("TOKEN_SECRET_KEY")
+	return &TokenConfig{
+		secretKey:            secretKey,
+		expirationTime:       defaultExpirationTime,
+		accessTokenDuration:  defaultAccessTokenDuration,
+		refreshTokenDuration: defaultRefreshTokenDuration,
+		signingMethod:        jwt.SigningMethodHS256,
+		logger:               GetLogger(),
+		module:               "Token Config",
+	}
+}
+
+func (cfg *TokenConfig) loadOptions(opts ...TokenConfigOptions) {
+	if len(opts) > 0 {
+		cfg.logger.Info(cfg.module, "Creating token config with %d options", len(opts))
+		for _, opt := range opts {
+			opt(cfg)
+		}
+	} else {
+		cfg.logger.Info(cfg.module, "Using default token config")
+	}
 }

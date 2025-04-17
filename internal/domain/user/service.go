@@ -13,6 +13,15 @@ type UserService interface {
 	//	error: An error if any occurred during the process.
 	CreateUser(user *User) (*UserRegistrationResponse, error)
 
+	// GetUserByUsername retrieves a user using their username.
+	//
+	// Parameter:
+	//
+	//	username string: The username of the user to retrieve.
+	//
+	// Returns:
+	//
+	//	*User: The retrieved user, otherwise nil.
 	GetUserByUsername(username string) *User
 
 	// HandleOAuthLogin authenticates a user based on an OAuth login request.
@@ -23,17 +32,17 @@ type UserService interface {
 	//
 	// Parameters:
 	//
-	//   - request *UserLoginRequest: The login request containing the user's email and password.
-	//   - clientID string: The client ID of the OAuth client making the request.
-	//   - redirectURI string: The redirect URI to use if authentication is successful.
-	//   - remoteAddr string: The remote address of the client making the request.
-	//   - forwardedFor string: The value of the "X-Forwarded-For" header, if present.
-	//   - userAgent string: The user agent string from the HTTP request.
+	//   request *UserLoginRequest: The login request containing the user's email and password.
+	//   clientID string: The client ID of the OAuth client making the request.
+	//   redirectURI string: The redirect URI to use if authentication is successful.
+	//   remoteAddr string: The remote address of the client making the request.
+	//   forwardedFor string: The value of the "X-Forwarded-For" header, if present.
+	//   userAgent string: The user agent string from the HTTP request.
 	//
 	// Returns:
 	//
-	//   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
-	//   - error: An error if authentication fails or if the input is invalid.
+	//   *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
+	//   error: An error if authentication fails or if the input is invalid.
 	HandleOAuthLogin(request *UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*UserLoginResponse, error)
 
 	// AuthenticateUserWithRequest authenticates a user based on a login request and request metadata.
@@ -44,18 +53,16 @@ type UserService interface {
 	//
 	// Parameters:
 	//
-	//   - request *UserLoginRequest: The login request containing the user's email and password.
-	//   - remoteAddr string: The remote address of the client making the request.
-	//   - forwardedFor string: The value of the "X-Forwarded-For" header, if present.
-	//   - userAgent string: The user agent string from the HTTP request.
+	//   request *UserLoginRequest: The login request containing the user's email and password.
+	//   remoteAddr string: The remote address of the client making the request.
+	//   forwardedFor string: The value of the "X-Forwarded-For" header, if present.
+	//   userAgent string: The user agent string from the HTTP request.
 	//
 	// Returns:
 	//
-	//   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
-	//   - error: An error if authentication fails or if the input is invalid.
+	//   *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
+	//   error: An error if authentication fails or if the input is invalid.
 	AuthenticateUserWithRequest(request *UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*UserLoginResponse, error)
-
-	// AuthenticateUser authenticates a user based on their username and password.
 
 	// GetUserByID retrieves a user from the store using their ID.
 	//
@@ -67,4 +74,20 @@ type UserService interface {
 	//
 	//   *User: The User object if found, or nil if not found.
 	GetUserByID(userID string) *User
+
+	// ValidateVerificationCode validates the verification code and updates the user
+	// if verification was successful.
+	//
+	// Parameter:
+	//
+	//	verificationCode string: The verification code to verify.
+	//
+	// Returns:
+	//
+	//	error: an error if validation fails, otherwise nil.
+	ValidateVerificationCode(verificationCode string) error
+
+	// DeleteUnverifiedUsers deletes any user that hasn't verified their account and
+	// has been created for over a week.
+	DeleteUnverifiedUsers()
 }

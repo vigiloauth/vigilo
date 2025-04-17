@@ -12,11 +12,13 @@ var UserEndpoints = struct {
 	Login         string
 	Logout        string
 	ResetPassword string
+	Verify        string
 }{
 	Registration:  defaultAuthEndpoint + "/signup",
 	Login:         defaultAuthEndpoint + "/login",
 	Logout:        defaultAuthEndpoint + "/logout",
 	ResetPassword: defaultAuthEndpoint + "/reset-password/confirm",
+	Verify:        defaultAuthEndpoint + "/verify",
 }
 
 var ClientEndpoints = struct {
