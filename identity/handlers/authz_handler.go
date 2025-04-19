@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
@@ -54,8 +56,11 @@ func NewAuthorizationHandler(
 // If authorization is successful, it redirects the user to the redirect URI with the authorization code.
 // If an error occurs, it writes an appropriate error response.
 func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[AuthorizeClient]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request=[AuthorizeClient]")
 
 	query := r.URL.Query()
 	isUserConsentApproved := query.Get(common.Approved) == "true"
@@ -72,20 +77,20 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 
 	if req.UserID == "" {
 		loginURL := h.buildLoginURL(req.ClientID, req.RedirectURI, req.Scope, req.State, requestID)
-		h.logger.Warn(h.module, "RequestID=[%s]: User is not authenticated. Returning a 'login required error'", requestID)
+		h.logger.Warn(h.module, requestID, "[AuthorizeClient]: User is not authenticated. Returning a 'login required error'")
 		web.WriteError(w, errors.NewLoginRequiredError(loginURL))
 		return
 	}
 
-	redirectURL, err := h.authorizationService.AuthorizeClient(req, isUserConsentApproved)
+	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req, isUserConsentApproved)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to authorize client: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Failed to authorize client: %v", err)
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[AuthorizeClient]", requestID)
+	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Successfully processed request")
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
@@ -100,10 +105,10 @@ func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state
 	)
 
 	if state != "" {
-		h.logger.Debug(h.module, "RequestID=[%s]: Adding state to login URL", requestID)
+		h.logger.Debug(h.module, requestID, "Adding state to login URL")
 		loginURL = fmt.Sprintf("%s&state=%s", loginURL, url.QueryEscape(state))
 	}
 
-	h.logger.Debug(h.module, "RequestID=[%s]: LoginURL=[%s] successfully generated", requestID, common.SanitizeURL(loginURL))
+	h.logger.Debug(h.module, requestID, "LoginURL=[%s] successfully generated", common.SanitizeURL(loginURL))
 	return loginURL
 }

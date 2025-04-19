@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"net/http"
 )
 
@@ -11,42 +12,39 @@ type UserConsentService interface {
 	// for the requested scope.
 	//
 	// Parameters:
-	//
-	//   userID string: The unique identifier of the user.
-	//   clientID string: The identifier of the client application requesting access.
-	//   scope string: The space-separated list of permissions being requested.
+	//	- ctx Context: The context for managing timeouts and cancellations.
+	//	- userID string: The unique identifier of the user.
+	//	- clientID string: The identifier of the client application requesting access.
+	//	- scope string: The space-separated list of permissions being requested.
 	//
 	// Returns:
-	//
-	//   bool: True if consent exists, false if consent is needed.
-	//   error: An error if the consent check operation fails.
-	CheckUserConsent(userID, clientID, scope string) (bool, error)
+	//	- bool: True if consent exists, false if consent is needed.
+	//	- error: An error if the consent check operation fails.
+	CheckUserConsent(ctx context.Context, userID, clientID, scope string) (bool, error)
 
 	// SaveUserConsent records a user's consent for a client application
 	// to access resources within the specified scope.
 	//
 	// Parameters:
-	//
-	//   userID string: The unique identifier of the user granting consent.
-	//   clientID string: The identifier of the client application receiving consent.
-	//   scope string: The space-separated list of permissions being granted.
+	//   - ctx Context: The context for managing timeouts and cancellations.
+	//	- userID string: The unique identifier of the user granting consent.
+	//	- clientID string: The identifier of the client application receiving consent.
+	//	- scope string: The space-separated list of permissions being granted.
 	//
 	// Returns:
-	//
-	//   error: An error if the consent cannot be saved, or nil if successful.
-	SaveUserConsent(userID, clientID, scope string) error
+	//	- error: An error if the consent cannot be saved, or nil if successful.
+	SaveUserConsent(ctx context.Context, userID, clientID, scope string) error
 
 	// RevokeConsent removes a user's consent for a client.
 	//
 	// Parameters:
-	//
-	//	userID string: The ID of the user.
-	//	clientID string: The ID of the client application.
+	//  - ctx Context: The context for managing timeouts and cancellations.
+	//	- userID string: The ID of the user.
+	//	- clientID string: The ID of the client application.
 	//
 	// Returns:
-	//
-	//	error: An error if the consent cannot be revoked, or nil if successful.
-	RevokeConsent(userID, clientID string) error
+	//	- error: An error if the consent cannot be revoked, or nil if successful.
+	RevokeConsent(ctx context.Context, userID, clientID string) error
 
 	// GetConsentDetails retrieves the details required for the user consent process.
 	//
@@ -54,7 +52,6 @@ type UserConsentService interface {
 	// and prepares the response to be displayed to the user for consent.
 	//
 	// Parameters:
-	//
 	//   - userID string: The unique identifier of the user.
 	//   - clientID string: The identifier of the client application requesting access.
 	//   - redirectURI string: The redirect URI provided by the client application.
@@ -62,7 +59,6 @@ type UserConsentService interface {
 	//   - r *http.Request: The HTTP request containing session and other metadata.
 	//
 	// Returns:
-	//
 	//   - *consent.UserConsentResponse: The response containing client and scope details for the consent process.
 	//   - error: An error if the details cannot be retrieved or prepared.
 	GetConsentDetails(userID, clientID, redirectURI, scope string, r *http.Request) (*UserConsentResponse, error)
@@ -74,7 +70,6 @@ type UserConsentService interface {
 	// (e.g., an authorization code or an error redirect).
 	//
 	// Parameters:
-	//
 	//   - userID string: The unique identifier of the user.
 	//   - clientID string: The identifier of the client application requesting access.
 	//   - redirectURI string: The redirect URI provided by the client application.
@@ -83,7 +78,6 @@ type UserConsentService interface {
 	//   - r *http.Request: The HTTP request containing session and other metadata.
 	//
 	// Returns:
-	//
 	//   - *consent.UserConsentResponse: The response containing the result of the consent process (e.g., success or denial).
 	//   - error: An error if the consent decision cannot be processed or stored.
 	ProcessUserConsent(userID, clientID, redirectURI, scope string, consentRequest *UserConsentRequest, r *http.Request) (*UserConsentResponse, error)

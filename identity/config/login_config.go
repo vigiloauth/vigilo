@@ -52,7 +52,7 @@ func NewLoginConfig(opts ...LoginConfigOptions) *LoginConfig {
 func WithMaxFailedAttempts(maxAttempts int) LoginConfigOptions {
 	return func(lc *LoginConfig) {
 		if maxAttempts > defaultMaxFailedAttempts {
-			lc.logger.Info(lc.module, "Configuring LoginConfig to use [%d] max failed login attempts", maxAttempts)
+			lc.logger.Info(lc.module, "", "Configuring LoginConfig to use [%d] max failed login attempts", maxAttempts)
 			lc.maxFailedAttempts = maxAttempts
 		}
 	}
@@ -71,11 +71,11 @@ func WithMaxFailedAttempts(maxAttempts int) LoginConfigOptions {
 func WithDelay(delay time.Duration) LoginConfigOptions {
 	return func(lc *LoginConfig) {
 		if !isInMilliseconds(delay) {
-			lc.logger.Warn(lc.module, "Delay duration is not in milliseconds, using default value of 500ms")
+			lc.logger.Warn(lc.module, "", "Delay duration is not in milliseconds, using default value of 500ms")
 			lc.delay = defaultDelay
 			return
 		}
-		lc.logger.Info(lc.module, "Configuring LoginConfig to use delay=[%s]", delay)
+		lc.logger.Info(lc.module, "", "Configuring LoginConfig to use delay=[%s]", delay)
 		lc.delay = delay
 	}
 }
@@ -100,7 +100,7 @@ func (lc *LoginConfig) MaxFailedAttempts() int {
 // LoginConfigOptions: A function that configures the login url.
 func WithLoginURL(url string) LoginConfigOptions {
 	return func(lc *LoginConfig) {
-		lc.logger.Info(lc.module, "Configuring LoginConfig to use URL=[%s]", url)
+		lc.logger.Info(lc.module, "", "Configuring LoginConfig to use URL=[%s]", url)
 		lc.loginURL = url
 	}
 }
@@ -146,11 +146,11 @@ func defaultLoginConfig() *LoginConfig {
 
 func (cfg *LoginConfig) loadOptions(opts ...LoginConfigOptions) {
 	if len(opts) > 0 {
-		cfg.logger.Info(cfg.module, "Creating login config with %d options", len(opts))
+		cfg.logger.Info(cfg.module, "", "Creating login config with %d options", len(opts))
 		for _, opt := range opts {
 			opt(cfg)
 		}
 	} else {
-		cfg.logger.Info(cfg.module, "Using default login config")
+		cfg.logger.Info(cfg.module, "", "Using default login config")
 	}
 }

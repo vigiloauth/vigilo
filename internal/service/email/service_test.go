@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,6 +13,8 @@ import (
 )
 
 func TestEmailService_SendEmail(t *testing.T) {
+	ctx := context.Background()
+
 	t.Run("Success", func(t *testing.T) {
 		mailer := &mocks.MockGoMailer{
 			NewMessageFunc: func(request *domain.EmailRequest, body, subject, fromAddress string) *gomail.Message {
@@ -26,7 +29,7 @@ func TestEmailService_SendEmail(t *testing.T) {
 		request := createVerificationEmail()
 		service := NewEmailService(mailer)
 
-		err := service.SendEmail(request)
+		err := service.SendEmail(ctx, request)
 		assert.NoError(t, err)
 	})
 
@@ -35,7 +38,7 @@ func TestEmailService_SendEmail(t *testing.T) {
 		request := createVerificationEmail()
 		service := NewEmailService(nil)
 
-		err := service.SendEmail(request)
+		err := service.SendEmail(ctx, request)
 		assert.NoError(t, err)
 
 		// assert the queue contains one request
@@ -57,7 +60,7 @@ func TestEmailService_SendEmail(t *testing.T) {
 		request := createVerificationEmail()
 		service := NewEmailService(mailer)
 
-		err := service.SendEmail(request)
+		err := service.SendEmail(ctx, request)
 		assert.Error(t, err)
 
 		// assert the queue contains one request

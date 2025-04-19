@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -32,13 +33,13 @@ func TestSessionService_CreateSession(t *testing.T) {
 	mockSessionRepo := &mSessionRepo.MockSessionRepository{}
 	mockCookieService := &mCookieService.MockHTTPCookieService{}
 
-	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes string, expirationTime time.Duration) (string, error) {
 		return testToken, nil
 	}
-	mockSessionRepo.SaveSessionFunc = func(sessionData *session.SessionData) error {
+	mockSessionRepo.SaveSessionFunc = func(ctx context.Context, sessionData *session.SessionData) error {
 		return nil
 	}
-	mockCookieService.SetSessionCookieFunc = func(w http.ResponseWriter, token string, expirationTime time.Duration) {}
+	mockCookieService.SetSessionCookieFunc = func(ctx context.Context, w http.ResponseWriter, token string, expirationTime time.Duration) {}
 
 	sessionService := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService)
 
@@ -53,26 +54,32 @@ func TestSessionService_CreateSession(t *testing.T) {
 func TestSessionService_InvalidateSession(t *testing.T) {
 	config.NewServerConfig(config.WithForceHTTPS())
 	config.NewTokenConfig()
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockSessionRepo := &mSessionRepo.MockSessionRepository{}
-	mockCookieService := &mCookieService.MockHTTPCookieService{}
-
-	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
-		return testToken, nil
+	mockTokenService := &mTokenService.MockTokenService{
+		GenerateTokenFunc: func(ctx context.Context, subject, scopes string, expirationTime time.Duration) (string, error) {
+			return testToken, nil
+		},
+		IsTokenBlacklistedFunc: func(ctx context.Context, tokenString string) (bool, error) {
+			return false, nil
+		},
+		SaveTokenFunc: func(ctx context.Context, tokenString, email string, expirationTime time.Time) error {
+			return nil
+		},
+		ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {
+			return &domain.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject: testEmail,
+				},
+			}, nil
+		},
 	}
-	mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
-		return &domain.TokenClaims{
-			StandardClaims: &jwt.StandardClaims{
-				Subject: testEmail,
-			},
-		}, nil
+	mockSessionRepo := &mSessionRepo.MockSessionRepository{
+		DeleteSessionByIDFunc: func(ctx context.Context, sessionID string) error {
+			return nil
+		},
 	}
-	mockCookieService.ClearSessionCookieFunc = func(w http.ResponseWriter) {}
-
-	mockTokenService.IsTokenBlacklistedFunc = func(tokenString string) bool { return false }
-	mockTokenService.SaveTokenFunc = func(tokenString, email string, expirationTime time.Time) {}
-	mockTokenService.IsTokenBlacklistedFunc = func(tokenString string) bool { return tokenString == testToken }
-	mockSessionRepo.DeleteSessionByIDFunc = func(sessionID string) error { return nil }
+	mockCookieService := &mCookieService.MockHTTPCookieService{
+		ClearSessionCookieFunc: func(ctx context.Context, w http.ResponseWriter) {},
+	}
 
 	sessionService := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService)
 
@@ -146,12 +153,12 @@ func TestSessionService_UpdateSession(t *testing.T) {
 	mockSessionRepo := &mSessionRepo.MockSessionRepository{}
 	mockCookieService := &mCookieService.MockHTTPCookieService{}
 
-	t.Run("Sucess", func(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
 		mockCookieService.GetSessionTokenFunc = func(r *http.Request) (string, error) {
 			return testSessionID, nil
 		}
 
-		mockSessionRepo.UpdateSessionByIDFunc = func(sessionID string, sessionData *session.SessionData) error {
+		mockSessionRepo.UpdateSessionByIDFunc = func(ctx context.Context, sessionID string, sessionData *session.SessionData) error {
 			return nil
 		}
 
@@ -171,7 +178,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 		mockCookieService.GetSessionTokenFunc = func(r *http.Request) (string, error) {
 			return testSessionID, nil
 		}
-		mockSessionRepo.UpdateSessionByIDFunc = func(sessionID string, sessionData *session.SessionData) error {
+		mockSessionRepo.UpdateSessionByIDFunc = func(ctx context.Context, sessionID string, sessionData *session.SessionData) error {
 			return errors.NewInternalServerError()
 		}
 
@@ -204,7 +211,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 		mockCookieService.GetSessionTokenFunc = func(r *http.Request) (string, error) {
 			return testSessionID, nil
 		}
-		mockSessionRepo.GetSessionByIDFunc = func(sessionID string) (*session.SessionData, error) {
+		mockSessionRepo.GetSessionByIDFunc = func(ctx context.Context, sessionID string) (*session.SessionData, error) {
 			return testSessionData, nil
 		}
 
@@ -234,7 +241,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 		mockCookieService.GetSessionTokenFunc = func(r *http.Request) (string, error) {
 			return testSessionID, nil
 		}
-		mockSessionRepo.GetSessionByIDFunc = func(sessionID string) (*session.SessionData, error) {
+		mockSessionRepo.GetSessionByIDFunc = func(ctx context.Context, sessionID string) (*session.SessionData, error) {
 			return nil, errors.NewInternalServerError() // Simulate session not found
 		}
 
@@ -253,7 +260,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 		mockCookieService.GetSessionTokenFunc = func(r *http.Request) (string, error) {
 			return testSessionID, nil
 		}
-		mockSessionRepo.GetSessionByIDFunc = func(sessionID string) (*session.SessionData, error) {
+		mockSessionRepo.GetSessionByIDFunc = func(ctx context.Context, sessionID string) (*session.SessionData, error) {
 			return nil, errors.NewInternalServerError()
 		}
 
@@ -270,9 +277,10 @@ func TestSessionService_GetSessionData(t *testing.T) {
 }
 
 func TestSessionService_ClearStateFromSession(t *testing.T) {
+	ctx := context.Background()
 	t.Run("Success", func(t *testing.T) {
 		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			UpdateSessionByIDFunc: func(sessionID string, sessionData *session.SessionData) error {
+			UpdateSessionByIDFunc: func(ctx context.Context, sessionID string, sessionData *session.SessionData) error {
 				return nil
 			},
 		}
@@ -281,13 +289,13 @@ func TestSessionService_ClearStateFromSession(t *testing.T) {
 		session.State = "testState"
 		service := NewSessionService(nil, mockSessionRepo, nil)
 
-		err := service.ClearStateFromSession(session)
+		err := service.ClearStateFromSession(ctx, session)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Error is returned when updating the session", func(t *testing.T) {
 		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			UpdateSessionByIDFunc: func(sessionID string, sessionData *session.SessionData) error {
+			UpdateSessionByIDFunc: func(ctx context.Context, sessionID string, sessionData *session.SessionData) error {
 				return errors.NewInternalServerError()
 			},
 		}
@@ -296,7 +304,7 @@ func TestSessionService_ClearStateFromSession(t *testing.T) {
 		session.State = "testState"
 		service := NewSessionService(nil, mockSessionRepo, nil)
 
-		err := service.ClearStateFromSession(session)
+		err := service.ClearStateFromSession(ctx, session)
 		assert.Error(t, err)
 	})
 }
@@ -309,7 +317,7 @@ func TestSessionService_ValidateSessionState(t *testing.T) {
 			},
 		}
 		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			GetSessionByIDFunc: func(sessionID string) (*session.SessionData, error) {
+			GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*session.SessionData, error) {
 				return getTestSessionData(), nil
 			},
 		}
@@ -334,7 +342,7 @@ func TestSessionService_ValidateSessionState(t *testing.T) {
 			},
 		}
 		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			GetSessionByIDFunc: func(sessionID string) (*session.SessionData, error) {
+			GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*session.SessionData, error) {
 				return nil, errors.NewInternalServerError()
 			},
 		}
@@ -355,7 +363,7 @@ func TestSessionService_ValidateSessionState(t *testing.T) {
 			},
 		}
 		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			GetSessionByIDFunc: func(sessionID string) (*session.SessionData, error) {
+			GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*session.SessionData, error) {
 				return getTestSessionData(), nil
 			},
 		}

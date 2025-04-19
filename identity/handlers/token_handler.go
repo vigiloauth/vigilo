@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -21,8 +22,9 @@ type TokenHandler struct {
 	authService          auth.AuthenticationService
 	sessionService       session.SessionService
 	authorizationService authz.AuthorizationService
-	logger               *config.Logger
-	module               string
+
+	logger *config.Logger
+	module string
 }
 
 func NewTokenHandler(
@@ -40,10 +42,13 @@ func NewTokenHandler(
 }
 
 func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IntrospectToken]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
 
-	if err := h.authService.AuthenticateClientRequest(r, client.TokenIntrospect); err != nil {
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[IntrospectToken]: Processing request")
+
+	if err := h.authService.AuthenticateClientRequest(ctx, r, client.TokenIntrospect); err != nil {
 		web.WriteError(w, errors.NewClientAuthenticationError(err))
 		return
 	}
@@ -55,16 +60,19 @@ func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenRequest := r.FormValue(common.Token)
-	response := h.authService.IntrospectToken(tokenRequest)
+	response := h.authService.IntrospectToken(ctx, tokenRequest)
 
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *TokenHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=]%s]: Processing request=[RevokeToken]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
 
-	if err := h.authService.AuthenticateClientRequest(r, client.TokenRevoke); err != nil {
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[RevokeToken]: Processing request")
+
+	if err := h.authService.AuthenticateClientRequest(ctx, r, client.TokenRevoke); err != nil {
 		web.WriteError(w, errors.NewClientAuthenticationError(err))
 		return
 	}
@@ -76,13 +84,16 @@ func (h *TokenHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tokenRequest := r.FormValue(common.Token)
-	h.authService.RevokeToken(tokenRequest)
+	h.authService.RevokeToken(ctx, tokenRequest)
 	web.WriteJSON(w, http.StatusOK, nil)
 }
 
 func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[IssueToken]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[IssueTokens]: Processing request")
 
 	err := r.ParseForm()
 	if err != nil {
@@ -92,7 +103,7 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 
 	clientID, clientSecret, err := h.extractClientCredentials(r)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Invalid client credentials: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "[IssueTokens]: Invalid client credentials: %v", err)
 		web.WriteError(w, err)
 		return
 	}
@@ -107,28 +118,28 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 
 	switch requestedGrantType {
 	case client.ClientCredentials:
-		h.handleClientCredentialsRequest(w, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
+		h.handleClientCredentialsRequest(ctx, w, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
 		return
 	case client.PasswordGrant:
-		h.handlePasswordGrantRequest(w, r, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
+		h.handlePasswordGrantRequest(ctx, w, r, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
 		return
 	case client.AuthorizationCode, client.PKCE:
-		h.handleAuthorizationCodeTokenExchange(w, r, requestID, clientID, clientSecret)
+		h.handleAuthorizationCodeTokenExchange(ctx, w, r, requestID, clientID, clientSecret)
 		return
 	case client.RefreshToken:
-		h.handleRefreshTokenRequest(w, r, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
+		h.handleRefreshTokenRequest(ctx, w, r, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
 	default:
-		h.logger.Warn(h.module, "RequestID=[%s]: Unsupported grant type", requestID)
+		h.logger.Warn(h.module, requestID, "[IssueTokens]: Unsupported grant type")
 		err := errors.New(errors.ErrCodeUnsupportedGrantType, fmt.Sprintf("the provided grant type [%s] is not supported", requestedGrantType))
 		web.WriteError(w, err)
 		return
 	}
 }
 
-func (h *TokenHandler) handleClientCredentialsRequest(w http.ResponseWriter, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
-	response, err := h.authService.IssueClientCredentialsToken(clientID, clientSecret, requestedGrantType, requestedScopes)
+func (h *TokenHandler) handleClientCredentialsRequest(ctx context.Context, w http.ResponseWriter, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+	response, err := h.authService.IssueClientCredentialsToken(ctx, clientID, clientSecret, requestedGrantType, requestedScopes)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to issue token for client credentials grant: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "Failed to issue token for client credentials grant: %v", err)
 		web.WriteError(w, errors.Wrap(err, "", "invalid client credentials or unauthorized grant type/scopes"))
 		return
 	}
@@ -136,7 +147,7 @@ func (h *TokenHandler) handleClientCredentialsRequest(w http.ResponseWriter, req
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *TokenHandler) handlePasswordGrantRequest(w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+func (h *TokenHandler) handlePasswordGrantRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
 	if r.URL.Query().Get(common.Password) != "" {
 		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "password must not be in the URL"))
 		return
@@ -154,9 +165,9 @@ func (h *TokenHandler) handlePasswordGrantRequest(w http.ResponseWriter, r *http
 		UserAgent:       r.UserAgent(),
 	}
 
-	tokenResponse, err := h.authService.IssueResourceOwnerToken(clientID, clientSecret, requestedGrantType, requestedScopes, loginAttempt)
+	tokenResponse, err := h.authService.IssueResourceOwnerToken(ctx, clientID, clientSecret, requestedGrantType, requestedScopes, loginAttempt)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to issue tokens for password grant: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "Failed to issue tokens for password grant: %v", err)
 		web.WriteError(w, errors.Wrap(err, "", "invalid credentials or unauthorized grant type/scopes"))
 		return
 	}
@@ -164,9 +175,7 @@ func (h *TokenHandler) handlePasswordGrantRequest(w http.ResponseWriter, r *http
 	web.WriteJSON(w, http.StatusOK, tokenResponse)
 }
 
-func (h *TokenHandler) handleAuthorizationCodeTokenExchange(w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret string) {
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[TokenExchange]", requestID)
-
+func (h *TokenHandler) handleAuthorizationCodeTokenExchange(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret string) {
 	tokenRequest := &token.TokenRequest{
 		GrantType:         r.FormValue(common.GrantType),
 		AuthorizationCode: r.FormValue(common.AuthzCode),
@@ -186,55 +195,55 @@ func (h *TokenHandler) handleAuthorizationCodeTokenExchange(w http.ResponseWrite
 
 	sessionData, err := h.sessionService.GetSessionData(r)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to retrieve session data: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "Failed to retrieve session data: %v", err)
 		web.WriteError(w, errors.NewInvalidSessionError())
 		return
 	}
 
 	if sessionData.State != tokenRequest.State {
 		err := errors.New(errors.ErrCodeInvalidRequest, "state mismatch between session and request")
-		h.logger.Error(h.module, "RequestID=[%s]: State mismatch between session and request", requestID)
+		h.logger.Error(h.module, requestID, "State mismatch between session and request")
 		web.WriteError(w, err)
 		return
 	}
 
-	authzCodeData, err := h.authorizationService.AuthorizeTokenExchange(tokenRequest)
+	authzCodeData, err := h.authorizationService.AuthorizeTokenExchange(ctx, tokenRequest)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Authorization failed for token exchange: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "Authorization failed for token exchange: %v", err)
 		wrappedErr := errors.Wrap(err, "", "authorization failed for token exchange")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	response, err := h.authorizationService.GenerateTokens(authzCodeData)
+	response, err := h.authorizationService.GenerateTokens(ctx, authzCodeData)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to generate access and refresh tokens: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "Failed to generate access and refresh tokens: %v", err)
 		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access & refresh tokens")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	if err := h.sessionService.ClearStateFromSession(sessionData); err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to clear state from the current session: %v", requestID, err)
+	if err := h.sessionService.ClearStateFromSession(ctx, sessionData); err != nil {
+		h.logger.Error(h.module, requestID, "Failed to clear state from the current session: %v", err)
 		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to clear state from session")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[TokenExchange]", requestID)
+	h.logger.Info(h.module, requestID, "Successfully processed request=[TokenExchange]")
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *TokenHandler) handleRefreshTokenRequest(w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+func (h *TokenHandler) handleRefreshTokenRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
 	refreshToken := r.FormValue(common.RefreshToken)
 	if refreshToken == "" || requestedScopes == "" {
 		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "one or more required parameters are missing"))
 		return
 	}
 
-	response, err := h.authService.RefreshAccessToken(clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes)
+	response, err := h.authService.RefreshAccessToken(ctx, clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to issue new access token: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "Failed to issue new access token: %v", err)
 		web.WriteError(w, errors.Wrap(err, "", "failed to issue new access and refresh tokens"))
 		return
 	}

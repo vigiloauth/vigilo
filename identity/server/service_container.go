@@ -20,7 +20,6 @@ import (
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
-	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -43,7 +42,6 @@ import (
 	cookieService "github.com/vigiloauth/vigilo/internal/service/cookies"
 	emailService "github.com/vigiloauth/vigilo/internal/service/email"
 	loginService "github.com/vigiloauth/vigilo/internal/service/login"
-	passwordService "github.com/vigiloauth/vigilo/internal/service/passwordreset"
 	sessionService "github.com/vigiloauth/vigilo/internal/service/session"
 	tokenService "github.com/vigiloauth/vigilo/internal/service/token"
 	userService "github.com/vigiloauth/vigilo/internal/service/user"
@@ -64,7 +62,6 @@ type ServiceContainer struct {
 	tokenServiceOnce         sync.Once
 	sessionServiceOnce       sync.Once
 	userServiceOnce          sync.Once
-	passwordResetServiceOnce sync.Once
 	clientServiceOnce        sync.Once
 	consentServiceOnce       sync.Once
 	authzCodeServiceOnce     sync.Once
@@ -78,7 +75,6 @@ type ServiceContainer struct {
 	tokenService         token.TokenService
 	sessionService       session.SessionService
 	userService          users.UserService
-	passwordResetService password.PasswordResetService
 	clientService        client.ClientService
 	consentService       userConsent.UserConsentService
 	authzCodeService     authzCode.AuthorizationCodeService
@@ -92,7 +88,6 @@ type ServiceContainer struct {
 	tokenServiceInit         func() token.TokenService
 	sessionServiceInit       func() session.SessionService
 	userServiceInit          func() users.UserService
-	passwordResetServiceInit func() password.PasswordResetService
 	clientServiceInit        func() client.ClientService
 	consentServiceInit       func() userConsent.UserConsentService
 	authzCodeServiceInit     func() authzCode.AuthorizationCodeService
@@ -142,7 +137,7 @@ func NewServiceContainer() *ServiceContainer {
 
 // initializeInMemoryRepositories initializes the in-memory data stores used by the service container.
 func (c *ServiceContainer) initializeInMemoryRepositories() {
-	c.logger.Info(c.module, "Initializing in memory repositories")
+	c.logger.Info(c.module, "", "Initializing in memory repositories")
 	c.tokenRepo = tokenRepo.GetInMemoryTokenRepository()
 	c.userRepo = userRepo.GetInMemoryUserRepository()
 	c.loginAttemptRepo = loginRepo.GetInMemoryLoginRepository()
@@ -154,65 +149,61 @@ func (c *ServiceContainer) initializeInMemoryRepositories() {
 
 // initializeServices defines getter methods for lazy service initialization**
 func (c *ServiceContainer) initializeServices() {
-	c.logger.Info(c.module, "Initializing services")
+	c.logger.Info(c.module, "", "Initializing services")
 	c.httpCookieServiceInit = func() cookie.HTTPCookieService {
-		c.logger.Debug(c.module, "Initializing HTTPCookieService")
+		c.logger.Debug(c.module, "", "Initializing HTTPCookieService")
 		return cookieService.NewHTTPCookieService()
 	}
 	c.tokenServiceInit = func() token.TokenService {
-		c.logger.Debug(c.module, "Initializing TokenService")
+		c.logger.Debug(c.module, "", "Initializing TokenService")
 		return tokenService.NewTokenService(c.tokenRepo)
 	}
 	c.sessionServiceInit = func() session.SessionService {
-		c.logger.Debug(c.module, "Initializing SessionService")
+		c.logger.Debug(c.module, "", "Initializing SessionService")
 		return sessionService.NewSessionService(c.getTokenService(), c.sessionRepo, c.getHTTPSessionCookieService())
 	}
 	c.loginAttemptServiceInit = func() login.LoginAttemptService {
-		c.logger.Debug(c.module, "Initializing LoginAttemptService")
+		c.logger.Debug(c.module, "", "Initializing LoginAttemptService")
 		return loginService.NewLoginAttemptService(c.userRepo, c.loginAttemptRepo)
 	}
 	c.userServiceInit = func() users.UserService {
-		c.logger.Debug(c.module, "Initializing UserService")
+		c.logger.Debug(c.module, "", "Initializing UserService")
 		return userService.NewUserService(c.userRepo, c.getTokenService(), c.getLoginAttemptService(), c.getEmailService())
 	}
-	c.passwordResetServiceInit = func() password.PasswordResetService {
-		c.logger.Debug(c.module, "Initializing PasswordResetService")
-		return passwordService.NewPasswordResetService(c.getTokenService(), c.userRepo)
-	}
 	c.clientServiceInit = func() client.ClientService {
-		c.logger.Debug(c.module, "Initializing ClientService")
+		c.logger.Debug(c.module, "", "Initializing ClientService")
 		return clientService.NewClientService(c.clientRepo, c.getTokenService())
 	}
 	c.consentServiceInit = func() userConsent.UserConsentService {
-		c.logger.Debug(c.module, "Initializing UserConsentService")
+		c.logger.Debug(c.module, "", "Initializing UserConsentService")
 		return consentService.NewUserConsentService(c.consentRepo, c.userRepo, c.getSessionService(), c.getClientService(), c.getAuthzCodeService())
 	}
 	c.authzCodeServiceInit = func() authzCode.AuthorizationCodeService {
-		c.logger.Debug(c.module, "Initializing AuthorizationCodeService")
+		c.logger.Debug(c.module, "", "Initializing AuthorizationCodeService")
 		return authzCodeService.NewAuthorizationCodeService(c.authzCodeRepo, c.getUserService(), c.getClientService())
 	}
 	c.authorizationServiceInit = func() authz.AuthorizationService {
-		c.logger.Debug(c.module, "Initializing AuthorizationService")
+		c.logger.Debug(c.module, "", "Initializing AuthorizationService")
 		return authzService.NewAuthorizationService(c.getAuthzCodeService(), c.getConsentService(), c.getTokenService(), c.getClientService())
 	}
 	c.authServiceInit = func() auth.AuthenticationService {
-		c.logger.Debug(c.module, "Initializing AuthenticationService")
+		c.logger.Debug(c.module, "", "Initializing AuthenticationService")
 		return authService.NewAuthenticationService(c.getTokenService(), c.getClientService(), c.getUserService())
 	}
 	c.emailServiceInit = func() email.EmailService {
-		c.logger.Debug(c.module, "Initializing EmailService")
+		c.logger.Debug(c.module, "", "Initializing EmailService")
 		return emailService.NewEmailService(c.getGoMailer())
 	}
 	c.mailerInit = func() email.Mailer {
-		c.logger.Debug(c.module, "Initializing GoMailer")
+		c.logger.Debug(c.module, "", "Initializing GoMailer")
 		return emailService.NewGoMailer()
 	}
 }
 
 // initializeHandlers initializes the HTTP handlers used by the service container.
 func (c *ServiceContainer) initializeHandlers() {
-	c.logger.Info(c.module, "Initializing handlers")
-	c.userHandler = handlers.NewUserHandler(c.getUserService(), c.getPasswordResetService(), c.getSessionService())
+	c.logger.Info(c.module, "", "Initializing handlers")
+	c.userHandler = handlers.NewUserHandler(c.getUserService(), c.getSessionService())
 	c.clientHandler = handlers.NewClientHandler(c.getClientService())
 	c.tokenHandler = handlers.NewTokenHandler(c.getAuthService(), c.getSessionService(), c.getAuthorizationService())
 	c.authzHandler = handlers.NewAuthorizationHandler(c.getAuthorizationService(), c.getSessionService())
@@ -222,14 +213,14 @@ func (c *ServiceContainer) initializeHandlers() {
 // initializeServerConfigs initializes the server-related configurations,
 // including middleware, TLS configuration, and the HTTP server.
 func (c *ServiceContainer) initializeServerConfigs() {
-	c.logger.Info(c.module, "Initializing server configurations")
+	c.logger.Info(c.module, "", "Initializing server configurations")
 	c.middleware = middleware.NewMiddleware(c.getTokenService())
 	c.tlsConfig = initializeTLSConfig()
 	c.httpServer = initializeHTTPServer(c.tlsConfig)
 }
 
 func (c *ServiceContainer) initializeSchedulers() {
-	c.logger.Info(c.module, "Initializing schedulers and worker pools")
+	c.logger.Info(c.module, "", "Initializing schedulers and worker pools")
 
 	// Store the context and cancel function
 	c.schedulerCtx, c.schedulerCancel = context.WithCancel(context.Background())
@@ -267,7 +258,7 @@ func (c *ServiceContainer) initializeSchedulers() {
 }
 
 func (c *ServiceContainer) Shutdown() {
-	c.logger.Info(c.module, "Shutting down schedulers and worker pool")
+	c.logger.Info(c.module, "", "Shutting down schedulers and worker pool")
 	if c.schedulerCancel != nil {
 		c.schedulerCancel()
 	}
@@ -352,11 +343,6 @@ func (c *ServiceContainer) getConsentService() userConsent.UserConsentService {
 func (c *ServiceContainer) getAuthzCodeService() authzCode.AuthorizationCodeService {
 	c.authzCodeServiceOnce.Do(func() { c.authzCodeService = c.authzCodeServiceInit() })
 	return c.authzCodeService
-}
-
-func (c *ServiceContainer) getPasswordResetService() password.PasswordResetService {
-	c.passwordResetServiceOnce.Do(func() { c.passwordResetService = c.passwordResetServiceInit() })
-	return c.passwordResetService
 }
 
 func (c *ServiceContainer) getAuthorizationService() authz.AuthorizationService {

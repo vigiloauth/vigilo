@@ -61,12 +61,12 @@ func LoadConfigurations() *ApplicationConfig {
 func (ac *ApplicationConfig) loadFromYAML(path string) *ApplicationConfig {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		ac.Logger.Fatal(ac.Module, "Failed to load yaml configuration: %v", err)
+		ac.Logger.Fatal(ac.Module, "", "Failed to load yaml configuration: %v", err)
 	}
 
 	var appConfig ApplicationConfig
 	if err := yaml.Unmarshal(data, &appConfig); err != nil {
-		ac.Logger.Fatal(ac.Module, "Failed to unmarshal YAML: %v", err)
+		ac.Logger.Fatal(ac.Module, "", "Failed to unmarshal YAML: %v", err)
 	}
 
 	return &appConfig

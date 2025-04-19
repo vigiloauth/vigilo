@@ -35,4 +35,11 @@ const (
 	HTMLBody                      string = "text/html"
 	VerifyEmailAddress            string = "Verify Your Email Address"
 	AccountDeletion               string = "Your Account Has Been Deleted"
+
+	TokenSecretKeyENV string = "TOKEN_SECRET_KEY"
+	TokenIssuerENV    string = "TOKEN_ISSUER"
+
+	SMTPFromAddressENV string = "SMTP_FROM_ADDRESS"
+	SMTPUsernameENV    string = "SMTP_USERNAME"
+	SMTPPasswordENV    string = "SMTP_PASSWORD"
 )

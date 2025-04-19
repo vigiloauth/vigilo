@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,57 +33,58 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 	mockConsentService := &mConsentService.MockUserConsentService{}
 	mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{}
 	mockClientService := &mClientService.MockClientService{}
+	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
+		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
 			return true, nil
 		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
+		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
 			return "code", nil
 		}
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
-			return getTestClient()
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
+			return getTestClient(), nil
 		}
 
 		request := getClientAuthorizationRequest()
 		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService)
-		redirectURI, err := service.AuthorizeClient(request, testConsentApproved)
+		redirectURI, err := service.AuthorizeClient(ctx, request, testConsentApproved)
 
 		assert.NoError(t, err)
 		assert.NotEqual(t, "", redirectURI)
 	})
 
 	t.Run("Error is returned generating authorization code", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
+		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
 			return true, nil
 		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(req *client.ClientAuthorizationRequest) (string, error) {
+		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
 			return "", errors.NewInternalServerError()
 		}
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
-			return getTestClient()
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
+			return getTestClient(), nil
 		}
 
 		request := getClientAuthorizationRequest()
 		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService)
-		redirectURI, err := service.AuthorizeClient(request, testConsentApproved)
+		redirectURI, err := service.AuthorizeClient(ctx, request, testConsentApproved)
 
 		assert.Error(t, err)
 		assert.Equal(t, "", redirectURI)
 	})
 
 	t.Run("Error is returned when user does not provide consent", func(t *testing.T) {
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
-			return getTestClient()
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
+			return getTestClient(), nil
 		}
-		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
+		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
 			return false, errors.NewAccessDeniedError()
 		}
 
 		request := getClientAuthorizationRequest()
 		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService)
 
-		_, err := service.AuthorizeClient(request, true)
+		_, err := service.AuthorizeClient(ctx, request, true)
 		expectedErr := "the resource owner denied the request"
 
 		assert.Error(t, err)
@@ -90,8 +92,8 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the client authorization code request is invalid", func(t *testing.T) {
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
-			return getTestClient()
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
+			return getTestClient(), nil
 		}
 
 		request := &client.ClientAuthorizationRequest{
@@ -103,40 +105,40 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		}
 
 		service := NewAuthorizationService(nil, nil, nil, mockClientService)
-		_, err := service.AuthorizeClient(request, true)
+		_, err := service.AuthorizeClient(ctx, request, true)
 
 		assert.Error(t, err)
 	})
 
 	t.Run("Consent required error is returned when the user does not approve consent and consent is required", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
+		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
 			return true, nil
 		}
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
-			return getTestClient()
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
+			return getTestClient(), nil
 		}
 
 		request := getClientAuthorizationRequest()
 		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService)
 
-		_, err := service.AuthorizeClient(request, false)
+		_, err := service.AuthorizeClient(ctx, request, false)
 
 		assert.Contains(t, "user consent required for the requested scope", err.Error())
 		assert.Error(t, err)
 	})
 
 	t.Run("Access denied error is returned when consent is approved but user denies consent", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(userID, clientID, scope string) (bool, error) {
+		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
 			return false, nil
 		}
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client {
-			return getTestClient()
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
+			return getTestClient(), nil
 		}
 
 		request := getClientAuthorizationRequest()
 		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService)
 
-		_, err := service.AuthorizeClient(request, true)
+		_, err := service.AuthorizeClient(ctx, request, true)
 
 		assert.Contains(t, "the resource owner denied the request", err.Error())
 		assert.Error(t, err)
@@ -144,26 +146,28 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 }
 
 func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
+	ctx := context.Background()
+
 	t.Run("Success", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+			ValidateAuthorizationCodeFunc: func(ctx context.Context, ode, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return getTestAuthzCodeData(), nil
 			},
-			GetAuthorizationCodeFunc: func(code string) (*authzCode.AuthorizationCodeData, error) {
+			GetAuthorizationCodeFunc: func(ctx context.Context, code string) (*authzCode.AuthorizationCodeData, error) {
 				return getTestAuthzCodeData(), nil
 			},
-			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 
 		mockClientService := &mClientService.MockClientService{
-			GetClientByIDFunc: func(clientID string) *client.Client {
-				return getTestClient()
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return getTestClient(), nil
 			},
 		}
 
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
 		expected := getTestAuthzCodeData()
-		actual, err := service.AuthorizeTokenExchange(getTestTokenRequest())
+		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
@@ -175,15 +179,15 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 
 	t.Run("Error is returned validating authorization code", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid authorization code")
 			},
-			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil)
 		expected := "failed to validate authorization code: invalid authorization code"
-		actual, err := service.AuthorizeTokenExchange(getTestTokenRequest())
+		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
 		assert.Error(t, err)
 		assert.Equal(t, expected, err.Error())
@@ -192,20 +196,20 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 
 	t.Run("Error is returned validating client", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return getTestAuthzCodeData(), nil
 			},
-			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 		mockClientService := &mClientService.MockClientService{
-			GetClientByIDFunc: func(clientID string) *client.Client {
-				return nil
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return nil, nil
 			},
 		}
 
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
 		expected := "failed to validate client: invalid client"
-		actual, err := service.AuthorizeTokenExchange(getTestTokenRequest())
+		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
 		assert.Error(t, err)
 		assert.Equal(t, expected, err.Error())
@@ -216,20 +220,21 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 	authzCodeData := getTestAuthzCodeData()
 	authzCodeData.CodeChallenge = crypto.EncodeSHA256(codeVerifier)
+	ctx := context.Background()
 
 	t.Run("Successful authorization for request using PKCE", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return authzCodeData, nil
 			},
 			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
 				return nil
 			},
-			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 		mockClientService := &mClientService.MockClientService{
-			GetClientByIDFunc: func(clientID string) *client.Client {
-				return getTestClient()
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return getTestClient(), nil
 			},
 		}
 
@@ -237,7 +242,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		tokenRequest.CodeVerifier = codeVerifier
 
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
-		response, err := service.AuthorizeTokenExchange(tokenRequest)
+		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -245,17 +250,17 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 
 	t.Run("Error is returned when token request does not have required code verifier", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return authzCodeData, nil
 			},
 			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
 				return nil
 			},
-			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 		mockClientService := &mClientService.MockClientService{
-			GetClientByIDFunc: func(clientID string) *client.Client {
-				return getTestClient()
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return getTestClient(), nil
 			},
 		}
 
@@ -263,7 +268,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
 
 		expectedErr := "missing code verifier for PKCE"
-		response, err := service.AuthorizeTokenExchange(tokenRequest)
+		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), expectedErr)
@@ -272,17 +277,17 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 
 	t.Run("Error is returned when validating PKCE request", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
 				return authzCodeData, nil
 			},
 			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
 				return errors.New(errors.ErrCodeInvalidGrant, "PKCE validation failed")
 			},
-			RevokeAuthorizationCodeFunc: func(code string) error { return nil },
+			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 		mockClientService := &mClientService.MockClientService{
-			GetClientByIDFunc: func(clientID string) *client.Client {
-				return getTestClient()
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return getTestClient(), nil
 			},
 		}
 
@@ -290,7 +295,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		tokenRequest.CodeVerifier = codeVerifier
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
 
-		response, err := service.AuthorizeTokenExchange(tokenRequest)
+		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "PKCE validation failed")
@@ -299,9 +304,11 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 }
 
 func TestAuthorizationService_GenerateTokens(t *testing.T) {
+	ctx := context.Background()
+
 	t.Run("Success", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensWithAudienceFunc: func(userID, clientID, scopes string) (string, string, error) {
+			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes string) (string, string, error) {
 				return testAccessToken, testRefreshToken, nil
 			},
 		}
@@ -313,7 +320,7 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 			TokenType:    token.BearerToken,
 		}
 
-		actual, err := service.GenerateTokens(getTestAuthzCodeData())
+		actual, err := service.GenerateTokens(ctx, getTestAuthzCodeData())
 
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
@@ -324,14 +331,14 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 
 	t.Run("Error is returned generating access token", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensWithAudienceFunc: func(userID, clientID, scopes string) (string, string, error) {
+			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes string) (string, string, error) {
 				return "", "", errors.NewInternalServerError()
 			},
 		}
 
 		service := NewAuthorizationService(nil, nil, mockTokenService, nil)
 		expected := "failed to generate tokens: An unexpected error occurred. Please try again later."
-		_, err := service.GenerateTokens(getTestAuthzCodeData())
+		_, err := service.GenerateTokens(ctx, getTestAuthzCodeData())
 
 		assert.Error(t, err)
 		assert.Equal(t, expected, err.Error())

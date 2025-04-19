@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -399,7 +400,8 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		assert.NotEqual(t, "", clientInformationResponse.Secret, "client secret be included in the response for confidential clients")
 
 		// Assert Client is updated in the database
-		updatedClient := clientRepo.GetInMemoryClientRepository().GetClientByID(testClientID)
+		updatedClient, err := clientRepo.GetInMemoryClientRepository().GetClientByID(context.Background(), testClientID)
+		assert.NoError(t, err)
 		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
 		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
 		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
@@ -441,7 +443,8 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		assert.Equal(t, "", clientInformationResponse.Secret, "client secret not be included in the response for public clients")
 
 		// Assert Client is updated in the database
-		updatedClient := clientRepo.GetInMemoryClientRepository().GetClientByID(testClientID)
+		updatedClient, err := clientRepo.GetInMemoryClientRepository().GetClientByID(context.Background(), testClientID)
+		assert.NoError(t, err)
 		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
 		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
 		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")

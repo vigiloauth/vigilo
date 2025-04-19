@@ -77,7 +77,7 @@ func GetServerConfig() *ServerConfig {
 func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 	cfg := defaultServerConfig()
 	cfg.loadOptions(opts...)
-	cfg.logger.Info(cfg.module, "Initializing server config")
+	cfg.logger.Info(cfg.module, "", "Initializing server config")
 	serverConfigInstance = cfg
 	return cfg
 }
@@ -93,7 +93,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 //	ServerConfigOptions: A function that configures the port.
 func WithPort(port string) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		sc.logger.Info(sc.module, "Configuring server to run on port [%s]", port)
+		sc.logger.Info(sc.module, "", "Configuring server to run on port [%s]", port)
 		sc.port = port
 	}
 }
@@ -166,7 +166,7 @@ func WithBaseURL(baseURL string) ServerConfigOptions {
 func WithForceHTTPS() ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if sc.certFilePath == "" || sc.keyFilePath == "" {
-			sc.logger.Warn(sc.module, "SSL certificate or key file path is not set. Defaulting to HTTP.")
+			sc.logger.Warn(sc.module, "", "SSL certificate or key file path is not set. Defaulting to HTTP.")
 			return
 		}
 		sc.forceHTTPS = true
@@ -186,7 +186,7 @@ func WithForceHTTPS() ServerConfigOptions {
 func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if !isInSeconds(timeout) {
-			sc.logger.Warn(sc.module, "Read timeout was not set to seconds. Defaulting to 15 seconds.")
+			sc.logger.Warn(sc.module, "", "Read timeout was not set to seconds. Defaulting to 15 seconds.")
 			timeout = defaultReadTimeout
 			return
 		}
@@ -207,7 +207,7 @@ func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if !isInSeconds(timeout) {
-			sc.logger.Warn(sc.module, "Write timeout was not set to seconds. Defaulting to 15 seconds.")
+			sc.logger.Warn(sc.module, "", "Write timeout was not set to seconds. Defaulting to 15 seconds.")
 			timeout = defaultWriteTimeout
 			return
 		}
@@ -447,7 +447,7 @@ func defaultServerConfig() *ServerConfig {
 
 	err := godotenv.Load()
 	if err != nil {
-		cfg.logger.Warn(cfg.module, "No .env file loaded")
+		cfg.logger.Warn(cfg.module, "", "No .env file loaded")
 	}
 
 	return cfg
@@ -455,11 +455,11 @@ func defaultServerConfig() *ServerConfig {
 
 func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
 	if len(opts) > 0 {
-		cfg.logger.Info(cfg.module, "Creating server config with %d options", len(opts))
+		cfg.logger.Info(cfg.module, "", "Creating server config with %d options", len(opts))
 		for _, opt := range opts {
 			opt(cfg)
 		}
 	} else {
-		cfg.logger.Info(cfg.module, "Using default server config")
+		cfg.logger.Info(cfg.module, "", "Using default server config")
 	}
 }

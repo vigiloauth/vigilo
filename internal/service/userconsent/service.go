@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -20,9 +21,6 @@ import (
 
 // Compile-time interface implementation check
 var _ consent.UserConsentService = (*userConsentService)(nil)
-var logger = config.GetServerConfig().Logger()
-
-const module = "User Consent Service"
 
 // userConsentService implements the UserConsentService interface
 // and manages user consent-related operations by coordinating
@@ -33,18 +31,22 @@ type userConsentService struct {
 	sessionService   session.SessionService
 	clientService    clients.ClientService
 	authzCodeService authz.AuthorizationCodeService
+
+	logger *config.Logger
+	module string
 }
 
 // NewUserConsentService creates a new instance of UserConsentServiceImpl.
 //
 // Parameters:
-//
-//   - consentStore: Repository for managing consent-related data
-//   - userRepo: Repository for accessing user information
+//   - consentRepo UserConsentRepository: Repository for managing consent-related data
+//   - userRepo UserRepository: Repository for accessing user information
+//   - sessionService SessionService: Instance of the SessionService.
+//   - clientService ClientService: Instance of the ClientService.
+//   - authzCodeService AuthorizationCodeService: Instance of the AuthorizationCodeService.
 //
 // Returns:
-//
-//   - A configured UserConsentServiceImpl instance
+//   - A configured UserConsentService instance
 func NewUserConsentService(
 	consentRepo consent.UserConsentRepository,
 	userRepo users.UserRepository,
@@ -58,6 +60,8 @@ func NewUserConsentService(
 		sessionService:   sessionService,
 		clientService:    clientService,
 		authzCodeService: authzCodeService,
+		logger:           config.GetServerConfig().Logger(),
+		module:           "User Consent Service",
 	}
 }
 
@@ -65,64 +69,78 @@ func NewUserConsentService(
 // for the requested scope.
 //
 // Parameters:
-//
-//	userID string: The unique identifier of the user.
-//	clientID string: The identifier of the client application requesting access.
-//	scope string: The space-separated list of permissions being requested.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - userID string: The unique identifier of the user.
+//   - clientID string: The identifier of the client application requesting access.
+//   - scope string: The space-separated list of permissions being requested.
 //
 // Returns:
-//
-//	bool: True if consent exists, false if consent is needed.
-//	error: An error if the consent check operation fails.
-func (c *userConsentService) CheckUserConsent(userID, clientID, scope string) (bool, error) {
-	if user := c.userRepo.GetUserByID(userID); user == nil {
+//   - bool: True if consent exists, false if consent is needed.
+//   - error: An error if the consent check operation fails.
+func (c *userConsentService) CheckUserConsent(ctx context.Context, userID, clientID, scope string) (bool, error) {
+	requestID := common.GetRequestID(ctx)
+
+	user, err := c.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		c.logger.Error(c.module, requestID, "[CheckUserConsent]: An error occurred retrieving a user by ID: %v", err)
+		return false, errors.NewInternalServerError()
+	} else if user == nil {
 		err := errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
-		logger.Error(module, "CheckUserConsent: Failed to check if user has granted consent: %v", err)
+		c.logger.Error(c.module, requestID, "[CheckUserConsent]: Failed to check if user has granted consent: %v", err)
 		return false, err
 	}
-	return c.consentRepo.HasConsent(userID, clientID, scope)
+	return c.consentRepo.HasConsent(ctx, userID, clientID, scope)
 }
 
+// SaveUserConsent records a user's consent for a client application
 // SaveUserConsent records a user's consent for a client application
 // to access resources within the specified scope.
 //
 // Parameters:
-//
-//	userID string: The unique identifier of the user granting consent.
-//	clientID string: The identifier of the client application receiving consent.
-//	scope string: The space-separated list of permissions being granted.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - userID string: The unique identifier of the user granting consent.
+//   - clientID string: The identifier of the client application receiving consent.
+//   - scope string: The space-separated list of permissions being granted.
 //
 // Returns:
-//
-//	error: An error if the consent cannot be saved, or nil if successful.
-func (c *userConsentService) SaveUserConsent(userID, clientID, scope string) error {
-	if user := c.userRepo.GetUserByID(userID); user == nil {
+//   - error: An error if the consent cannot be saved, or nil if successful.
+func (c *userConsentService) SaveUserConsent(ctx context.Context, userID, clientID, scope string) error {
+	requestID := common.GetRequestID(ctx)
+	user, err := c.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		c.logger.Error(c.module, requestID, "[SaveUserConsent]: An error occurred retrieving the user by ID: %v", err)
+		return errors.NewInternalServerError()
+	} else if user == nil {
 		err := errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
-		logger.Error(module, "SaveUserConsent: Failed to save user consent: %v", err)
+		c.logger.Error(c.module, requestID, "[SaveUserConsent]: Failed to save user consent: %v", err)
 		return err
 	}
 
-	return c.consentRepo.SaveConsent(userID, clientID, scope)
+	return c.consentRepo.SaveConsent(ctx, userID, clientID, scope)
 }
 
 // RevokeConsent removes a user's consent for a client.
 //
 // Parameters:
-//
-//	userID string: The ID of the user.
-//	clientID string: The ID of the client application.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - userID string: The ID of the user.
+//   - clientID string: The ID of the client application.
 //
 // Returns:
-//
-//	error: An error if the consent cannot be revoked, or nil if successful.
-func (c *userConsentService) RevokeConsent(userID, clientID string) error {
-	if user := c.userRepo.GetUserByID(userID); user == nil {
+//   - error: An error if the consent cannot be revoked, or nil if successful.
+func (c *userConsentService) RevokeConsent(ctx context.Context, userID, clientID string) error {
+	requestID := common.GetRequestID(ctx)
+	user, err := c.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		c.logger.Error(c.module, requestID, "[RevokeConsent]: An error occurred retrieving the user by ID: %v", err)
+		return errors.NewInternalServerError()
+	} else if user == nil {
 		err := errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
-		logger.Error(module, "RevokeConsent: Failed to revoke user consent: %v", err)
+		c.logger.Error(c.module, requestID, "[RevokeConsent]: Failed to revoke user consent: %v", err)
 		return err
 	}
 
-	return c.consentRepo.RevokeConsent(userID, clientID)
+	return c.consentRepo.RevokeConsent(ctx, userID, clientID)
 }
 
 // GetConsentDetails retrieves the details required for the user consent process.
@@ -131,7 +149,6 @@ func (c *userConsentService) RevokeConsent(userID, clientID string) error {
 // and prepares the response to be displayed to the user for consent.
 //
 // Parameters:
-//
 //   - userID string: The unique identifier of the user.
 //   - clientID string: The identifier of the client application requesting access.
 //   - redirectURI string: The redirect URI provided by the client application.
@@ -139,20 +156,25 @@ func (c *userConsentService) RevokeConsent(userID, clientID string) error {
 //   - r *http.Request: The HTTP request containing session and other metadata.
 //
 // Returns:
-//
 //   - *consent.UserConsentResponse: The response containing client and scope details for the consent process.
 //   - error: An error if the details cannot be retrieved or prepared.
 func (c *userConsentService) GetConsentDetails(userID, clientID, redirectURI, scope string, r *http.Request) (*consent.UserConsentResponse, error) {
+	ctx := r.Context()
+	requestID := common.GetRequestID(ctx)
+
 	if err := c.validateRequest(userID, clientID, redirectURI, scope); err != nil {
-		logger.Error(module, "GetConsentDetails: Failed to retrieve consent details: %v", err)
+		c.logger.Error(c.module, requestID, "[GetConsentDetails]: Failed to retrieve consent details: %v", err)
 		wrappedErr := errors.Wrap(err, "", "invalid request parameters")
 		return nil, wrappedErr
 	}
 
-	client := c.clientService.GetClientByID(clientID)
-	if client == nil {
+	client, err := c.clientService.GetClientByID(ctx, clientID)
+	if err != nil {
+		c.logger.Error(c.module, requestID, "[GetConsentDetails]: An error occurred retrieving client by ID: %v", err)
+		return nil, err
+	} else if client == nil {
 		err := errors.New(errors.ErrCodeInvalidClient, "invalid client ID")
-		logger.Error(module, "GetConsentDetails: Failed to retrieve consent details: %v", err)
+		c.logger.Error(c.module, requestID, "[GetConsentDetails]: Failed to retrieve consent details: %v", err)
 		return nil, err
 	}
 
@@ -160,12 +182,12 @@ func (c *userConsentService) GetConsentDetails(userID, clientID, redirectURI, sc
 	sessionData, err := c.sessionService.GetSessionData(r)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to get session data")
-		logger.Error(module, "GetConsentDetails: Failed to retrieve consent details: %v", err)
+		c.logger.Error(c.module, requestID, "[GetConsentDetails]: Failed to retrieve consent details: %v", err)
 		return nil, wrappedErr
 	}
 
 	if err := c.updateSessionWithConsentDetails(r, sessionData, state, clientID, redirectURI); err != nil {
-		logger.Error(module, "GetConsentDetails: Failed to update session: %v", err)
+		c.logger.Error(c.module, requestID, "[GetConsentDetails]: Failed to update session: %v", err)
 		return nil, err
 	}
 
@@ -187,7 +209,6 @@ func (c *userConsentService) GetConsentDetails(userID, clientID, redirectURI, sc
 // (e.g., an authorization code or an error redirect).
 //
 // Parameters:
-//
 //   - userID string: The unique identifier of the user.
 //   - clientID string: The identifier of the client application requesting access.
 //   - redirectURI string: The redirect URI provided by the client application.
@@ -196,32 +217,32 @@ func (c *userConsentService) GetConsentDetails(userID, clientID, redirectURI, sc
 //   - r *http.Request: The HTTP request containing session and other metadata.
 //
 // Returns:
-//
 //   - *consent.UserConsentResponse: The response containing the result of the consent process (e.g., success or denial).
 //   - error: An error if the consent decision cannot be processed or stored.
 func (c *userConsentService) ProcessUserConsent(
 	userID, clientID, redirectURI, scope string,
 	consentRequest *consent.UserConsentRequest, r *http.Request,
 ) (*consent.UserConsentResponse, error) {
+	requestID := common.GetRequestID(r.Context())
 	if err := c.validateRequest(userID, clientID, redirectURI, scope); err != nil {
 		wrappedErr := errors.Wrap(err, "", "invalid request parameters")
-		logger.Error(module, "ProcessUserConsent: Failed to process user consent: %v", err)
+		c.logger.Error(c.module, requestID, "[ProcessUserConsent]: Failed to process user consent: %v", err)
 		return nil, wrappedErr
 	}
 
 	sessionData, err := c.sessionService.ValidateSessionState(r)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate session state")
-		logger.Error(module, "ProcessUserConsent: Failed to process user consent: %v", err)
+		c.logger.Error(c.module, requestID, "[ProcessUserConsent]: Failed to process user consent: %v", err)
 		return nil, wrappedErr
 	}
 
 	if !consentRequest.Approved {
-		logger.Info(module, "ProcessUserConsent: Creating error response for denied consent")
+		c.logger.Warn(c.module, requestID, "[ProcessUserConsent]: Creating error response for denied consent")
 		return c.handleDeniedConsent(sessionData.State, redirectURI), nil
 	}
 
-	return c.processApprovedConsent(userID, clientID, redirectURI, scope, consentRequest, sessionData)
+	return c.processApprovedConsent(r.Context(), userID, clientID, redirectURI, scope, consentRequest, sessionData)
 }
 
 func (c *userConsentService) handleDeniedConsent(state, redirectURI string) *consent.UserConsentResponse {
@@ -240,9 +261,10 @@ func (c *userConsentService) handleDeniedConsent(state, redirectURI string) *con
 
 func (c *userConsentService) validateRequest(userID, clientID, redirectURI, scope string) error {
 	if userID == "" || clientID == "" || redirectURI == "" || scope == "" {
-		logger.Error(module, "Missing required OAuth parameters in request")
+		c.logger.Error(c.module, "", "Missing required OAuth parameters in request")
 		return errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters")
 	}
+
 	return nil
 }
 
@@ -254,14 +276,15 @@ func (c *userConsentService) getApprovedScopes(defaultScopes string, requestScop
 }
 
 func (c *userConsentService) processApprovedConsent(
-	userID, clientID, redirectURI, scope string,
-	consentRequest *consent.UserConsentRequest,
-	sessionData *session.SessionData,
+	ctx context.Context, userID, clientID, redirectURI, scope string,
+	consentRequest *consent.UserConsentRequest, sessionData *session.SessionData,
 ) (*consent.UserConsentResponse, error) {
+	requestID := common.GetRequestID(ctx)
+
 	approvedScopes := c.getApprovedScopes(scope, consentRequest.Scopes)
-	if err := c.consentRepo.SaveConsent(userID, clientID, approvedScopes); err != nil {
+	if err := c.consentRepo.SaveConsent(ctx, userID, clientID, approvedScopes); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to save user consent")
-		logger.Error(module, "Failed to save user consent")
+		c.logger.Error(c.module, requestID, "Failed to save user consent")
 		return nil, wrappedErr
 	}
 
@@ -273,33 +296,36 @@ func (c *userConsentService) processApprovedConsent(
 		ResponseType: clients.CodeResponseType,
 	}
 
-	client := c.clientService.GetClientByID(clientID)
-	if client == nil {
+	client, err := c.clientService.GetClientByID(ctx, clientID)
+	if err != nil {
+		c.logger.Error(c.module, requestID, "Failed to retrieve client ID: %v", err)
+		return nil, err
+	} else if client == nil {
 		err := errors.New(errors.ErrCodeInvalidClient, "invalid client ID")
-		logger.Error(module, "Failed to process user consent: %v", err)
+		c.logger.Error(c.module, requestID, "Failed to process user consent: %v", err)
 		return nil, err
 	}
 
 	authorizationCodeRequest.Client = client
-	code, err := c.authzCodeService.GenerateAuthorizationCode(authorizationCodeRequest)
+	code, err := c.authzCodeService.GenerateAuthorizationCode(ctx, authorizationCodeRequest)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to generate authorization code")
-		logger.Error(module, "Failed to generate authorization code: %v", err)
+		c.logger.Error(c.module, requestID, "Failed to generate authorization code: %v", err)
 		return nil, wrappedErr
 	}
 
-	if err := c.sessionService.ClearStateFromSession(sessionData); err != nil {
+	if err := c.sessionService.ClearStateFromSession(ctx, sessionData); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to clear state from session")
-		logger.Error(module, "Failed to clear state from session: %v", err)
+		c.logger.Error(c.module, requestID, "Failed to clear state from session: %v", err)
 		return nil, wrappedErr
 	}
 
-	logger.Info(module, "Building success response for approved consent")
+	c.logger.Debug(c.module, requestID, "Building success response for approved consent")
 	return c.buildSuccessResponse(redirectURI, code, sessionData.State), nil
 }
 
 func (c *userConsentService) buildSuccessResponse(redirectURI, code, state string) *consent.UserConsentResponse {
-	logger.Debug(module, "Building success response with redirectURI=%s, code=%s, state=%s",
+	c.logger.Debug(c.module, "", "Building success response with redirectURI=%s, code=%s, state=%s",
 		common.SanitizeURL(redirectURI), common.TruncateSensitive(code), common.TruncateSensitive(state))
 
 	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, url.QueryEscape(code))
@@ -316,7 +342,7 @@ func (c *userConsentService) buildSuccessResponse(redirectURI, code, state strin
 }
 
 func (c *userConsentService) updateSessionWithConsentDetails(r *http.Request, sessionData *session.SessionData, state, clientID, redirectURI string) error {
-	logger.Info(module, "Updating session with consent details for sessionID=%s, clientID=%s, redirectURI=%s",
+	c.logger.Info(c.module, "Updating session with consent details for sessionID=%s, clientID=%s, redirectURI=%s",
 		common.TruncateSensitive(sessionData.ID), common.TruncateSensitive(clientID), common.SanitizeURL(redirectURI))
 
 	sessionData.State = state
@@ -325,11 +351,10 @@ func (c *userConsentService) updateSessionWithConsentDetails(r *http.Request, se
 
 	if err := c.sessionService.UpdateSession(r, sessionData); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to update session")
-		logger.Error(module, "Failed to update session with consent details: %v", err.Error())
+		c.logger.Error(c.module, "", "Failed to update session with consent details: %v", err.Error())
 		return wrappedErr
 	}
 
-	logger.Info(module, "Session updated successfully for sessionID=%s", common.TruncateSensitive(sessionData.ID))
 	return nil
 }
 

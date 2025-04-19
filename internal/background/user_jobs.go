@@ -25,16 +25,16 @@ func NewUserJobs(userService domain.UserService, interval time.Duration) *UserJo
 }
 
 func (u *UserJobs) DeleteUnverifiedUsers(ctx context.Context) {
-	u.logger.Info(u.module, "Deleting unverified users that were created over a week ago")
+	u.logger.Info(u.module, "", "[DeleteUnverifiedUsers]: Starting Process of deleting unverified users that were created over a week ago")
 	ticker := time.NewTicker(u.interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			u.userService.DeleteUnverifiedUsers()
+			u.userService.DeleteUnverifiedUsers(ctx)
 		case <-ctx.Done():
-			u.logger.Info(u.module, "Stopping deletion of unverified users")
+			u.logger.Info(u.module, "", "[DeleteUnverifiedUsers]: Stopping process of deleting unverified users")
 			return
 		}
 	}

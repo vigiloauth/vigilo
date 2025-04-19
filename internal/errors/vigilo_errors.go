@@ -1,6 +1,8 @@
 package errors
 
 import (
+	"context"
+	"errors"
 	"fmt"
 )
 
@@ -107,6 +109,26 @@ func NewFormParsingError(err error) error {
 	return Wrap(err, ErrCodeInvalidRequest, "unable to parse form")
 }
 
+func NewTimeoutError(err error) error {
+	return Wrap(err, ErrCodeRequestTimeout, "the request timed out")
+}
+
+func NewContextCancelledError(err error) error {
+	return Wrap(err, ErrCodeRequestCancelled, "the request was cancelled")
+}
+
+func NewContextError(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return NewTimeoutError(err)
+	} else {
+		return NewContextCancelledError(err)
+	}
+}
+
+func IsContextError(err error) bool {
+	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
+}
+
 // Wrap wraps an existing error with additional context
 // If no code is provided, it will extract it from the wrapper error.
 func Wrap(err error, code string, message string) error {
@@ -126,6 +148,8 @@ func Wrap(err error, code string, message string) error {
 		vigiloError.ErrorDescription = message
 		vigiloError.Errors = e.Errors()
 		vigiloError.ErrorDetails = "one or more validation errors occurred"
+	} else if IsContextError(err) {
+		return NewContextError(err)
 	} else {
 		vigiloError.ErrorCode = code
 		vigiloError.ErrorDescription = message

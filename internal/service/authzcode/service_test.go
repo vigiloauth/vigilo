@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -33,43 +34,44 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 	mockUserService := &mUserService.MockUserService{}
 	mockClientService := &mClientService.MockClientService{}
 	mockAuthzCodeRepo := &mAuthzRepository.MockAuthorizationCodeRepository{}
+	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
-		mockUserService.GetUserByIDFunc = func(userID string) *user.User { return createTestUser() }
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client { return createTestClient() }
+		mockUserService.GetUserByIDFunc = func(ctx context.Context, userID string) (*user.User, error) { return createTestUser(), nil }
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) { return createTestClient(), nil }
 		mockClientService.ValidateClientRedirectURIFunc = func(redirectURI string, existingClient *client.Client) error { return nil }
-		mockAuthzCodeRepo.StoreAuthorizationCodeFunc = func(code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error {
+		mockAuthzCodeRepo.StoreAuthorizationCodeFunc = func(ctx context.Context, code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error {
 			return nil
 		}
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
-		code, err := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
+		code, err := service.GenerateAuthorizationCode(ctx, createClientAuthorizationRequest())
 
 		assert.NoError(t, err)
 		assert.NotEqual(t, "", code)
 	})
 
 	t.Run("Error is returned when a database error occurs", func(t *testing.T) {
-		mockUserService.GetUserByIDFunc = func(userID string) *user.User { return createTestUser() }
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client { return createTestClient() }
+		mockUserService.GetUserByIDFunc = func(ctx context.Context, userID string) (*user.User, error) { return createTestUser(), nil }
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) { return createTestClient(), nil }
 		mockClientService.ValidateClientRedirectURIFunc = func(redirectURI string, existingClient *client.Client) error { return nil }
-		mockAuthzCodeRepo.StoreAuthorizationCodeFunc = func(code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error {
+		mockAuthzCodeRepo.StoreAuthorizationCodeFunc = func(ctx context.Context, code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error {
 			return errors.NewInternalServerError()
 		}
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
-		code, err := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
+		code, err := service.GenerateAuthorizationCode(ctx, createClientAuthorizationRequest())
 
 		assert.Error(t, err)
 		assert.Equal(t, "", code)
 	})
 
 	t.Run("Error is returned when the user does not exist with the given ID", func(t *testing.T) {
-		mockUserService.GetUserByIDFunc = func(userID string) *user.User { return nil }
+		mockUserService.GetUserByIDFunc = func(ctx context.Context, userID string) (*user.User, error) { return nil, nil }
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := errors.New(errors.ErrCodeUnauthorized, "invalid user ID: testU[REDACTED]")
-		code, actual := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
+		code, actual := service.GenerateAuthorizationCode(ctx, createClientAuthorizationRequest())
 
 		assert.Error(t, actual)
 		assert.Equal(t, expected.Error(), actual.Error())
@@ -77,12 +79,12 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the client does not exist with the given ID", func(t *testing.T) {
-		mockUserService.GetUserByIDFunc = func(userID string) *user.User { return createTestUser() }
-		mockClientService.GetClientByIDFunc = func(clientID string) *client.Client { return nil }
+		mockUserService.GetUserByIDFunc = func(ctx context.Context, userID string) (*user.User, error) { return createTestUser(), nil }
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) { return nil, nil }
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := errors.New(errors.ErrCodeUnauthorized, "invalid client ID")
-		code, actual := service.GenerateAuthorizationCode(createClientAuthorizationRequest())
+		code, actual := service.GenerateAuthorizationCode(ctx, createClientAuthorizationRequest())
 
 		assert.Error(t, actual)
 		assert.Equal(t, expected.Error(), actual.Error())
@@ -94,30 +96,31 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 	mockUserService := &mUserService.MockUserService{}
 	mockClientService := &mClientService.MockClientService{}
 	mockAuthzCodeRepo := &mAuthzRepository.MockAuthorizationCodeRepository{}
+	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
-		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(code string) (*authz.AuthorizationCodeData, error) {
+		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(ctx context.Context, code string) (*authz.AuthorizationCodeData, error) {
 			return createAuthzCodeData(), nil
 		}
-		mockAuthzCodeRepo.DeleteAuthorizationCodeFunc = func(code string) error { return nil }
-		mockAuthzCodeRepo.UpdateAuthorizationCodeFunc = func(code string, authData *authz.AuthorizationCodeData) error {
+		mockAuthzCodeRepo.DeleteAuthorizationCodeFunc = func(ctx context.Context, code string) error { return nil }
+		mockAuthzCodeRepo.UpdateAuthorizationCodeFunc = func(ctx context.Context, code string, authData *authz.AuthorizationCodeData) error {
 			return nil
 		}
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
-		data, err := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
+		data, err := service.ValidateAuthorizationCode(ctx, testCode, testClientID, testRedirectURI)
 
 		assert.NotNil(t, data)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Error is returned when the authorization code is not found or expired", func(t *testing.T) {
-		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(code string) (*authz.AuthorizationCodeData, error) {
+		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(ctx context.Context, code string) (*authz.AuthorizationCodeData, error) {
 			return nil, errors.NewInternalServerError()
 		}
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
-		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, testRedirectURI)
+		code, actual := service.ValidateAuthorizationCode(ctx, testCode, testClientID, testRedirectURI)
 
 		assert.Nil(t, code)
 		assert.Error(t, actual)
@@ -125,13 +128,13 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 	})
 
 	t.Run("Error is returned when there is a client ID mismatch", func(t *testing.T) {
-		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(code string) (*authz.AuthorizationCodeData, error) {
+		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(ctx context.Context, code string) (*authz.AuthorizationCodeData, error) {
 			return createAuthzCodeData(), nil
 		}
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := "failed to validate authorization code: authorization code client ID and request client ID do no match"
-		code, actual := service.ValidateAuthorizationCode(testCode, "invalidID", testRedirectURI)
+		code, actual := service.ValidateAuthorizationCode(ctx, testCode, "invalidID", testRedirectURI)
 
 		assert.Nil(t, code)
 		assert.Error(t, actual)
@@ -139,13 +142,13 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 	})
 
 	t.Run("Error is returned when there is a redirectURI mismatch", func(t *testing.T) {
-		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(code string) (*authz.AuthorizationCodeData, error) {
+		mockAuthzCodeRepo.GetAuthorizationCodeFunc = func(ctx context.Context, code string) (*authz.AuthorizationCodeData, error) {
 			return createAuthzCodeData(), nil
 		}
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
 		expected := "failed to validate authorization code: authorization code redirect URI and request redirect URI do no match"
-		code, actual := service.ValidateAuthorizationCode(testCode, testClientID, "testRedirectURI")
+		code, actual := service.ValidateAuthorizationCode(ctx, testCode, testClientID, "testRedirectURI")
 
 		assert.Nil(t, code)
 		assert.Error(t, actual)

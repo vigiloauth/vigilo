@@ -15,10 +15,11 @@ func TestUserJobs_DeleteUnverifiedUsers(t *testing.T) {
 	deleteCalls := 0
 
 	userService := &mocks.MockUserService{
-		DeleteUnverifiedUsersFunc: func() {
+		DeleteUnverifiedUsersFunc: func(ctx context.Context) error {
 			mu.Lock()
 			defer mu.Unlock()
 			deleteCalls++
+			return nil
 		},
 	}
 

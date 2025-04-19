@@ -25,16 +25,16 @@ func NewTokenJobs(tokenService domain.TokenService, interval time.Duration) *Tok
 }
 
 func (t *TokenJobs) DeleteExpiredTokens(ctx context.Context) {
-	t.logger.Info(t.module, "Deleting expired tokens")
+	t.logger.Info(t.module, "", "[DeleteExpiredTokens]: Starting process of deleting expired tokens")
 	ticker := time.NewTicker(t.interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			t.tokenService.DeleteExpiredTokens()
+			t.tokenService.DeleteExpiredTokens(ctx)
 		case <-ctx.Done():
-			t.logger.Info(t.module, "Stopping deletion of expired tokens")
+			t.logger.Info(t.module, "", "[DeleteExpiredTokens]: Stopping process of deleting expired tokens")
 			return
 		}
 	}

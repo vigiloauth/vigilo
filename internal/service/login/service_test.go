@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ const (
 func TestLoginService_SaveLoginAttempt(t *testing.T) {
 	mockUserRepository := &mUserRepo.MockUserRepository{}
 	mockLoginAttemptRepo := &mLoginRepo.MockLoginAttemptRepository{}
+	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
 		attempt := user.NewUserLoginAttempt(
@@ -33,10 +35,12 @@ func TestLoginService_SaveLoginAttempt(t *testing.T) {
 			testRequestDetails,
 			testUserAgent,
 		)
-		mockLoginAttemptRepo.SaveLoginAttemptFunc = func(attempt *user.UserLoginAttempt) error { return nil }
+		mockLoginAttemptRepo.SaveLoginAttemptFunc = func(ctx context.Context, attempt *user.UserLoginAttempt) error {
+			return nil
+		}
 
 		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
-		err := service.SaveLoginAttempt(attempt)
+		err := service.SaveLoginAttempt(ctx, attempt)
 
 		assert.NoError(t, err)
 	})
@@ -49,12 +53,12 @@ func TestLoginService_SaveLoginAttempt(t *testing.T) {
 			testUserAgent,
 		)
 
-		mockLoginAttemptRepo.SaveLoginAttemptFunc = func(attempt *user.UserLoginAttempt) error {
+		mockLoginAttemptRepo.SaveLoginAttemptFunc = func(ctx context.Context, attempt *user.UserLoginAttempt) error {
 			return errors.NewInternalServerError()
 		}
 
 		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
-		err := service.SaveLoginAttempt(attempt)
+		err := service.SaveLoginAttempt(ctx, attempt)
 
 		assert.Error(t, err)
 	})
@@ -63,9 +67,10 @@ func TestLoginService_SaveLoginAttempt(t *testing.T) {
 func TestLoginService_GetLoginAttempts(t *testing.T) {
 	mockUserRepository := &mUserRepo.MockUserRepository{}
 	mockLoginAttemptRepo := &mLoginRepo.MockLoginAttemptRepository{}
+	ctx := context.Background()
 
 	t.Run("GetLoginAttempts return a slice of UserLoginAttempts", func(t *testing.T) {
-		mockLoginAttemptRepo.GetLoginAttemptsFunc = func(userID string) []*user.UserLoginAttempt {
+		mockLoginAttemptRepo.GetLoginAttemptsByUserIDFunc = func(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error) {
 			return []*user.UserLoginAttempt{
 				user.NewUserLoginAttempt(
 					testIPAddress,
@@ -73,28 +78,31 @@ func TestLoginService_GetLoginAttempts(t *testing.T) {
 					testRequestDetails,
 					testUserAgent,
 				),
-			}
+			}, nil
 		}
 
 		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
-		response := service.GetLoginAttempts(testUserID)
 
+		response, err := service.GetLoginAttemptsByUserID(ctx, testUserID)
+		assert.NoError(t, err)
 		assert.Equal(t, 1, len(response))
 	})
 
 	t.Run("GetLoginAttempts returns an empty slice", func(t *testing.T) {
-		mockLoginAttemptRepo.GetLoginAttemptsFunc = func(userID string) []*user.UserLoginAttempt {
-			return []*user.UserLoginAttempt{}
+		mockLoginAttemptRepo.GetLoginAttemptsByUserIDFunc = func(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error) {
+			return []*user.UserLoginAttempt{}, nil
 		}
 
 		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
-		response := service.GetLoginAttempts(testUserID)
 
+		response, err := service.GetLoginAttemptsByUserID(ctx, testUserID)
+		assert.NoError(t, err)
 		assert.Empty(t, response)
 	})
 }
 
 func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
+	ctx := context.Background()
 	t.Run("Failed login attempt is successfully stored", func(t *testing.T) {
 		loginUser := &user.User{
 			ID:              testUserID,
@@ -107,19 +115,19 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 
 		attemptSaved := false
 		mockLoginRepo := &mLoginRepo.MockLoginAttemptRepository{
-			SaveLoginAttemptFunc: func(attempt *user.UserLoginAttempt) error {
+			SaveLoginAttemptFunc: func(ctx context.Context, attempt *user.UserLoginAttempt) error {
 				attemptSaved = true
 				assert.Equal(t, testUserID, attempt.UserID)
 				return nil
 			},
-			GetLoginAttemptsFunc: func(userID string) []*user.UserLoginAttempt {
-				return []*user.UserLoginAttempt{}
+			GetLoginAttemptsByUserIDFunc: func(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error) {
+				return []*user.UserLoginAttempt{}, nil
 			},
 		}
 
 		userUpdated := false
 		mockUserRepo := &mUserRepo.MockUserRepository{
-			UpdateUserFunc: func(updatedUser *user.User) error {
+			UpdateUserFunc: func(ctx context.Context, updatedUser *user.User) error {
 				userUpdated = true
 				assert.Equal(t, loginUser.ID, updatedUser.ID)
 				assert.False(t, updatedUser.LastFailedLogin.IsZero())
@@ -136,7 +144,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 			testUserAgent,
 		)
 		attempt.UserID = testUserID
-		err := service.HandleFailedLoginAttempt(loginUser, attempt)
+		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)
 
 		assert.NoError(t, err)
 		assert.True(t, attemptSaved)
@@ -168,17 +176,17 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		}
 
 		mockLoginRepo := &mLoginRepo.MockLoginAttemptRepository{
-			SaveLoginAttemptFunc: func(attempt *user.UserLoginAttempt) error {
+			SaveLoginAttemptFunc: func(ctx context.Context, attempt *user.UserLoginAttempt) error {
 				return nil
 			},
-			GetLoginAttemptsFunc: func(userID string) []*user.UserLoginAttempt {
-				return previousAttempts
+			GetLoginAttemptsByUserIDFunc: func(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error) {
+				return previousAttempts, nil
 			},
 		}
 
 		userLocked := false
 		mockUserRepo := &mUserRepo.MockUserRepository{
-			UpdateUserFunc: func(updatedUser *user.User) error {
+			UpdateUserFunc: func(ctx context.Context, updatedUser *user.User) error {
 				if updatedUser.AccountLocked {
 					userLocked = true
 				}
@@ -195,7 +203,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		)
 		attempt.UserID = testUserID
 
-		err := service.HandleFailedLoginAttempt(loginUser, attempt)
+		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)
 
 		assert.NoError(t, err)
 		assert.True(t, userLocked)
@@ -213,16 +221,16 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		}
 
 		mockLoginRepo := &mLoginRepo.MockLoginAttemptRepository{
-			SaveLoginAttemptFunc: func(attempt *user.UserLoginAttempt) error {
+			SaveLoginAttemptFunc: func(ctx context.Context, attempt *user.UserLoginAttempt) error {
 				return nil
 			},
-			GetLoginAttemptsFunc: func(userID string) []*user.UserLoginAttempt {
-				return []*user.UserLoginAttempt{}
+			GetLoginAttemptsByUserIDFunc: func(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error) {
+				return []*user.UserLoginAttempt{}, nil
 			},
 		}
 
 		mockUserRepo := &mUserRepo.MockUserRepository{
-			UpdateUserFunc: func(updatedUser *user.User) error {
+			UpdateUserFunc: func(ctx context.Context, updatedUser *user.User) error {
 				return errors.NewInternalServerError()
 			},
 		}
@@ -236,7 +244,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		)
 		attempt.UserID = testUserID
 
-		err := service.HandleFailedLoginAttempt(loginUser, attempt)
+		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update the user")

@@ -1,28 +1,27 @@
 package mocks
 
-// MockUserConsentRepository is a mock implementation of the consent.ConsentStore interface.
+import (
+	"context"
+
+	domain "github.com/vigiloauth/vigilo/internal/domain/userconsent"
+)
+
+var _ domain.UserConsentRepository = (*MockUserConsentRepository)(nil)
+
 type MockUserConsentRepository struct {
-	// HasConsentFunc is a mock function for the HasConsent method.
-	HasConsentFunc func(userID, clientID, scope string) (bool, error)
-
-	// SaveConsentFunc is a mock function for the SaveConsent method.
-	SaveConsentFunc func(userID, clientID, scope string) error
-
-	// RevokeConsentFunc is a mock function for the RevokeConsent method.
-	RevokeConsentFunc func(userID, clientID string) error
+	HasConsentFunc    func(ctx context.Context, userID, clientID, scope string) (bool, error)
+	SaveConsentFunc   func(ctx context.Context, userID, clientID, scope string) error
+	RevokeConsentFunc func(ctx context.Context, userID, clientID string) error
 }
 
-// HasConsent calls the mock HasConsentFunc.
-func (m *MockUserConsentRepository) HasConsent(userID, clientID, scope string) (bool, error) {
-	return m.HasConsentFunc(userID, clientID, scope)
+func (m *MockUserConsentRepository) HasConsent(ctx context.Context, userID, clientID, scope string) (bool, error) {
+	return m.HasConsentFunc(ctx, userID, clientID, scope)
 }
 
-// SaveConsent calls the mock SaveConsentFunc.
-func (m *MockUserConsentRepository) SaveConsent(userID, clientID, scope string) error {
-	return m.SaveConsentFunc(userID, clientID, scope)
+func (m *MockUserConsentRepository) SaveConsent(ctx context.Context, userID, clientID, scope string) error {
+	return m.SaveConsentFunc(ctx, userID, clientID, scope)
 }
 
-// RevokeConsent calls the mock RevokeConsentFunc.
-func (m *MockUserConsentRepository) RevokeConsent(userID, clientID string) error {
-	return m.RevokeConsentFunc(userID, clientID)
+func (m *MockUserConsentRepository) RevokeConsent(ctx context.Context, userID, clientID string) error {
+	return m.RevokeConsentFunc(ctx, userID, clientID)
 }

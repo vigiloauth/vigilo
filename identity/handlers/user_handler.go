@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
-	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
@@ -14,10 +15,9 @@ import (
 
 // UserHandler handles HTTP requests related to user operations.
 type UserHandler struct {
-	userService          users.UserService
-	passwordResetService password.PasswordResetService
-	sessionService       session.SessionService
-	jwtConfig            *config.TokenConfig
+	userService    users.UserService
+	sessionService session.SessionService
+	tokenConfig    *config.TokenConfig
 
 	logger *config.Logger
 	module string
@@ -32,19 +32,15 @@ type UserHandler struct {
 //	sessionService Session: The session service.
 //
 // Returns:
-// *UserHandler: A new UserHandler instance.
-func NewUserHandler(
-	userService users.UserService,
-	passwordResetService password.PasswordResetService,
-	sessionService session.SessionService,
-) *UserHandler {
+//
+//	*UserHandler: A new UserHandler instance.
+func NewUserHandler(userService users.UserService, sessionService session.SessionService) *UserHandler {
 	return &UserHandler{
-		userService:          userService,
-		passwordResetService: passwordResetService,
-		sessionService:       sessionService,
-		jwtConfig:            config.GetServerConfig().TokenConfig(),
-		logger:               config.GetServerConfig().Logger(),
-		module:               "User Handler",
+		userService:    userService,
+		sessionService: sessionService,
+		tokenConfig:    config.GetServerConfig().TokenConfig(),
+		logger:         config.GetServerConfig().Logger(),
+		module:         "User Handler",
 	}
 }
 
@@ -52,8 +48,11 @@ func NewUserHandler(
 // It processes incoming HTTP requests for user registration, validates the input,
 // registers the user, and sends an appropriate response including a JWT token.
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[Register]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[Register]: Processing request")
 
 	request, err := web.DecodeJSONRequest[users.UserRegistrationRequest](w, r)
 	if err != nil {
@@ -67,19 +66,18 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUser(request.Username, request.Email, request.Password)
-	response, err := h.userService.CreateUser(user)
+	response, err := h.userService.CreateUser(ctx, user)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to create user")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, r, user.ID, h.jwtConfig.ExpirationTime()); err != nil {
+	if err := h.sessionService.CreateSession(w, r, user.ID, h.tokenConfig.ExpirationTime()); err != nil {
 		web.WriteError(w, err)
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[Register]", requestID)
 	web.WriteJSON(w, http.StatusCreated, response)
 }
 
@@ -88,8 +86,11 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 // logs in the user, and returns a JWT token if successful or a generic error
 // message for failed attempts.
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[Login]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[Login]: Processing request")
 
 	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
 	if err != nil {
@@ -103,6 +104,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := h.userService.AuthenticateUserWithRequest(
+		ctx,
 		request, r.RemoteAddr,
 		r.Header.Get(common.XForwardedHeader),
 		r.UserAgent(),
@@ -114,12 +116,11 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, r, response.UserID, h.jwtConfig.ExpirationTime()); err != nil {
+	if err := h.sessionService.CreateSession(w, r, response.UserID, h.tokenConfig.ExpirationTime()); err != nil {
 		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[Login]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -128,8 +129,11 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 // adds the token to the blacklist to prevent further use, and sends an appropriate response.
 // If the Authorization header is missing or the token is invalid, it returns an error.
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[Logout]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[Logout]: Processing request")
 
 	if err := h.sessionService.InvalidateSession(w, r); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to invalidate session")
@@ -137,7 +141,6 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[Logout]", requestID)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -145,8 +148,11 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // It decodes the request body into a UserPasswordResetRequest, validates the request,
 // and then calls the passwordResetService to reset the user's password.
 func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[ResetPassword]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[ResetPassword]: Processing request")
 
 	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
 	if err != nil {
@@ -159,7 +165,8 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.passwordResetService.ResetPassword(
+	response, err := h.userService.ResetPassword(
+		ctx,
 		request.Email,
 		request.NewPassword,
 		request.ResetToken,
@@ -170,17 +177,19 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[ResetPassword]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
 func (h *UserHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[ResetPassword]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[VerifyAccount]: Processing request")
 
 	query := r.URL.Query()
 	verificationToken := query.Get(common.Token)
-	if err := h.userService.ValidateVerificationCode(verificationToken); err != nil {
+	if err := h.userService.ValidateVerificationCode(ctx, verificationToken); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate user account")
 		web.WriteError(w, wrappedErr)
 		return
