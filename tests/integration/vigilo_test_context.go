@@ -22,6 +22,7 @@ import (
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	userConsent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	auditEventRepo "github.com/vigiloauth/vigilo/internal/repository/audit"
 	sessionRepo "github.com/vigiloauth/vigilo/internal/repository/session"
 	tokenRepo "github.com/vigiloauth/vigilo/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
@@ -458,6 +459,7 @@ func resetInMemoryStores() {
 	clientRepo.ResetInMemoryClientRepository()
 	consentRepo.ResetInMemoryUserConsentRepository()
 	sessionRepo.ResetInMemorySessionRepository()
+	auditEventRepo.ResetInMemoryAuditEventRepository()
 }
 
 func (tc *VigiloTestContext) decodeErrorResponse(rr *httptest.ResponseRecorder) errors.VigiloAuthError {

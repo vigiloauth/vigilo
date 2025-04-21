@@ -35,7 +35,7 @@ const (
 )
 
 func (t EmailType) String() string {
-	return "account_verification"
+	return string(t)
 }
 
 type EmailRetryQueue struct {

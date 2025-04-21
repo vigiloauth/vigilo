@@ -14,6 +14,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/identity/handlers"
 	"github.com/vigiloauth/vigilo/internal/background"
+	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
@@ -26,6 +27,7 @@ import (
 	userConsent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/middleware"
 
+	auditEventRepo "github.com/vigiloauth/vigilo/internal/repository/audit"
 	authzCodeRepo "github.com/vigiloauth/vigilo/internal/repository/authzcode"
 	clientRepo "github.com/vigiloauth/vigilo/internal/repository/client"
 	loginRepo "github.com/vigiloauth/vigilo/internal/repository/login"
@@ -57,6 +59,7 @@ type ServiceContainer struct {
 	consentRepo      userConsent.UserConsentRepository
 	authzCodeRepo    authzCode.AuthorizationCodeRepository
 	sessionRepo      session.SessionRepository
+	auditEventRepo   audit.AuditRepository
 
 	// Lazy-loaded services using sync.Once to ensure thread safety
 	tokenServiceOnce         sync.Once
@@ -145,6 +148,7 @@ func (c *ServiceContainer) initializeInMemoryRepositories() {
 	c.consentRepo = consentRepo.GetInMemoryUserConsentRepository()
 	c.authzCodeRepo = authzCodeRepo.GetInMemoryAuthorizationCodeRepository()
 	c.sessionRepo = sessionRepo.GetInMemorySessionRepository()
+	c.auditEventRepo = auditEventRepo.GetInMemoryAuditEventRepository()
 }
 
 // initializeServices defines getter methods for lazy service initialization**
