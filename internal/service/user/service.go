@@ -268,14 +268,14 @@ func (u *userService) ResetPassword(ctx context.Context, userEmail, newPassword,
 	if storedToken.Subject != userEmail {
 		err := errors.New(errors.ErrCodeUnauthorized, "invalid reset token")
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Invalid reset token. Subject does not match user email=[%s]: %v", userEmail, err)
-		u.logPasswordResetEvent(ctx, false, err)
+		u.logPasswordResetEvent(ctx, false, err, "")
 		return nil, err
 	}
 
 	encryptedPassword, err := crypto.HashString(newPassword)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to encrypt password: %v", err)
-		u.logPasswordResetEvent(ctx, false, errors.NewInternalServerError())
+		u.logPasswordResetEvent(ctx, false, errors.NewInternalServerError(), "")
 		return nil, errors.NewInternalServerError()
 	}
 
@@ -283,13 +283,13 @@ func (u *userService) ResetPassword(ctx context.Context, userEmail, newPassword,
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: An error occurred retrieving the user: %v", err)
 		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
-		u.logPasswordResetEvent(ctx, false, wrappedErr)
+		u.logPasswordResetEvent(ctx, false, wrappedErr, "")
 		return nil, wrappedErr
 	}
 
 	if user == nil {
 		err := errors.New(errors.ErrCodeUserNotFound, "user not found with the provided email address")
-		u.logPasswordResetEvent(ctx, false, err)
+		u.logPasswordResetEvent(ctx, false, err, "")
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to retrieve user by email. User does not exist.")
 		return nil, err
 	}
@@ -303,7 +303,7 @@ func (u *userService) ResetPassword(ctx context.Context, userEmail, newPassword,
 	if err := u.userRepo.UpdateUser(ctx, user); err != nil {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to update user: %v", err)
 		wrappedErr := errors.Wrap(err, "", "failed to update user")
-		u.logPasswordResetEvent(ctx, false, wrappedErr)
+		u.logPasswordResetEvent(ctx, false, wrappedErr, user.ID)
 		return nil, wrappedErr
 	}
 
@@ -312,7 +312,7 @@ func (u *userService) ResetPassword(ctx context.Context, userEmail, newPassword,
 		return nil, errors.Wrap(err, "", "failed to delete reset token")
 	}
 
-	u.logPasswordResetEvent(ctx, true, nil)
+	u.logPasswordResetEvent(ctx, true, nil, user.ID)
 	return &users.UserPasswordResetResponse{
 		Message: "Password has been reset successfully",
 	}, nil
@@ -343,25 +343,25 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	retrievedUser, err := u.userRepo.GetUserByID(ctx, loginUser.ID)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "An error occurred retrieving the user by ID: %v", err)
-		u.logLoginEvent(ctx, false, err)
+		u.logLoginEvent(ctx, false, err, loginAttempt.UserID)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
 	} else if retrievedUser == nil {
 		err := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
-		u.logLoginEvent(ctx, false, err)
+		u.logLoginEvent(ctx, false, err, loginAttempt.UserID)
 		u.logger.Error(u.module, requestID, "Failed to retrieve user by ID=[%s]: %v", common.TruncateSensitive(loginUser.ID), err)
 		return nil, err
 	}
 
 	if retrievedUser.AccountLocked {
 		err := errors.New(errors.ErrCodeAccountLocked, "account is locked due to too many failed login attempts -- please reset your password")
-		u.logLoginEvent(ctx, false, err)
+		u.logLoginEvent(ctx, false, err, retrievedUser.ID)
 		u.logger.Error(u.module, requestID, "Failed to authenticate due to too many failed attempts=[%d], timestamp=[%s]", loginAttempt.FailedAttempts, loginAttempt.Timestamp)
 		return nil, err
 	}
 
 	if err := u.comparePasswords(ctx, loginUser, retrievedUser, loginAttempt); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
-		u.logLoginEvent(ctx, false, err)
+		u.logLoginEvent(ctx, false, err, retrievedUser.ID)
 		return nil, wrappedErr
 	}
 
@@ -374,11 +374,11 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	retrievedUser.LastFailedLogin = time.Time{}
 	if err := u.updateAuthenticatedUser(ctx, retrievedUser); err != nil {
 		u.logger.Error(u.module, requestID, "Failed to update authenticated user: %v", err)
-		u.logLoginEvent(ctx, false, err)
+		u.logLoginEvent(ctx, false, err, retrievedUser.ID)
 		return nil, err
 	}
 
-	u.logLoginEvent(ctx, true, nil)
+	u.logLoginEvent(ctx, true, nil, retrievedUser.ID)
 	return users.NewUserLoginResponse(retrievedUser, accessToken), nil
 }
 
@@ -467,10 +467,12 @@ func (u *userService) sendVerificationEmail(ctx context.Context, user *users.Use
 	return u.emailService.SendEmail(ctx, emailRequest)
 }
 
-func (u *userService) logLoginEvent(ctx context.Context, success bool, err error) {
+func (u *userService) logLoginEvent(ctx context.Context, success bool, err error, userID string) {
+	ctx = common.AddKeyValueToContext(ctx, common.ContextKeyUserID, userID)
 	u.auditLogger.StoreEvent(ctx, audit.LoginAttempt, success, audit.AuthenticationAction, audit.OAuthMethod, err)
 }
 
-func (u *userService) logPasswordResetEvent(ctx context.Context, success bool, err error) {
+func (u *userService) logPasswordResetEvent(ctx context.Context, success bool, err error, userID string) {
+	ctx = common.AddKeyValueToContext(ctx, common.ContextKeyUserID, userID)
 	u.auditLogger.StoreEvent(ctx, audit.PasswordChange, success, audit.PasswordResetAction, audit.EmailMethod, err)
 }
