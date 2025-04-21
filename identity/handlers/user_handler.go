@@ -103,13 +103,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.userService.AuthenticateUserWithRequest(
-		ctx,
-		request, r.RemoteAddr,
-		r.Header.Get(common.XForwardedHeader),
-		r.UserAgent(),
-	)
-
+	response, err := h.userService.AuthenticateUserWithRequest(ctx, request)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
 		web.WriteError(w, wrappedErr)

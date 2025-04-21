@@ -316,7 +316,7 @@ func (s *authenticationService) authenticateUser(ctx context.Context, req *user.
 	}
 
 	loginAttempt := &user.UserLoginRequest{ID: existingUser.ID, Username: req.Username, Password: req.Password}
-	loginResponse, err := s.userService.HandleOAuthLogin(ctx, loginAttempt, clientID, "", req.IPAddress, req.RequestMetadata, req.UserAgent)
+	loginResponse, err := s.userService.HandleOAuthLogin(ctx, loginAttempt, clientID, "")
 	if err != nil {
 		return nil, err
 	}

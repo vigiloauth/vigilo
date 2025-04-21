@@ -10,8 +10,8 @@ var _ user.UserService = (*MockUserService)(nil)
 
 type MockUserService struct {
 	CreateUserFunc                  func(ctx context.Context, user *user.User) (*user.UserRegistrationResponse, error)
-	HandleOAuthLoginFunc            func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error)
-	AuthenticateUserWithRequestFunc func(ctx context.Context, request *user.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error)
+	HandleOAuthLoginFunc            func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error)
+	AuthenticateUserWithRequestFunc func(ctx context.Context, request *user.UserLoginRequest) (*user.UserLoginResponse, error)
 	GetUserByIDFunc                 func(ctx context.Context, userID string) (*user.User, error)
 	GetUserByUsernameFunc           func(ctx context.Context, username string) (*user.User, error)
 	ValidateVerificationCodeFunc    func(ctx context.Context, verificationCode string) error
@@ -23,12 +23,12 @@ func (m *MockUserService) CreateUser(ctx context.Context, user *user.User) (*use
 	return m.CreateUserFunc(ctx, user)
 }
 
-func (m *MockUserService) HandleOAuthLogin(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error) {
-	return m.HandleOAuthLoginFunc(ctx, request, clientID, redirectURI, remoteAddr, forwardedFor, userAgent)
+func (m *MockUserService) HandleOAuthLogin(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
+	return m.HandleOAuthLoginFunc(ctx, request, clientID, redirectURI)
 }
 
-func (m *MockUserService) AuthenticateUserWithRequest(ctx context.Context, request *user.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error) {
-	return m.AuthenticateUserWithRequestFunc(ctx, request, remoteAddr, forwardedFor, userAgent)
+func (m *MockUserService) AuthenticateUserWithRequest(ctx context.Context, request *user.UserLoginRequest) (*user.UserLoginResponse, error) {
+	return m.AuthenticateUserWithRequestFunc(ctx, request)
 }
 
 func (m *MockUserService) GetUserByID(ctx context.Context, userID string) (*user.User, error) {

@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -157,16 +156,25 @@ func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handle
 	}
 }
 
-// RequestIDMiddleware ensures each request has a unique request ID.
-func (m *Middleware) RequestIDMiddleware(next http.Handler) http.Handler {
+// WithContextValues ensures each request has contains a request ID, the UserAgent, remote address, and the header.
+func (m *Middleware) WithContextValues(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		requestID := r.Header.Get(common.RequestIDHeader)
 		if requestID == "" {
 			requestID = crypto.GenerateUUID()
 		}
-
 		w.Header().Set(common.RequestIDHeader, requestID)
-		ctx := context.WithValue(r.Context(), common.RequestID, requestID)
+
+		ipAddress := r.RemoteAddr
+		if forwardedFor := r.Header.Get(common.XForwardedHeader); forwardedFor != "" {
+			ipAddress = forwardedFor
+		}
+
+		ctx = common.AddKeyValueToContext(ctx, common.ContextKeyIPAddress, ipAddress)
+		ctx = common.AddKeyValueToContext(ctx, common.ContextKeyRequestID, requestID)
+		ctx = common.AddKeyValueToContext(ctx, common.ContextKeyUserAgent, r.UserAgent())
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

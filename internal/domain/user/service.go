@@ -32,18 +32,15 @@ type UserService interface {
 	// to the AuthenticateUser method.
 	//
 	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
+	//	- ctx Context: The context for managing timeouts, cancellations, and for retrieving/storing request metadata.
 	//	- request *UserLoginRequest: The login request containing the user's email and password.
 	//	- clientID string: The client ID of the OAuth client making the request.
 	//	- redirectURI string: The redirect URI to use if authentication is successful.
-	//	- remoteAddr string: The remote address of the client making the request.
-	//	- forwardedFor string: The value of the "X-Forwarded-For" header, if present.
-	//	- userAgent string: The user agent string from the HTTP request.
 	//
 	// Returns:
 	//	- *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 	//	- error: An error if authentication fails or if the input is invalid.
-	HandleOAuthLogin(ctx context.Context, request *UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*UserLoginResponse, error)
+	HandleOAuthLogin(ctx context.Context, request *UserLoginRequest, clientID, redirectURI string) (*UserLoginResponse, error)
 
 	// AuthenticateUserWithRequest authenticates a user based on a login request and request metadata.
 	//
@@ -52,16 +49,13 @@ type UserService interface {
 	// to the AuthenticateUser method.
 	//
 	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
+	//	- ctx Context: The context for managing timeouts, cancellations, and for retrieving/storing request metadata.
 	//	- request *UserLoginRequest: The login request containing the user's email and password.
-	//	- remoteAddr string: The remote address of the client making the request.
-	//	- forwardedFor string: The value of the "X-Forwarded-For" header, if present.
-	//	- userAgent string: The user agent string from the HTTP request.
 	//
 	// Returns:
 	//	- *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 	//	- error: An error if authentication fails or if the input is invalid.
-	AuthenticateUserWithRequest(ctx context.Context, request *UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*UserLoginResponse, error)
+	AuthenticateUserWithRequest(ctx context.Context, request *UserLoginRequest) (*UserLoginResponse, error)
 
 	// GetUserByID retrieves a user from the store using their ID.
 	//

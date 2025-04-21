@@ -8,6 +8,7 @@ import (
 
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
+	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -22,6 +23,7 @@ type sessionService struct {
 	tokenService      token.TokenService
 	sessionRepo       session.SessionRepository
 	httpCookieService cookie.HTTPCookieService
+	auditLogger       audit.AuditLogger
 
 	logger *config.Logger
 	module string
@@ -40,11 +42,13 @@ func NewSessionService(
 	tokenService token.TokenService,
 	sessionRepo session.SessionRepository,
 	httpCookieService cookie.HTTPCookieService,
+	auditLogger audit.AuditLogger,
 ) session.SessionService {
 	return &sessionService{
 		tokenService:      tokenService,
 		sessionRepo:       sessionRepo,
 		httpCookieService: httpCookieService,
+		auditLogger:       auditLogger,
 		logger:            config.GetServerConfig().Logger(),
 		module:            "Session Service",
 	}
@@ -81,11 +85,14 @@ func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, u
 
 	if err := s.sessionRepo.SaveSession(ctx, sessionData); err != nil {
 		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to save session: %v", err)
-		return errors.Wrap(err, errors.ErrCodeInternalServerError, "error creating session")
+		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "error creating session")
+		s.auditLogger.StoreEvent(ctx, audit.SessionCreated, false, audit.SessionCreationAction, audit.CookieMethod, wrappedErr)
+		return wrappedErr
 	}
 
+	ctx = context.WithValue(ctx, common.ContextKeySessionID, sessionToken)
+	s.auditLogger.StoreEvent(ctx, audit.SessionCreated, true, audit.SessionCreationAction, audit.CookieMethod, nil)
 	s.httpCookieService.SetSessionCookie(ctx, w, sessionToken, sessionExpiration)
-	s.logger.Debug(s.module, requestID, "[CreateSession]: Session for user=[%s] created and saved successfully", common.TruncateSensitive(userID))
 	return nil
 }
 
@@ -121,11 +128,13 @@ func (s *sessionService) InvalidateSession(w http.ResponseWriter, r *http.Reques
 	sessionID := claims.Subject
 	if err := s.sessionRepo.DeleteSessionByID(ctx, sessionID); err != nil {
 		s.logger.Error(s.module, requestID, "[InvalidateSession]: Failed to delete session=[%s]: %v", common.TruncateSensitive(sessionID), err)
-		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to invalidate session")
+		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to invalidate session")
+		s.auditLogger.StoreEvent(ctx, audit.SessionDeleted, false, audit.SessionDeletionAction, audit.CookieMethod, wrappedErr)
+		return wrappedErr
 	}
 
 	s.httpCookieService.ClearSessionCookie(ctx, w)
-	s.logger.Debug(s.module, requestID, "[InvalidateSession]: Session successfully invalidated")
+	s.auditLogger.StoreEvent(ctx, audit.SessionDeleted, true, audit.SessionDeletionAction, audit.CookieMethod, nil)
 	return nil
 }
 

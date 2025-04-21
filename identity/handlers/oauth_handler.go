@@ -88,13 +88,7 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.userService.HandleOAuthLogin(
-		ctx, request, clientID,
-		redirectURI, r.RemoteAddr,
-		r.Header.Get(common.XForwardedHeader),
-		r.UserAgent(),
-	)
-
+	response, err := h.userService.HandleOAuthLogin(ctx, request, clientID, redirectURI)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
 		web.WriteError(w, wrappedErr)

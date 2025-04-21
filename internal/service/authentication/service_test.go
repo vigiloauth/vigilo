@@ -120,7 +120,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 					Scopes:   []string{client.UserManage},
 				}, nil
 			},
-			HandleOAuthLoginFunc: func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error) {
+			HandleOAuthLoginFunc: func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
 				return &user.UserLoginResponse{}, nil
 			},
 		}
@@ -151,7 +151,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 					Scopes:   []string{client.UserManage},
 				}, nil
 			},
-			HandleOAuthLoginFunc: func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*user.UserLoginResponse, error) {
+			HandleOAuthLoginFunc: func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
 				return &user.UserLoginResponse{}, nil
 			},
 		}

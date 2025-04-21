@@ -29,12 +29,7 @@ func TestLoginService_SaveLoginAttempt(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
-		attempt := user.NewUserLoginAttempt(
-			testIPAddress,
-			testRequestMetadata,
-			testRequestDetails,
-			testUserAgent,
-		)
+		attempt := user.NewUserLoginAttempt(testIPAddress, testUserAgent)
 		mockLoginAttemptRepo.SaveLoginAttemptFunc = func(ctx context.Context, attempt *user.UserLoginAttempt) error {
 			return nil
 		}
@@ -46,13 +41,7 @@ func TestLoginService_SaveLoginAttempt(t *testing.T) {
 	})
 
 	t.Run("Error is returned when database error occurs", func(t *testing.T) {
-		attempt := user.NewUserLoginAttempt(
-			testIPAddress,
-			testRequestMetadata,
-			testRequestDetails,
-			testUserAgent,
-		)
-
+		attempt := user.NewUserLoginAttempt(testIPAddress, testUserAgent)
 		mockLoginAttemptRepo.SaveLoginAttemptFunc = func(ctx context.Context, attempt *user.UserLoginAttempt) error {
 			return errors.NewInternalServerError()
 		}
@@ -72,12 +61,7 @@ func TestLoginService_GetLoginAttempts(t *testing.T) {
 	t.Run("GetLoginAttempts return a slice of UserLoginAttempts", func(t *testing.T) {
 		mockLoginAttemptRepo.GetLoginAttemptsByUserIDFunc = func(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error) {
 			return []*user.UserLoginAttempt{
-				user.NewUserLoginAttempt(
-					testIPAddress,
-					testRequestMetadata,
-					testRequestDetails,
-					testUserAgent,
-				),
+				user.NewUserLoginAttempt(testIPAddress, testUserAgent),
 			}, nil
 		}
 
@@ -137,12 +121,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		}
 
 		service := NewLoginAttemptService(mockUserRepo, mockLoginRepo)
-		attempt := user.NewUserLoginAttempt(
-			testIPAddress,
-			testRequestMetadata,
-			testRequestDetails,
-			testUserAgent,
-		)
+		attempt := user.NewUserLoginAttempt(testIPAddress, testUserAgent)
 		attempt.UserID = testUserID
 		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)
 
@@ -165,12 +144,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		maxAttempts := 5
 		previousAttempts := make([]*user.UserLoginAttempt, maxAttempts)
 		for i := range maxAttempts {
-			attempt := user.NewUserLoginAttempt(
-				testIPAddress,
-				testRequestMetadata,
-				testRequestDetails,
-				testUserAgent,
-			)
+			attempt := user.NewUserLoginAttempt(testIPAddress, testUserAgent)
 			attempt.UserID = testUserID
 			previousAttempts[i] = attempt
 		}
@@ -195,12 +169,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		}
 
 		service := NewLoginAttemptService(mockUserRepo, mockLoginRepo)
-		attempt := user.NewUserLoginAttempt(
-			testIPAddress,
-			testRequestMetadata,
-			testRequestDetails,
-			testUserAgent,
-		)
+		attempt := user.NewUserLoginAttempt(testIPAddress, testUserAgent)
 		attempt.UserID = testUserID
 
 		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)
@@ -236,12 +205,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		}
 
 		service := NewLoginAttemptService(mockUserRepo, mockLoginRepo)
-		attempt := user.NewUserLoginAttempt(
-			testIPAddress,
-			testRequestMetadata,
-			testRequestDetails,
-			testUserAgent,
-		)
+		attempt := user.NewUserLoginAttempt(testIPAddress, testUserAgent)
 		attempt.UserID = testUserID
 
 		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)

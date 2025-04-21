@@ -153,7 +153,7 @@ func (s *VigiloIdentityServer) setupProtectedRoutes() {
 }
 
 func (s *VigiloIdentityServer) applyGlobalMiddleware() {
-	s.router.Use(s.middleware.RequestIDMiddleware)
+	s.router.Use(s.middleware.WithContextValues)
 	s.router.Use(s.middleware.RateLimit)
 	if s.serverConfig.ForceHTTPS() {
 		s.logger.Info(s.module, "", "Vigilo Identity Server is running on HTTPS")

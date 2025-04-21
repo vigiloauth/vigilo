@@ -37,6 +37,7 @@ import (
 	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
 
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
+	auditLogger "github.com/vigiloauth/vigilo/internal/service/audit"
 	authService "github.com/vigiloauth/vigilo/internal/service/authentication"
 	authzService "github.com/vigiloauth/vigilo/internal/service/authorization"
 	authzCodeService "github.com/vigiloauth/vigilo/internal/service/authzcode"
@@ -74,6 +75,7 @@ type ServiceContainer struct {
 	authServiceOnce          sync.Once
 	emailServiceOnce         sync.Once
 	mailerOnce               sync.Once
+	auditLoggerOnce          sync.Once
 
 	tokenService         token.TokenService
 	sessionService       session.SessionService
@@ -87,6 +89,7 @@ type ServiceContainer struct {
 	authService          auth.AuthenticationService
 	emailService         email.EmailService
 	mailer               email.Mailer
+	auditLogger          audit.AuditLogger
 
 	tokenServiceInit         func() token.TokenService
 	sessionServiceInit       func() session.SessionService
@@ -100,6 +103,7 @@ type ServiceContainer struct {
 	authServiceInit          func() auth.AuthenticationService
 	emailServiceInit         func() email.EmailService
 	mailerInit               func() email.Mailer
+	auditLoggerInit          func() audit.AuditLogger
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
@@ -164,7 +168,7 @@ func (c *ServiceContainer) initializeServices() {
 	}
 	c.sessionServiceInit = func() session.SessionService {
 		c.logger.Debug(c.module, "", "Initializing SessionService")
-		return sessionService.NewSessionService(c.getTokenService(), c.sessionRepo, c.getHTTPSessionCookieService())
+		return sessionService.NewSessionService(c.getTokenService(), c.sessionRepo, c.getHTTPSessionCookieService(), c.getAuditLogger())
 	}
 	c.loginAttemptServiceInit = func() login.LoginAttemptService {
 		c.logger.Debug(c.module, "", "Initializing LoginAttemptService")
@@ -172,7 +176,7 @@ func (c *ServiceContainer) initializeServices() {
 	}
 	c.userServiceInit = func() users.UserService {
 		c.logger.Debug(c.module, "", "Initializing UserService")
-		return userService.NewUserService(c.userRepo, c.getTokenService(), c.getLoginAttemptService(), c.getEmailService())
+		return userService.NewUserService(c.userRepo, c.getTokenService(), c.getLoginAttemptService(), c.getEmailService(), c.getAuditLogger())
 	}
 	c.clientServiceInit = func() client.ClientService {
 		c.logger.Debug(c.module, "", "Initializing ClientService")
@@ -201,6 +205,10 @@ func (c *ServiceContainer) initializeServices() {
 	c.mailerInit = func() email.Mailer {
 		c.logger.Debug(c.module, "", "Initializing GoMailer")
 		return emailService.NewGoMailer()
+	}
+	c.auditLoggerInit = func() audit.AuditLogger {
+		c.logger.Debug(c.module, "", "Initializing AuditLogger")
+		return auditLogger.NewAuditLogger(c.auditEventRepo)
 	}
 }
 
@@ -367,4 +375,9 @@ func (c *ServiceContainer) getEmailService() email.EmailService {
 func (c *ServiceContainer) getGoMailer() email.Mailer {
 	c.mailerOnce.Do(func() { c.mailer = c.mailerInit() })
 	return c.mailer
+}
+
+func (c *ServiceContainer) getAuditLogger() audit.AuditLogger {
+	c.auditLoggerOnce.Do(func() { c.auditLogger = c.auditLoggerInit() })
+	return c.auditLogger
 }

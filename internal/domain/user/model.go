@@ -186,14 +186,12 @@ func NewUserLoginResponse(user *User, jwtToken string) *UserLoginResponse {
 // Returns:
 //
 //	*LoginAttempt: A new UserLoginAttempt instance.
-func NewUserLoginAttempt(ipAddress, requestMetadata, details, userAgent string) *UserLoginAttempt {
+func NewUserLoginAttempt(ipAddress, userAgent string) *UserLoginAttempt {
 	return &UserLoginAttempt{
-		IPAddress:       ipAddress,
-		Timestamp:       time.Now(),
-		RequestMetadata: requestMetadata,
-		Details:         details,
-		UserAgent:       userAgent,
-		FailedAttempts:  0,
+		IPAddress:      ipAddress,
+		Timestamp:      time.Now(),
+		UserAgent:      userAgent,
+		FailedAttempts: 0,
 	}
 }
 

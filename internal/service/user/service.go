@@ -7,6 +7,7 @@ import (
 	"github.com/vigiloauth/vigilo/identity/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
+	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -21,6 +22,7 @@ type userService struct {
 	tokenService token.TokenService
 	loginService login.LoginAttemptService
 	emailService email.EmailService
+	auditLogger  audit.AuditLogger
 
 	tokenConfig     *config.TokenConfig
 	artificialDelay time.Duration
@@ -28,24 +30,19 @@ type userService struct {
 	module          string
 }
 
-// NewUserService creates a new UserServiceImpl instance.
-//
-// Parameters:
-//   - userRepo UserRepository: The user repo to user.
-//
-// Returns:
-//   - *UserServiceImpl: A new UserServiceImpl instance.
 func NewUserService(
 	userRepo users.UserRepository,
 	tokenService token.TokenService,
 	loginAttemptRepository login.LoginAttemptService,
 	emailService email.EmailService,
+	auditLogger audit.AuditLogger,
 ) users.UserService {
 	return &userService{
 		userRepo:        userRepo,
 		tokenService:    tokenService,
 		loginService:    loginAttemptRepository,
 		emailService:    emailService,
+		auditLogger:     auditLogger,
 		tokenConfig:     config.GetServerConfig().TokenConfig(),
 		artificialDelay: config.GetServerConfig().LoginConfig().Delay(),
 		logger:          config.GetServerConfig().Logger(),
@@ -65,19 +62,8 @@ func NewUserService(
 func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.UserRegistrationResponse, error) {
 	requestID := common.GetRequestID(ctx)
 
-	exists, err := u.userExistsByEmail(ctx, user.Email)
-	if err != nil {
-		u.logger.Error(u.module, requestID, "[CreateUser]: An error occurred retrieving the user: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
-	}
-
-	if exists {
-		err := errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
-		u.logger.Error(u.module, requestID, "[CreateUser]: Failed to create new user: %v", err)
-		return nil, err
-	}
-
 	if err := u.saveUser(ctx, user); err != nil {
+		u.auditLogger.StoreEvent(ctx, audit.RegistrationAttempt, false, audit.RegistrationAction, audit.EmailMethod, err)
 		u.logger.Error(u.module, requestID, "[CreateUser]: Failed to save user: %v", err)
 		return nil, err
 	}
@@ -93,6 +79,7 @@ func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.
 		return nil, errors.Wrap(err, "", "failed to generate session token")
 	}
 
+	u.auditLogger.StoreEvent(ctx, audit.RegistrationAttempt, true, audit.RegistrationAction, audit.EmailMethod, nil)
 	return users.NewUserRegistrationResponse(user, accessToken), nil
 }
 
@@ -118,25 +105,22 @@ func (u *userService) GetUserByUsername(ctx context.Context, username string) (*
 // to the AuthenticateUser method.
 //
 // Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
+//   - ctx Context: The context for managing timeouts, cancellations, and for retrieving/storing request metadata.
 //   - request *UserLoginRequest: The login request containing the user's email and password.
 //   - clientID string: The client ID of the OAuth client making the request.
 //   - redirectURI string: The redirect URI to use if authentication is successful.
-//   - remoteAddr string: The remote address of the client making the request.
-//   - forwardedFor string: The value of the "X-Forwarded-For" header, if present.
-//   - userAgent string: The user agent string from the HTTP request.
 //
 // Returns:
 //   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 //   - error: An error if authentication fails or if the input is invalid.
-func (u *userService) HandleOAuthLogin(ctx context.Context, request *users.UserLoginRequest, clientID, redirectURI, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
+func (u *userService) HandleOAuthLogin(ctx context.Context, request *users.UserLoginRequest, clientID, redirectURI string) (*users.UserLoginResponse, error) {
 	requestID := common.GetRequestID(ctx)
 	if err := request.Validate(); err != nil {
 		u.logger.Error(u.module, requestID, "[HandleOAuthLogin]: Failed to validate request: %v", err)
 		return nil, err
 	}
 
-	response, err := u.AuthenticateUserWithRequest(ctx, request, remoteAddr, forwardedFor, userAgent)
+	response, err := u.AuthenticateUserWithRequest(ctx, request)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[HandleOAuthLogin]: Failed to authenticate user: %v", err)
 		return nil, errors.New(errors.ErrCodeUnauthorized, "credentials are either missing or invalid")
@@ -152,23 +136,22 @@ func (u *userService) HandleOAuthLogin(ctx context.Context, request *users.UserL
 // to the AuthenticateUser method.
 //
 // Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
+//   - ctx Context: The context for managing timeouts, cancellations, and for retrieving/storing request metadata.
 //   - request *UserLoginRequest: The login request containing the user's email and password.
-//   - remoteAddr string: The remote address of the client making the request.
-//   - forwardedFor string: The value of the "X-Forwarded-For" header, if present.
-//   - userAgent string: The user agent string from the HTTP request.
 //
 // Returns:
 //   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 //   - error: An error if authentication fails or if the input is invalid.
-func (u *userService) AuthenticateUserWithRequest(ctx context.Context, request *users.UserLoginRequest, remoteAddr, forwardedFor, userAgent string) (*users.UserLoginResponse, error) {
+func (u *userService) AuthenticateUserWithRequest(ctx context.Context, request *users.UserLoginRequest) (*users.UserLoginResponse, error) {
 	user := &users.User{
 		ID:       request.ID,
 		Username: request.Username,
 		Password: request.Password,
 	}
 
-	loginAttempt := users.NewUserLoginAttempt(remoteAddr, forwardedFor, "", userAgent)
+	ipAddress := common.GetValueFromContext(ctx, common.ContextKeyIPAddress)
+	userAgent := common.GetValueFromContext(ctx, common.ContextKeyUserAgent)
+	loginAttempt := users.NewUserLoginAttempt(ipAddress, userAgent)
 	return u.authenticateUser(ctx, user, loginAttempt)
 }
 
@@ -255,6 +238,7 @@ func (u *userService) DeleteUnverifiedUsers(ctx context.Context) error {
 	for _, user := range expiredUsers {
 		if err := u.userRepo.DeleteUserByID(ctx, user.ID); err != nil {
 			u.logger.Error(u.module, "", "[DeleteUnverifiedUsers]: An error occurred deleting user by ID=[%s]: %v", common.TruncateSensitive(user.ID), err)
+			u.auditLogger.StoreEvent(ctx, audit.AccountDeletion, false, audit.AccountDeletionAction, audit.IDMethod, err)
 			return errors.NewInternalServerError()
 		}
 	}
@@ -282,25 +266,32 @@ func (u *userService) ResetPassword(ctx context.Context, userEmail, newPassword,
 	}
 
 	if storedToken.Subject != userEmail {
-		u.logger.Error(u.module, requestID, "[ResetPassword]: Invalid reset token. Subject does not match user email=[%s]", userEmail)
-		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid reset token")
+		err := errors.New(errors.ErrCodeUnauthorized, "invalid reset token")
+		u.logger.Error(u.module, requestID, "[ResetPassword]: Invalid reset token. Subject does not match user email=[%s]: %v", userEmail, err)
+		u.logPasswordResetEvent(ctx, false, err)
+		return nil, err
 	}
 
 	encryptedPassword, err := crypto.HashString(newPassword)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to encrypt password: %v", err)
-		return nil, errors.Wrap(err, "", "failed to encrypt password")
+		u.logPasswordResetEvent(ctx, false, errors.NewInternalServerError())
+		return nil, errors.NewInternalServerError()
 	}
 
 	user, err := u.userRepo.GetUserByEmail(ctx, userEmail)
 	if err != nil {
-		u.logger.Error(u.module, "[RequestID=%s][ResetPassword]: An error occurred retrieving the user: %v", requestID, err)
-		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
+		u.logger.Error(u.module, requestID, "[ResetPassword]: An error occurred retrieving the user: %v", err)
+		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
+		u.logPasswordResetEvent(ctx, false, wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if user == nil {
-		u.logger.Error(u.module, "[RequestID=%s][ResetPassword]: Failed to retrieve user by email. User does not exist.", requestID)
-		return nil, errors.New(errors.ErrCodeUserNotFound, "user not found with the provided email address")
+		err := errors.New(errors.ErrCodeUserNotFound, "user not found with the provided email address")
+		u.logPasswordResetEvent(ctx, false, err)
+		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to retrieve user by email. User does not exist.")
+		return nil, err
 	}
 
 	if user.AccountLocked {
@@ -311,7 +302,9 @@ func (u *userService) ResetPassword(ctx context.Context, userEmail, newPassword,
 	user.Password = encryptedPassword
 	if err := u.userRepo.UpdateUser(ctx, user); err != nil {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to update user: %v", err)
-		return nil, errors.Wrap(err, "", "failed to update user")
+		wrappedErr := errors.Wrap(err, "", "failed to update user")
+		u.logPasswordResetEvent(ctx, false, wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := u.tokenService.DeleteToken(ctx, resetToken); err != nil {
@@ -319,6 +312,7 @@ func (u *userService) ResetPassword(ctx context.Context, userEmail, newPassword,
 		return nil, errors.Wrap(err, "", "failed to delete reset token")
 	}
 
+	u.logPasswordResetEvent(ctx, true, nil)
 	return &users.UserPasswordResetResponse{
 		Message: "Password has been reset successfully",
 	}, nil
@@ -344,27 +338,31 @@ func (u *userService) applyArtificialDelay(startTime time.Time) {
 func (u *userService) authenticateUser(ctx context.Context, loginUser *users.User, loginAttempt *users.UserLoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
 	defer u.applyArtificialDelay(startTime)
-
 	requestID := common.GetRequestID(ctx)
+
 	retrievedUser, err := u.userRepo.GetUserByID(ctx, loginUser.ID)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "An error occurred retrieving the user by ID: %v", err)
+		u.logLoginEvent(ctx, false, err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
-	}
-	if retrievedUser == nil {
+	} else if retrievedUser == nil {
 		err := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
+		u.logLoginEvent(ctx, false, err)
 		u.logger.Error(u.module, requestID, "Failed to retrieve user by ID=[%s]: %v", common.TruncateSensitive(loginUser.ID), err)
 		return nil, err
 	}
 
 	if retrievedUser.AccountLocked {
 		err := errors.New(errors.ErrCodeAccountLocked, "account is locked due to too many failed login attempts -- please reset your password")
+		u.logLoginEvent(ctx, false, err)
 		u.logger.Error(u.module, requestID, "Failed to authenticate due to too many failed attempts=[%d], timestamp=[%s]", loginAttempt.FailedAttempts, loginAttempt.Timestamp)
 		return nil, err
 	}
 
 	if err := u.comparePasswords(ctx, loginUser, retrievedUser, loginAttempt); err != nil {
-		return nil, errors.Wrap(err, "", "failed to authenticate user")
+		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
+		u.logLoginEvent(ctx, false, err)
+		return nil, wrappedErr
 	}
 
 	accessToken, err := u.tokenService.GenerateToken(ctx, retrievedUser.ID, "", u.tokenConfig.ExpirationTime())
@@ -376,9 +374,11 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	retrievedUser.LastFailedLogin = time.Time{}
 	if err := u.updateAuthenticatedUser(ctx, retrievedUser); err != nil {
 		u.logger.Error(u.module, requestID, "Failed to update authenticated user: %v", err)
+		u.logLoginEvent(ctx, false, err)
 		return nil, err
 	}
 
+	u.logLoginEvent(ctx, true, nil)
 	return users.NewUserLoginResponse(retrievedUser, accessToken), nil
 }
 
@@ -416,6 +416,7 @@ func (u *userService) userExistsByEmail(ctx context.Context, email string) (bool
 		u.logger.Error(u.module, requestID, "Failed to retrieve user by email=[%s]: %v", email, err)
 		return false, err
 	}
+
 	return user != nil, nil
 }
 
@@ -432,6 +433,13 @@ func (u *userService) encryptPassword(user *users.User) error {
 
 func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 	requestID := common.GetRequestID(ctx)
+	exists, err := u.userExistsByEmail(ctx, user.Email)
+	if err != nil {
+		u.logger.Error(u.module, requestID, "[CreateUser]: An error occurred retrieving the user: %v", err)
+		return errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
+	} else if exists {
+		return errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
+	}
 	if err := u.encryptPassword(user); err != nil {
 		u.logger.Error(u.module, requestID, "Failed to create new user: %v", err)
 		return errors.NewInternalServerError()
@@ -457,4 +465,12 @@ func (u *userService) sendVerificationEmail(ctx context.Context, user *users.Use
 
 	emailRequest := email.NewEmailRequest(user.Email, verificationCode, verificationCode, email.AccountVerification)
 	return u.emailService.SendEmail(ctx, emailRequest)
+}
+
+func (u *userService) logLoginEvent(ctx context.Context, success bool, err error) {
+	u.auditLogger.StoreEvent(ctx, audit.LoginAttempt, success, audit.AuthenticationAction, audit.OAuthMethod, err)
+}
+
+func (u *userService) logPasswordResetEvent(ctx context.Context, success bool, err error) {
+	u.auditLogger.StoreEvent(ctx, audit.PasswordChange, success, audit.PasswordResetAction, audit.EmailMethod, err)
 }
