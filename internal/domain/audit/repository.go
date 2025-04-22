@@ -32,13 +32,13 @@ type AuditRepository interface {
 	//  - error: An error if the retrieval fails, otherwise nil.
 	GetAuditEvents(ctx context.Context, filters map[string]any, from time.Time, to time.Time, limit, offset int) ([]*AuditEvent, error)
 
-	// DeleteOldEvents deletes audit events older than the specified timestamp.
+	// DeleteEvent deletes an event using the given event ID.
 	//
 	// Parameters:
 	//	- ctx Context: The context for managing timeouts and cancellations.
-	//  - olderThan time.Time: Events older than this timestamp will be deleted.
+	//  - eventID string: The ID of the event to delete.
 	//
 	// Returns:
 	//  - error: An error if deletion fails, otherwise nil.
-	DeleteOldEvents(ctx context.Context, olderThan time.Time) error
+	DeleteEvent(ctx context.Context, eventID string) error
 }

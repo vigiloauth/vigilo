@@ -26,6 +26,7 @@ type ServerConfig struct {
 	loginConfig    *LoginConfig    // Login configuration.
 	passwordConfig *PasswordConfig // Password configuration.
 	smtpConfig     *SMTPConfig     // SMTP configuration.
+	auditLogConfig *AuditLogConfig // Audit Log configuration.
 
 	logger *Logger // Logging Configuration
 	module string
@@ -275,32 +276,49 @@ func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 	}
 }
 
+// WithAuthorizationCodeDuration configures the duration of the authorization code.
+//
+// Parameters:
+//
+//	duration time.Duration: The duration of the authorization code.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function the configures the server configuration.
 func WithAuthorizationCodeDuration(duration time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.authorizationCodeDuration = duration
 	}
 }
 
+// WithSMTPConfig configures the servers SMTP configuration.
+//
+// Parameters:
+//
+//	smtpConfig *SMTPConfig: The SMTP configuration.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function the configures the server configuration.
 func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.smtpConfig = smtpConfig
 	}
 }
 
-func (sc *ServerConfig) SetLoginConfig(loginConfig *LoginConfig) {
-	sc.loginConfig = loginConfig
-}
-
-func (sc *ServerConfig) SetPasswordConfig(passwordConfig *PasswordConfig) {
-	sc.passwordConfig = passwordConfig
-}
-
-func (sc *ServerConfig) SetTokenConfig(tokenConfig *TokenConfig) {
-	sc.tokenConfig = tokenConfig
-}
-
-func (sc *ServerConfig) SetSMTPConfig(smtpConfig *SMTPConfig) {
-	sc.smtpConfig = smtpConfig
+// WithAuditLogConfig configures the servers Audit Log configuration.
+//
+// Parameters:
+//
+//	auditLogConfig *AuditLogConfig: The audit log configuration.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function the configures the server configuration.
+func WithAuditLogConfig(auditLogConfig *AuditLogConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.auditLogConfig = auditLogConfig
+	}
 }
 
 // Port returns the servers port from.
@@ -423,6 +441,30 @@ func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
 	return sc.smtpConfig
 }
 
+func (sc *ServerConfig) AuditLogConfig() *AuditLogConfig {
+	return sc.auditLogConfig
+}
+
+func (sc *ServerConfig) SetLoginConfig(loginConfig *LoginConfig) {
+	sc.loginConfig = loginConfig
+}
+
+func (sc *ServerConfig) SetPasswordConfig(passwordConfig *PasswordConfig) {
+	sc.passwordConfig = passwordConfig
+}
+
+func (sc *ServerConfig) SetTokenConfig(tokenConfig *TokenConfig) {
+	sc.tokenConfig = tokenConfig
+}
+
+func (sc *ServerConfig) SetSMTPConfig(smtpConfig *SMTPConfig) {
+	sc.smtpConfig = smtpConfig
+}
+
+func (sc *ServerConfig) SetAuditLogConfig(auditLogConfig *AuditLogConfig) {
+	sc.auditLogConfig = auditLogConfig
+}
+
 func isInSeconds(duration time.Duration) bool      { return duration%time.Second == 0 }
 func isInHours(duration time.Duration) bool        { return duration%time.Hour == 0 }
 func isInMinutes(duration time.Duration) bool      { return duration%time.Minute == 0 }
@@ -438,6 +480,7 @@ func defaultServerConfig() *ServerConfig {
 		loginConfig:               NewLoginConfig(),
 		passwordConfig:            NewPasswordConfig(),
 		smtpConfig:                NewSMTPConfig(),
+		auditLogConfig:            NewAuditLogConfig(),
 		requestsPerMinute:         defaultRequestsPerMinute,
 		sessionCookieName:         defaultSessionCookieName,
 		authorizationCodeDuration: defaultAuthorizationCodeDuration,

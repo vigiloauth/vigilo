@@ -99,28 +99,18 @@ func (r *InMemoryAuditEventRepository) GetAuditEvents(
 	return auditEvents[start:end], nil
 }
 
-// DeleteOldEvents deletes audit events older than the specified timestamp.
-//
-// DeleteOldEvents scans all stored audit events and removes those with a timestamp
-// earlier than the given `olderThan` value.
+// DeleteEvent deletes an event using the given event ID.
 //
 // Parameters:
 //   - ctx Context: The context for managing timeouts and cancellations.
-//   - olderThan time.Time: Events older than this timestamp will be deleted.
+//   - eventID string: The ID of the event to delete.
 //
 // Returns:
 //   - error: An error if deletion fails, otherwise nil.
-func (r *InMemoryAuditEventRepository) DeleteOldEvents(ctx context.Context, olderThan time.Time) error {
+func (r *InMemoryAuditEventRepository) DeleteEvent(ctx context.Context, eventID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
-	for _, event := range r.events {
-		if event.Timestamp.Before(olderThan) {
-			logger.Info(module, common.GetRequestID(ctx), "[DeleteOldEvents]: Deleted event with ID: %s", event.EventID)
-			delete(r.events, event.EventID)
-		}
-	}
-
+	delete(r.events, eventID)
 	return nil
 }
 

@@ -32,7 +32,10 @@ func (t *TokenJobs) DeleteExpiredTokens(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			t.tokenService.DeleteExpiredTokens(ctx)
+			if err := t.tokenService.DeleteExpiredTokens(ctx); err != nil {
+				t.logger.Error(t.module, "", "[DeleteExpiredTokens]: An error occurred deleting expired tokens: %v", err)
+				continue
+			}
 		case <-ctx.Done():
 			t.logger.Info(t.module, "", "[DeleteExpiredTokens]: Stopping process of deleting expired tokens")
 			return

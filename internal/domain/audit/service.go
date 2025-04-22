@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type AuditLogger interface {
 	// StoreEvent saves an AuditEvent to the repository.
@@ -14,4 +17,14 @@ type AuditLogger interface {
 	//	- method MethodType: The method used (password, email, etc).
 	//	- err error: The error if applicable, otherwise nil.
 	StoreEvent(ctx context.Context, eventType EventType, success bool, action ActionType, method MethodType, err error)
+
+	// DeleteOldEvents deletes audit events older than the specified timestamp.
+	//
+	// Parameters:
+	//	- ctx Context: The context for managing timeouts and cancellations.
+	//  - olderThan time.Time: Events older than this timestamp will be deleted.
+	//
+	// Returns:
+	//  - error: An error if deletion fails, otherwise nil.
+	DeleteOldEvents(ctx context.Context, olderThan time.Time) error
 }

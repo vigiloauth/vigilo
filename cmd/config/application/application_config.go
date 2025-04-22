@@ -3,11 +3,13 @@ package config
 import (
 	"os"
 
+	audit "github.com/vigiloauth/vigilo/cmd/config/audit"
 	login "github.com/vigiloauth/vigilo/cmd/config/login"
 	password "github.com/vigiloauth/vigilo/cmd/config/password"
 	server "github.com/vigiloauth/vigilo/cmd/config/server"
 	smtp "github.com/vigiloauth/vigilo/cmd/config/smtp"
 	token "github.com/vigiloauth/vigilo/cmd/config/token"
+
 	lib "github.com/vigiloauth/vigilo/idp/config"
 	"gopkg.in/yaml.v3"
 )
@@ -18,6 +20,7 @@ type ApplicationConfig struct {
 	PasswordConfig password.PasswordConfigYAML `yaml:"password_config,omitempty"`
 	LoginConfig    login.LoginConfigYAML       `yaml:"login_config,omitempty"`
 	SMTPConfig     smtp.SMTPConfigYAML         `yaml:"smtp_config,omitempty"`
+	AuditLogConfig audit.AuditLogConfigYAML    `yaml:"audit_config,omitempty"`
 
 	LogLevel *string `yaml:"log_level,omitempty"`
 	Logger   *lib.Logger
@@ -44,12 +47,16 @@ func LoadConfigurations() *ApplicationConfig {
 	smtpOptions := appConfig.SMTPConfig.ToOptions()
 	smtpConfig := lib.NewSMTPConfig(smtpOptions...)
 
+	auditLogOptions := appConfig.AuditLogConfig.ToOptions()
+	auditLogConfig := lib.NewAuditLogConfig(auditLogOptions...)
+
 	serverOptions := appConfig.ServerConfig.ToOptions()
 	serverConfig := lib.NewServerConfig(serverOptions...)
 	serverConfig.SetLoginConfig(loginConfig)
 	serverConfig.SetPasswordConfig(passwordConfig)
 	serverConfig.SetTokenConfig(tokenConfig)
 	serverConfig.SetSMTPConfig(smtpConfig)
+	serverConfig.SetAuditLogConfig(auditLogConfig)
 
 	if appConfig.LogLevel != nil {
 		lib.SetLevel(*appConfig.LogLevel)

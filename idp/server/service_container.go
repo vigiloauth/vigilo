@@ -134,11 +134,13 @@ func NewServiceContainer() *ServiceContainer {
 		logger: config.GetLogger(),
 		module: "Service Container",
 	}
+
 	container.initializeInMemoryRepositories()
 	container.initializeServices()
 	container.initializeHandlers()
 	container.initializeServerConfigs()
 	container.initializeSchedulers()
+
 	return container
 }
 
@@ -238,24 +240,14 @@ func (c *ServiceContainer) initializeSchedulers() {
 	c.schedulerCtx, c.schedulerCancel = context.WithCancel(context.Background())
 	c.scheduler = background.NewScheduler()
 
-	healthCheckInterval := 5 * time.Minute
-	queueProcessorInterval := 1 * time.Minute
-	smtpJobs := background.NewSMTPJobs(c.getEmailService(), healthCheckInterval, queueProcessorInterval)
-	c.scheduler.RegisterJob("SMTP Health Check", smtpJobs.RunHealthCheck)
-	c.scheduler.RegisterJob("Email Retry Queue", smtpJobs.RunRetryQueueProcessor)
-
-	tokenDeletionInterval := 5 * time.Minute
-	tokenJobs := background.NewTokenJobs(c.getTokenService(), tokenDeletionInterval)
-	c.scheduler.RegisterJob("Expired Token Deletion", tokenJobs.DeleteExpiredTokens)
-
-	userDeletionInterval := 24 * time.Hour
-	userJobs := background.NewUserJobs(c.getUserService(), userDeletionInterval)
-	c.scheduler.RegisterJob("Unverified User Deletion", userJobs.DeleteUnverifiedUsers)
+	c.registerSMTPJobs()
+	c.registerTokenJobs()
+	c.registerUserJobs()
+	c.registerAuditLogJobs()
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
 		go c.scheduler.StartJobs(c.schedulerCtx)
 
 		select {
@@ -315,6 +307,34 @@ func initializeHTTPServer(tlsConfig *tls.Config) *http.Server {
 		WriteTimeout: config.GetServerConfig().WriteTimeout(),
 		TLSConfig:    tlsConfig,
 	}
+}
+
+func (c *ServiceContainer) registerSMTPJobs() {
+	const healthCheckInterval time.Duration = 15 * time.Minute
+	const queueProcessorInterval time.Duration = 10 * time.Minute
+
+	smtpJobs := background.NewSMTPJobs(c.getEmailService(), healthCheckInterval, queueProcessorInterval)
+	c.scheduler.RegisterJob("SMTP Health Check", smtpJobs.RunHealthCheck)
+	c.scheduler.RegisterJob("Email Retry Queue", smtpJobs.RunRetryQueueProcessor)
+}
+
+func (c *ServiceContainer) registerTokenJobs() {
+	const tokenDeletionInterval time.Duration = 5 * time.Minute
+	tokenJobs := background.NewTokenJobs(c.getTokenService(), tokenDeletionInterval)
+	c.scheduler.RegisterJob("Expired Token Deletion", tokenJobs.DeleteExpiredTokens)
+}
+
+func (c *ServiceContainer) registerUserJobs() {
+	const userDeletionInterval time.Duration = 24 * time.Hour
+	userJobs := background.NewUserJobs(c.getUserService(), userDeletionInterval)
+	c.scheduler.RegisterJob("Unverified User Deletion", userJobs.DeleteUnverifiedUsers)
+}
+
+func (c *ServiceContainer) registerAuditLogJobs() {
+	retentionPeriod := config.GetServerConfig().AuditLogConfig().RetentionPeriod()
+	const purgeInterval time.Duration = 24 * time.Hour
+	auditLogJobs := background.NewAuditJobs(c.getAuditLogger(), retentionPeriod, purgeInterval)
+	c.scheduler.RegisterJob("Audit Log Deletion", auditLogJobs.PurgeLogs)
 }
 
 func (c *ServiceContainer) getTokenService() token.TokenService {
