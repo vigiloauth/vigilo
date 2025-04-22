@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"

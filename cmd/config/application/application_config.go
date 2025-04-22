@@ -8,7 +8,7 @@ import (
 	server "github.com/vigiloauth/vigilo/cmd/config/server"
 	smtp "github.com/vigiloauth/vigilo/cmd/config/smtp"
 	token "github.com/vigiloauth/vigilo/cmd/config/token"
-	lib "github.com/vigiloauth/vigilo/identity/config"
+	lib "github.com/vigiloauth/vigilo/idp/config"
 	"gopkg.in/yaml.v3"
 )
 

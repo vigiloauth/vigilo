@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"

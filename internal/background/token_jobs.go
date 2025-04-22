@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 )
 

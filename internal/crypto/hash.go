@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 
 	"github.com/google/uuid"
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	"golang.org/x/crypto/bcrypt"
 )

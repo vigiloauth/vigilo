@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 

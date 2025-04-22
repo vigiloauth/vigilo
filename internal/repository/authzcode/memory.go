@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )

@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/identity/server"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/idp/server"
 	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"

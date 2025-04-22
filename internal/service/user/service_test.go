@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	domain "github.com/vigiloauth/vigilo/internal/domain/audit"
 	clients "github.com/vigiloauth/vigilo/internal/domain/client"

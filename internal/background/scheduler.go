@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 )
 
 type JobFunc func(ctx context.Context)

@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/identity/handlers"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/idp/handlers"
 	"github.com/vigiloauth/vigilo/internal/background"
 	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"

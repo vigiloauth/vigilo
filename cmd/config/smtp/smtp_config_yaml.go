@@ -1,6 +1,6 @@
 package config
 
-import "github.com/vigiloauth/vigilo/identity/config"
+import "github.com/vigiloauth/vigilo/idp/config"
 
 const TLSPort int = 587
 const SSLPort int = 465
