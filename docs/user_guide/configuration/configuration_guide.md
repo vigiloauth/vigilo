@@ -9,6 +9,7 @@
   - [4. Login Configuration](#4-login-configuration)
   - [5. Password Configuration](#5-password-configuration)
   - [6. SMTP Configuration](#6-smtp-configuration)
+  - [7. Audit Log Configuration](#7-audit-log-configuration)
 
 ---
 
@@ -82,3 +83,10 @@ ___
 | **Encryption**                    | The type of encryption to use.                        | `tls`                  |
 
 **Note:** If no configuration is provided, VigiloAuth will use their own SMTP configuration to handle any emails in the system. It is also important to note that if one configuration option is provided, all the rest are required as well.
+
+---
+
+## 7. Audit Log Configuration
+| **Configuration Option**          | **Description**                                       | **Default Value**      |
+|-----------------------------------|-------------------------------------------------------|------------------------|
+| **Retention Period**              | How long audit events should stay in the system.      | `90 days`              |

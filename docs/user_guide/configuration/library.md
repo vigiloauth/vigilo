@@ -11,7 +11,8 @@
     - [3.3 Login Configuration](#33-login-configuration)
     - [3.4 Password Configuration](#34-password-configuration)
     - [3.5 SMTP Configuration](#35-smtp-configuration)
-    - [3.6 Full Example](#36-full-example)
+    - [3.6 Audit Log Configuration](#36-audit-log-configuration)
+    - [3.7 Full Example](#36-full-example)
   - [4. When to Use](#4-when-to-use)
   - [5. Next Steps](#5-next-steps)
 
@@ -111,7 +112,7 @@ func main() {
 ---
 
 ### 3.2 Token Configuration
-Here is an example on how to configure the tokens to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
+Here is an example on how to configure the token functionality to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 ```go
 package main
 
@@ -236,7 +237,36 @@ func main() {
 
 ---
 
-### 3.6 Full Example
+### 3.6 Audit Log Configuration
+Here is an example on how to configure the Audit Log requirements to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
+```go
+package main
+
+import (
+    // imports remain the same as the previous example
+    ...
+
+    // Add the configuration file
+    "github.com/vigiloauth/vigilo/identity/config"
+)
+
+func main() {
+    auditLogConfig := config.NewAuditLogConfig(
+        config.WithRetentionPeriod(90 * 24 * time.Hour),
+    )
+
+    // Add the token configuration to the server
+    config.NewServerConfig(
+        config.WithAuditLogConfig(auditLogConfig),
+    )
+
+    // remainder of main stays the same as our basic example.
+}
+```
+
+---
+
+### 3.7 Full Example
 ```go
 package main
 
@@ -275,11 +305,16 @@ func main() {
         config.WithEncryption("tls")
     )
 
+    auditLogConfig := config.NewAuditLogConfig(
+        config.WithRetentionPeriod(90 * 24 * time.Hour),
+    )
+
     config.NewServerConfig(
         config.WithPasswordConfig(passwordConfig),
         config.WithLoginConfig(loginConfig),
         config.WithTokenConfig(tokenConfig),
         config.WithSMTPConfig(smtpConfig),
+        config.WithAuditLogConfig(auditLogConfig),
     )
 
     // remainder of main stays the same as our basic example.
