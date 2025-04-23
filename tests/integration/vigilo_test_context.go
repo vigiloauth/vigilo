@@ -118,7 +118,7 @@ func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
 
 	user.Password = hashedPassword
 	user.ID = testUserID
-	user.Role = constants.AdminRole
+	user.Roles = []string{constants.AdminRole}
 	user.Scopes = []string{constants.UserManage}
 	userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
 

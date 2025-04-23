@@ -14,13 +14,13 @@ POST /auth/signup
 ---
 
 ### Request Body
-| Field       | Type      | Required  | Description                                                  |
-|:------------|:----------|:----------|:-------------------------------------------------------------|
-| `username`  | `string`  | Yes       | The user's username.                                         |
-| `email`     | `string`  | Yes       | The user's email address.                                    |
-| `password`  | `string`  | Yes       | The password for the account.                                |
-| `scopes`    | `[]string`| Yes       | The user's requested scopes.                                 |
-| `role`      | `string`  | No        | The user's requested role. Defaults to `USER` if left empty. |
+| Field       | Type       | Required  | Description                                                   |
+|:------------|:-----------|:----------|:--------------------------------------------------------------|
+| `username`  | `string`   | Yes       | The user's username.                                          |
+| `email`     | `string`   | Yes       | The user's email address.                                     |
+| `password`  | `string`   | Yes       | The password for the account.                                 |
+| `scopes`    | `[]string` | Yes       | The user's requested scopes.                                  |
+| `roles`     | `[]string` | No        | The user's requested roles. Defaults to `USER` if left empty. |
 
 ---
 
@@ -31,7 +31,7 @@ POST /auth/signup
     "email": "john.doe@mail.com",
     "password": "Pas$_w0rds",
     "scopes": ["users:read"],
-    "role": "ADMIN"
+    "roles": ["ADMIN"]
 }
 
 ```

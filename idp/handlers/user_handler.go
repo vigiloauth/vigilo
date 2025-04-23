@@ -45,9 +45,6 @@ func NewUserHandler(userService users.UserService, sessionService session.Sessio
 	}
 }
 
-// Register is the HTTP handler for user registration.
-// It processes incoming HTTP requests for user registration, validates the input,
-// registers the user, and sends an appropriate response including a JWT token.
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()

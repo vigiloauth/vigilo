@@ -433,7 +433,7 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 func createNewUser() *users.User {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
 	user.Scopes = []string{constants.UserRead}
-	user.Role = constants.AdminRole
+	user.Roles = []string{constants.AdminRole}
 	return user
 }
 

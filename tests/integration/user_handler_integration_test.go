@@ -23,7 +23,7 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 		Username: testUsername,
 		Email:    testEmail,
 		Password: testPassword1,
-		Role:     constants.AdminRole,
+		Roles:    []string{constants.AdminRole},
 	}
 
 	body, err := json.Marshal(requestBody)

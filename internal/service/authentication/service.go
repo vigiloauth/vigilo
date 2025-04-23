@@ -101,7 +101,14 @@ func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, cli
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to authenticate user")
 	}
 
-	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(ctx, loginResponse.UserID, clientID, scopes, loginResponse.Role)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(
+		ctx,
+		loginResponse.UserID,
+		clientID,
+		scopes,
+		strings.Join(loginResponse.Roles, " "),
+	)
+
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to generate token pair: %v", err)
 		return nil, err

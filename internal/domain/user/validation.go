@@ -166,12 +166,13 @@ func containsSymbol(password string) bool {
 }
 
 func (req *UserRegistrationRequest) validateRole(errorCollection *errors.ErrorCollection) {
-	if req.Role == "" {
-		req.Role = constants.UserRole
-		return
+	if len(req.Roles) == 0 {
+		req.Roles = append(req.Roles, constants.UserRole)
 	}
 
-	if _, ok := constants.ValidRoles[req.Role]; !ok {
-		errorCollection.Add(errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid role: %s", req.Role)))
+	for _, role := range req.Roles {
+		if _, ok := constants.ValidRoles[role]; !ok {
+			errorCollection.Add(errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid role: %s", role)))
+		}
 	}
 }
