@@ -60,22 +60,11 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := utils.GetRequestID(ctx)
-	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request=[AuthorizeClient]")
-
 	query := r.URL.Query()
-	isUserConsentApproved := query.Get(constants.ConsentApprovedURLValue) == "true"
-	req := client.NewClientAuthorizationRequest(
-		query.Get(constants.ClientID),
-		query.Get(constants.RedirectURI),
-		query.Get(constants.Scope),
-		query.Get(constants.State),
-		query.Get(constants.ResponseType),
-		query.Get(constants.CodeChallenge),
-		query.Get(constants.CodeChallengeMethod),
-		h.sessionService.GetUserIDFromSession(r),
-	)
+	requestID := utils.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request")
 
+	req := client.NewClientAuthorizationRequest(query, h.sessionService.GetUserIDFromSession(r))
 	if req.UserID == "" {
 		loginURL := h.buildLoginURL(req.ClientID, req.RedirectURI, req.Scope, req.State, requestID)
 		h.logger.Warn(h.module, requestID, "[AuthorizeClient]: User is not authenticated. Returning a 'login required error'")
@@ -83,6 +72,7 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	isUserConsentApproved := query.Get(constants.ConsentApprovedURLValue) == "true"
 	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req, isUserConsentApproved)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")

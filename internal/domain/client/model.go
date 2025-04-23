@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"net/url"
 	"slices"
 	"time"
 
@@ -273,15 +274,15 @@ func NewClientInformationResponse(clientID, clientSecret, registrationClientURI,
 	return clientInfo
 }
 
-func NewClientAuthorizationRequest(clientID, redirectURI, scope, state, responseType, codeChallenge, codeChallengeMethod, userID string) *ClientAuthorizationRequest {
+func NewClientAuthorizationRequest(query url.Values, userID string) *ClientAuthorizationRequest {
 	return &ClientAuthorizationRequest{
-		ClientID:            clientID,
-		RedirectURI:         redirectURI,
-		Scope:               scope,
-		State:               state,
-		ResponseType:        responseType,
-		CodeChallenge:       codeChallenge,
-		CodeChallengeMethod: codeChallengeMethod,
+		ClientID:            query.Get(constants.ClientID),
+		RedirectURI:         query.Get(constants.RedirectURI),
+		Scope:               query.Get(constants.Scope),
+		State:               query.Get(constants.State),
+		ResponseType:        query.Get(constants.ResponseType),
+		CodeChallenge:       query.Get(constants.CodeChallenge),
+		CodeChallengeMethod: query.Get(constants.CodeChallengeMethod),
 		UserID:              userID,
 	}
 }
