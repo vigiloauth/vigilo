@@ -1,17 +1,21 @@
 package mocks
 
-import domain "github.com/vigiloauth/vigilo/internal/domain/email"
+import (
+	"context"
+
+	domain "github.com/vigiloauth/vigilo/internal/domain/email"
+)
 
 var _ domain.EmailService = (*MockEmailService)(nil)
 
 type MockEmailService struct {
-	SendEmailFunc          func(request *domain.EmailRequest) error
+	SendEmailFunc          func(ctx context.Context, request *domain.EmailRequest) error
 	TestConnectionFunc     func() error
 	GetEmailRetryQueueFunc func() *domain.EmailRetryQueue
 }
 
-func (m *MockEmailService) SendEmail(request *domain.EmailRequest) error {
-	return m.SendEmailFunc(request)
+func (m *MockEmailService) SendEmail(ctx context.Context, request *domain.EmailRequest) error {
+	return m.SendEmailFunc(ctx, request)
 }
 
 func (m *MockEmailService) TestConnection() error {

@@ -1,10 +1,11 @@
 package repository
 
 import (
+	"context"
 	"sync"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
@@ -33,15 +34,13 @@ type codeEntry struct {
 // GetInMemoryAuthorizationCodeRepository returns the singleton instance of InMemoryAuthorizationCodeRepository.
 //
 // Returns:
-//
-//	*InMemoryAuthorizationCodeStore: The singleton instance of InMemoryAuthorizationCodeRepository.
+//   - *InMemoryAuthorizationCodeStore: The singleton instance of InMemoryAuthorizationCodeRepository.
 func GetInMemoryAuthorizationCodeRepository() *InMemoryAuthorizationCodeRepository {
 	once.Do(func() {
-		logger.Debug(module, "Creating new instance of InMemoryAuthorizationCodeRepository")
+		logger.Debug(module, "", "Creating new instance of InMemoryAuthorizationCodeRepository")
 		instance = &InMemoryAuthorizationCodeRepository{
 			codes: make(map[string]codeEntry),
 		}
-		go instance.cleanupRoutine()
 	})
 	return instance
 }
@@ -49,19 +48,14 @@ func GetInMemoryAuthorizationCodeRepository() *InMemoryAuthorizationCodeReposito
 // StoreAuthorizationCode persists an authorization code with its associated data.
 //
 // Parameters:
-//
-//	code string: The authorization code.
-//	data *AuthorizationData: The data associated with the code.
-//	expiresAt time.Time: When the code expires.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - code string: The authorization code.
+//   - data *AuthorizationCodeData: The data associated with the code.
+//   - expiresAt time.Time: When the code expires.
 //
 // Returns:
-//
-//	error: An error if storing fails, nil otherwise.
-func (s *InMemoryAuthorizationCodeRepository) StoreAuthorizationCode(
-	code string,
-	data *authz.AuthorizationCodeData,
-	expiresAt time.Time,
-) error {
+//   - error: An error if storing fails, nil otherwise.
+func (s *InMemoryAuthorizationCodeRepository) StoreAuthorizationCode(ctx context.Context, code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -76,26 +70,25 @@ func (s *InMemoryAuthorizationCodeRepository) StoreAuthorizationCode(
 // GetAuthorizationCode retrieves the data associated with an authorization code.
 //
 // Parameters:
-//
-//	code string: The authorization code to look up.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - code string: The authorization code to look up.
 //
 // Returns:
-//
-//	*AuthorizationData: The associated data if found.
-//	error: An error if retrieval fails.
-func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, error) {
+//   - *AuthorizationCodeData: The associated data if found.
+//   - error: An error if retrieval fails.
+func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(ctx context.Context, code string) (*authz.AuthorizationCodeData, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	entry, exists := s.codes[code]
 	if !exists {
-		logger.Debug(module, "GetAuthorizationCode: Code=%s does not exist", code)
+		logger.Debug(module, "", "[GetAuthorizationCode]: Code=%s does not exist", code)
 		return nil, errors.New(errors.ErrCodeInvalidAuthorizationCode, "authorization code does not exist")
 	}
 
 	// Check if code has expired
 	if time.Now().After(entry.ExpiresAt) {
-		logger.Warn(module, "GetAuthorizationCode: Authorization code is expired")
+		logger.Warn(module, "", "[GetAuthorizationCode]: Authorization code is expired")
 		return nil, errors.New(errors.ErrCodeExpiredAuthorizationCode, "authorization code is expired")
 	}
 
@@ -105,42 +98,28 @@ func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(code string) 
 // DeleteAuthorizationCode deletes an authorization code after use.
 //
 // Parameters:
-//
-//	code string: The authorization code to remove.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - code string: The authorization code to remove.
 //
 // Returns:
-//
-//	error: An error if removal fails, nil otherwise.
-func (s *InMemoryAuthorizationCodeRepository) DeleteAuthorizationCode(code string) error {
+//   - error: An error if removal fails, nil otherwise.
+func (s *InMemoryAuthorizationCodeRepository) DeleteAuthorizationCode(ctx context.Context, code string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
 	delete(s.codes, code)
 	return nil
 }
 
-// CleanExpiredCodes removes all expired authorization codes.
+// UpdateAuthorizationCode updates existing authorization code data.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - code string: The authorization code to update.
+//   - authData *AuthorizationCodeData: The update authorization code data.
 //
 // Returns:
-//
-//	error: An error if the cleanup fails, nil otherwise.
-func (s *InMemoryAuthorizationCodeRepository) CleanupExpiredAuthorizationCodes() error {
-	logger.Info(module, "Starting process to cleanup expired authorization codes")
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	now := time.Now()
-	for code, entry := range s.codes {
-		if now.After(entry.ExpiresAt) {
-			delete(s.codes, code)
-		}
-	}
-
-	logger.Info(module, "Cleanup process finished")
-	return nil
-}
-
-func (s *InMemoryAuthorizationCodeRepository) UpdateAuthorizationCode(code string, authData *authz.AuthorizationCodeData) error {
+//   - error: An error if update fails, nil otherwise.
+func (s *InMemoryAuthorizationCodeRepository) UpdateAuthorizationCode(ctx context.Context, code string, authData *authz.AuthorizationCodeData) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -149,24 +128,4 @@ func (s *InMemoryAuthorizationCodeRepository) UpdateAuthorizationCode(code strin
 	}
 
 	return nil
-}
-
-// Close stops the background cleanup routine if it's running.
-func (s *InMemoryAuthorizationCodeRepository) Close() {
-	close(s.cleanupCh)
-}
-
-// cleanupRoutine periodically cleans up expired codes.
-func (s *InMemoryAuthorizationCodeRepository) cleanupRoutine() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			_ = s.CleanupExpiredAuthorizationCodes()
-		case <-s.cleanupCh:
-			return
-		}
-	}
 }

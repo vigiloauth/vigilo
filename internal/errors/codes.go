@@ -19,6 +19,7 @@ const (
 	ErrCodeInvalidRequest        = "invalid_request"
 	ErrCodeMethodNotAllowed      = "method_not_allowed"
 	ErrCodeBadRequest            = "bad_request"
+	ErrCodeInvalidInput          = "invalid_input"
 
 	// User errors
 	ErrCodeDuplicateUser      = "duplicate_user"
@@ -64,6 +65,8 @@ const (
 
 	// System errors
 	ErrCodeInternalServerError = "server_error"
+	ErrCodeRequestTimeout      = "request_timeout"
+	ErrCodeRequestCancelled    = "request_cancelled"
 
 	// Authorization Code Errors
 	ErrCodeInvalidAuthorizationCode  = "invalid_authorization_code"
@@ -93,6 +96,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidClientMetadata:  http.StatusBadRequest,
 	ErrCodeInvalidGrant:           http.StatusBadRequest,
 	ErrCodeInsufficientScope:      http.StatusBadRequest,
+	ErrCodeInvalidInput:           http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -128,6 +132,10 @@ var statusCodeMap = map[string]int{
 
 	// 423 Locked
 	ErrCodeAccountLocked: http.StatusLocked,
+
+	// 408 Request Timeout
+	ErrCodeRequestTimeout:   http.StatusRequestTimeout,
+	ErrCodeRequestCancelled: http.StatusRequestTimeout,
 
 	// 500 Internal Server Error
 	ErrCodeInternalServerError: http.StatusInternalServerError,

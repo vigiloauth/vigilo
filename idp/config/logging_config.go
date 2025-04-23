@@ -45,7 +45,7 @@ var colors = map[LogLevel]string{
 }
 var colorReset = "\033[0m"
 
-// Logger is our singleton logger implementation
+// Logger is base application logger.
 type Logger struct {
 	level     LogLevel
 	colorized bool
@@ -113,7 +113,8 @@ func (l *Logger) GetLevel() string {
 }
 
 // log logs a message with the given level and module name
-func (l *Logger) log(level LogLevel, module string, format string, args ...any) {
+// log logs a message with the given level, module name, and optional requestID
+func (l *Logger) log(level LogLevel, module string, requestID string, format string, args ...any) {
 	l.mu.RLock()
 	loggerLevel := l.level
 	colorized := l.colorized
@@ -132,60 +133,75 @@ func (l *Logger) log(level LogLevel, module string, format string, args ...any) 
 	var logLine string
 	if colorized {
 		colorCode := colors[level]
-		logLine = fmt.Sprintf("%s[%s] %s%s%s [%s] %s",
-			colorCode, timestamp, colorCode, levelName, colorReset, module, message)
+		// Include requestID if provided
+		if requestID != "" {
+			logLine = fmt.Sprintf("%s[%s] [RequestID=%s] %s%s%s [%s] %s",
+				colorCode, timestamp, requestID, colorCode, levelName, colorReset, module, message)
+		} else {
+			logLine = fmt.Sprintf("%s[%s] %s%s%s [%s] %s",
+				colorCode, timestamp, colorCode, levelName, colorReset, module, message)
+		}
 	} else {
-		logLine = fmt.Sprintf("[%s] [%s] [%s] %s", timestamp, levelName, module, message)
+		// Include requestID if provided
+		if requestID != "" {
+			logLine = fmt.Sprintf("[%s] [RequestID=%s] [%s] [%s] %s", timestamp, requestID, levelName, module, message)
+		} else {
+			logLine = fmt.Sprintf("[%s] [%s] [%s] %s", timestamp, levelName, module, message)
+		}
 	}
 
 	fmt.Fprintln(os.Stdout, logLine)
 }
 
 // Debug logs a debug message
-func (l *Logger) Debug(module string, format string, args ...any) {
-	l.log(DEBUG, module, format, args...)
+func (l *Logger) Debug(module string, requestID string, format string, args ...any) {
+	l.log(DEBUG, module, requestID, format, args...)
 }
 
 // Info logs an info message
-func (l *Logger) Info(module string, format string, args ...any) {
-	l.log(INFO, module, format, args...)
+func (l *Logger) Info(module string, requestID string, format string, args ...any) {
+	l.log(INFO, module, requestID, format, args...)
 }
 
 // Warn logs a warning message
-func (l *Logger) Warn(module string, format string, args ...any) {
-	l.log(WARN, module, format, args...)
+func (l *Logger) Warn(module string, requestID string, format string, args ...any) {
+	l.log(WARN, module, requestID, format, args...)
 }
 
 // Error logs an error message
-func (l *Logger) Error(module string, format string, args ...any) {
-	l.log(ERROR, module, format, args...)
+func (l *Logger) Error(module string, requestID string, format string, args ...any) {
+	l.log(ERROR, module, requestID, format, args...)
 }
 
-func (l *Logger) Fatal(module string, format string, args ...any) {
-	l.log(FATAL, module, format, args...)
+func (l *Logger) Fatal(module string, requestID string, format string, args ...any) {
+	l.log(FATAL, module, requestID, format, args...)
 	os.Exit(1)
 }
 
 // Package-level convenience functions
 
 // Debug logs a debug message
-func Debug(module string, format string, args ...any) {
-	GetLogger().Debug(module, format, args...)
+func Debug(module string, requestID string, format string, args ...any) {
+	GetLogger().Debug(module, requestID, format, args...)
 }
 
 // Info logs an info message
-func Info(module string, format string, args ...any) {
-	GetLogger().Info(module, format, args...)
+func Info(module string, requestID string, format string, args ...any) {
+	GetLogger().Info(module, requestID, format, args...)
 }
 
 // Warn logs a warning message
-func Warn(module string, format string, args ...any) {
-	GetLogger().Warn(module, format, args...)
+func Warn(module string, requestID string, format string, args ...any) {
+	GetLogger().Warn(module, requestID, format, args...)
 }
 
 // Error logs an error message
-func Error(module string, format string, args ...any) {
-	GetLogger().Error(module, format, args...)
+func Error(module string, requestID string, format string, args ...any) {
+	GetLogger().Error(module, requestID, format, args...)
+}
+
+func Fatal(module string, requestID string, format string, args ...any) {
+	GetLogger().Fatal(module, requestID, format, args...)
 }
 
 // SetLevel sets the log level at package level

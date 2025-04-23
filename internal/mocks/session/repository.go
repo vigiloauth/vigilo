@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"time"
+	"context"
 
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 )
@@ -9,29 +9,24 @@ import (
 var _ session.SessionRepository = (*MockSessionRepository)(nil)
 
 type MockSessionRepository struct {
-	SaveSessionFunc            func(sessionData *session.SessionData) error
-	GetSessionByIDFunc         func(sessionID string) (*session.SessionData, error)
-	UpdateSessionByIDFunc      func(sessionID string, sessionData *session.SessionData) error
-	DeleteSessionByIDFunc      func(sessionID string) error
-	CleanupExpiredSessionsFunc func(ticker *time.Ticker)
+	SaveSessionFunc       func(ctx context.Context, sessionData *session.SessionData) error
+	GetSessionByIDFunc    func(ctx context.Context, sessionID string) (*session.SessionData, error)
+	UpdateSessionByIDFunc func(ctx context.Context, sessionID string, sessionData *session.SessionData) error
+	DeleteSessionByIDFunc func(ctx context.Context, sessionID string) error
 }
 
-func (m *MockSessionRepository) SaveSession(sessionData *session.SessionData) error {
-	return m.SaveSessionFunc(sessionData)
+func (m *MockSessionRepository) SaveSession(ctx context.Context, sessionData *session.SessionData) error {
+	return m.SaveSessionFunc(ctx, sessionData)
 }
 
-func (m *MockSessionRepository) GetSessionByID(sessionID string) (*session.SessionData, error) {
-	return m.GetSessionByIDFunc(sessionID)
+func (m *MockSessionRepository) GetSessionByID(ctx context.Context, sessionID string) (*session.SessionData, error) {
+	return m.GetSessionByIDFunc(ctx, sessionID)
 }
 
-func (m *MockSessionRepository) UpdateSessionByID(sessionID string, sessionData *session.SessionData) error {
-	return m.UpdateSessionByIDFunc(sessionID, sessionData)
+func (m *MockSessionRepository) UpdateSessionByID(ctx context.Context, sessionID string, sessionData *session.SessionData) error {
+	return m.UpdateSessionByIDFunc(ctx, sessionID, sessionData)
 }
 
-func (m *MockSessionRepository) DeleteSessionByID(sessionID string) error {
-	return m.DeleteSessionByIDFunc(sessionID)
-}
-
-func (m *MockSessionRepository) CleanupExpiredSessions(ticker *time.Ticker) {
-	m.CleanupExpiredSessionsFunc(ticker)
+func (m *MockSessionRepository) DeleteSessionByID(ctx context.Context, sessionID string) error {
+	return m.DeleteSessionByIDFunc(ctx, sessionID)
 }

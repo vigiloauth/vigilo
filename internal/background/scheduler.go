@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 )
 
 type JobFunc func(ctx context.Context)
@@ -29,11 +29,11 @@ func (s *Scheduler) RegisterJob(jobName string, job JobFunc) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.jobs = append(s.jobs, job)
-	s.logger.Info(s.module, "Registered job [%s]. Total jobs: %d", jobName, len(s.jobs))
+	s.logger.Info(s.module, "", "[RegisterJob]: Registered job [%s]. Total jobs: %d", jobName, len(s.jobs))
 }
 
 func (s *Scheduler) StartJobs(ctx context.Context) {
-	s.logger.Info(s.module, "Starting %d background jobs...", len(s.jobs))
+	s.logger.Info(s.module, "", "[StartJobs]: Starting %d background jobs...", len(s.jobs))
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -41,22 +41,22 @@ func (s *Scheduler) StartJobs(ctx context.Context) {
 		s.wg.Add(1)
 		go func(i int, j JobFunc) {
 			defer s.wg.Done()
-			s.logger.Info(s.module, "Starting job #%d", i+1)
+			s.logger.Info(s.module, "", "[StartJobs]: Starting job #%d", i+1)
 			j(ctx)
-			s.logger.Info(s.module, "Job #%d completed", i+1)
+			s.logger.Info(s.module, "", "[StartJobs]: Job #%d completed", i+1)
 		}(i, job)
 	}
 
 	s.wg.Wait()
-	s.logger.Info(s.module, "All background jobs completed.")
+	s.logger.Info(s.module, "", "[StartJobs]: All background jobs completed.")
 }
 
 func (s *Scheduler) Wait() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.logger.Info(s.module, "Waiting for all background jobs to finish...")
+	s.logger.Info(s.module, "", "Waiting for all background jobs to finish...")
 	s.wg.Wait()
-	s.logger.Info(s.module, "All background jobs have finished.")
+	s.logger.Info(s.module, "", "All background jobs have finished.")
 }
 
 func (s *Scheduler) GetJobs() []JobFunc {

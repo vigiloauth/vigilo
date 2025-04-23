@@ -1,12 +1,13 @@
 package service
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
@@ -16,59 +17,59 @@ import (
 )
 
 var _ authz.AuthorizationCodeService = (*authorizationCodeService)(nil)
-var logger = config.GetServerConfig().Logger()
-
-const module = "Authorization Code Service"
 
 type authorizationCodeService struct {
 	authzCodeRepo authz.AuthorizationCodeRepository
 	userService   user.UserService
 	clientService client.ClientService
 	codeLifeTime  time.Duration
+
+	logger *config.Logger
+	module string
 }
 
 // NewAuthorizationCodeService creates a new instance of AuthorizationCodeServiceImpl.
 //
 // Parameters:
-//
-//	authzCodeRepo AuthorizationCodeRepository: Persistence layer for authorization codes.
-//	userService UserService: Service layer for user management.
-//	clientService ClientService: Service layer for client management.
+//   - authzCodeRepo AuthorizationCodeRepository: Persistence layer for authorization codes.
+//   - userService UserService: Service layer for user management.
+//   - clientService ClientService: Service layer for client management.
 //
 // Returns:
-//
-//	*AuthorizationCodeServiceImpl: A new instance of AuthorizationCodeServiceImpl.
+//   - *AuthorizationCodeServiceImpl: A new instance of AuthorizationCodeServiceImpl.
 func NewAuthorizationCodeService(
 	authzCodeRepo authz.AuthorizationCodeRepository,
 	userService user.UserService,
 	clientService client.ClientService,
 ) authz.AuthorizationCodeService {
-	service := &authorizationCodeService{
+	return &authorizationCodeService{
 		authzCodeRepo: authzCodeRepo,
 		userService:   userService,
 		clientService: clientService,
 		codeLifeTime:  config.GetServerConfig().AuthorizationCodeDuration(),
+		logger:        config.GetServerConfig().Logger(),
+		module:        "Authorization Code Service",
 	}
-	return service
+
 }
 
 // GenerateAuthorizationCode creates a new authorization code and stores it with associated data.
 //
 // Parameters:
-//
-//	request *ClientAuthorizationRequest: The request containing the metadata to generate an authorization code.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - request *ClientAuthorizationRequest: The request containing the metadata to generate an authorization code.
 //
 // Returns:
-//
-//	string: The generated authorization code.
-//	error: An error if code generation fails.
-func (c *authorizationCodeService) GenerateAuthorizationCode(req *client.ClientAuthorizationRequest) (string, error) {
+//   - string: The generated authorization code.
+//   - error: An error if code generation fails.
+func (c *authorizationCodeService) GenerateAuthorizationCode(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
+	requestID := common.GetRequestID(ctx)
 	if err := req.Validate(); err != nil {
-		logger.Error(module, "GenerateAuthorizationCode: Failed to validate authorization request: %v", err)
+		c.logger.Error(c.module, requestID, "[GenerateAuthorizationCode]: Failed to validate authorization request: %v", err)
 		return "", errors.Wrap(err, "", "failed to generate authorization code")
 	}
 
-	if err := c.validateUserAndClient(req); err != nil {
+	if err := c.validateUserAndClient(ctx, req); err != nil {
 		return "", err
 	}
 
@@ -85,12 +86,12 @@ func (c *authorizationCodeService) GenerateAuthorizationCode(req *client.ClientA
 		return "", err
 	}
 
-	if err := c.SaveAuthorizationCode(authData); err != nil {
-		logger.Error(module, "GenerateAuthorizationCode: Failed to save authorization code: %v", err)
+	if err := c.SaveAuthorizationCode(ctx, authData); err != nil {
+		c.logger.Error(c.module, requestID, "[GenerateAuthorizationCode]: Failed to save authorization code: %v", err)
 		return "", err
 	}
 
-	logger.Info(module, "GenerateAuthorizationCode: Authorization code successfully generated for user=[%s] and client=[%s]",
+	c.logger.Info(c.module, requestID, "[GenerateAuthorizationCode]: Authorization code successfully generated for user=[%s] and client=[%s]",
 		common.TruncateSensitive(req.UserID),
 		common.TruncateSensitive(req.ClientID),
 	)
@@ -105,93 +106,88 @@ func (c *authorizationCodeService) GenerateAuthorizationCode(req *client.ClientA
 // authorization code repository.
 //
 // Parameters:
-//
-//	authData (*authz.AuthorizationCodeData): The authorization code data to be stored.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - authData (*authz.AuthorizationCodeData): The authorization code data to be stored.
 //
 // Returns:
-//
-//	error: An error if storing the authorization code fails, or nil if the operation succeeds.
-func (c *authorizationCodeService) SaveAuthorizationCode(authData *authz.AuthorizationCodeData) error {
+//   - error: An error if storing the authorization code fails, or nil if the operation succeeds.
+func (c *authorizationCodeService) SaveAuthorizationCode(ctx context.Context, authData *authz.AuthorizationCodeData) error {
+	requestID := common.GetRequestID(ctx)
+
 	expiration := authData.CreatedAt.Add(c.codeLifeTime)
-	if err := c.authzCodeRepo.StoreAuthorizationCode(authData.Code, authData, expiration); err != nil {
-		logger.Error(module, "SaveAuthorizationCode: Failed to store authorization code: %v", err)
+	if err := c.authzCodeRepo.StoreAuthorizationCode(ctx, authData.Code, authData, expiration); err != nil {
+		c.logger.Error(c.module, requestID, "[SaveAuthorizationCode]: Failed to store authorization code: %v", err)
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to store authorization code")
 	}
+
 	return nil
 }
 
 // ValidateAuthorizationCode checks if a code is valid and returns the associated data.
 //
 // Parameters:
-//
-//	code string: The authorization code to validate.
-//	clientID string: The client requesting validation.
-//	redirectURI string: The redirect URI to verify.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - code string: The authorization code to validate.
+//   - clientID string: The client requesting validation.
+//   - redirectURI string: The redirect URI to verify.
 //
 // Returns:
-//
-//	*AuthorizationCodeData: The data associated with the code.
-//	error: An error if validation fails.
-func (c *authorizationCodeService) ValidateAuthorizationCode(code, clientID, redirectURI string) (*authz.AuthorizationCodeData, error) {
-	logger.Info(module, "ValidateAuthorizationCode: Attempting to validate authorization code=[%s] for client=[%s], redirectURI=[%s]",
-		common.TruncateSensitive(code),
-		common.TruncateSensitive(clientID),
-		common.SanitizeURL(redirectURI),
-	)
+//   - *AuthorizationCodeData: The data associated with the code.
+//   - error: An error if validation fails.
+func (c *authorizationCodeService) ValidateAuthorizationCode(ctx context.Context, code, clientID, redirectURI string) (*authz.AuthorizationCodeData, error) {
+	requestID := common.GetRequestID(ctx)
 
-	authData, err := c.authzCodeRepo.GetAuthorizationCode(code)
+	authData, err := c.authzCodeRepo.GetAuthorizationCode(ctx, code)
 	if err != nil {
-		logger.Error(module, "ValidateAuthorizationCode: Failed to retrieve authorization code: %v", err)
+		c.logger.Error(c.module, requestID, "[ValidateAuthorizationCode]: Failed to retrieve authorization code: %v", err)
 		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid authorization code")
 	}
 
 	if err := authData.ValidateFields(clientID, redirectURI); err != nil {
-		logger.Error(module, "ValidateAuthorizationCode: Failed to validate authorization code: %v", err)
+		c.logger.Error(c.module, requestID, "[ValidateAuthorizationCode]: Failed to validate authorization code: %v", err)
 		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
 
-	if err := c.markCodeAsUsed(code, authData); err != nil {
-		logger.Error(module, "ValidateAuthorizationCode: Failed to mark authorization code as used: %v", err)
+	if err := c.markCodeAsUsed(ctx, code, authData); err != nil {
+		c.logger.Error(c.module, requestID, "[ValidateAuthorizationCode]: Failed to mark authorization code as used: %v", err)
 		return nil, err
 	}
 
-	logger.Info(module, "ValidateAuthorizationCode: Successfully validated authorization code for client=[%s]", common.TruncateSensitive(clientID))
 	return authData, nil
 }
 
 // RevokeAuthorizationCode explicitly invalidates a code.
 //
 // Parameters:
-//
-//	code string: The authorization code to revoke.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - code string: The authorization code to revoke.
 //
 // Returns:
-//
-//	error: An error if revocation fails.
-func (c *authorizationCodeService) RevokeAuthorizationCode(code string) error {
-	if err := c.authzCodeRepo.DeleteAuthorizationCode(code); err != nil {
-		logger.Error(module, "RevokeAuthorizationCode: Failed to revoke authorization code=[%s]: %v", common.TruncateSensitive(code), err)
+//   - error: An error if revocation fails.
+func (c *authorizationCodeService) RevokeAuthorizationCode(ctx context.Context, code string) error {
+	if err := c.authzCodeRepo.DeleteAuthorizationCode(ctx, code); err != nil {
+		c.logger.Error(c.module, "", "[RevokeAuthorizationCode]: Failed to revoke authorization code=[%s]: %v", common.TruncateSensitive(code), err)
 		return err
 	}
 
-	logger.Info(module, "RevokeAuthorizationCode: Successfully revoked authorization code")
 	return nil
 }
 
 // GetAuthorizationCode retrieves the authorization code data for a given code.
 //
 // Parameters:
-//
-//	code string: The authorization code to retrieve.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - code string: The authorization code to retrieve.
 //
 // Returns:
-//
-//	*AuthorizationCodeData: The authorization code data if found, or nil if no matching code exists.
-func (c *authorizationCodeService) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, error) {
-	retrievedCode, err := c.authzCodeRepo.GetAuthorizationCode(code)
+//   - *AuthorizationCodeData: The authorization code data if found, or nil if no matching code exists.
+func (c *authorizationCodeService) GetAuthorizationCode(ctx context.Context, code string) (*authz.AuthorizationCodeData, error) {
+	retrievedCode, err := c.authzCodeRepo.GetAuthorizationCode(ctx, code)
 	if err != nil {
+		c.logger.Error(c.module, "", "[GetAuthorizationCode]: An error occurred retrieving the authorization code: %v", err)
 		return nil, errors.Wrap(err, "", "error retrieving the authorization code")
 	}
+
 	return retrievedCode, nil
 }
 
@@ -201,24 +197,26 @@ func (c *authorizationCodeService) GetAuthorizationCode(code string) (*authz.Aut
 // It supports the "S256" (SHA-256) and "plain" code challenge methods.
 //
 // Parameters:
-//
-//	authzCodeData (*authz.AuthorizationCodeData): The authorization code data containing the code challenge and method.
-//	codeVerifier (string): The code verifier provided by the client during the token exchange.
+//   - authzCodeData (*authz.AuthorizationCodeData): The authorization code data containing the code challenge and method.
+//   - codeVerifier (string): The code verifier provided by the client during the token exchange.
 //
 // Returns:
-//
-//	error: An error if the validation fails, including cases where the code verifier does not match the code challenge
-//	  or if the code challenge method is unsupported. Returns nil if validation succeeds.
+//   - error: An error if the validation fails, including cases where the code verifier does not match the code challenge
+//     or if the code challenge method is unsupported. Returns nil if validation succeeds.
 func (c *authorizationCodeService) ValidatePKCE(authzCodeData *authz.AuthorizationCodeData, codeVerifier string) error {
 	if authzCodeData.CodeChallengeMethod == authz.S256 {
 		hashedVerifier := crypto.EncodeSHA256(codeVerifier)
 		if hashedVerifier != authzCodeData.CodeChallenge {
+			c.logger.Error(c.module, "", "[ValidatePKCE]: The provided code challenge does not match with the code verifier.")
 			return errors.New(errors.ErrCodeInvalidGrant, "invalid code verifier")
 		}
+
 	} else if authzCodeData.CodeChallengeMethod == authz.Plain {
 		if codeVerifier != authzCodeData.CodeChallenge {
+			c.logger.Error(c.module, "", "[ValidatePKCE]: The provided code challenge does not match with the code verifier.")
 			return errors.New(errors.ErrCodeInvalidGrant, "invalid code verifier")
 		}
+
 	} else {
 		return errors.New(errors.ErrCodeUnauthorized, fmt.Sprintf("unsupported code challenge method: %v", authzCodeData.CodeChallengeMethod))
 	}
@@ -226,17 +224,20 @@ func (c *authorizationCodeService) ValidatePKCE(authzCodeData *authz.Authorizati
 	return nil
 }
 
-func (c authorizationCodeService) validateClientParameters(redirectURI, clientID, scopesString string) error {
-	client := c.clientService.GetClientByID(clientID)
-	if client == nil {
-		logger.Error(module, "Failed to validate client: invalid client ID=[%s]", clientID)
+func (c authorizationCodeService) validateClientParameters(ctx context.Context, redirectURI, clientID, scopesString string) error {
+	client, err := c.clientService.GetClientByID(ctx, clientID)
+	if err != nil {
+		c.logger.Error(c.module, "", "Failed to retrieve client: %v", err)
+		return err
+	} else if client == nil {
+		c.logger.Error(c.module, "Failed to validate client: invalid client ID=[%s]", clientID)
 		return errors.New(errors.ErrCodeUnauthorizedClient, "invalid client ID")
 	}
 
 	scopes := strings.Split(scopesString, " ")
 	for _, scope := range scopes {
 		if !client.HasScope(scope) {
-			logger.Error(module, "Failed to validate client: client is missing required scope=[%s]", scope)
+			c.logger.Error(c.module, "Failed to validate client: client is missing required scope=[%s]", scope)
 			return errors.New(errors.ErrCodeInsufficientScope, "client is missing required scopes")
 		}
 	}
@@ -259,11 +260,10 @@ func (c *authorizationCodeService) generateAuthorizationCodeForPKCE(req *client.
 	return encodedAuthzCode, nil
 }
 
-func (c *authorizationCodeService) markCodeAsUsed(code string, authData *authz.AuthorizationCodeData) error {
+func (c *authorizationCodeService) markCodeAsUsed(ctx context.Context, code string, authData *authz.AuthorizationCodeData) error {
 	authData.Used = true
-	logger.Debug(module, "ValidateAuthorizationCode: Marking authorization code as used")
-	if err := c.authzCodeRepo.UpdateAuthorizationCode(code, authData); err != nil {
-		logger.Error(module, "ValidateAuthorizationCode: Failed to update authorization code: %v", err)
+	if err := c.authzCodeRepo.UpdateAuthorizationCode(ctx, code, authData); err != nil {
+		c.logger.Error(c.module, "", "[ValidateAuthorizationCode]: Failed to update authorization code: %v", err)
 		return errors.NewInternalServerError()
 	}
 
@@ -289,14 +289,17 @@ func (c *authorizationCodeService) handlePKCE(req *client.ClientAuthorizationReq
 	return nil
 }
 
-func (c *authorizationCodeService) validateUserAndClient(req *client.ClientAuthorizationRequest) error {
-	if user := c.userService.GetUserByID(req.UserID); user == nil {
-		logger.Error(module, "Failed to retrieve user: invalid user ID=[%s]", req.UserID)
+func (c *authorizationCodeService) validateUserAndClient(ctx context.Context, req *client.ClientAuthorizationRequest) error {
+	retrievedUser, err := c.userService.GetUserByID(ctx, req.UserID)
+	if err != nil {
+		c.logger.Error(c.module, "", "An error occurred retrieving the user by ID: %v", err)
+		return errors.NewInternalServerError()
+	} else if retrievedUser == nil {
 		return errors.New(errors.ErrCodeUnauthorized, fmt.Sprintf("invalid user ID: %s", common.TruncateSensitive(req.UserID)))
 	}
 
-	if err := c.validateClientParameters(req.RedirectURI, req.ClientID, req.Scope); err != nil {
-		logger.Error(module, "Failed to validate client=[%s]: %v", common.TruncateSensitive(req.ClientID), err)
+	if err := c.validateClientParameters(ctx, req.RedirectURI, req.ClientID, req.Scope); err != nil {
+		c.logger.Error(c.module, "", "Failed to validate client=[%s]: %v", common.TruncateSensitive(req.ClientID), err)
 		return err
 	}
 

@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
@@ -38,12 +40,15 @@ func NewClientHandler(clientService client.ClientService) *ClientHandler {
 
 // RegisterClient is the HTTP handler for public client registration.
 func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[RegisterClient]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[RegisterClient]: Processing request")
 
 	req, err := web.DecodeJSONRequest[client.ClientRegistrationRequest](w, r)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to decode request body: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "Failed to decode request body: %v", err)
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
@@ -66,31 +71,34 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 		newClient.TokenEndpointAuthMethod = req.TokenEndpointAuthMethod
 	}
 
-	response, err := h.clientService.Register(newClient)
+	response, err := h.clientService.Register(ctx, newClient)
 	if err != nil {
-		h.logger.Error(h.module, "RequestID=[%s]: Failed to register client: %v", requestID, err)
+		h.logger.Error(h.module, requestID, "Failed to register client: %v", err)
 		wrappedErr := errors.Wrap(err, "", "failed to register client")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[RegisterClient]", requestID)
+	h.logger.Info(h.module, requestID, "[RegisterClient]: Successfully processed request")
 	web.WriteJSON(w, http.StatusCreated, response)
 }
 
 // RegenerateSecret is the HTTP handler for regenerating client secrets.
 func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[RegenerateSecret]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[RegenerateSecret]: Processing request")
 
 	clientID := chi.URLParam(r, common.ClientID)
-	response, err := h.clientService.RegenerateClientSecret(clientID)
+	response, err := h.clientService.RegenerateClientSecret(ctx, clientID)
 	if err != nil {
 		web.WriteError(w, errors.Wrap(err, "", "failed to regenerate client_secret"))
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[RegenerateSecret]", requestID)
+	h.logger.Info(h.module, requestID, "[RegenerateSecret]: Successfully processed request")
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -98,7 +106,9 @@ func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request)
 // It supports GET, PUT, and DELETE methods to retrieve, update, or delete client configurations.
 // The method validates the registration access token and extracts the client ID from the URL.
 func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
 	registrationAccessToken, err := web.ExtractBearerToken(r)
 	if err != nil {
 		wrappedErr := errors.Wrap(
@@ -112,11 +122,11 @@ func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http
 	clientID := chi.URLParam(r, common.ClientID)
 	switch r.Method {
 	case http.MethodGet:
-		h.getClient(w, clientID, registrationAccessToken, requestID)
+		h.getClient(w, clientID, registrationAccessToken, ctx)
 	case http.MethodPut:
-		h.updateClient(w, r, clientID, registrationAccessToken, requestID)
+		h.updateClient(w, r, clientID, registrationAccessToken, ctx)
 	case http.MethodDelete:
-		h.deleteClient(w, clientID, registrationAccessToken, requestID)
+		h.deleteClient(w, clientID, registrationAccessToken, ctx)
 	default:
 		err := errors.New(errors.ErrCodeMethodNotAllowed, fmt.Sprintf("method '%s' not allowed for this request", r.Method))
 		web.WriteError(w, err)
@@ -126,54 +136,46 @@ func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http
 
 // getClient retrieves client information for the given client ID and registration access token.
 // It validates the token and client, then writes the client information as a JSON response.
-func (h *ClientHandler) getClient(w http.ResponseWriter, clientID, registrationAccessToken, requestID string) {
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[GetClient]", requestID)
+func (h *ClientHandler) getClient(w http.ResponseWriter, clientID, registrationAccessToken string, ctx context.Context) {
 
-	clientInformation, err := h.clientService.ValidateAndRetrieveClient(clientID, registrationAccessToken)
+	clientInformation, err := h.clientService.ValidateAndRetrieveClient(ctx, clientID, registrationAccessToken)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate and retrieve client information")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[GetClient]", requestID)
 	web.WriteJSON(w, http.StatusOK, clientInformation)
 }
 
 // updateClient updates the client configuration for the given client ID and registration access token.
 // It uses the ValidateAndUpdateClient service method to perform the update.
-func (h *ClientHandler) updateClient(w http.ResponseWriter, r *http.Request, clientID, registrationAccessToken, requestID string) {
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[UpdateClient]", requestID)
-
+func (h *ClientHandler) updateClient(w http.ResponseWriter, r *http.Request, clientID, registrationAccessToken string, ctx context.Context) {
 	request, err := web.DecodeJSONRequest[client.ClientUpdateRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		return
 	}
 
-	clientInformation, err := h.clientService.ValidateAndUpdateClient(clientID, registrationAccessToken, request)
+	clientInformation, err := h.clientService.ValidateAndUpdateClient(ctx, clientID, registrationAccessToken, request)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate and update client")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[UpdateClient]", requestID)
 	web.WriteJSON(w, http.StatusOK, clientInformation)
 }
 
 // deleteClient deletes the client configuration for the given client ID and registration access token.
 // It uses the ValidateAndDeleteClient service method to perform the deletion.
-func (h *ClientHandler) deleteClient(w http.ResponseWriter, clientID, registrationAccessToken, requestID string) {
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[DeleteClient]", requestID)
-
-	if err := h.clientService.ValidateAndDeleteClient(clientID, registrationAccessToken); err != nil {
+func (h *ClientHandler) deleteClient(w http.ResponseWriter, clientID, registrationAccessToken string, ctx context.Context) {
+	if err := h.clientService.ValidateAndDeleteClient(ctx, clientID, registrationAccessToken); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate and delete client")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[DeleteClient]", requestID)
 	web.SetNoStoreHeader(w)
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -13,14 +14,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/identity/server"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/idp/server"
 	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	userConsent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	auditEventRepo "github.com/vigiloauth/vigilo/internal/repository/audit"
 	sessionRepo "github.com/vigiloauth/vigilo/internal/repository/session"
 	tokenRepo "github.com/vigiloauth/vigilo/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
@@ -95,14 +97,14 @@ func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
 	user.Password = hashedPassword
 	user.ID = testUserID
 	user.Scopes = []string{client.UserManage}
-	userRepo.GetInMemoryUserRepository().AddUser(user)
+	userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
 
 	tc.User = user
 	return tc
 }
 
 func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
-	consentRepo.GetInMemoryUserConsentRepository().SaveConsent(testUserID, testClientID, testScope)
+	consentRepo.GetInMemoryUserConsentRepository().SaveConsent(context.Background(), testUserID, testClientID, testScope)
 
 	return tc
 }
@@ -129,7 +131,7 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 		c.Secret = testClientSecret
 	}
 
-	clientRepo.GetInMemoryClientRepository().SaveClient(c)
+	clientRepo.GetInMemoryClientRepository().SaveClient(context.Background(), c)
 }
 
 // WithJWTToken creates and adds a user JWT token to the system.
@@ -139,22 +141,22 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(id, testScope, duration)
+	token, err := tokenService.GenerateToken(context.Background(), id, testScope, duration)
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
-	tokenRepo.GetInMemoryTokenRepository().SaveToken(token, id, time.Now().Add(duration))
+	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), token, id, time.Now().Add(duration))
 
 	return tc
 }
 
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(id, testScope, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+	token, err := tokenService.GenerateToken(context.Background(), id, testScope, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
-	tokenService.BlacklistToken(token)
+	tokenService.BlacklistToken(context.Background(), token)
 
 	return tc
 }
@@ -214,10 +216,10 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	resetToken, err := tokenService.GenerateToken(tc.User.Email, testScope, duration)
+	resetToken, err := tokenService.GenerateToken(context.Background(), tc.User.Email, testScope, duration)
 	assert.NoError(tc.T, err)
 
-	tokenRepo.GetInMemoryTokenRepository().SaveToken(resetToken, tc.User.Email, time.Now().Add(duration))
+	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), resetToken, tc.User.Email, time.Now().Add(duration))
 	return resetToken, tc
 }
 
@@ -457,6 +459,7 @@ func resetInMemoryStores() {
 	clientRepo.ResetInMemoryClientRepository()
 	consentRepo.ResetInMemoryUserConsentRepository()
 	sessionRepo.ResetInMemorySessionRepository()
+	auditEventRepo.ResetInMemoryAuditEventRepository()
 }
 
 func (tc *VigiloTestContext) decodeErrorResponse(rr *httptest.ResponseRecorder) errors.VigiloAuthError {

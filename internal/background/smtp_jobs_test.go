@@ -57,7 +57,7 @@ func TestSMTPJobs_RunRetryQueueProcess(t *testing.T) {
 			defer mu.Unlock()
 			return queue
 		},
-		SendEmailFunc: func(request *domain.EmailRequest) error {
+		SendEmailFunc: func(ctx context.Context, request *domain.EmailRequest) error {
 			mu.Lock()
 			defer mu.Unlock()
 			sendEmailCalls++
@@ -96,7 +96,7 @@ func TestSMTPJobs_ProcessRetryQueue_WithErrors(t *testing.T) {
 			defer mu.Unlock()
 			return retryQueue
 		},
-		SendEmailFunc: func(request *domain.EmailRequest) error {
+		SendEmailFunc: func(ctx context.Context, request *domain.EmailRequest) error {
 			mu.Lock()
 			defer mu.Unlock()
 			sendEmailCalls++
@@ -139,7 +139,7 @@ func TestSMTPJobs_MaxRetries(t *testing.T) {
 			defer mu.Unlock()
 			return retryQueue
 		},
-		SendEmailFunc: func(request *domain.EmailRequest) error {
+		SendEmailFunc: func(ctx context.Context, request *domain.EmailRequest) error {
 			mu.Lock()
 			defer mu.Unlock()
 			sendEmailCalls++

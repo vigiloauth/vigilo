@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"context"
 	"sync"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
@@ -41,7 +43,7 @@ func NewInMemoryClientRepository() *InMemoryClientRepository {
 //	*InMemoryClientStore: The singleton instance of InMemoryClientStore.
 func GetInMemoryClientRepository() *InMemoryClientRepository {
 	once.Do(func() {
-		logger.Debug(module, "Creating new instance of InMemoryClientRepository")
+		logger.Debug(module, "", "Creating new instance of InMemoryClientRepository")
 		instance = &InMemoryClientRepository{
 			data: make(map[string]*client.Client),
 		}
@@ -52,7 +54,7 @@ func GetInMemoryClientRepository() *InMemoryClientRepository {
 // ResetInMemoryClientRepository resets the in-memory store for testing purposes.
 func ResetInMemoryClientRepository() {
 	if instance != nil {
-		logger.Debug(module, "Resetting instance")
+		logger.Debug(module, "", "Resetting instance")
 		instance.mu.Lock()
 		instance.data = make(map[string]*client.Client)
 		instance.mu.Unlock()
@@ -62,18 +64,17 @@ func ResetInMemoryClientRepository() {
 // SaveClient adds a new client to the store if it does not already exist.
 //
 // Parameters:
-//
-//	client *client.Client: The client object to store.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - client *Client: The client object to store.
 //
 // Returns:
-//
-//	error: An error if the client already exists, nil otherwise.
-func (cs *InMemoryClientRepository) SaveClient(client *client.Client) error {
+//   - error: An error if the client already exists, nil otherwise.
+func (cs *InMemoryClientRepository) SaveClient(ctx context.Context, client *client.Client) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
 	if _, clientExists := cs.data[client.ID]; clientExists {
-		logger.Debug(module, "SaveClient: Failed to save client. Duplicate ID")
+		logger.Error(module, "", "[SaveClient]: Failed to save client. Duplicate ID")
 		return errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
 	}
 
@@ -84,35 +85,35 @@ func (cs *InMemoryClientRepository) SaveClient(client *client.Client) error {
 // GetClientByID retrieves a client by its ID.
 //
 // Parameters:
-//
-//	clientID string: The ID of the client to retrieve.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - clientID string: The ID of the client to retrieve.
 //
 // Returns:
-//
-//	*client.Client: The client object if found, nil otherwise.
-func (cs *InMemoryClientRepository) GetClientByID(clientID string) *client.Client {
+//   - *Client: The client object if found, nil otherwise.
+func (cs *InMemoryClientRepository) GetClientByID(ctx context.Context, clientID string) (*client.Client, error) {
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
 
+	requestID := common.GetRequestID(ctx)
 	client, found := cs.data[clientID]
 	if !found {
-		logger.Debug(module, "GetClientByID: No client found using the given ID=%s", clientID)
-		return nil
+		logger.Debug(module, requestID, "[GetClientByID]: No client found using the given ID=%s", clientID)
+		return nil, nil
 	}
 
-	return client
+	return client, nil
 }
 
 // DeleteClientByID removes a client from the store by its ID.
+// DeleteClient removes a client from the store by its ID.
 //
 // Parameters:
-//
-//	clientID string: The ID of the client to delete.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - clientID string: The ID of the client to delete.
 //
 // Returns:
-//
-//	error: Always returns nil.
-func (cs *InMemoryClientRepository) DeleteClientByID(clientID string) error {
+//   - error: Returns an error if deletion fails, otherwise false.
+func (cs *InMemoryClientRepository) DeleteClientByID(ctx context.Context, clientID string) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 	delete(cs.data, clientID)
@@ -122,18 +123,18 @@ func (cs *InMemoryClientRepository) DeleteClientByID(clientID string) error {
 // UpdateClient updates an existing client in the store.
 //
 // Parameters:
-//
-//	client *client.Client: The updated client object.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - client *Client: The updated client object.
 //
 // Returns:
-//
-//	error: An error if the client does not exist, nil otherwise.
-func (cs *InMemoryClientRepository) UpdateClient(client *client.Client) error {
+//   - error: An error if the client does not exist, nil otherwise.
+func (cs *InMemoryClientRepository) UpdateClient(ctx context.Context, client *client.Client) error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
+	requestID := common.GetRequestID(ctx)
 	if _, clientExists := cs.data[client.ID]; !clientExists {
-		logger.Debug(module, "UpdateClient: No client found using the given ID=%s", client.ID)
+		logger.Debug(module, requestID, "[UpdateClient]: No client found using the given ID=%s", client.ID)
 		return errors.New(errors.ErrCodeClientNotFound, "client not found using provided ID")
 	}
 
@@ -144,13 +145,12 @@ func (cs *InMemoryClientRepository) UpdateClient(client *client.Client) error {
 // IsExistingID checks to see if an ID already exists in the database.
 //
 // Parameters:
-//
-//	clientID string: The client ID to verify.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - clientID string: The client ID to verify.
 //
 // Returns:
-//
-//	bool: True if it exists, otherwise false.
-func (cs *InMemoryClientRepository) IsExistingID(clientID string) bool {
+//   - bool: True if it exists, otherwise false.
+func (cs *InMemoryClientRepository) IsExistingID(ctx context.Context, clientID string) bool {
 	_, clientExists := cs.data[clientID]
 	return clientExists
 }

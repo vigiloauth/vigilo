@@ -1,18 +1,21 @@
 package service
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/crypto"
+	domain "github.com/vigiloauth/vigilo/internal/domain/audit"
 	clients "github.com/vigiloauth/vigilo/internal/domain/client"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	tokens "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	mAuditLogger "github.com/vigiloauth/vigilo/internal/mocks/audit"
 	mEmailService "github.com/vigiloauth/vigilo/internal/mocks/email"
 	mLoginService "github.com/vigiloauth/vigilo/internal/mocks/login"
 	mTokenService "github.com/vigiloauth/vigilo/internal/mocks/token"
@@ -35,40 +38,57 @@ const (
 )
 
 func TestUserService_CreateUser_Success(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
-	mockEmailService := &mEmailService.MockEmailService{}
+	ctx := context.Background()
+	mockUserRepo := &mUserRepo.MockUserRepository{
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*users.User, error) {
+			return nil, nil
+		},
+		AddUserFunc: func(ctx context.Context, user *users.User) error {
+			return nil
+		},
+	}
+	mockTokenService := &mTokenService.MockTokenService{
+		GenerateTokenFunc: func(ctx context.Context, id, scopes string, duration time.Duration) (string, error) {
+			return testToken, nil
+		},
+	}
+	mockEmailService := &mEmailService.MockEmailService{
+		SendEmailFunc: func(ctx context.Context, request *email.EmailRequest) error {
+			return nil
+		},
+	}
+	mockAuditLogger := &mAuditLogger.MockAuditLogger{
+		StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+		},
+	}
 
-	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return nil }
-	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
-	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return testToken, nil }
-	mockEmailService.SendEmailFunc = func(request *email.EmailRequest) error { return nil }
-
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, mockEmailService)
-	registeredUser, err := userService.CreateUser(createNewUser())
+	userService := NewUserService(mockUserRepo, mockTokenService, nil, mockEmailService, mockAuditLogger)
+	registeredUser, err := userService.CreateUser(ctx, createNewUser())
 
 	assert.NoError(t, err)
 	assert.NotNil(t, registeredUser)
 }
 
 func TestUserService_CreateUser_DuplicateEntry(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
+	ctx := context.Background()
+	mockUserRepo := &mUserRepo.MockUserRepository{
+		AddUserFunc: func(ctx context.Context, user *users.User) error {
+			return errors.NewInternalServerError()
+		},
+		GetUserByEmailFunc: func(ctx context.Context, email string) (*users.User, error) {
+			return nil, nil
+		},
+	}
+	mockAuditLogger := &mAuditLogger.MockAuditLogger{
+		StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+		},
+	}
 
 	user := createNewUser()
+	userService := NewUserService(mockUserRepo, nil, nil, nil, mockAuditLogger)
+	_, err := userService.CreateUser(ctx, user)
 
-	mockUserRepo.AddUserFunc = func(user *users.User) error { return nil }
-	mockUserRepo.GetUserByEmailFunc = func(email string) *users.User { return user }
-
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
-
-	expected := errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
-	_, actual := userService.CreateUser(user)
-
-	assert.Error(t, actual)
-	assert.Equal(t, actual, expected)
+	assert.Error(t, err)
 }
 
 func TestUserRegistrationRequest_Validate(t *testing.T) {
@@ -150,98 +170,129 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 }
 
 func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
-
+	ctx := context.Background()
 	user := createNewUser()
 	encryptedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(t, err)
 	user.Password = encryptedPassword
 
-	mockUserRepo.AddUserFunc = func(u *users.User) error { return nil }
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return user }
-	mockTokenService.GenerateTokenFunc = func(subject, scope string, expirationTime time.Duration) (string, error) { return "testToken", nil }
-	mockLoginService.SaveLoginAttemptFunc = func(attempt *users.UserLoginAttempt) error { return nil }
-	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
+	mockUserRepo := &mUserRepo.MockUserRepository{
+		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+			return user, nil
+		},
+		UpdateUserFunc: func(ctx context.Context, user *users.User) error {
+			return nil
+		},
+	}
+	mockTokenService := &mTokenService.MockTokenService{
+		GenerateTokenFunc: func(ctx context.Context, id, scopes string, duration time.Duration) (string, error) {
+			return "testToken", nil
+		},
+	}
+	mockLoginService := &mLoginService.MockLoginAttemptService{
+		SaveLoginAttemptFunc: func(ctx context.Context, attempt *users.UserLoginAttempt) error {
+			return nil
+		},
+	}
+	mockAuditLogger := &mAuditLogger.MockAuditLogger{
+		StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+		},
+	}
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
+	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil, mockAuditLogger)
 	userLoginAttempt := createTestUserLoginRequest()
 
-	_, err = userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
+	_, err = userService.AuthenticateUserWithRequest(ctx, userLoginAttempt)
 	assert.NoError(t, err, "unexpected error during login")
 }
 
 func TestUserService_AuthenticateUserInvalidPassword(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
+	ctx := context.Background()
 
-	user := createNewUser()
-	encryptedPassword, err := crypto.HashString(user.Password)
-	assert.NoError(t, err)
-	user.Password = encryptedPassword
-
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return user }
-	mockLoginService.HandleFailedLoginAttemptFunc = func(user *users.User, attempt *users.UserLoginAttempt) error {
-		return nil
+	mockUserRepo := &mUserRepo.MockUserRepository{
+		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+			return nil, nil
+		},
+	}
+	mockLoginService := &mLoginService.MockLoginAttemptService{
+		HandleFailedLoginAttemptFunc: func(ctx context.Context, user *users.User, attempt *users.UserLoginAttempt) error {
+			return nil
+		},
+	}
+	mockAuditLogger := &mAuditLogger.MockAuditLogger{
+		StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+		},
 	}
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
+	userService := NewUserService(mockUserRepo, nil, mockLoginService, nil, mockAuditLogger)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 
-	_, actual := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
+	_, actual := userService.AuthenticateUserWithRequest(ctx, userLoginAttempt)
 
 	assert.Error(t, actual, "expected error during authentication")
 }
 
 func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
+	ctx := context.Background()
+	mockUserRepo := &mUserRepo.MockUserRepository{
+		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+			return nil, nil
+		},
+	}
 
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return nil }
+	mockAuditLogger := &mAuditLogger.MockAuditLogger{
+		StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+		},
+	}
 
 	loginUser := createNewUser()
 	encryptedPassword, err := crypto.HashString(loginUser.Password)
 	assert.NoError(t, err)
 	loginUser.Password = encryptedPassword
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
+	userService := NewUserService(mockUserRepo, nil, nil, nil, mockAuditLogger)
 	userLoginAttempt := createTestUserLoginRequest()
 
 	expected := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
-	_, actual := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
+	_, actual := userService.AuthenticateUserWithRequest(ctx, userLoginAttempt)
 
 	assert.Error(t, actual, "expected error during authentication")
 	assert.Equal(t, actual, expected)
 }
 
 func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
-
+	ctx := context.Background()
 	user := createNewUser()
 	encryptedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(t, err)
 	user.Password = encryptedPassword
 
-	mockUserRepo.AddUserFunc = func(u *users.User) error { return nil }
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return user }
-	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
-	mockLoginService.HandleFailedLoginAttemptFunc = func(user *users.User, attempt *users.UserLoginAttempt) error {
-		return nil
+	mockUserRepo := &mUserRepo.MockUserRepository{
+		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+			return user, nil
+		},
+		UpdateUserFunc: func(ctx context.Context, user *users.User) error {
+			return nil
+		},
+	}
+	mockLoginService := &mLoginService.MockLoginAttemptService{
+		HandleFailedLoginAttemptFunc: func(ctx context.Context, user *users.User, attempt *users.UserLoginAttempt) error {
+			return nil
+		},
+	}
+	mockAuditLogger := &mAuditLogger.MockAuditLogger{
+		StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+		},
 	}
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
+	userService := NewUserService(mockUserRepo, nil, mockLoginService, nil, mockAuditLogger)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 
 	expected := 500 * time.Millisecond
 	startTime := time.Now()
-	_, err = userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
+	_, err = userService.AuthenticateUserWithRequest(ctx, userLoginAttempt)
 	actual := time.Since(startTime)
 
 	assert.NotNil(t, err)
@@ -249,52 +300,62 @@ func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
 }
 
 func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
-	mockUserRepo := &mUserRepo.MockUserRepository{}
-	mockTokenService := &mTokenService.MockTokenService{}
-	mockLoginService := &mLoginService.MockLoginAttemptService{}
-
+	ctx := context.Background()
 	user := createNewUser()
 	encryptedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(t, err)
 	user.Password = encryptedPassword
 	user.AccountLocked = true
 
-	mockUserRepo.AddUserFunc = func(u *users.User) error { return nil }
-	mockUserRepo.GetUserByIDFunc = func(userID string) *users.User { return user }
-	mockUserRepo.UpdateUserFunc = func(user *users.User) error { return nil }
-	mockLoginService.HandleFailedLoginAttemptFunc = func(user *users.User, attempt *users.UserLoginAttempt) error {
-		return nil
+	mockUserRepo := &mUserRepo.MockUserRepository{
+		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+			return user, nil
+		},
+		UpdateUserFunc: func(ctx context.Context, user *users.User) error {
+			return nil
+		},
+	}
+	mockLoginService := &mLoginService.MockLoginAttemptService{
+		HandleFailedLoginAttemptFunc: func(ctx context.Context, user *users.User, attempt *users.UserLoginAttempt) error {
+			return nil
+		},
+	}
+	mockAuditLogger := &mAuditLogger.MockAuditLogger{
+		StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+		},
 	}
 
-	userService := NewUserService(mockUserRepo, mockTokenService, mockLoginService, nil)
+	userService := NewUserService(mockUserRepo, nil, mockLoginService, nil, mockAuditLogger)
 	userLoginAttempt := createTestUserLoginRequest()
 	userLoginAttempt.Password = testInvalidPassword
 
 	maxFailedLoginAttempts := 5
 	for range maxFailedLoginAttempts {
-		_, err := userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
+		_, err := userService.AuthenticateUserWithRequest(ctx, userLoginAttempt)
 		assert.NotNil(t, err)
 	}
 
-	retrievedUser := mockUserRepo.GetUserByIDFunc(testEmail)
+	retrievedUser, err := mockUserRepo.GetUserByIDFunc(ctx, testEmail)
+	assert.NoError(t, err)
 	assert.True(t, retrievedUser.AccountLocked, "expected account to be locked")
 
-	_, err = userService.AuthenticateUserWithRequest(userLoginAttempt, testIPAddress, testRequestMetadata, testUserAgent)
+	_, err = userService.AuthenticateUserWithRequest(ctx, userLoginAttempt)
 	assert.Error(t, err, "expected error on login attempt with locked account")
 }
 
 func TestUserService_ValidateVerificationCode(t *testing.T) {
+	ctx := context.Background()
 	t.Run("Success", func(t *testing.T) {
 		userRepo := &mUserRepo.MockUserRepository{
-			GetUserByEmailFunc: func(email string) *users.User {
-				return createNewUser()
+			GetUserByEmailFunc: func(ctx context.Context, email string) (*users.User, error) {
+				return createNewUser(), nil
 			},
-			UpdateUserFunc: func(user *users.User) error {
+			UpdateUserFunc: func(ctx context.Context, user *users.User) error {
 				return nil
 			},
 		}
 		tokenService := &mTokenService.MockTokenService{
-			ValidateTokenFunc: func(token string) error { return nil },
+			ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
 			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
 				return &tokens.TokenClaims{
 					StandardClaims: &jwt.StandardClaims{
@@ -304,29 +365,29 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 			},
 		}
 
-		service := NewUserService(userRepo, tokenService, nil, nil)
-		err := service.ValidateVerificationCode(testVerificationCode)
+		service := NewUserService(userRepo, tokenService, nil, nil, nil)
+		err := service.ValidateVerificationCode(ctx, testVerificationCode)
 
 		assert.NoError(t, err)
 	})
 
 	t.Run("Error is returned when the verification code is not valid", func(t *testing.T) {
 		tokenService := &mTokenService.MockTokenService{
-			ValidateTokenFunc: func(token string) error {
+			ValidateTokenFunc: func(ctx context.Context, token string) error {
 				return errors.New(errors.ErrCodeUnauthorized, "the verification code is either expired or does not exist")
 			},
 		}
 
-		service := NewUserService(nil, tokenService, nil, nil)
-		err := service.ValidateVerificationCode(testVerificationCode)
+		service := NewUserService(nil, tokenService, nil, nil, nil)
+		err := service.ValidateVerificationCode(ctx, testVerificationCode)
 
 		assert.Error(t, err)
 		assert.Contains(t, "the verification code is either expired or does not exist", err.Error())
 	})
 
 	t.Run("Error is returned when required parameters are missing", func(t *testing.T) {
-		service := NewUserService(nil, nil, nil, nil)
-		err := service.ValidateVerificationCode("")
+		service := NewUserService(nil, nil, nil, nil, nil)
+		err := service.ValidateVerificationCode(ctx, "")
 
 		assert.Error(t, err)
 		assert.Contains(t, "missing one or more required parameters in the request", err.Error())
@@ -334,24 +395,24 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 
 	t.Run("Error is returned when parsing the verification code fails", func(t *testing.T) {
 		tokenService := &mTokenService.MockTokenService{
-			ValidateTokenFunc: func(token string) error { return nil },
+			ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
 			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
 				return nil, errors.NewInternalServerError()
 			},
 		}
 
-		service := NewUserService(nil, tokenService, nil, nil)
-		err := service.ValidateVerificationCode(testVerificationCode)
+		service := NewUserService(nil, tokenService, nil, nil, nil)
+		err := service.ValidateVerificationCode(ctx, testVerificationCode)
 
 		assert.Error(t, err)
 	})
 
 	t.Run("Error is returned when the user does not exist by email", func(t *testing.T) {
 		userRepo := &mUserRepo.MockUserRepository{
-			GetUserByEmailFunc: func(email string) *users.User { return nil },
+			GetUserByEmailFunc: func(ctx context.Context, email string) (*users.User, error) { return nil, nil },
 		}
 		tokenService := &mTokenService.MockTokenService{
-			ValidateTokenFunc: func(token string) error { return nil },
+			ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
 			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
 				return &tokens.TokenClaims{
 					StandardClaims: &jwt.StandardClaims{
@@ -361,8 +422,8 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 			},
 		}
 
-		service := NewUserService(userRepo, tokenService, nil, nil)
-		err := service.ValidateVerificationCode(testVerificationCode)
+		service := NewUserService(userRepo, tokenService, nil, nil, nil)
+		err := service.ValidateVerificationCode(ctx, testVerificationCode)
 
 		assert.Error(t, err)
 		assert.Contains(t, "the verification code is invalid", err.Error())

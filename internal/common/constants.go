@@ -1,5 +1,6 @@
 package common
 
+// Commonly used constants
 const (
 	ClientID                      string = "client_id"
 	ClientSecret                  string = "client_secret"
@@ -20,7 +21,6 @@ const (
 	CacheControl                  string = "Cache-Control"
 	NoStore                       string = "no-store"
 	RequestIDHeader               string = "X-Request-ID"
-	RequestID                     string = "requestID"
 	CodeChallenge                 string = "code_challenge"
 	CodeChallengeMethod           string = "code_challenge_method"
 	Username                      string = "username"
@@ -35,4 +35,39 @@ const (
 	HTMLBody                      string = "text/html"
 	VerifyEmailAddress            string = "Verify Your Email Address"
 	AccountDeletion               string = "Your Account Has Been Deleted"
+)
+
+// Environment variables constants
+const (
+	TokenSecretKeyENV string = "TOKEN_SECRET_KEY"
+	TokenIssuerENV    string = "TOKEN_ISSUER"
+
+	SMTPFromAddressENV string = "SMTP_FROM_ADDRESS"
+	SMTPUsernameENV    string = "SMTP_USERNAME"
+	SMTPPasswordENV    string = "SMTP_PASSWORD"
+
+	CryptoSecretKeyENV string = "CRYPTO_SECRET_KEY"
+)
+
+// ID prefix constants
+const (
+	UserIDPrefix       string = "user-"
+	SessionIDPrefix    string = "sess-"
+	AuditEventIDPrefix string = "audit-"
+)
+
+// Audit event secret keys
+const (
+	ActionDetails string = "action"
+	MethodDetails string = "method"
+)
+
+type ContextKey string
+
+const (
+	ContextKeyUserID    ContextKey = "user_id"
+	ContextKeyRequestID ContextKey = "requestID"
+	ContextKeyIPAddress ContextKey = "ip_address"
+	ContextKeyUserAgent ContextKey = "user_agent"
+	ContextKeySessionID ContextKey = "session_id"
 )

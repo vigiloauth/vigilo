@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -21,7 +22,6 @@ func TestUserHandler_DuplicateEmail(t *testing.T) {
 	requestBody := users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1)
 	body, err := json.Marshal(requestBody)
 	assert.NoError(t, err)
-
 	rr := testContext.SendHTTPRequest(
 		http.MethodPost,
 		web.UserEndpoints.Registration,
@@ -112,7 +112,8 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 
 		// assert user account is verified
 		userRepo := repository.GetInMemoryUserRepository()
-		retrievedUser := userRepo.GetUserByEmail(testEmail)
+		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
+		assert.NoError(t, err)
 		assert.True(t, retrievedUser.Verified)
 	})
 
@@ -127,7 +128,9 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 
 		userRepo := repository.GetInMemoryUserRepository()
-		retrievedUser := userRepo.GetUserByEmail(testEmail)
+
+		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
+		assert.NoError(t, err)
 		assert.False(t, retrievedUser.Verified)
 	})
 
@@ -145,7 +148,8 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 
 		// assert user account is not verified
 		userRepo := repository.GetInMemoryUserRepository()
-		retrievedUser := userRepo.GetUserByEmail(testEmail)
+		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
+		assert.NoError(t, err)
 		assert.False(t, retrievedUser.Verified)
 	})
 

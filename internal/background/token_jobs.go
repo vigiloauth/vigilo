@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 )
 
@@ -25,16 +25,19 @@ func NewTokenJobs(tokenService domain.TokenService, interval time.Duration) *Tok
 }
 
 func (t *TokenJobs) DeleteExpiredTokens(ctx context.Context) {
-	t.logger.Info(t.module, "Deleting expired tokens")
+	t.logger.Info(t.module, "", "[DeleteExpiredTokens]: Starting process of deleting expired tokens")
 	ticker := time.NewTicker(t.interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			t.tokenService.DeleteExpiredTokens()
+			if err := t.tokenService.DeleteExpiredTokens(ctx); err != nil {
+				t.logger.Error(t.module, "", "[DeleteExpiredTokens]: An error occurred deleting expired tokens: %v", err)
+				continue
+			}
 		case <-ctx.Done():
-			t.logger.Info(t.module, "Stopping deletion of expired tokens")
+			t.logger.Info(t.module, "", "[DeleteExpiredTokens]: Stopping process of deleting expired tokens")
 			return
 		}
 	}

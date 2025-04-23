@@ -42,7 +42,7 @@ func NewPasswordConfig(opts ...PasswordConfigOptions) *PasswordConfig {
 //	PasswordConfigOption: A function that configures the uppercase requirement.
 func WithUppercase() PasswordConfigOptions {
 	return func(pc *PasswordConfig) {
-		pc.logger.Info(pc.module, "Configuring PasswordConfig to require an uppercase")
+		pc.logger.Info(pc.module, "", "Configuring PasswordConfig to require an uppercase")
 		pc.requireUpper = true
 	}
 }
@@ -54,7 +54,7 @@ func WithUppercase() PasswordConfigOptions {
 //	PasswordConfigOption: A function that configures the number requirement.
 func WithNumber() PasswordConfigOptions {
 	return func(pc *PasswordConfig) {
-		pc.logger.Info(pc.module, "Configuring PasswordConfig to require a number")
+		pc.logger.Info(pc.module, "", "Configuring PasswordConfig to require a number")
 		pc.requireNumber = true
 	}
 }
@@ -66,7 +66,7 @@ func WithNumber() PasswordConfigOptions {
 //	PasswordConfigOption: A function that configures the symbol requirement.
 func WithSymbol() PasswordConfigOptions {
 	return func(pc *PasswordConfig) {
-		pc.logger.Info(pc.module, "Configuring PasswordConfig to require a symbol")
+		pc.logger.Info(pc.module, "", "Configuring PasswordConfig to require a symbol")
 		pc.requireSymbol = true
 	}
 }
@@ -83,7 +83,7 @@ func WithSymbol() PasswordConfigOptions {
 func WithMinLength(length int) PasswordConfigOptions {
 	return func(pc *PasswordConfig) {
 		if length > defaultRequiredPasswordLength {
-			pc.logger.Info(pc.module, "Configuring PasswordConfig minimum length=[%d]", length)
+			pc.logger.Info(pc.module, "", "Configuring PasswordConfig minimum length=[%d]", length)
 			pc.minLength = length
 		}
 	}
@@ -151,11 +151,11 @@ func defaultPasswordConfig() *PasswordConfig {
 
 func (cfg *PasswordConfig) loadOptions(opts ...PasswordConfigOptions) {
 	if len(opts) > 0 {
-		cfg.logger.Info(cfg.module, "Creating password config with %d options", len(opts))
+		cfg.logger.Info(cfg.module, "", "Creating password config with %d options", len(opts))
 		for _, opt := range opts {
 			opt(cfg)
 		}
 	} else {
-		cfg.logger.Info(cfg.module, "Using default password config")
+		cfg.logger.Info(cfg.module, "", "Using default password config")
 	}
 }

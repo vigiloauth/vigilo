@@ -26,6 +26,7 @@ type ServerConfig struct {
 	loginConfig    *LoginConfig    // Login configuration.
 	passwordConfig *PasswordConfig // Password configuration.
 	smtpConfig     *SMTPConfig     // SMTP configuration.
+	auditLogConfig *AuditLogConfig // Audit Log configuration.
 
 	logger *Logger // Logging Configuration
 	module string
@@ -77,7 +78,7 @@ func GetServerConfig() *ServerConfig {
 func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 	cfg := defaultServerConfig()
 	cfg.loadOptions(opts...)
-	cfg.logger.Info(cfg.module, "Initializing server config")
+	cfg.logger.Info(cfg.module, "", "Initializing server config")
 	serverConfigInstance = cfg
 	return cfg
 }
@@ -93,7 +94,7 @@ func NewServerConfig(opts ...ServerConfigOptions) *ServerConfig {
 //	ServerConfigOptions: A function that configures the port.
 func WithPort(port string) ServerConfigOptions {
 	return func(sc *ServerConfig) {
-		sc.logger.Info(sc.module, "Configuring server to run on port [%s]", port)
+		sc.logger.Info(sc.module, "", "Configuring server to run on port [%s]", port)
 		sc.port = port
 	}
 }
@@ -166,7 +167,7 @@ func WithBaseURL(baseURL string) ServerConfigOptions {
 func WithForceHTTPS() ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if sc.certFilePath == "" || sc.keyFilePath == "" {
-			sc.logger.Warn(sc.module, "SSL certificate or key file path is not set. Defaulting to HTTP.")
+			sc.logger.Warn(sc.module, "", "SSL certificate or key file path is not set. Defaulting to HTTP.")
 			return
 		}
 		sc.forceHTTPS = true
@@ -186,7 +187,7 @@ func WithForceHTTPS() ServerConfigOptions {
 func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if !isInSeconds(timeout) {
-			sc.logger.Warn(sc.module, "Read timeout was not set to seconds. Defaulting to 15 seconds.")
+			sc.logger.Warn(sc.module, "", "Read timeout was not set to seconds. Defaulting to 15 seconds.")
 			timeout = defaultReadTimeout
 			return
 		}
@@ -207,7 +208,7 @@ func WithReadTimeout(timeout time.Duration) ServerConfigOptions {
 func WithWriteTimeout(timeout time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		if !isInSeconds(timeout) {
-			sc.logger.Warn(sc.module, "Write timeout was not set to seconds. Defaulting to 15 seconds.")
+			sc.logger.Warn(sc.module, "", "Write timeout was not set to seconds. Defaulting to 15 seconds.")
 			timeout = defaultWriteTimeout
 			return
 		}
@@ -275,32 +276,49 @@ func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 	}
 }
 
+// WithAuthorizationCodeDuration configures the duration of the authorization code.
+//
+// Parameters:
+//
+//	duration time.Duration: The duration of the authorization code.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function the configures the server configuration.
 func WithAuthorizationCodeDuration(duration time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.authorizationCodeDuration = duration
 	}
 }
 
+// WithSMTPConfig configures the servers SMTP configuration.
+//
+// Parameters:
+//
+//	smtpConfig *SMTPConfig: The SMTP configuration.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function the configures the server configuration.
 func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.smtpConfig = smtpConfig
 	}
 }
 
-func (sc *ServerConfig) SetLoginConfig(loginConfig *LoginConfig) {
-	sc.loginConfig = loginConfig
-}
-
-func (sc *ServerConfig) SetPasswordConfig(passwordConfig *PasswordConfig) {
-	sc.passwordConfig = passwordConfig
-}
-
-func (sc *ServerConfig) SetTokenConfig(tokenConfig *TokenConfig) {
-	sc.tokenConfig = tokenConfig
-}
-
-func (sc *ServerConfig) SetSMTPConfig(smtpConfig *SMTPConfig) {
-	sc.smtpConfig = smtpConfig
+// WithAuditLogConfig configures the servers Audit Log configuration.
+//
+// Parameters:
+//
+//	auditLogConfig *AuditLogConfig: The audit log configuration.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function the configures the server configuration.
+func WithAuditLogConfig(auditLogConfig *AuditLogConfig) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.auditLogConfig = auditLogConfig
+	}
 }
 
 // Port returns the servers port from.
@@ -423,6 +441,30 @@ func (sc *ServerConfig) SMTPConfig() *SMTPConfig {
 	return sc.smtpConfig
 }
 
+func (sc *ServerConfig) AuditLogConfig() *AuditLogConfig {
+	return sc.auditLogConfig
+}
+
+func (sc *ServerConfig) SetLoginConfig(loginConfig *LoginConfig) {
+	sc.loginConfig = loginConfig
+}
+
+func (sc *ServerConfig) SetPasswordConfig(passwordConfig *PasswordConfig) {
+	sc.passwordConfig = passwordConfig
+}
+
+func (sc *ServerConfig) SetTokenConfig(tokenConfig *TokenConfig) {
+	sc.tokenConfig = tokenConfig
+}
+
+func (sc *ServerConfig) SetSMTPConfig(smtpConfig *SMTPConfig) {
+	sc.smtpConfig = smtpConfig
+}
+
+func (sc *ServerConfig) SetAuditLogConfig(auditLogConfig *AuditLogConfig) {
+	sc.auditLogConfig = auditLogConfig
+}
+
 func isInSeconds(duration time.Duration) bool      { return duration%time.Second == 0 }
 func isInHours(duration time.Duration) bool        { return duration%time.Hour == 0 }
 func isInMinutes(duration time.Duration) bool      { return duration%time.Minute == 0 }
@@ -438,6 +480,7 @@ func defaultServerConfig() *ServerConfig {
 		loginConfig:               NewLoginConfig(),
 		passwordConfig:            NewPasswordConfig(),
 		smtpConfig:                NewSMTPConfig(),
+		auditLogConfig:            NewAuditLogConfig(),
 		requestsPerMinute:         defaultRequestsPerMinute,
 		sessionCookieName:         defaultSessionCookieName,
 		authorizationCodeDuration: defaultAuthorizationCodeDuration,
@@ -447,7 +490,7 @@ func defaultServerConfig() *ServerConfig {
 
 	err := godotenv.Load()
 	if err != nil {
-		cfg.logger.Warn(cfg.module, "No .env file loaded")
+		cfg.logger.Warn(cfg.module, "", "No .env file loaded")
 	}
 
 	return cfg
@@ -455,11 +498,11 @@ func defaultServerConfig() *ServerConfig {
 
 func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
 	if len(opts) > 0 {
-		cfg.logger.Info(cfg.module, "Creating server config with %d options", len(opts))
+		cfg.logger.Info(cfg.module, "", "Creating server config with %d options", len(opts))
 		for _, opt := range opts {
 			opt(cfg)
 		}
 	} else {
-		cfg.logger.Info(cfg.module, "Using default server config")
+		cfg.logger.Info(cfg.module, "", "Using default server config")
 	}
 }

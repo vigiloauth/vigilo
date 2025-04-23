@@ -1,27 +1,29 @@
 package service
 
 import (
+	"context"
 	"net/http"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	cookies "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 var _ cookies.HTTPCookieService = (*httpCookieService)(nil)
-var logger = config.GetServerConfig().Logger()
-
-const module = "HTTP Cookie Service"
 
 type httpCookieService struct {
 	sessionCookieName string
+	logger            *config.Logger
+	module            string
 }
 
 func NewHTTPCookieService() cookies.HTTPCookieService {
 	return &httpCookieService{
 		sessionCookieName: config.GetServerConfig().SessionCookieName(),
+		logger:            config.GetServerConfig().Logger(),
+		module:            "HTTP Cookie Service",
 	}
 }
 
@@ -29,21 +31,20 @@ func NewHTTPCookieService() cookies.HTTPCookieService {
 // It also sets the cookie's expiration time and other attributes.
 //
 // Parameters:
-//
+//   - ctx Context: The context for managing timeouts and cancellations.
 //   - w http.ResponseWriter: The HTTP response writer.
 //   - token string: The session token to set in the cookie.
 //   - expirationTime time.Duration: The expiration time for the cookie.
-//
-// Returns:
-//
-//   - error: An error if setting the cookie fails.
-func (c *httpCookieService) SetSessionCookie(w http.ResponseWriter, token string, expirationTime time.Duration) {
+func (c *httpCookieService) SetSessionCookie(ctx context.Context, w http.ResponseWriter, token string, expirationTime time.Duration) {
+	requestID := common.GetRequestID(ctx)
+
 	shouldUseHTTPS := config.GetServerConfig().ForceHTTPS()
-	logger.Info(module, "SetSessionCookie: Setting session cookie with name=[%s], expiration=[%s], token[%s]",
+	c.logger.Info(c.module, requestID, "[SetSessionCookie]: Setting session cookie with name=[%s], expiration=[%s], token[%s]",
 		common.TruncateSensitive(c.sessionCookieName),
 		expirationTime,
 		common.TruncateSensitive(token),
 	)
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     c.sessionCookieName,
 		Value:    token,
@@ -57,10 +58,12 @@ func (c *httpCookieService) SetSessionCookie(w http.ResponseWriter, token string
 // ClearSessionCookie clears the session token cookie.
 //
 // Parameters:
-//
+//   - ctx Context: The context for managing timeouts and cancellations.
 //   - w http.ResponseWriter: The HTTP response writer.
-func (c *httpCookieService) ClearSessionCookie(w http.ResponseWriter) {
-	logger.Info(module, "ClearSessionCookie: Clearing session cookie for [%s]", common.TruncateSensitive(c.sessionCookieName))
+func (c *httpCookieService) ClearSessionCookie(ctx context.Context, w http.ResponseWriter) {
+	requestID := common.GetRequestID(ctx)
+
+	c.logger.Info(c.module, requestID, "[ClearSessionCookie]: Clearing session cookie for [%s]", common.TruncateSensitive(c.sessionCookieName))
 	http.SetCookie(w, &http.Cookie{
 		Name:     c.sessionCookieName,
 		Value:    "",
@@ -77,23 +80,34 @@ func (c *httpCookieService) ClearSessionCookie(w http.ResponseWriter) {
 //   - r *http.Request: The HTTP request containing the cookies.
 //
 // Returns:
-//
 //   - string: The session token if found, otherwise an empty string.
 //   - error: An error if retrieving the token fails.
 func (c *httpCookieService) GetSessionToken(r *http.Request) (string, error) {
+	requestID := common.GetRequestID(r.Context())
 	cookie, err := r.Cookie(c.sessionCookieName)
 	if err != nil {
-		logger.Error(module, "GetSessionToken: Failed to retrieve session token: %v", err)
+		c.logger.Error(c.module, requestID, "[GetSessionToken]: Failed to retrieve session token: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeMissingHeader, "session token not found")
 	}
+
 	return cookie.Value, nil
 }
 
+// GetSessionToken retrieves the session cookie from the request.
+//
+// Parameters:
+//   - r *http.Request: The HTTP request containing the session.
+//
+// Returns:
+//   - string: The session cookie if found, otherwise nil.
+//   - error: An error if retrieving the cookie fails.
 func (c *httpCookieService) GetSessionCookie(r *http.Request) (*http.Cookie, error) {
+	requestID := common.GetRequestID(r.Context())
 	cookie, err := r.Cookie(c.sessionCookieName)
 	if err != nil {
-		logger.Error(module, "GetSessionCookie: Failed to retrieve session cookie: %v", err)
+		c.logger.Error(c.module, requestID, "[GetSessionCookie]: Failed to retrieve session cookie: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeMissingHeader, "failed to retrieve cookie from request")
 	}
+
 	return cookie, nil
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/web"
 )

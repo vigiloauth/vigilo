@@ -1,60 +1,33 @@
 package mocks
 
 import (
+	"context"
 	"time"
 
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 )
 
-// MockAuthorizationCodeRepository is a mock implementation of the authz.AuthorizationCodeStore interface
+var _ authz.AuthorizationCodeRepository = (*MockAuthorizationCodeRepository)(nil)
+
 type MockAuthorizationCodeRepository struct {
-	// StoreAuthorizationCodeFunc is a mock function for the StoreAuthorizationCode method.
-	StoreAuthorizationCodeFunc func(code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error
-
-	// GetAuthorizationCodeFunc is a mock function for the GetAuthorizationCode method.
-	GetAuthorizationCodeFunc func(code string) (*authz.AuthorizationCodeData, error)
-
-	// DeleteAuthorizationCodeFunc is a mock function for the DeleteAuthorizationCode method.
-	DeleteAuthorizationCodeFunc func(code string) error
-
-	// CleanupExpiredAuthorizationCodesFunc is a mock function for the CleanupExpiredAuthorizationCodes method.
-	CleanupExpiredAuthorizationCodesFunc func() error
-
-	UpdateAuthorizationCodeFunc func(code string, authData *authz.AuthorizationCodeData) error
-
-	// CloseFunc is a mock function for the Close method.
-	CloseFunc func()
+	StoreAuthorizationCodeFunc  func(ctx context.Context, code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error
+	GetAuthorizationCodeFunc    func(ctx context.Context, code string) (*authz.AuthorizationCodeData, error)
+	DeleteAuthorizationCodeFunc func(ctx context.Context, code string) error
+	UpdateAuthorizationCodeFunc func(ctx context.Context, code string, authData *authz.AuthorizationCodeData) error
 }
 
-// StoreAuthorizationCode calls the mock StoreAuthorizationCodeFunc.
-func (m *MockAuthorizationCodeRepository) StoreAuthorizationCode(
-	code string,
-	data *authz.AuthorizationCodeData,
-	expiresAt time.Time,
-) error {
-	return m.StoreAuthorizationCodeFunc(code, data, expiresAt)
+func (m *MockAuthorizationCodeRepository) StoreAuthorizationCode(ctx context.Context, code string, data *authz.AuthorizationCodeData, expiresAt time.Time) error {
+	return m.StoreAuthorizationCodeFunc(ctx, code, data, expiresAt)
 }
 
-// GetAuthorizationCode calls the mock GetAuthorizationCodeFunc.
-func (m *MockAuthorizationCodeRepository) GetAuthorizationCode(code string) (*authz.AuthorizationCodeData, error) {
-	return m.GetAuthorizationCodeFunc(code)
+func (m *MockAuthorizationCodeRepository) GetAuthorizationCode(ctx context.Context, code string) (*authz.AuthorizationCodeData, error) {
+	return m.GetAuthorizationCodeFunc(ctx, code)
 }
 
-// DeleteAuthorizationCode calls the mock DeleteAuthorizationCodeFunc.
-func (m *MockAuthorizationCodeRepository) DeleteAuthorizationCode(code string) error {
-	return m.DeleteAuthorizationCodeFunc(code)
+func (m *MockAuthorizationCodeRepository) DeleteAuthorizationCode(ctx context.Context, code string) error {
+	return m.DeleteAuthorizationCodeFunc(ctx, code)
 }
 
-// CleanupExpiredAuthorizationCodes calls the mock CleanupExpiredAuthorizationCodesFunc.
-func (m *MockAuthorizationCodeRepository) CleanupExpiredAuthorizationCodes() error {
-	return m.CleanupExpiredAuthorizationCodesFunc()
-}
-
-func (m *MockAuthorizationCodeRepository) UpdateAuthorizationCode(code string, authData *authz.AuthorizationCodeData) error {
-	return m.UpdateAuthorizationCodeFunc(code, authData)
-}
-
-// Close calls the mock CloseFunc.
-func (m *MockAuthorizationCodeRepository) Close() {
-	m.CloseFunc()
+func (m *MockAuthorizationCodeRepository) UpdateAuthorizationCode(ctx context.Context, code string, authData *authz.AuthorizationCodeData) error {
+	return m.UpdateAuthorizationCodeFunc(ctx, code, authData)
 }

@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/identity/handlers"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/idp/handlers"
 	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/middleware"
 	"github.com/vigiloauth/vigilo/internal/web"
@@ -44,7 +44,7 @@ type VigiloIdentityServer struct {
 func NewVigiloIdentityServer() *VigiloIdentityServer {
 	module := "Vigilo Identity Server"
 	logger := config.GetLogger()
-	logger.Info(module, "Initializing Vigilo Identity Server")
+	logger.Info(module, "", "Initializing Vigilo Identity Server")
 
 	container := NewServiceContainer()
 	serverConfig := config.GetServerConfig()
@@ -153,14 +153,12 @@ func (s *VigiloIdentityServer) setupProtectedRoutes() {
 }
 
 func (s *VigiloIdentityServer) applyGlobalMiddleware() {
+	s.router.Use(s.middleware.WithContextValues)
+	s.router.Use(s.middleware.RateLimit)
 	if s.serverConfig.ForceHTTPS() {
-		s.logger.Info(s.module, "Vigilo Identity Server is running on HTTPS")
+		s.logger.Info(s.module, "", "Vigilo Identity Server is running on HTTPS")
 		s.router.Use(s.middleware.RedirectToHTTPS)
 	} else {
-		s.logger.Warn(s.module, "Vigilo Identity Server is running on HTTP. It is recommended to enable HTTPS in production environments")
+		s.logger.Warn(s.module, "", "Vigilo Identity Server is running on HTTP. It is recommended to enable HTTPS in production environments")
 	}
-
-	// Apply global middleware
-	s.router.Use(s.middleware.RateLimit)
-	s.router.Use(s.middleware.RequestIDMiddleware)
 }

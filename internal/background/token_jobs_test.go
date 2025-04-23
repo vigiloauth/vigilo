@@ -15,10 +15,11 @@ func TestTokenJobs_DeleteExpiredTokens(t *testing.T) {
 	deleteCalls := 0
 
 	tokenService := &mocks.MockTokenService{
-		DeleteExpiredTokensFunc: func() {
+		DeleteExpiredTokensFunc: func(ctx context.Context) error {
 			mu.Lock()
 			defer mu.Unlock()
 			deleteCalls++
+			return nil
 		},
 	}
 

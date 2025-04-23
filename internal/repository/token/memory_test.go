@@ -1,11 +1,11 @@
 package repository
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
 )
 
 const (
@@ -13,22 +13,11 @@ const (
 	testID    string = "test-id"
 )
 
-func setup() {
-	config.GetServerConfig().Logger().SetLevel("DEBUG")
-}
-
-func tearDown() {
-	config.GetServerConfig().Logger().SetLevel("INFO")
-}
-
 func TestTokenStore_AddToken(t *testing.T) {
-	setup()
-	defer tearDown()
-
 	tokenStore := GetInMemoryTokenRepository()
 	expiration := time.Now().Add(1 * time.Hour)
 
-	tokenStore.SaveToken(testToken, testID, expiration)
+	tokenStore.SaveToken(context.Background(), testToken, testID, expiration)
 
 	tokenStore.mu.Lock()
 	defer tokenStore.mu.Unlock()
@@ -36,32 +25,33 @@ func TestTokenStore_AddToken(t *testing.T) {
 }
 
 func TestTokenStore_IsTokenBlacklisted(t *testing.T) {
-	setup()
-	defer tearDown()
-
+	ctx := context.Background()
 	tokenStore := GetInMemoryTokenRepository()
 	expiration := time.Now().Add(-1 * time.Hour)
 
-	tokenStore.SaveToken(testToken, testID, expiration)
-	isBlacklisted := tokenStore.IsTokenBlacklisted(testToken)
+	tokenStore.SaveToken(ctx, testToken, testID, expiration)
+	isBlacklisted, err := tokenStore.IsTokenBlacklisted(ctx, testToken)
 
+	assert.NoError(t, err)
 	assert.True(t, isBlacklisted)
 }
 
 func TestTokenStore_DeleteToken(t *testing.T) {
-	setup()
-	defer tearDown()
-
+	ctx := context.Background()
 	tokenStore := GetInMemoryTokenRepository()
 	expiration := time.Now().Add(1 * time.Hour)
 
-	tokenStore.SaveToken(testToken, testID, expiration)
-	token := tokenStore.GetToken(testToken)
-	assert.NotNil(t, token)
-
-	err := tokenStore.DeleteToken(testToken)
+	err := tokenStore.SaveToken(ctx, testToken, testID, expiration)
 	assert.NoError(t, err)
 
-	retrievedToken := tokenStore.GetToken(testToken)
+	token, err := tokenStore.GetToken(ctx, testToken)
+	assert.NoError(t, err)
+	assert.NotNil(t, token)
+
+	err = tokenStore.DeleteToken(ctx, testToken)
+	assert.NoError(t, err)
+
+	retrievedToken, err := tokenStore.GetToken(ctx, testToken)
+	assert.NoError(t, err)
 	assert.Nil(t, retrievedToken)
 }

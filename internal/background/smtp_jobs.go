@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	domain "github.com/vigiloauth/vigilo/internal/domain/email"
 )
 
@@ -28,7 +28,7 @@ func NewSMTPJobs(emailService domain.EmailService, healthCheckTicker, queueTicke
 }
 
 func (s *SMTPJobs) RunHealthCheck(ctx context.Context) {
-	s.logger.Info(s.module, "Starting SMTP health check")
+	s.logger.Info(s.module, "", "[RunHealthCheck]: Starting SMTP health check")
 	ticker := time.NewTicker(s.healthCheckTickerInterval)
 	defer ticker.Stop()
 
@@ -37,14 +37,14 @@ func (s *SMTPJobs) RunHealthCheck(ctx context.Context) {
 		case <-ticker.C:
 			s.emailService.TestConnection()
 		case <-ctx.Done():
-			s.logger.Info(s.module, "Stopping SMTP health check")
+			s.logger.Info(s.module, "", "[RunHealthCheck]:Stopping SMTP health check")
 			return
 		}
 	}
 }
 
 func (s *SMTPJobs) RunRetryQueueProcessor(ctx context.Context) {
-	s.logger.Info(s.module, "Starting retry queue processor")
+	s.logger.Info(s.module, "", "[RunRetryQueueProcessor]: Starting retry queue processor")
 	ticker := time.NewTicker(s.queueTickerInterval)
 	defer ticker.Stop()
 
@@ -53,18 +53,18 @@ func (s *SMTPJobs) RunRetryQueueProcessor(ctx context.Context) {
 		case <-ticker.C:
 			s.processRetryQueue(ctx)
 		case <-ctx.Done():
-			s.logger.Info(s.module, "Stopping retry queue processor")
+			s.logger.Info(s.module, "", "[RunRetryQueueProcessor]: Stopping retry queue processor")
 			return
 		}
 	}
 }
 
 func (s *SMTPJobs) processRetryQueue(ctx context.Context) {
-	s.logger.Info(s.module, "Processing email retry queue")
+	s.logger.Info(s.module, "", "Processing email retry queue")
 
 	retryQueue := s.emailService.GetEmailRetryQueue()
 	if retryQueue.IsEmpty() {
-		s.logger.Debug(s.module, "Retry queue is empty, skipping")
+		s.logger.Debug(s.module, "", "Retry queue is empty, skipping")
 		return
 	}
 
@@ -93,7 +93,7 @@ func (s *SMTPJobs) processRetryQueue(ctx context.Context) {
 	}()
 
 	waitGroup.Wait()
-	s.logger.Info(s.module, "Retry queue process finished")
+	s.logger.Info(s.module, "", "Retry queue process finished")
 }
 
 func (h *SMTPJobs) retryWorker(retryQueue *domain.EmailRetryQueue, workerID int, ctx context.Context, requests <-chan *domain.EmailRequest, waitGroup *sync.WaitGroup) {
@@ -104,16 +104,16 @@ func (h *SMTPJobs) retryWorker(retryQueue *domain.EmailRetryQueue, workerID int,
 			return
 		default:
 			if request.Retries >= 5 {
-				h.logger.Error(h.module, "[Worker: %d] Max retries reached for email %s. Dropping.", workerID, request.ID)
+				h.logger.Error(h.module, "", "[Worker=%d] Max retries reached for email %s. Dropping.", workerID, request.ID)
 				continue
 			}
 
-			if err := h.emailService.SendEmail(request); err != nil {
+			if err := h.emailService.SendEmail(ctx, request); err != nil {
 				request.Retries++
 				retryQueue.Add(request)
-				h.logger.Error(h.module, "[Worker: %d] Failed to retry sending email %s. Retrying. Error: %v", workerID, request.ID, err)
+				h.logger.Error(h.module, "", "[Worker=%d] Failed to retry sending email %s. Retrying. Error: %v", workerID, request.ID, err)
 			} else {
-				h.logger.Debug(h.module, "[Worker: %d] Successfully retried sending email %s.", workerID, request.ID)
+				h.logger.Debug(h.module, "", "[Worker=%d] Successfully retried sending email %s.", workerID, request.ID)
 			}
 		}
 	}

@@ -2,6 +2,8 @@ package config
 
 import (
 	"os"
+
+	"github.com/vigiloauth/vigilo/internal/common"
 )
 
 type SMTPConfig struct {
@@ -36,7 +38,7 @@ func NewSMTPConfig(opts ...SMTPConfigOptions) *SMTPConfig {
 
 func WithSMTPHost(host string) SMTPConfigOptions {
 	return func(s *SMTPConfig) {
-		s.logger.Info(s.module, "Configuring SMTP Config to use host [%s]", host)
+		s.logger.Info(s.module, "", "Configuring SMTP Config to use host [%s]", host)
 		s.host = host
 	}
 }
@@ -69,7 +71,7 @@ func WithFromAddress(fromAddress string) SMTPConfigOptions {
 func WithEncryption(encryption string) SMTPConfigOptions {
 	return func(s *SMTPConfig) {
 		if encryption != SSLEncryption && encryption != TLSEncryption {
-			s.logger.Warn(s.module, "SMTP Configuration not using TLS or SSL, default to SSL")
+			s.logger.Warn(s.module, "", "SMTP Configuration not using TLS or SSL, default to SSL")
 			s.encryption = SSLEncryption
 			return
 		}
@@ -107,19 +109,19 @@ func (s *SMTPConfig) IsHealthy() bool {
 
 func (cfg *SMTPConfig) loadOptions(opts ...SMTPConfigOptions) {
 	if len(opts) > 0 && len(opts) == 5 {
-		cfg.logger.Info(cfg.module, "Creating custom SMTP configuration")
+		cfg.logger.Info(cfg.module, "", "Creating custom SMTP configuration")
 		for _, opt := range opts {
 			opt(cfg)
 		}
 	} else {
-		cfg.logger.Warn(cfg.module, "Missing required options for a custom SMTP configuration. Falling back to default settings")
+		cfg.logger.Warn(cfg.module, "", "Missing required options for a custom SMTP configuration. Falling back to default settings")
 	}
 }
 
 func defaultSMTPConfig() *SMTPConfig {
-	fromAddress := os.Getenv("SMTP_FROM_ADDRESS")
-	username := os.Getenv("SMTP_USERNAME")
-	password := os.Getenv("SMTP_PASSWORD")
+	fromAddress := os.Getenv(common.SMTPFromAddressENV)
+	username := os.Getenv(common.SMTPUsernameENV)
+	password := os.Getenv(common.SMTPPasswordENV)
 
 	return &SMTPConfig{
 		host:        defaultSMTPHost,

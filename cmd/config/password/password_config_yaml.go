@@ -1,6 +1,6 @@
 package config
 
-import "github.com/vigiloauth/vigilo/identity/config"
+import "github.com/vigiloauth/vigilo/idp/config"
 
 type PasswordConfigYAML struct {
 	RequireUppercase *bool `yaml:"require_uppercase,omitempty"`

@@ -11,22 +11,25 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/identity/handlers"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/idp/handlers"
 	"github.com/vigiloauth/vigilo/internal/background"
+	"github.com/vigiloauth/vigilo/internal/common"
+	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
+	encryption "github.com/vigiloauth/vigilo/internal/domain/encryption"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
-	password "github.com/vigiloauth/vigilo/internal/domain/passwordreset"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	userConsent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/middleware"
 
+	auditEventRepo "github.com/vigiloauth/vigilo/internal/repository/audit"
 	authzCodeRepo "github.com/vigiloauth/vigilo/internal/repository/authzcode"
 	clientRepo "github.com/vigiloauth/vigilo/internal/repository/client"
 	loginRepo "github.com/vigiloauth/vigilo/internal/repository/login"
@@ -36,14 +39,15 @@ import (
 	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
 
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
+	auditLogger "github.com/vigiloauth/vigilo/internal/service/audit"
 	authService "github.com/vigiloauth/vigilo/internal/service/authentication"
 	authzService "github.com/vigiloauth/vigilo/internal/service/authorization"
 	authzCodeService "github.com/vigiloauth/vigilo/internal/service/authzcode"
 	clientService "github.com/vigiloauth/vigilo/internal/service/client"
 	cookieService "github.com/vigiloauth/vigilo/internal/service/cookies"
 	emailService "github.com/vigiloauth/vigilo/internal/service/email"
+	auditEncryptor "github.com/vigiloauth/vigilo/internal/service/encryption"
 	loginService "github.com/vigiloauth/vigilo/internal/service/login"
-	passwordService "github.com/vigiloauth/vigilo/internal/service/passwordreset"
 	sessionService "github.com/vigiloauth/vigilo/internal/service/session"
 	tokenService "github.com/vigiloauth/vigilo/internal/service/token"
 	userService "github.com/vigiloauth/vigilo/internal/service/user"
@@ -59,12 +63,12 @@ type ServiceContainer struct {
 	consentRepo      userConsent.UserConsentRepository
 	authzCodeRepo    authzCode.AuthorizationCodeRepository
 	sessionRepo      session.SessionRepository
+	auditEventRepo   audit.AuditRepository
 
 	// Lazy-loaded services using sync.Once to ensure thread safety
 	tokenServiceOnce         sync.Once
 	sessionServiceOnce       sync.Once
 	userServiceOnce          sync.Once
-	passwordResetServiceOnce sync.Once
 	clientServiceOnce        sync.Once
 	consentServiceOnce       sync.Once
 	authzCodeServiceOnce     sync.Once
@@ -74,11 +78,13 @@ type ServiceContainer struct {
 	authServiceOnce          sync.Once
 	emailServiceOnce         sync.Once
 	mailerOnce               sync.Once
+	auditLoggerOnce          sync.Once
+	auditEncryptorOnce       sync.Once
+	encryptorOnce            sync.Once
 
 	tokenService         token.TokenService
 	sessionService       session.SessionService
 	userService          users.UserService
-	passwordResetService password.PasswordResetService
 	clientService        client.ClientService
 	consentService       userConsent.UserConsentService
 	authzCodeService     authzCode.AuthorizationCodeService
@@ -88,11 +94,13 @@ type ServiceContainer struct {
 	authService          auth.AuthenticationService
 	emailService         email.EmailService
 	mailer               email.Mailer
+	auditLogger          audit.AuditLogger
+	auditEncryption      encryption.AuditEncryptor
+	encryptionService    encryption.EncryptionService
 
 	tokenServiceInit         func() token.TokenService
 	sessionServiceInit       func() session.SessionService
 	userServiceInit          func() users.UserService
-	passwordResetServiceInit func() password.PasswordResetService
 	clientServiceInit        func() client.ClientService
 	consentServiceInit       func() userConsent.UserConsentService
 	authzCodeServiceInit     func() authzCode.AuthorizationCodeService
@@ -102,6 +110,9 @@ type ServiceContainer struct {
 	authServiceInit          func() auth.AuthenticationService
 	emailServiceInit         func() email.EmailService
 	mailerInit               func() email.Mailer
+	auditLoggerInit          func() audit.AuditLogger
+	auditEncryptionInit      func() encryption.AuditEncryptor
+	encryptionServiceInit    func() encryption.EncryptionService
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
@@ -132,17 +143,19 @@ func NewServiceContainer() *ServiceContainer {
 		logger: config.GetLogger(),
 		module: "Service Container",
 	}
+
 	container.initializeInMemoryRepositories()
 	container.initializeServices()
 	container.initializeHandlers()
 	container.initializeServerConfigs()
 	container.initializeSchedulers()
+
 	return container
 }
 
 // initializeInMemoryRepositories initializes the in-memory data stores used by the service container.
 func (c *ServiceContainer) initializeInMemoryRepositories() {
-	c.logger.Info(c.module, "Initializing in memory repositories")
+	c.logger.Info(c.module, "", "Initializing in memory repositories")
 	c.tokenRepo = tokenRepo.GetInMemoryTokenRepository()
 	c.userRepo = userRepo.GetInMemoryUserRepository()
 	c.loginAttemptRepo = loginRepo.GetInMemoryLoginRepository()
@@ -150,69 +163,76 @@ func (c *ServiceContainer) initializeInMemoryRepositories() {
 	c.consentRepo = consentRepo.GetInMemoryUserConsentRepository()
 	c.authzCodeRepo = authzCodeRepo.GetInMemoryAuthorizationCodeRepository()
 	c.sessionRepo = sessionRepo.GetInMemorySessionRepository()
+	c.auditEventRepo = auditEventRepo.GetInMemoryAuditEventRepository()
 }
 
 // initializeServices defines getter methods for lazy service initialization**
 func (c *ServiceContainer) initializeServices() {
-	c.logger.Info(c.module, "Initializing services")
+	c.logger.Info(c.module, "", "Initializing services")
 	c.httpCookieServiceInit = func() cookie.HTTPCookieService {
-		c.logger.Debug(c.module, "Initializing HTTPCookieService")
+		c.logger.Debug(c.module, "", "Initializing HTTPCookieService")
 		return cookieService.NewHTTPCookieService()
 	}
 	c.tokenServiceInit = func() token.TokenService {
-		c.logger.Debug(c.module, "Initializing TokenService")
+		c.logger.Debug(c.module, "", "Initializing TokenService")
 		return tokenService.NewTokenService(c.tokenRepo)
 	}
 	c.sessionServiceInit = func() session.SessionService {
-		c.logger.Debug(c.module, "Initializing SessionService")
-		return sessionService.NewSessionService(c.getTokenService(), c.sessionRepo, c.getHTTPSessionCookieService())
+		c.logger.Debug(c.module, "", "Initializing SessionService")
+		return sessionService.NewSessionService(c.getTokenService(), c.sessionRepo, c.getHTTPSessionCookieService(), c.getAuditLogger())
 	}
 	c.loginAttemptServiceInit = func() login.LoginAttemptService {
-		c.logger.Debug(c.module, "Initializing LoginAttemptService")
+		c.logger.Debug(c.module, "", "Initializing LoginAttemptService")
 		return loginService.NewLoginAttemptService(c.userRepo, c.loginAttemptRepo)
 	}
 	c.userServiceInit = func() users.UserService {
-		c.logger.Debug(c.module, "Initializing UserService")
-		return userService.NewUserService(c.userRepo, c.getTokenService(), c.getLoginAttemptService(), c.getEmailService())
-	}
-	c.passwordResetServiceInit = func() password.PasswordResetService {
-		c.logger.Debug(c.module, "Initializing PasswordResetService")
-		return passwordService.NewPasswordResetService(c.getTokenService(), c.userRepo)
+		c.logger.Debug(c.module, "", "Initializing UserService")
+		return userService.NewUserService(c.userRepo, c.getTokenService(), c.getLoginAttemptService(), c.getEmailService(), c.getAuditLogger())
 	}
 	c.clientServiceInit = func() client.ClientService {
-		c.logger.Debug(c.module, "Initializing ClientService")
+		c.logger.Debug(c.module, "", "Initializing ClientService")
 		return clientService.NewClientService(c.clientRepo, c.getTokenService())
 	}
 	c.consentServiceInit = func() userConsent.UserConsentService {
-		c.logger.Debug(c.module, "Initializing UserConsentService")
+		c.logger.Debug(c.module, "", "Initializing UserConsentService")
 		return consentService.NewUserConsentService(c.consentRepo, c.userRepo, c.getSessionService(), c.getClientService(), c.getAuthzCodeService())
 	}
 	c.authzCodeServiceInit = func() authzCode.AuthorizationCodeService {
-		c.logger.Debug(c.module, "Initializing AuthorizationCodeService")
+		c.logger.Debug(c.module, "", "Initializing AuthorizationCodeService")
 		return authzCodeService.NewAuthorizationCodeService(c.authzCodeRepo, c.getUserService(), c.getClientService())
 	}
 	c.authorizationServiceInit = func() authz.AuthorizationService {
-		c.logger.Debug(c.module, "Initializing AuthorizationService")
+		c.logger.Debug(c.module, "", "Initializing AuthorizationService")
 		return authzService.NewAuthorizationService(c.getAuthzCodeService(), c.getConsentService(), c.getTokenService(), c.getClientService())
 	}
 	c.authServiceInit = func() auth.AuthenticationService {
-		c.logger.Debug(c.module, "Initializing AuthenticationService")
+		c.logger.Debug(c.module, "", "Initializing AuthenticationService")
 		return authService.NewAuthenticationService(c.getTokenService(), c.getClientService(), c.getUserService())
 	}
 	c.emailServiceInit = func() email.EmailService {
-		c.logger.Debug(c.module, "Initializing EmailService")
+		c.logger.Debug(c.module, "", "Initializing EmailService")
 		return emailService.NewEmailService(c.getGoMailer())
 	}
 	c.mailerInit = func() email.Mailer {
-		c.logger.Debug(c.module, "Initializing GoMailer")
+		c.logger.Debug(c.module, "", "Initializing GoMailer")
 		return emailService.NewGoMailer()
+	}
+	c.auditLoggerInit = func() audit.AuditLogger {
+		c.logger.Debug(c.module, "", "Initializing AuditLogger")
+		return auditLogger.NewAuditLogger(c.auditEventRepo, c.getAuditEncryptor())
+	}
+	c.auditEncryptionInit = func() encryption.AuditEncryptor {
+		c.logger.Debug(c.module, "", "Initializing AuditEncryptor")
+		return auditEncryptor.NewAuditEncryptor(func() string {
+			return os.Getenv(common.CryptoSecretKeyENV)
+		}, c.getEncryptor())
 	}
 }
 
 // initializeHandlers initializes the HTTP handlers used by the service container.
 func (c *ServiceContainer) initializeHandlers() {
-	c.logger.Info(c.module, "Initializing handlers")
-	c.userHandler = handlers.NewUserHandler(c.getUserService(), c.getPasswordResetService(), c.getSessionService())
+	c.logger.Info(c.module, "", "Initializing handlers")
+	c.userHandler = handlers.NewUserHandler(c.getUserService(), c.getSessionService())
 	c.clientHandler = handlers.NewClientHandler(c.getClientService())
 	c.tokenHandler = handlers.NewTokenHandler(c.getAuthService(), c.getSessionService(), c.getAuthorizationService())
 	c.authzHandler = handlers.NewAuthorizationHandler(c.getAuthorizationService(), c.getSessionService())
@@ -222,37 +242,27 @@ func (c *ServiceContainer) initializeHandlers() {
 // initializeServerConfigs initializes the server-related configurations,
 // including middleware, TLS configuration, and the HTTP server.
 func (c *ServiceContainer) initializeServerConfigs() {
-	c.logger.Info(c.module, "Initializing server configurations")
+	c.logger.Info(c.module, "", "Initializing server configurations")
 	c.middleware = middleware.NewMiddleware(c.getTokenService())
 	c.tlsConfig = initializeTLSConfig()
 	c.httpServer = initializeHTTPServer(c.tlsConfig)
 }
 
 func (c *ServiceContainer) initializeSchedulers() {
-	c.logger.Info(c.module, "Initializing schedulers and worker pools")
+	c.logger.Info(c.module, "", "Initializing schedulers and worker pools")
 
 	// Store the context and cancel function
 	c.schedulerCtx, c.schedulerCancel = context.WithCancel(context.Background())
 	c.scheduler = background.NewScheduler()
 
-	healthCheckInterval := 5 * time.Minute
-	queueProcessorInterval := 1 * time.Minute
-	smtpJobs := background.NewSMTPJobs(c.getEmailService(), healthCheckInterval, queueProcessorInterval)
-	c.scheduler.RegisterJob("SMTP Health Check", smtpJobs.RunHealthCheck)
-	c.scheduler.RegisterJob("Email Retry Queue", smtpJobs.RunRetryQueueProcessor)
-
-	tokenDeletionInterval := 5 * time.Minute
-	tokenJobs := background.NewTokenJobs(c.getTokenService(), tokenDeletionInterval)
-	c.scheduler.RegisterJob("Expired Token Deletion", tokenJobs.DeleteExpiredTokens)
-
-	userDeletionInterval := 24 * time.Hour
-	userJobs := background.NewUserJobs(c.getUserService(), userDeletionInterval)
-	c.scheduler.RegisterJob("Unverified User Deletion", userJobs.DeleteUnverifiedUsers)
+	c.registerSMTPJobs()
+	c.registerTokenJobs()
+	c.registerUserJobs()
+	c.registerAuditLogJobs()
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
 		go c.scheduler.StartJobs(c.schedulerCtx)
 
 		select {
@@ -267,7 +277,7 @@ func (c *ServiceContainer) initializeSchedulers() {
 }
 
 func (c *ServiceContainer) Shutdown() {
-	c.logger.Info(c.module, "Shutting down schedulers and worker pool")
+	c.logger.Info(c.module, "", "Shutting down schedulers and worker pool")
 	if c.schedulerCancel != nil {
 		c.schedulerCancel()
 	}
@@ -314,6 +324,34 @@ func initializeHTTPServer(tlsConfig *tls.Config) *http.Server {
 	}
 }
 
+func (c *ServiceContainer) registerSMTPJobs() {
+	const healthCheckInterval time.Duration = 15 * time.Minute
+	const queueProcessorInterval time.Duration = 10 * time.Minute
+
+	smtpJobs := background.NewSMTPJobs(c.getEmailService(), healthCheckInterval, queueProcessorInterval)
+	c.scheduler.RegisterJob("SMTP Health Check", smtpJobs.RunHealthCheck)
+	c.scheduler.RegisterJob("Email Retry Queue", smtpJobs.RunRetryQueueProcessor)
+}
+
+func (c *ServiceContainer) registerTokenJobs() {
+	const tokenDeletionInterval time.Duration = 5 * time.Minute
+	tokenJobs := background.NewTokenJobs(c.getTokenService(), tokenDeletionInterval)
+	c.scheduler.RegisterJob("Expired Token Deletion", tokenJobs.DeleteExpiredTokens)
+}
+
+func (c *ServiceContainer) registerUserJobs() {
+	const userDeletionInterval time.Duration = 24 * time.Hour
+	userJobs := background.NewUserJobs(c.getUserService(), userDeletionInterval)
+	c.scheduler.RegisterJob("Unverified User Deletion", userJobs.DeleteUnverifiedUsers)
+}
+
+func (c *ServiceContainer) registerAuditLogJobs() {
+	retentionPeriod := config.GetServerConfig().AuditLogConfig().RetentionPeriod()
+	const purgeInterval time.Duration = 24 * time.Hour
+	auditLogJobs := background.NewAuditJobs(c.getAuditLogger(), retentionPeriod, purgeInterval)
+	c.scheduler.RegisterJob("Audit Log Deletion", auditLogJobs.PurgeLogs)
+}
+
 func (c *ServiceContainer) getTokenService() token.TokenService {
 	c.tokenServiceOnce.Do(func() { c.tokenService = c.tokenServiceInit() })
 	return c.tokenService
@@ -354,11 +392,6 @@ func (c *ServiceContainer) getAuthzCodeService() authzCode.AuthorizationCodeServ
 	return c.authzCodeService
 }
 
-func (c *ServiceContainer) getPasswordResetService() password.PasswordResetService {
-	c.passwordResetServiceOnce.Do(func() { c.passwordResetService = c.passwordResetServiceInit() })
-	return c.passwordResetService
-}
-
 func (c *ServiceContainer) getAuthorizationService() authz.AuthorizationService {
 	c.authorizationServiceOnce.Do(func() { c.authorizationService = c.authorizationServiceInit() })
 	return c.authorizationService
@@ -377,4 +410,19 @@ func (c *ServiceContainer) getEmailService() email.EmailService {
 func (c *ServiceContainer) getGoMailer() email.Mailer {
 	c.mailerOnce.Do(func() { c.mailer = c.mailerInit() })
 	return c.mailer
+}
+
+func (c *ServiceContainer) getAuditLogger() audit.AuditLogger {
+	c.auditLoggerOnce.Do(func() { c.auditLogger = c.auditLoggerInit() })
+	return c.auditLogger
+}
+
+func (c *ServiceContainer) getAuditEncryptor() encryption.AuditEncryptor {
+	c.auditEncryptorOnce.Do(func() { c.auditEncryption = c.auditEncryptionInit() })
+	return c.auditEncryption
+}
+
+func (c *ServiceContainer) getEncryptor() encryption.EncryptionService {
+	c.encryptorOnce.Do(func() { c.encryptionService = c.encryptionServiceInit() })
+	return c.encryptionService
 }

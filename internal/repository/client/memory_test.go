@@ -1,53 +1,44 @@
 package repository
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
 	domain "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 const clientID string = "clientID"
 
-func setup() {
-	config.GetServerConfig().Logger().SetLevel("DEBUG")
-}
-
-func tearDown() {
-	config.GetServerConfig().Logger().SetLevel("INFO")
-}
-
 func TestInMemoryClientStore_CreateClient(t *testing.T) {
 	t.Run("Successful Client Creation", func(t *testing.T) {
-		setup()
-		defer tearDown()
+		ctx := context.Background()
 		cs := NewInMemoryClientRepository()
 		client := createTestClient()
 
-		err := cs.SaveClient(client)
+		err := cs.SaveClient(ctx, client)
 		assert.NoError(t, err, "expected no error when creating client")
 
-		retrievedClient := cs.GetClientByID(clientID)
+		retrievedClient, err := cs.GetClientByID(ctx, clientID)
+		assert.NoError(t, err)
 		assert.NotNil(t, retrievedClient, "expected retrieved client to not be nil")
 		assert.Equal(t, retrievedClient, client, "expected both clients to be equal")
 	})
 
 	t.Run("Duplicate entry", func(t *testing.T) {
-		setup()
-		defer tearDown()
+		ctx := context.Background()
 		cs := NewInMemoryClientRepository()
 		client := createTestClient()
 
 		// Create first client
-		err := cs.SaveClient(client)
+		err := cs.SaveClient(ctx, client)
 		assert.NoError(t, err, "expected no error when creating client")
 
 		// Attempt to add a duplicate client
 		expected := errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
-		actual := cs.SaveClient(client)
+		actual := cs.SaveClient(ctx, client)
 
 		assert.Error(t, actual, "expected error when creating duplicate client")
 		assert.Equal(t, actual, expected)
@@ -55,62 +46,60 @@ func TestInMemoryClientStore_CreateClient(t *testing.T) {
 }
 
 func TestInMemoryClientStore_GetClient(t *testing.T) {
-	setup()
-	defer tearDown()
+	ctx := context.Background()
 	cs := NewInMemoryClientRepository()
 	client := createTestClient()
 
-	err := cs.SaveClient(client)
+	err := cs.SaveClient(ctx, client)
 	assert.NoError(t, err, "expected no error when creating client")
 
-	retrievedClient := cs.GetClientByID(clientID)
+	retrievedClient, err := cs.GetClientByID(ctx, clientID)
+	assert.NoError(t, err)
 	assert.NotNil(t, retrievedClient)
 	assert.Equal(t, retrievedClient, client)
 }
 
 func TestInMemoryClientStore_DeleteClient(t *testing.T) {
-	setup()
-	defer tearDown()
+	ctx := context.Background()
 	cs := NewInMemoryClientRepository()
 	client := createTestClient()
 
-	err := cs.SaveClient(client)
+	err := cs.SaveClient(ctx, client)
 	assert.NoError(t, err, "expected no error when creating client")
 
-	err = cs.DeleteClientByID(clientID)
+	err = cs.DeleteClientByID(ctx, clientID)
 	assert.NoError(t, err, "expected no error when deleting client")
 
-	existingClient := cs.GetClientByID(clientID)
+	existingClient, err := cs.GetClientByID(ctx, clientID)
+	assert.NoError(t, err)
 	assert.Nil(t, existingClient, "expected client to be nil")
 }
 
 func TestInMemoryClientStore_UpdateClient(t *testing.T) {
+	ctx := context.Background()
 	t.Run("Successful Client Update", func(t *testing.T) {
-		setup()
-		defer tearDown()
 		cs := NewInMemoryClientRepository()
 		client := createTestClient()
 
-		err := cs.SaveClient(client)
+		err := cs.SaveClient(ctx, client)
 		assert.NoError(t, err, "expected no error when creating client")
 
 		client.Name = "New Client Name"
-		err = cs.UpdateClient(client)
+		err = cs.UpdateClient(ctx, client)
 		assert.NoError(t, err)
 
-		retrievedClient := cs.GetClientByID(clientID)
+		retrievedClient, err := cs.GetClientByID(ctx, clientID)
+		assert.NoError(t, err)
 		assert.NotNil(t, retrievedClient)
 		assert.Equal(t, retrievedClient.Name, client.Name)
 	})
 
 	t.Run("Client not found for update", func(t *testing.T) {
-		setup()
-		defer tearDown()
 		cs := NewInMemoryClientRepository()
 		client := createTestClient()
 
 		expected := errors.New(errors.ErrCodeClientNotFound, "client not found using provided ID")
-		actual := cs.UpdateClient(client)
+		actual := cs.UpdateClient(ctx, client)
 		assert.Equal(t, expected, actual)
 	})
 }

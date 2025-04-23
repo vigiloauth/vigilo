@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
@@ -65,8 +67,11 @@ func NewOAuthHandler(
 // It expects the same login credentials as the regular Login endpoint,
 // but processes the OAuth context parameters and redirects accordingly
 func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[OAuthLogin]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Processing request")
 
 	query := r.URL.Query()
 	clientID := query.Get(common.ClientID)
@@ -83,13 +88,7 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.userService.HandleOAuthLogin(
-		request, clientID,
-		redirectURI, r.RemoteAddr,
-		r.Header.Get(common.XForwardedHeader),
-		r.UserAgent(),
-	)
-
+	response, err := h.userService.HandleOAuthLogin(ctx, request, clientID, redirectURI)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
 		web.WriteError(w, wrappedErr)
@@ -102,14 +101,17 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.OAuthRedirectURL = h.buildOAuthRedirectURL(query, clientID, redirectURI)
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[OAuthLogin]", requestID)
+	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Successfully processed request")
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
 // UserConsent handles user consent decisions for OAuth authorization
 func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
-	requestID := common.GetRequestID(r.Context())
-	h.logger.Info(h.module, "RequestID=[%s]: Processing request=[UserConsent]", requestID)
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := common.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[UserConsent]: Processing request")
 
 	query := r.URL.Query()
 	clientID := query.Get(common.ClientID)
@@ -140,16 +142,16 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		h.handleGetConsent(w, r, userID, clientID, redirectURI, scope, requestID)
+		h.handleGetConsent(w, r, userID, clientID, redirectURI, scope)
 	case http.MethodPost:
-		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope, requestID)
+		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope)
 	default:
 		web.WriteError(w, errors.NewMethodNotAllowedError(r.Method))
 	}
 }
 
 // handleGetConsent handles GET requests for user consent
-func (h *OAuthHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope, requestID string) {
+func (h *OAuthHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
 	response, err := h.consentService.GetConsentDetails(userID, clientID, redirectURI, scope, r)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to retrieve user consent details")
@@ -157,12 +159,11 @@ func (h *OAuthHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[HandleGetConsent]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
 // handlePostConsent handles POST requests for user consent
-func (h *OAuthHandler) handlePostConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope, requestID string) {
+func (h *OAuthHandler) handlePostConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
 	consentRequest, err := web.DecodeJSONRequest[consent.UserConsentRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
@@ -177,7 +178,6 @@ func (h *OAuthHandler) handlePostConsent(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	h.logger.Info(h.module, "RequestID=[%s]: Successfully processed request=[HandlePostConsent]", requestID)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
