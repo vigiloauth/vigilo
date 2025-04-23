@@ -46,6 +46,7 @@ type TokenRequest struct {
 
 type TokenClaims struct {
 	Scopes string `json:"scopes,omitempty"`
+	Roles  string `json:"roles,omitempty"`
 	*jwt.StandardClaims
 }
 

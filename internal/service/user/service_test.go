@@ -48,7 +48,7 @@ func TestUserService_CreateUser_Success(t *testing.T) {
 		},
 	}
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateTokenFunc: func(ctx context.Context, id, scopes string, duration time.Duration) (string, error) {
+		GenerateTokenFunc: func(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
 			return testToken, nil
 		},
 	}
@@ -185,7 +185,7 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 		},
 	}
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateTokenFunc: func(ctx context.Context, id, scopes string, duration time.Duration) (string, error) {
+		GenerateTokenFunc: func(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
 			return "testToken", nil
 		},
 	}
@@ -433,6 +433,7 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 func createNewUser() *users.User {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
 	user.Scopes = []string{constants.UserRead}
+	user.Role = constants.AdminRole
 	return user
 }
 

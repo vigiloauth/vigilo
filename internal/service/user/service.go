@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
@@ -74,7 +75,8 @@ func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.
 		return nil, nil
 	}
 
-	accessToken, err := u.tokenService.GenerateToken(ctx, user.Email, "", u.tokenConfig.ExpirationTime())
+	scopes := strings.Join(user.Scopes, "")
+	accessToken, err := u.tokenService.GenerateToken(ctx, user.Email, scopes, user.Role, u.tokenConfig.ExpirationTime())
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[CreateUser]: Failed to generate a session token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate session token")
@@ -366,7 +368,9 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 		return nil, wrappedErr
 	}
 
-	accessToken, err := u.tokenService.GenerateToken(ctx, retrievedUser.ID, "", u.tokenConfig.ExpirationTime())
+	scopesString := strings.Join(retrievedUser.Scopes, "")
+
+	accessToken, err := u.tokenService.GenerateToken(ctx, retrievedUser.ID, scopesString, retrievedUser.Role, u.tokenConfig.ExpirationTime())
 	if err != nil {
 		u.logger.Error(u.module, requestID, "Failed to generate access token for user=[%s]: %v", utils.TruncateSensitive(retrievedUser.ID), err)
 		return nil, errors.NewInternalServerError()
@@ -458,7 +462,9 @@ func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 
 func (u *userService) sendVerificationEmail(ctx context.Context, user *users.User) error {
 	requestID := utils.GetRequestID(ctx)
-	verificationCode, err := u.tokenService.GenerateToken(ctx, user.Email, "", u.tokenConfig.AccessTokenDuration())
+
+	scopes := strings.Join(user.Scopes, "")
+	verificationCode, err := u.tokenService.GenerateToken(ctx, user.Email, scopes, user.Role, u.tokenConfig.AccessTokenDuration())
 	if err != nil {
 		u.logger.Error(u.module, requestID, "Failed to generate verification code: %v", err)
 		return err

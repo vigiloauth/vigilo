@@ -32,7 +32,7 @@ const (
 func TestSessionService_CreateSession(t *testing.T) {
 	config.NewServerConfig(config.WithForceHTTPS())
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateTokenFunc: func(ctx context.Context, id, scopes string, duration time.Duration) (string, error) {
+		GenerateTokenFunc: func(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
 			return testToken, nil
 		},
 	}
@@ -63,7 +63,7 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 	config.NewServerConfig(config.WithForceHTTPS())
 	config.NewTokenConfig()
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateTokenFunc: func(ctx context.Context, subject, scopes string, expirationTime time.Duration) (string, error) {
+		GenerateTokenFunc: func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
 			return testToken, nil
 		},
 		IsTokenBlacklistedFunc: func(ctx context.Context, tokenString string) (bool, error) {

@@ -60,7 +60,7 @@ func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context,
 		return nil, errors.Wrap(err, "", "failed to authenticate client")
 	}
 
-	refreshToken, accessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(ctx, clientID, scopes)
+	refreshToken, accessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(ctx, clientID, scopes, "")
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: An error occurred generating tokens: %v", err)
 		return nil, errors.Wrap(err, "", "failed to issue tokens")
@@ -101,7 +101,7 @@ func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, cli
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to authenticate user")
 	}
 
-	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(ctx, loginResponse.UserID, clientID, scopes)
+	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(ctx, loginResponse.UserID, clientID, scopes, loginResponse.Role)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to generate token pair: %v", err)
 		return nil, err
@@ -151,7 +151,7 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid refresh token")
 	}
 
-	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(ctx, clientID, scopes)
+	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(ctx, clientID, scopes, "")
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to generate new tokens: %v", err)
 		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {

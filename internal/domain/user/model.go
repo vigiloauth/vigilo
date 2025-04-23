@@ -12,6 +12,7 @@ type User struct {
 	Email           string    // User's email address.
 	Password        string    // User's password (hashed).
 	Scopes          []string  // User's scopes (permissions).
+	Role            string    // User's role.
 	LastFailedLogin time.Time // Timestamp of the last failed login attempt.
 	CreatedAt       time.Time // Timestamp of when the user was created.
 	AccountLocked   bool      // Indicates if the user's account is locked.
@@ -24,6 +25,7 @@ type UserRegistrationRequest struct {
 	Email    string   `json:"email"`            // Email address for the new user.
 	Password string   `json:"password"`         // Password for the new user.
 	Scopes   []string `json:"scopes,omitempty"` // Scopes for the new user.
+	Role     string   `json:"role,omitempty"`   // Role for the new user
 }
 
 // UserRegistrationResponse represents the registration response payload.
@@ -48,6 +50,8 @@ type UserLoginResponse struct {
 	JWTToken         string    `json:"token"`                        // JWT token for the authenticated user.
 	OAuthRedirectURL string    `json:"oauth_redirect_url,omitempty"` // OAuth Redirect URL for the authenticated user.
 	LastFailedLogin  time.Time `json:"last_failed_login"`            // Timestamp of the last failed login attempt.
+	Scopes           []string  `json:"scopes,omitempty"`
+	Role             string    `json:"role,omitempty"`
 }
 
 // UserPasswordResetRequest represents the password reset request payload.
@@ -169,6 +173,8 @@ func NewUserLoginResponse(user *User, jwtToken string) *UserLoginResponse {
 		UserID:          user.ID,
 		Username:        user.Username,
 		Email:           user.Email,
+		Scopes:          user.Scopes,
+		Role:            user.Role,
 		JWTToken:        jwtToken,
 		LastFailedLogin: user.LastFailedLogin,
 	}
@@ -197,4 +203,8 @@ func NewUserLoginAttempt(ipAddress, userAgent string) *UserLoginAttempt {
 
 func (u *User) HasScope(scope string) bool {
 	return slices.Contains(u.Scopes, scope)
+}
+
+func (u *User) HasRole(role string) bool {
+	return u.Role == role
 }

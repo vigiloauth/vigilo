@@ -33,7 +33,7 @@ func TestClientService_Register(t *testing.T) {
 	t.Run("Success When Saving Public Client", func(t *testing.T) {
 		testClient.Type = client.Public
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
-		mockTokenService.GenerateTokenFunc = func(ctx context.Context, id, scope string, duration time.Duration) (string, error) {
+		mockTokenService.GenerateTokenFunc = func(ctx context.Context, id, scope, roles string, duration time.Duration) (string, error) {
 			return testToken, nil
 		}
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
@@ -62,7 +62,7 @@ func TestClientService_Register(t *testing.T) {
 		testClient.Type = client.Confidential
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
-		mockTokenService.GenerateTokenFunc = func(ctx context.Context, id, scope string, duration time.Duration) (string, error) {
+		mockTokenService.GenerateTokenFunc = func(ctx context.Context, id, scope, roles string, duration time.Duration) (string, error) {
 			return testToken, nil
 		}
 
@@ -92,7 +92,7 @@ func TestClientService_Register(t *testing.T) {
 		testClient.Type = client.Confidential
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
-		mockTokenService.GenerateTokenFunc = func(ctx context.Context, id, scope string, duration time.Duration) (string, error) {
+		mockTokenService.GenerateTokenFunc = func(ctx context.Context, id, scope, roles string, duration time.Duration) (string, error) {
 			return "", errors.NewInternalServerError()
 		}
 

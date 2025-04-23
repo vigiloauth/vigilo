@@ -35,6 +35,7 @@ func (req *UserRegistrationRequest) Validate() error {
 
 	validateEmail(req.Email, errorCollection)
 	validatePassword(req.Password, errorCollection)
+	req.validateRole(errorCollection)
 
 	if errorCollection.HasErrors() {
 		return errorCollection
@@ -162,4 +163,15 @@ func containsSymbol(password string) bool {
 	return strings.IndexFunc(password, func(r rune) bool {
 		return !(unicode.IsLetter(r) || unicode.IsNumber(r))
 	}) >= 0
+}
+
+func (req *UserRegistrationRequest) validateRole(errorCollection *errors.ErrorCollection) {
+	if req.Role == "" {
+		req.Role = constants.UserRole
+		return
+	}
+
+	if _, ok := constants.ValidRoles[req.Role]; !ok {
+		errorCollection.Add(errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid role: %s", req.Role)))
+	}
 }

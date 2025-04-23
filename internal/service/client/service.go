@@ -94,7 +94,7 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 	accessToken, err := cs.tokenService.GenerateToken(
 		ctx, newClient.ID,
 		strings.Join(newClient.Scopes, " "),
-		config.GetServerConfig().TokenConfig().AccessTokenDuration(),
+		"", config.GetServerConfig().TokenConfig().AccessTokenDuration(),
 	)
 
 	if err != nil {

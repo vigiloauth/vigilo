@@ -12,12 +12,14 @@ type TokenService interface {
 	// Parameters:
 	//	- ctx Context: The context for managing timeouts and cancellations.
 	//	- subject string: The subject of the token (e.g., user email).
+	//	- scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
+	//	- roles string: The roles to be added to the token (can be an empty string if none are needed).
 	//	- expirationTime time.Duration: The duration for which the token is valid.
 	//
 	// Returns:
 	//	- string: The generated JWT token string.
 	//	- error: An error if token generation fails.
-	GenerateToken(ctx context.Context, subject, scopes string, expirationTime time.Duration) (string, error)
+	GenerateToken(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error)
 
 	// GenerateTokensWithAudience generates an access & refresh token.
 	//
@@ -25,12 +27,14 @@ type TokenService interface {
 	//	- ctx Context: The context for managing timeouts and cancellations.
 	//	- userID string: The ID of the user. Will be used as the subject.
 	//	- clientID string: The ID of the client. Will be used as the audience.
+	//	- scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
+	//	- roles string: The roles to be added to the token (can be an empty string if none are needed).
 	//
 	// Returns:
 	//	- string: The access token.
 	//	- string: The refresh token.
 	//	- error: An error if an error occurs while generating the tokens.
-	GenerateTokensWithAudience(ctx context.Context, userID, clientID, scopes string) (string, string, error)
+	GenerateTokensWithAudience(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error)
 
 	// ParseToken parses and validates a JWT token string.
 	//
@@ -120,12 +124,14 @@ type TokenService interface {
 	// Parameters:
 	//	- ctx Context: The context for managing timeouts and cancellations.
 	//	- subject string: The subject for the token claims.
+	//	- scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
+	//	- roles string: The roles to be added to the token (can be an empty string if none are needed).
 	//
 	//	Returns:
 	//	- accessToken string: A new access token.
 	//	- refreshToken string: A new refresh token.
 	//	- error: An error if an error occurs during generation.
-	GenerateRefreshAndAccessTokens(ctx context.Context, subject, scopes string) (string, string, error)
+	GenerateRefreshAndAccessTokens(ctx context.Context, subject, scopes, roles string) (string, string, error)
 
 	// BlacklistToken adds the specified token to the blacklist, preventing it from being used
 	// for further authentication or authorization. The token is marked as invalid, even if it

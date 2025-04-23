@@ -55,7 +55,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 					},
 				}
 				mockTokenService := &mTokenService.MockTokenService{
-					GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes string) (string, string, error) {
+					GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes, roles string) (string, string, error) {
 						return "refresh", "access", nil
 					},
 				}
@@ -76,7 +76,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes string) (string, string, error) {
+			GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes, roles string) (string, string, error) {
 				return "", "", errors.NewInternalServerError()
 			},
 		}
@@ -129,7 +129,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes string) (string, string, error) {
+			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
 				return "mocked-access-token", "mocked-refresh-token", nil
 			},
 		}
@@ -160,7 +160,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes string) (string, string, error) {
+			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
 				return "", "", errors.NewInternalServerError()
 			},
 		}
@@ -256,7 +256,7 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 				}
 				mockTokenService := &mTokenService.MockTokenService{
 					ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
-					GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes string) (string, string, error) {
+					GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes, roles string) (string, string, error) {
 						return "refresh-token", "access-token", nil
 					},
 					ParseTokenFunc: func(token string) (*domain.TokenClaims, error) {

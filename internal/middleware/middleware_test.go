@@ -23,7 +23,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 
 	tokenString := "validToken"
 
-	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
 	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
@@ -57,7 +57,7 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 
 	tokenString := "blacklistedToken"
 
-	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
 	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {

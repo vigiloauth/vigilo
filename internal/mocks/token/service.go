@@ -10,8 +10,8 @@ import (
 var _ token.TokenService = (*MockTokenService)(nil)
 
 type MockTokenService struct {
-	GenerateTokenFunc                  func(ctx context.Context, id, scopes string, duration time.Duration) (string, error)
-	GenerateTokensWithAudienceFunc     func(ctx context.Context, userID, clientID, scopes string) (string, string, error)
+	GenerateTokenFunc                  func(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error)
+	GenerateTokensWithAudienceFunc     func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error)
 	SaveTokenFunc                      func(ctx context.Context, token, id string, expiry time.Time) error
 	ParseTokenFunc                     func(token string) (*token.TokenClaims, error)
 	IsTokenBlacklistedFunc             func(ctx context.Context, token string) (bool, error)
@@ -20,17 +20,17 @@ type MockTokenService struct {
 	IsTokenExpiredFunc                 func(token string) bool
 	ValidateTokenFunc                  func(ctx context.Context, token string) error
 	DeleteTokenAsyncFunc               func(ctx context.Context, token string) <-chan error
-	GenerateRefreshAndAccessTokensFunc func(ctx context.Context, subject, scopes string) (string, string, error)
+	GenerateRefreshAndAccessTokensFunc func(ctx context.Context, subject, scopes, roles string) (string, string, error)
 	BlacklistTokenFunc                 func(ctx context.Context, token string) error
 	DeleteExpiredTokensFunc            func(ctx context.Context) error
 }
 
-func (m *MockTokenService) GenerateToken(ctx context.Context, id, scopes string, duration time.Duration) (string, error) {
-	return m.GenerateTokenFunc(ctx, id, scopes, duration)
+func (m *MockTokenService) GenerateToken(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
+	return m.GenerateTokenFunc(ctx, id, scopes, roles, duration)
 }
 
-func (m *MockTokenService) GenerateTokensWithAudience(ctx context.Context, userID, clientID, scopes string) (string, string, error) {
-	return m.GenerateTokensWithAudienceFunc(ctx, userID, clientID, scopes)
+func (m *MockTokenService) GenerateTokensWithAudience(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
+	return m.GenerateTokensWithAudienceFunc(ctx, userID, clientID, scopes, roles)
 }
 
 func (m *MockTokenService) SaveToken(ctx context.Context, token, id string, expiry time.Time) error {
@@ -65,8 +65,8 @@ func (m *MockTokenService) DeleteTokenAsync(ctx context.Context, token string) <
 	return m.DeleteTokenAsyncFunc(ctx, token)
 }
 
-func (m *MockTokenService) GenerateRefreshAndAccessTokens(ctx context.Context, subject, scopes string) (string, string, error) {
-	return m.GenerateRefreshAndAccessTokensFunc(ctx, subject, scopes)
+func (m *MockTokenService) GenerateRefreshAndAccessTokens(ctx context.Context, subject, scopes, roles string) (string, string, error) {
+	return m.GenerateRefreshAndAccessTokensFunc(ctx, subject, scopes, roles)
 }
 
 func (m *MockTokenService) BlacklistToken(ctx context.Context, token string) error {

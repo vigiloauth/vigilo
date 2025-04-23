@@ -53,6 +53,7 @@ const (
 	testRedirectURI     string = "https://vigiloauth.com/callback"
 	testConsentApproved string = "true"
 	testAuthzCode       string = "valid-auth-code"
+	testRole            string = "ADMIN"
 )
 
 // VigiloTestContext encapsulates constants testing functionality across all test types
@@ -117,6 +118,7 @@ func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
 
 	user.Password = hashedPassword
 	user.ID = testUserID
+	user.Role = constants.AdminRole
 	user.Scopes = []string{constants.UserManage}
 	userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
 
@@ -126,7 +128,6 @@ func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
 
 func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 	consentRepo.GetInMemoryUserConsentRepository().SaveConsent(context.Background(), testUserID, testClientID, testScope)
-
 	return tc
 }
 
@@ -162,7 +163,7 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(context.Background(), id, testScope, duration)
+	token, err := tokenService.GenerateToken(context.Background(), id, testScope, testRole, duration)
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
@@ -173,7 +174,7 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(context.Background(), id, testScope, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+	token, err := tokenService.GenerateToken(context.Background(), id, testScope, testRole, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
@@ -237,7 +238,7 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	resetToken, err := tokenService.GenerateToken(context.Background(), tc.User.Email, testScope, duration)
+	resetToken, err := tokenService.GenerateToken(context.Background(), tc.User.Email, testScope, testRole, duration)
 	assert.NoError(tc.T, err)
 
 	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), resetToken, tc.User.Email, time.Now().Add(duration))

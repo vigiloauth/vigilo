@@ -69,7 +69,7 @@ func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, u
 	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
 
-	sessionToken, err := s.tokenService.GenerateToken(ctx, userID, "", sessionExpiration)
+	sessionToken, err := s.tokenService.GenerateToken(ctx, userID, "", "", sessionExpiration)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to generate session token for user=[%s]: %v", utils.TruncateSensitive(userID), err)
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate session token")

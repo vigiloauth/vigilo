@@ -18,6 +18,7 @@ const (
 	testInvalidToken string = "invalidToken"
 	testScopes       string = "clients:read"
 	testClientID     string = "client-id"
+	testRoles        string = "ADMIN"
 )
 
 func TestTokenService_GenerateToken(t *testing.T) {
@@ -54,7 +55,7 @@ func TestTokenService_GenerateToken(t *testing.T) {
 			}
 
 			tokenService := NewTokenService(mockTokenRepo)
-			tokenString, err := tokenService.GenerateToken(ctx, tt.subject, testScopes, tt.expirationTime)
+			tokenString, err := tokenService.GenerateToken(ctx, tt.subject, testScopes, testRoles, tt.expirationTime)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -107,7 +108,7 @@ func TestTokenService_ParseToken(t *testing.T) {
 
 			tokenService := NewTokenService(mockTokenRepo)
 			if tt.tokenString == "valid_token_string" {
-				validToken, err := tokenService.GenerateToken(ctx, tt.expectedSubject, testScopes, time.Hour)
+				validToken, err := tokenService.GenerateToken(ctx, tt.expectedSubject, testScopes, testRoles, time.Hour)
 				require.NoError(t, err)
 				tt.tokenString = validToken
 			}
@@ -184,7 +185,7 @@ func TestTokenService_GenerateTokenPair(t *testing.T) {
 	tokenService := NewTokenService(mockTokenRepo)
 	ctx := context.Background()
 
-	accessToken, refreshToken, err := tokenService.GenerateTokensWithAudience(ctx, testID, testScopes, testClientID)
+	accessToken, refreshToken, err := tokenService.GenerateTokensWithAudience(ctx, testID, testScopes, testRoles, testClientID)
 	assert.NoError(t, err)
 	assert.NotEqual(t, "", accessToken)
 	assert.NotEqual(t, "", refreshToken)

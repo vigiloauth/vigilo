@@ -9,15 +9,39 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	repository "github.com/vigiloauth/vigilo/internal/repository/user"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
-func TestUserHandler_DuplicateEmail(t *testing.T) {
+func TestUserHandler_RegisterUser_Success(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
-	testContext.WithUser()
 	defer testContext.TearDown()
+
+	requestBody := &users.UserRegistrationRequest{
+		Username: testUsername,
+		Email:    testEmail,
+		Password: testPassword1,
+		Role:     constants.AdminRole,
+	}
+
+	body, err := json.Marshal(requestBody)
+	assert.NoError(t, err)
+
+	rr := testContext.SendHTTPRequest(
+		http.MethodPost,
+		web.UserEndpoints.Registration,
+		bytes.NewBuffer(body), nil,
+	)
+
+	assert.Equal(t, http.StatusCreated, rr.Code)
+}
+
+func TestUserHandler_RegisterUser_DuplicateEmail(t *testing.T) {
+	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+	testContext.WithUser()
 
 	requestBody := users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1)
 	body, err := json.Marshal(requestBody)
