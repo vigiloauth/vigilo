@@ -8,9 +8,9 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	domain "github.com/vigiloauth/vigilo/internal/domain/audit"
-	clients "github.com/vigiloauth/vigilo/internal/domain/client"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	tokens "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -432,7 +432,7 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 
 func createNewUser() *users.User {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
-	user.Scopes = []string{clients.UserRead}
+	user.Scopes = []string{constants.UserRead}
 	return user
 }
 

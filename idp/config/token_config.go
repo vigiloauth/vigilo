@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 // TokenConfig holds the configuration for JWT token generation and validation.
@@ -58,7 +59,7 @@ func NewTokenConfig(opts ...TokenConfigOptions) *TokenConfig {
 //	JWTOption: A function that configures the secret key.
 func WithSecret(secret string) TokenConfigOptions {
 	return func(c *TokenConfig) {
-		c.logger.Debug(c.module, "", "Configuring TokenConfig with given secret=[%s]", common.TruncateSensitive(secret))
+		c.logger.Debug(c.module, "", "Configuring TokenConfig with given secret=[%s]", utils.TruncateSensitive(secret))
 		c.secretKey = secret
 	}
 }
@@ -192,8 +193,8 @@ func (j *TokenConfig) String() string {
 }
 
 func defaultTokenConfig() *TokenConfig {
-	secretKey := os.Getenv(common.TokenSecretKeyENV)
-	issuer := os.Getenv(common.TokenIssuerENV)
+	secretKey := os.Getenv(constants.TokenSecretKeyENV)
+	issuer := os.Getenv(constants.TokenIssuerENV)
 	return &TokenConfig{
 		secretKey:            secretKey,
 		issuer:               issuer,

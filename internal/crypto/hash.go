@@ -10,8 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -59,7 +59,7 @@ func CompareHash(plainStr, hashStr string) bool {
 //   - string: A string representation of the generated UUID.
 func GenerateUUID() string {
 	uuid := uuid.New().String()
-	logger.Debug(module, "", "[GenerateUUID]: Generated UUID: [%s]", common.TruncateSensitive(uuid))
+	logger.Debug(module, "", "[GenerateUUID]: Generated UUID: [%s]", utils.TruncateSensitive(uuid))
 	return uuid
 }
 

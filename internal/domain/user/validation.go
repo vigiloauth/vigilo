@@ -7,7 +7,7 @@ import (
 	"unicode"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	domain "github.com/vigiloauth/vigilo/internal/domain/client"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
@@ -26,7 +26,7 @@ func (req *UserRegistrationRequest) Validate() error {
 
 	if len(req.Scopes) > 0 {
 		for _, scope := range req.Scopes {
-			if _, ok := domain.ValidScopes[scope]; !ok {
+			if _, ok := constants.ValidScopes[scope]; !ok {
 				err := errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid scope '%s'", scope))
 				errorCollection.Add(err)
 			}

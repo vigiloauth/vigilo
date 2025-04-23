@@ -9,9 +9,10 @@ import (
 	_ "embed"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	domain "github.com/vigiloauth/vigilo/internal/domain/email"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var (
@@ -73,7 +74,7 @@ func NewEmailService(mailer domain.Mailer) domain.EmailService {
 // Returns:
 //   - error: An error indicating the failure to send the email, or nil if successful.
 func (s *emailService) SendEmail(ctx context.Context, request *domain.EmailRequest) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if !s.smtpConfig.IsHealthy() {
 		s.logger.Warn(s.module, requestID, "[SendEmail]: SMTP server is down. Adding the request to the retry queue for future processing.")
 		s.retryQueue.Add(request)
@@ -82,11 +83,11 @@ func (s *emailService) SendEmail(ctx context.Context, request *domain.EmailReque
 
 	switch request.EmailType {
 	case domain.AccountVerification:
-		if err := s.sendEmail(ctx, request, common.VerifyEmailAddress); err != nil {
+		if err := s.sendEmail(ctx, request, constants.VerifyEmailAddress); err != nil {
 			return errors.Wrap(err, errors.ErrCodeEmailDeliveryFailed, "failed to send verification email")
 		}
 	case domain.AccountDeletion:
-		if err := s.sendEmail(ctx, request, common.AccountDeletion); err != nil {
+		if err := s.sendEmail(ctx, request, constants.AccountDeletion); err != nil {
 			return errors.Wrap(err, errors.ErrCodeEmailDeliveryFailed, "failed to send verification email")
 		}
 	}
@@ -148,7 +149,7 @@ func (s *emailService) connectToSMTPServer() error {
 }
 
 func (s *emailService) sendEmail(ctx context.Context, request *domain.EmailRequest, subject string) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	body, err := s.generateEmailBody(request)
 	if err != nil {
 		return errors.Wrap(err, "", "failed to generate email template")

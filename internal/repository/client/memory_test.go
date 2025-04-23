@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	domain "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
@@ -112,8 +113,8 @@ func createTestClient() *domain.Client {
 		Secret:       "test-client-secret",
 		Type:         domain.Confidential,
 		RedirectURIS: []string{"http://localhost:8080/callback"},
-		GrantTypes:   []string{domain.AuthorizationCode, domain.RefreshToken},
-		Scopes:       []string{domain.ClientRead, domain.ClientWrite},
+		GrantTypes:   []string{constants.AuthorizationCode, constants.RefreshToken},
+		Scopes:       []string{constants.ClientRead, constants.ClientWrite},
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

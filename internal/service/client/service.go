@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -59,7 +60,7 @@ func NewClientService(
 //   - *ClientRegistrationResponse: The response containing client details.
 //   - error: An error if the registration fails.
 func (cs *clientService) Register(ctx context.Context, newClient *client.Client) (*client.ClientRegistrationResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	clientID, err := cs.generateUniqueClientID(ctx)
 	if err != nil {
@@ -140,11 +141,11 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 //   - *ClientSecretRegenerationResponse: If successful
 //   - error: An error if the regeneration fails.
 func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID string) (*client.ClientSecretRegenerationResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	if clientID == "" {
 		err := errors.New(errors.ErrCodeEmptyInput, "missing required parameter: 'client_id'")
-		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to regenerate client secret for client=[%s]: %v", common.TruncateSensitive(clientID), err)
+		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to regenerate client secret for client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return nil, err
 	}
 
@@ -155,15 +156,15 @@ func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID st
 	}
 	if retrievedClient == nil {
 		err := errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
-		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to retrieve client=[%s]: %v", common.TruncateSensitive(clientID), err)
+		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to retrieve client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return nil, err
 	}
 	if !retrievedClient.IsConfidential() {
 		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
 	}
 
-	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, client.ClientCredentials, client.ClientManage); err != nil {
-		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to validate client=[%s]: %v", common.TruncateSensitive(clientID), err)
+	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, constants.ClientCredentials, constants.ClientManage); err != nil {
+		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to validate client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
 
@@ -182,7 +183,7 @@ func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID st
 	updatedAt := time.Now()
 	retrievedClient.UpdatedAt = updatedAt
 	if err := cs.clientRepo.UpdateClient(ctx, retrievedClient); err != nil {
-		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to update client=[%s]: %v", common.TruncateSensitive(clientID), err)
+		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to update client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return nil, errors.Wrap(err, "", "failed to update client")
 	}
 
@@ -207,14 +208,14 @@ func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID st
 // Returns:
 //   - error: An error if authentication or authorization fails.
 func (cs *clientService) AuthenticateClient(ctx context.Context, clientID string, clientSecret string, requestedGrant string, requestedScopes string) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	existingClient, err := cs.clientRepo.GetClientByID(ctx, clientID)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[AuthenticateClient]: An error occurred retrieving the client: %v", err)
 		return errors.NewInternalServerError()
 	} else if existingClient == nil {
-		cs.logger.Error(cs.module, requestID, "[AuthenticateClient]: Failed to authenticate client. Client does not exist with the ID=[%s]", common.TruncateSensitive(clientID))
+		cs.logger.Error(cs.module, requestID, "[AuthenticateClient]: Failed to authenticate client. Client does not exist with the ID=[%s]", utils.TruncateSensitive(clientID))
 		return errors.New(errors.ErrCodeInvalidClient, "client credentials are either missing or invalid")
 	}
 
@@ -257,8 +258,8 @@ func (cs *clientService) ValidateClientRedirectURI(redirectURI string, existingC
 
 	if !existingClient.HasRedirectURI(redirectURI) {
 		cs.logger.Error(cs.module, "[ValidateClientRedirectURI]: Client=[%s] does not have requested redirect URI=[%s]",
-			common.TruncateSensitive(existingClient.ID),
-			common.SanitizeURL(redirectURI),
+			utils.TruncateSensitive(existingClient.ID),
+			utils.SanitizeURL(redirectURI),
 		)
 		return errors.New(errors.ErrCodeInvalidRequest, "invalid redirect_uri")
 	}
@@ -279,13 +280,13 @@ func (cs *clientService) ValidateClientRedirectURI(redirectURI string, existingC
 //   - *CLientInformationResponse: If the the request is successful.
 //   - error: An error if validation fails or the client cannot be retrieved.
 func (cs *clientService) ValidateAndRetrieveClient(ctx context.Context, clientID, registrationAccessToken string) (*client.ClientInformationResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if clientID == "" || registrationAccessToken == "" {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndRetrieveClient]: Failed to validate request: Missing required parameters.")
 		return nil, errors.NewMissingParametersError()
 	}
 
-	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, client.ClientRead)
+	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, constants.ClientRead)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndRetrieveClient]: Failed to validate client or registration access token: %v", err)
 		return nil, err
@@ -314,7 +315,7 @@ func (cs *clientService) ValidateAndRetrieveClient(ctx context.Context, clientID
 //   - *CLientInformationResponse: If the the request is successful.
 //   - error: An error if validation fails or the client cannot be updated.
 func (cs *clientService) ValidateAndUpdateClient(ctx context.Context, clientID, registrationAccessToken string, request *client.ClientUpdateRequest) (*client.ClientInformationResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if clientID == "" || registrationAccessToken == "" {
 		err := errors.NewMissingParametersError()
 		cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: Failed to validate request: Missing required parameters")
@@ -323,13 +324,13 @@ func (cs *clientService) ValidateAndUpdateClient(ctx context.Context, clientID, 
 
 	if request.ID != clientID {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: Provided client ID=[%s] does match with the registered clientID=[%s]",
-			common.TruncateSensitive(request.ID),
-			common.TruncateSensitive(clientID),
+			utils.TruncateSensitive(request.ID),
+			utils.TruncateSensitive(clientID),
 		)
 		return nil, errors.New(errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
 	}
 
-	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, client.ClientManage)
+	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, constants.ClientManage)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: Failed to validate client or registration access token: %v", err)
 		return nil, err
@@ -342,8 +343,8 @@ func (cs *clientService) ValidateAndUpdateClient(ctx context.Context, clientID, 
 			return nil, err
 		} else if request.Secret != "" && request.Secret != retrievedClient.Secret {
 			cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: The provided client secret=[%s] does not match with the registered client secret=[%s]",
-				common.TruncateSensitive(request.Secret),
-				common.TruncateSensitive(retrievedClient.Secret),
+				utils.TruncateSensitive(request.Secret),
+				utils.TruncateSensitive(retrievedClient.Secret),
 			)
 			return nil, errors.New(errors.ErrCodeUnauthorized, "the provided client secret is invalid or does not match the registered credentials")
 		}
@@ -351,7 +352,7 @@ func (cs *clientService) ValidateAndUpdateClient(ctx context.Context, clientID, 
 
 	retrievedClient.UpdateValues(request)
 	if err := cs.clientRepo.UpdateClient(ctx, retrievedClient); err != nil {
-		cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: Failed to update client=[%s]: %v", common.TruncateSensitive(retrievedClient.ID), err)
+		cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: Failed to update client=[%s]: %v", utils.TruncateSensitive(retrievedClient.ID), err)
 		return nil, err
 	}
 
@@ -376,20 +377,20 @@ func (cs *clientService) ValidateAndUpdateClient(ctx context.Context, clientID, 
 // Returns:
 //   - error: An error if validation fails or the client cannot be deleted.
 func (cs *clientService) ValidateAndDeleteClient(ctx context.Context, clientID, registrationAccessToken string) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if clientID == "" || registrationAccessToken == "" {
 		err := errors.NewMissingParametersError()
 		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to delete client: %v", err)
 		return err
 	}
 
-	if _, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, client.ClientDelete); err != nil {
+	if _, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, constants.ClientDelete); err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to validate client or registration access token: %v", err)
 		return err
 	}
 
 	if err := cs.clientRepo.DeleteClientByID(ctx, clientID); err != nil {
-		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to delete client=[%s]: %v", common.TruncateSensitive(clientID), err)
+		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to delete client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to delete client")
 	}
 
@@ -446,7 +447,7 @@ func (cs *clientService) validateClientAndToken(ctx context.Context, clientID, r
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInternalServerError, "an internal error occurred")
 	} else if retrievedClient == nil {
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
-	} else if !retrievedClient.HasScope(scope) && !retrievedClient.HasScope(client.ClientManage) {
+	} else if !retrievedClient.HasScope(scope) && !retrievedClient.HasScope(constants.ClientManage) {
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInsufficientScope, "client does not have the required scopes for this request")
 	}
 

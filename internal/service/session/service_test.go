@@ -11,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	domain "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -121,7 +121,7 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.AddCookie(&http.Cookie{
-			Name:  common.SessionToken,
+			Name:  constants.SessionTokenHeader,
 			Value: expectedToken,
 		})
 
@@ -146,7 +146,7 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.AddCookie(&http.Cookie{
-			Name:  common.SessionToken,
+			Name:  constants.SessionTokenHeader,
 			Value: expectedToken,
 		})
 
@@ -198,7 +198,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.AddCookie(&http.Cookie{
-			Name:  common.SessionToken,
+			Name:  constants.SessionTokenHeader,
 			Value: testSessionID,
 		})
 
@@ -229,7 +229,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.AddCookie(&http.Cookie{
-			Name:  common.SessionToken,
+			Name:  constants.SessionTokenHeader,
 			Value: testSessionID,
 		})
 
@@ -259,7 +259,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.AddCookie(&http.Cookie{
-			Name:  common.SessionToken,
+			Name:  constants.SessionTokenHeader,
 			Value: testSessionID,
 		})
 
@@ -278,7 +278,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.AddCookie(&http.Cookie{
-			Name:  common.SessionToken,
+			Name:  constants.SessionTokenHeader,
 			Value: testSessionID,
 		})
 

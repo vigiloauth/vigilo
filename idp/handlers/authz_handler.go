@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -59,19 +60,19 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request=[AuthorizeClient]")
 
 	query := r.URL.Query()
-	isUserConsentApproved := query.Get(common.Approved) == "true"
+	isUserConsentApproved := query.Get(constants.ConsentApprovedURLValue) == "true"
 	req := client.NewClientAuthorizationRequest(
-		query.Get(common.ClientID),
-		query.Get(common.RedirectURI),
-		query.Get(common.Scope),
-		query.Get(common.State),
-		query.Get(common.ResponseType),
-		query.Get(common.CodeChallenge),
-		query.Get(common.CodeChallengeMethod),
+		query.Get(constants.ClientID),
+		query.Get(constants.RedirectURI),
+		query.Get(constants.Scope),
+		query.Get(constants.State),
+		query.Get(constants.ResponseType),
+		query.Get(constants.CodeChallenge),
+		query.Get(constants.CodeChallengeMethod),
 		h.sessionService.GetUserIDFromSession(r),
 	)
 
@@ -109,6 +110,6 @@ func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state
 		loginURL = fmt.Sprintf("%s&state=%s", loginURL, url.QueryEscape(state))
 	}
 
-	h.logger.Debug(h.module, requestID, "LoginURL=[%s] successfully generated", common.SanitizeURL(loginURL))
+	h.logger.Debug(h.module, requestID, "LoginURL=[%s] successfully generated", utils.SanitizeURL(loginURL))
 	return loginURL
 }

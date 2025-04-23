@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 )
 
 type SMTPConfig struct {
@@ -119,9 +119,9 @@ func (cfg *SMTPConfig) loadOptions(opts ...SMTPConfigOptions) {
 }
 
 func defaultSMTPConfig() *SMTPConfig {
-	fromAddress := os.Getenv(common.SMTPFromAddressENV)
-	username := os.Getenv(common.SMTPUsernameENV)
-	password := os.Getenv(common.SMTPPasswordENV)
+	fromAddress := os.Getenv(constants.SMTPFromAddressENV)
+	username := os.Getenv(constants.SMTPUsernameENV)
+	password := os.Getenv(constants.SMTPPasswordENV)
 
 	return &SMTPConfig{
 		host:        defaultSMTPHost,

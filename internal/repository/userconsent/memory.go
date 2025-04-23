@@ -9,9 +9,9 @@ import (
 	"slices"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var (
@@ -67,7 +67,7 @@ func (c *InMemoryUserConsentRepository) HasConsent(ctx context.Context, userID, 
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	key := createConsentKey(userID, clientID)
 	record, exists := c.data[key]
 	if !exists {

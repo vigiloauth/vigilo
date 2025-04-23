@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
@@ -33,7 +34,7 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 		logger.Warn(module, "", "Validation failed: client_secret provided for a public client")
 	}
 
-	if !contains(req.GrantTypes, PKCE) {
+	if !contains(req.GrantTypes, constants.PKCE) {
 		if req.Type == Public {
 			logger.Warn(module, "", "Validation failed: Public client is not using PKCE")
 			return errors.New(errors.ErrCodeInvalidRequest, "PKCE is required for public clients")
@@ -42,7 +43,7 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 		}
 	}
 
-	if req.TokenEndpointAuthMethod != "" && !slices.Contains(req.GrantTypes, ClientCredentials) {
+	if req.TokenEndpointAuthMethod != "" && !slices.Contains(req.GrantTypes, constants.ClientCredentials) {
 		err := errors.New(errors.ErrCodeInvalidClientMetadata, "'token_endpoint_auth' is required for 'client_credentials' grant")
 		errorCollection.Add(err)
 		logger.Warn(module, "", "Validation failed: token_endpoint_auth_method provided without client_credentials grant")
@@ -83,7 +84,7 @@ func ValidateClientUpdateRequest(req *ClientUpdateRequest) error {
 // ValidateClientAuthorizationRequest checks if the ClientAuthorizationRequest contains valid values.
 func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
 
-	if !req.Client.HasGrantType(AuthorizationCode) {
+	if !req.Client.HasGrantType(constants.AuthorizationCode) {
 		logger.Error(module, "", "Failed to validate client: client does not have required grant types")
 		return errors.New(errors.ErrCodeInvalidGrant, "Authorization code grant is required for this request")
 	}
@@ -100,7 +101,7 @@ func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
 		return errors.New(errors.ErrCodeInvalidRequest, "PKCE is required when providing a code challenge")
 	}
 
-	if !req.Client.HasResponseType(CodeResponseType) || !req.Client.HasResponseType(req.ResponseType) {
+	if !req.Client.HasResponseType(constants.CodeResponseType) || !req.Client.HasResponseType(req.ResponseType) {
 		logger.Error(module, "", "Failed to validate request: client does not have 'code' response type")
 		return errors.New(errors.ErrCodeInvalidClient, "'code' response type is required to receive an authorization code")
 	}
@@ -143,7 +144,7 @@ func validateGrantType(req ClientRequest, errorCollection *errors.ErrorCollectio
 		return
 	}
 
-	validGrantTypes := ValidGrantTypes
+	validGrantTypes := constants.ValidGrantTypes
 	for _, grantType := range req.GetGrantTypes() {
 		if _, ok := validGrantTypes[grantType]; !ok {
 			err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type '%s' is not supported", grantType))
@@ -152,13 +153,13 @@ func validateGrantType(req ClientRequest, errorCollection *errors.ErrorCollectio
 			continue
 		}
 		if req.GetType() == Public {
-			if grantType == ClientCredentials || grantType == PasswordGrant {
+			if grantType == constants.ClientCredentials || grantType == constants.PasswordGrant {
 				err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type '%s' is not supported for public clients", grantType))
 				errorCollection.Add(err)
 				logger.Warn(module, "Restricted grant type '%s' used by public client", grantType)
 			}
 		}
-		if grantType == RefreshToken && len(req.GetGrantTypes()) == 0 {
+		if grantType == constants.RefreshToken && len(req.GetGrantTypes()) == 0 {
 			err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("'%s' requires another grant type", grantType))
 			errorCollection.Add(err)
 			logger.Warn(module, "", "Refresh token grant type requires another grant type")
@@ -168,7 +169,7 @@ func validateGrantType(req ClientRequest, errorCollection *errors.ErrorCollectio
 
 // validateURIS checks if redirect URIs are well-formed and secure.
 func validateURIS(req ClientRequest, errorCollection *errors.ErrorCollection) {
-	if req.GetType() == Confidential && req.HasGrantType(AuthorizationCode) && len(req.GetRedirectURIS()) == 0 {
+	if req.GetType() == Confidential && req.HasGrantType(constants.AuthorizationCode) && len(req.GetRedirectURIS()) == 0 {
 		err := errors.New(errors.ErrCodeInvalidGrant, "redirect URI(s) are required for confidential clients using the authorization code grant type")
 		errorCollection.Add(err)
 		return
@@ -260,13 +261,13 @@ func validateURIS(req ClientRequest, errorCollection *errors.ErrorCollection) {
 // validateScopes ensures all provided scopes are valid.
 func validateScopes(req ClientRequest, errorCollection *errors.ErrorCollection) {
 	if len(req.GetScopes()) == 0 {
-		req.SetScopes([]string{ClientRead})
+		req.SetScopes([]string{constants.ClientRead})
 		logger.Info(module, "", "Default scope 'client:read' applied")
 		return
 	}
 
 	for _, scope := range req.GetScopes() {
-		if _, ok := ValidScopes[scope]; !ok {
+		if _, ok := constants.ValidScopes[scope]; !ok {
 			err := errors.New(errors.ErrCodeInsufficientScope, fmt.Sprintf("scope '%s' is not supported", scope))
 			errorCollection.Add(err)
 			logger.Warn(module, "Unsupported scope: %s", scope)
@@ -284,7 +285,7 @@ func validateResponseTypes(req ClientRequest, errorCollection *errors.ErrorColle
 	}
 
 	for _, responseType := range req.GetResponseTypes() {
-		if _, ok := ValidResponseTypes[responseType]; !ok {
+		if _, ok := constants.ValidResponseTypes[responseType]; !ok {
 			err := errors.New(
 				errors.ErrCodeInvalidResponseType,
 				fmt.Sprintf("response type '%s' is not supported", responseType))
@@ -295,13 +296,13 @@ func validateResponseTypes(req ClientRequest, errorCollection *errors.ErrorColle
 	}
 
 	// Validate compatibility with grant types
-	authCodeOrDeviceCode := contains(req.GetGrantTypes(), AuthorizationCode) || contains(req.GetGrantTypes(), DeviceCode)
-	implicitFlow := contains(req.GetGrantTypes(), ImplicitFlow)
-	clientCredsOrPasswordOrRefresh := contains(req.GetGrantTypes(), ClientCredentials) || contains(req.GetGrantTypes(), PasswordGrant) || contains(req.GetGrantTypes(), RefreshToken)
-	pkce := contains(req.GetGrantTypes(), PKCE)
-	idToken := contains(req.GetResponseTypes(), IDTokenResponseType)
-	code := contains(req.GetResponseTypes(), CodeResponseType)
-	token := contains(req.GetResponseTypes(), TokenResponseType)
+	authCodeOrDeviceCode := contains(req.GetGrantTypes(), constants.AuthorizationCode) || contains(req.GetGrantTypes(), constants.DeviceCode)
+	implicitFlow := contains(req.GetGrantTypes(), constants.ImplicitFlow)
+	clientCredsOrPasswordOrRefresh := contains(req.GetGrantTypes(), constants.ClientCredentials) || contains(req.GetGrantTypes(), constants.PasswordGrant) || contains(req.GetGrantTypes(), constants.RefreshToken)
+	pkce := contains(req.GetGrantTypes(), constants.PKCE)
+	idToken := contains(req.GetResponseTypes(), constants.IDTokenResponseType)
+	code := contains(req.GetResponseTypes(), constants.CodeResponseType)
+	token := contains(req.GetResponseTypes(), constants.TokenResponseType)
 
 	if authCodeOrDeviceCode && !code {
 		err := errors.New(errors.ErrCodeInvalidResponseType, "code response type is required for the authorization code or device code grant type")

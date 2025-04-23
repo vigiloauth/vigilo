@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -51,7 +52,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[Register]: Processing request")
 
 	request, err := web.DecodeJSONRequest[users.UserRegistrationRequest](w, r)
@@ -89,7 +90,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[Login]: Processing request")
 
 	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
@@ -126,7 +127,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[Logout]: Processing request")
 
 	if err := h.sessionService.InvalidateSession(w, r); err != nil {
@@ -145,7 +146,7 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[ResetPassword]: Processing request")
 
 	request, err := web.DecodeJSONRequest[users.UserPasswordResetRequest](w, r)
@@ -178,11 +179,11 @@ func (h *UserHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[VerifyAccount]: Processing request")
 
 	query := r.URL.Query()
-	verificationToken := query.Get(common.Token)
+	verificationToken := query.Get(constants.Token)
 	if err := h.userService.ValidateVerificationCode(ctx, verificationToken); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate user account")
 		web.WriteError(w, wrappedErr)

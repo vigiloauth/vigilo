@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var _ authz.AuthorizationCodeService = (*authorizationCodeService)(nil)
@@ -63,7 +63,7 @@ func NewAuthorizationCodeService(
 //   - string: The generated authorization code.
 //   - error: An error if code generation fails.
 func (c *authorizationCodeService) GenerateAuthorizationCode(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := req.Validate(); err != nil {
 		c.logger.Error(c.module, requestID, "[GenerateAuthorizationCode]: Failed to validate authorization request: %v", err)
 		return "", errors.Wrap(err, "", "failed to generate authorization code")
@@ -92,8 +92,8 @@ func (c *authorizationCodeService) GenerateAuthorizationCode(ctx context.Context
 	}
 
 	c.logger.Info(c.module, requestID, "[GenerateAuthorizationCode]: Authorization code successfully generated for user=[%s] and client=[%s]",
-		common.TruncateSensitive(req.UserID),
-		common.TruncateSensitive(req.ClientID),
+		utils.TruncateSensitive(req.UserID),
+		utils.TruncateSensitive(req.ClientID),
 	)
 
 	return authData.Code, nil
@@ -112,7 +112,7 @@ func (c *authorizationCodeService) GenerateAuthorizationCode(ctx context.Context
 // Returns:
 //   - error: An error if storing the authorization code fails, or nil if the operation succeeds.
 func (c *authorizationCodeService) SaveAuthorizationCode(ctx context.Context, authData *authz.AuthorizationCodeData) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	expiration := authData.CreatedAt.Add(c.codeLifeTime)
 	if err := c.authzCodeRepo.StoreAuthorizationCode(ctx, authData.Code, authData, expiration); err != nil {
@@ -135,7 +135,7 @@ func (c *authorizationCodeService) SaveAuthorizationCode(ctx context.Context, au
 //   - *AuthorizationCodeData: The data associated with the code.
 //   - error: An error if validation fails.
 func (c *authorizationCodeService) ValidateAuthorizationCode(ctx context.Context, code, clientID, redirectURI string) (*authz.AuthorizationCodeData, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	authData, err := c.authzCodeRepo.GetAuthorizationCode(ctx, code)
 	if err != nil {
@@ -166,7 +166,7 @@ func (c *authorizationCodeService) ValidateAuthorizationCode(ctx context.Context
 //   - error: An error if revocation fails.
 func (c *authorizationCodeService) RevokeAuthorizationCode(ctx context.Context, code string) error {
 	if err := c.authzCodeRepo.DeleteAuthorizationCode(ctx, code); err != nil {
-		c.logger.Error(c.module, "", "[RevokeAuthorizationCode]: Failed to revoke authorization code=[%s]: %v", common.TruncateSensitive(code), err)
+		c.logger.Error(c.module, "", "[RevokeAuthorizationCode]: Failed to revoke authorization code=[%s]: %v", utils.TruncateSensitive(code), err)
 		return err
 	}
 
@@ -295,11 +295,11 @@ func (c *authorizationCodeService) validateUserAndClient(ctx context.Context, re
 		c.logger.Error(c.module, "", "An error occurred retrieving the user by ID: %v", err)
 		return errors.NewInternalServerError()
 	} else if retrievedUser == nil {
-		return errors.New(errors.ErrCodeUnauthorized, fmt.Sprintf("invalid user ID: %s", common.TruncateSensitive(req.UserID)))
+		return errors.New(errors.ErrCodeUnauthorized, fmt.Sprintf("invalid user ID: %s", utils.TruncateSensitive(req.UserID)))
 	}
 
 	if err := c.validateClientParameters(ctx, req.RedirectURI, req.ClientID, req.Scope); err != nil {
-		c.logger.Error(c.module, "", "Failed to validate client=[%s]: %v", common.TruncateSensitive(req.ClientID), err)
+		c.logger.Error(c.module, "", "Failed to validate client=[%s]: %v", utils.TruncateSensitive(req.ClientID), err)
 		return err
 	}
 

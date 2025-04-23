@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
@@ -98,8 +99,8 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 
 		request := &client.ClientAuthorizationRequest{
 			Client: &client.Client{
-				GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
-				ResponseTypes: []string{client.IDTokenResponseType},
+				GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+				ResponseTypes: []string{constants.IDTokenResponseType},
 			},
 			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
 		}
@@ -348,20 +349,20 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 func getClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 	return &client.ClientAuthorizationRequest{
 		ClientID:            testClientID,
-		ResponseType:        client.CodeResponseType,
+		ResponseType:        constants.CodeResponseType,
 		RedirectURI:         testRedirectURI,
-		Scope:               client.ClientManage,
+		Scope:               constants.ClientManage,
 		State:               "testState",
 		CodeChallenge:       "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
 		CodeChallengeMethod: client.S256,
 		UserID:              testUserID,
 		Client: &client.Client{
 			Name:          "Test Client",
-			Type:          client.PKCE,
+			Type:          constants.PKCE,
 			RedirectURIS:  []string{testRedirectURI},
-			GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
-			Scopes:        []string{client.ClientManage},
-			ResponseTypes: []string{client.CodeResponseType},
+			GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+			Scopes:        []string{constants.ClientManage},
+			ResponseTypes: []string{constants.CodeResponseType},
 		},
 	}
 }
@@ -380,15 +381,15 @@ func getTestClient() *client.Client {
 		ID:            testClientID,
 		Secret:        testClientSecret,
 		RedirectURIS:  []string{testClientID},
-		Scopes:        []string{client.ClientManage, client.UserRead},
-		GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
-		ResponseTypes: []string{client.CodeResponseType},
+		Scopes:        []string{constants.ClientManage, constants.UserRead},
+		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		ResponseTypes: []string{constants.CodeResponseType},
 	}
 }
 
 func getTestTokenRequest() *token.TokenRequest {
 	return &token.TokenRequest{
-		GrantType:         client.AuthorizationCode,
+		GrantType:         constants.AuthorizationCode,
 		AuthorizationCode: testAuthzCode,
 		RedirectURI:       testRedirectURI,
 		ClientID:          testClientID,

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var (
@@ -57,7 +57,7 @@ func ResetInMemoryUserRepository() {
 // Returns:
 //   - error: An error if the user cannot be added, or nil if successful.
 func (u *InMemoryUserRepository) AddUser(ctx context.Context, user *user.User) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[AddUser]: Context already cancelled")
 		return err
@@ -85,7 +85,7 @@ func (u *InMemoryUserRepository) AddUser(ctx context.Context, user *user.User) e
 //   - *User: The retrieved user, otherwise nil.
 //   - error: If an error occurs retrieving the user.
 func (u *InMemoryUserRepository) GetUserByUsername(ctx context.Context, username string) (*user.User, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[GetUserByUsername]: Context already cancelled")
 		return nil, err
@@ -115,7 +115,7 @@ func (u *InMemoryUserRepository) GetUserByUsername(ctx context.Context, username
 //   - *User: The User object if found, or nil if not found.
 //   - error: If an error occurs retrieving the user.
 func (u *InMemoryUserRepository) GetUserByID(ctx context.Context, userID string) (*user.User, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[GetUserByID]: Context already cancelled")
 		return nil, err
@@ -143,7 +143,7 @@ func (u *InMemoryUserRepository) GetUserByID(ctx context.Context, userID string)
 //   - *User: The User object if found, or nil if not found.
 //   - error: If an error occurs retrieving the user.
 func (u *InMemoryUserRepository) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[GetUserByEmail]: Context already cancelled")
 		return nil, err
@@ -187,7 +187,7 @@ func (u *InMemoryUserRepository) DeleteUserByID(ctx context.Context, userID stri
 // Returns:
 //   - error: An error if the user cannot be updated, or nil if successful.
 func (u *InMemoryUserRepository) UpdateUser(ctx context.Context, user *user.User) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[UpdateUser]: Context already cancelled")
 		return err

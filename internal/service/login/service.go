@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var _ login.LoginAttemptService = (*loginAttemptService)(nil)
@@ -49,10 +49,10 @@ func NewLoginAttemptService(
 //   - ctx Context: The context for managing timeouts and cancellations.
 //   - attempt *UserLoginAttempt: The login attempt to save.
 func (s *loginAttemptService) SaveLoginAttempt(ctx context.Context, attempt *user.UserLoginAttempt) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := s.loginRepo.SaveLoginAttempt(ctx, attempt); err != nil {
 		s.logger.Error(s.module, requestID, "[SaveLoginAttempt]: Failed to save login attempt for user=[%s]: %v",
-			common.TruncateSensitive(attempt.UserID), err,
+			utils.TruncateSensitive(attempt.UserID), err,
 		)
 		return errors.Wrap(err, "", "failed to save login attempt")
 	}
@@ -69,7 +69,7 @@ func (s *loginAttemptService) SaveLoginAttempt(ctx context.Context, attempt *use
 //   - []*UserLoginAttempt: A slice of login attempts for the user.
 //   - error: An error if retrieval fails.
 func (s *loginAttemptService) GetLoginAttemptsByUserID(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	attempts, err := s.loginRepo.GetLoginAttemptsByUserID(ctx, userID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GetLoginAttemptsByUserID]: An error occurred retrieving login attempts: %v", err)
@@ -90,34 +90,34 @@ func (s *loginAttemptService) GetLoginAttemptsByUserID(ctx context.Context, user
 // Returns:
 //   - error: An error if an operation fails.
 func (s *loginAttemptService) HandleFailedLoginAttempt(ctx context.Context, user *user.User, attempt *user.UserLoginAttempt) error {
-	requestID := common.GetRequestID(ctx)
-	s.logger.Info(s.module, requestID, "[HandleFailedLoginAttempt]: Authentication failed for user=[%s]", common.TruncateSensitive(user.ID))
+	requestID := utils.GetRequestID(ctx)
+	s.logger.Info(s.module, requestID, "[HandleFailedLoginAttempt]: Authentication failed for user=[%s]", utils.TruncateSensitive(user.ID))
 
 	user.LastFailedLogin = time.Now()
 	if err := s.loginRepo.SaveLoginAttempt(ctx, attempt); err != nil {
-		s.logger.Error(s.module, requestID, "[HandleFailedLoginAttempt]: Failed to save login attempt for user=[%s]: %v", common.TruncateSensitive(attempt.UserID), err)
+		s.logger.Error(s.module, requestID, "[HandleFailedLoginAttempt]: Failed to save login attempt for user=[%s]: %v", utils.TruncateSensitive(attempt.UserID), err)
 		return errors.Wrap(err, "", "failed to save failed login attempt")
 	}
 
 	if err := s.userRepo.UpdateUser(ctx, user); err != nil {
-		s.logger.Error(s.module, requestID, "[HandleFailedLoginAttempt]: Failed to update user=[%s]: %v", common.TruncateSensitive(user.ID), err)
+		s.logger.Error(s.module, requestID, "[HandleFailedLoginAttempt]: Failed to update user=[%s]: %v", utils.TruncateSensitive(user.ID), err)
 		return errors.Wrap(err, "", "failed to update the user")
 	}
 
 	if s.shouldLockAccount(ctx, user.ID) {
-		s.logger.Info(s.module, requestID, "[HandleFailedLoginAttempt]: Attempting to lock account for user=[%s]", common.TruncateSensitive(user.ID))
+		s.logger.Info(s.module, requestID, "[HandleFailedLoginAttempt]: Attempting to lock account for user=[%s]", utils.TruncateSensitive(user.ID))
 		if err := s.lockAccount(ctx, user); err != nil {
-			s.logger.Error(s.module, requestID, "[HandleFailedLoginAttempt]: Failed to lock account for user=[%s]: %v", common.TruncateSensitive(user.ID), err)
+			s.logger.Error(s.module, requestID, "[HandleFailedLoginAttempt]: Failed to lock account for user=[%s]: %v", utils.TruncateSensitive(user.ID), err)
 			return errors.Wrap(err, "", "failed to update the user")
 		}
-		s.logger.Info(s.module, requestID, "[HandleFailedLoginAttempt]: Account successfully locked for user=[%s]", common.TruncateSensitive(user.ID))
+		s.logger.Info(s.module, requestID, "[HandleFailedLoginAttempt]: Account successfully locked for user=[%s]", utils.TruncateSensitive(user.ID))
 	}
 
 	return nil
 }
 
 func (s *loginAttemptService) shouldLockAccount(ctx context.Context, userID string) bool {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	loginAttempts, err := s.loginRepo.GetLoginAttemptsByUserID(ctx, userID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "An error occurred retrieving user login attempts: %v", err)

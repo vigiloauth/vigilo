@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 type AuditEvent struct {
@@ -55,15 +56,15 @@ func (m MethodType) String() string { return string(m) }
 
 func NewAuditEvent(ctx context.Context, eventType EventType, success bool, action ActionType, method MethodType, errCode string) *AuditEvent {
 	event := &AuditEvent{
-		EventID:   common.AuditEventIDPrefix + crypto.GenerateUUID(),
+		EventID:   constants.AuditEventIDPrefix + crypto.GenerateUUID(),
 		Timestamp: time.Now(),
 		EventType: eventType,
 		Success:   success,
-		UserID:    common.GetValueFromContext(ctx, common.ContextKeyUserID),
-		IP:        common.GetValueFromContext(ctx, common.ContextKeyIPAddress),
-		UserAgent: common.GetValueFromContext(ctx, common.ContextKeyUserAgent),
-		RequestID: common.GetRequestID(ctx),
-		SessionID: common.GetValueFromContext(ctx, common.ContextKeySessionID),
+		UserID:    utils.GetValueFromContext(ctx, constants.ContextKeyUserID),
+		IP:        utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress),
+		UserAgent: utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent),
+		RequestID: utils.GetRequestID(ctx),
+		SessionID: utils.GetValueFromContext(ctx, constants.ContextKeySessionID),
 		ErrCode:   errCode,
 	}
 
@@ -74,10 +75,10 @@ func NewAuditEvent(ctx context.Context, eventType EventType, success bool, actio
 func (e *AuditEvent) addEventDetails(action ActionType, method MethodType) {
 	details := map[string]string{}
 	if action != "" {
-		details[common.ActionDetails] = action.String()
+		details[constants.ActionDetails] = action.String()
 	}
 	if method != "" {
-		details[common.MethodDetails] = method.String()
+		details[constants.MethodDetails] = method.String()
 	}
 
 	JSONDetails, err := json.Marshal(details)

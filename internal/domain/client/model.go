@@ -3,6 +3,8 @@ package domain
 import (
 	"slices"
 	"time"
+
+	"github.com/vigiloauth/vigilo/internal/constants"
 )
 
 // Client represents an OAuth client with its attributes and authentication details.
@@ -131,7 +133,7 @@ func (c *Client) HasGrantType(requiredGrantType string) bool {
 }
 
 func (c *Client) RequiresPKCE() bool {
-	return slices.Contains(c.GrantTypes, PKCE)
+	return slices.Contains(c.GrantTypes, constants.PKCE)
 }
 
 // HasRedirectURI checks to see if the client has the required redirectURI.
@@ -299,79 +301,11 @@ func (req *ClientAuthorizationRequest) Validate() error {
 	return ValidateClientAuthorizationRequest(req)
 }
 
-// Predefined grant types.
-const (
-	AuthorizationCode string = "authorization_code"
-	PKCE              string = "pkce"
-	ClientCredentials string = "client_credentials"
-	DeviceCode        string = "device_code"
-	RefreshToken      string = "refresh_token"
-	ImplicitFlow      string = "implicit_flow"
-	PasswordGrant     string = "password"
-)
-
-var ValidGrantTypes = map[string]bool{
-	AuthorizationCode: true,
-	PKCE:              true,
-	ClientCredentials: true,
-	DeviceCode:        true,
-	RefreshToken:      true,
-	ImplicitFlow:      true,
-	PasswordGrant:     true,
-}
-
 // Predefined client types.
 const (
 	Confidential string = "confidential"
 	Public       string = "public"
 )
-
-// Predefined response types.
-const (
-	CodeResponseType    string = "code"
-	TokenResponseType   string = "token"
-	IDTokenResponseType string = "id_token"
-)
-
-var ValidResponseTypes = map[string]bool{
-	CodeResponseType:    true,
-	TokenResponseType:   true,
-	IDTokenResponseType: true,
-}
-
-// Predefined scopes.
-const (
-	// Client Management Scopes
-	ClientRead   string = "clients:read"   // Read registered client details.
-	ClientWrite  string = "clients:write"  // Modify client details (except 'client_id' & 'client_secret')
-	ClientDelete string = "clients:delete" // Delete a registered client.
-	ClientManage string = "clients:manage" // Full control over all clients (includes 'read', 'write', and 'delete')
-
-	// Token Management Scopes
-	TokenIntrospect string = "tokens:introspect"
-	TokenRevoke     string = "tokens:revoke"
-
-	// User Management Scopes
-	UserRead   string = "users:read"   // Read user details (e.g., profile, email, etc.).
-	UserWrite  string = "users:write"  // Modify user details.
-	UserDelete string = "users:delete" // Delete a user account.
-	UserManage string = "users:manage" // Full control over users ('read', 'write'. and 'delete').
-)
-
-var ValidScopes = map[string]bool{
-	ClientRead:   true,
-	ClientWrite:  true,
-	ClientDelete: true,
-	ClientManage: true,
-
-	TokenIntrospect: true,
-	TokenRevoke:     true,
-
-	UserManage: true,
-	UserRead:   true,
-	UserDelete: true,
-	UserWrite:  true,
-}
 
 // Predefined code challenge methods.
 const (

@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 )
@@ -62,7 +62,7 @@ func (s *InMemorySessionRepository) SaveSession(ctx context.Context, sessionData
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if _, ok := s.data[sessionData.ID]; ok {
 		logger.Debug(module, requestID, "[SaveSession]: Failed to save session as it already exists")
 		return errors.New(errors.ErrCodeDuplicateSession, "session already exists with the given ID")
@@ -85,7 +85,7 @@ func (s *InMemorySessionRepository) GetSessionByID(ctx context.Context, sessionI
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	session, found := s.data[sessionID]
 	if !found {
 		logger.Debug(module, requestID, "[GetSessionByID]: No session exists with the given ID=%s", sessionID)
@@ -108,7 +108,7 @@ func (s *InMemorySessionRepository) UpdateSessionByID(ctx context.Context, sessi
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if _, ok := s.data[sessionID]; !ok {
 		logger.Debug(module, requestID, "[UpdateSessionByID]: No session exists with the given ID=%s", sessionID)
 		return errors.New(errors.ErrCodeSessionNotFound, "session does not exist with the provided ID")

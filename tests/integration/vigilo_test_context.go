@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/idp/server"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -54,7 +55,7 @@ const (
 	testAuthzCode       string = "valid-auth-code"
 )
 
-// VigiloTestContext encapsulates common testing functionality across all test types
+// VigiloTestContext encapsulates constants testing functionality across all test types
 type VigiloTestContext struct {
 	T                  *testing.T
 	VigiloServer       *server.VigiloIdentityServer
@@ -73,13 +74,33 @@ type VigiloTestContext struct {
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
-	config.GetServerConfig().Logger().SetLevel("INFO")
+	setEnvVariables()
 	return &VigiloTestContext{
 		T:                  t,
 		VigiloServer:       server.NewVigiloIdentityServer(),
 		SH256CodeChallenge: crypto.EncodeSHA256(testClientSecret),
 		PlainCodeChallenge: testClientSecret,
 	}
+}
+
+func setEnvVariables() {
+	os.Setenv(constants.CryptoSecretKeyENV, "test-secret-key")
+	defer os.Unsetenv(constants.CryptoSecretKeyENV)
+
+	os.Setenv(constants.SMTPUsernameENV, "fake@email")
+	defer os.Unsetenv(constants.SMTPUsernameENV)
+
+	os.Setenv(constants.SMTPFromAddressENV, "fake@email")
+	defer os.Unsetenv(constants.SMTPFromAddressENV)
+
+	os.Setenv(constants.SMTPPasswordENV, "password")
+	defer os.Unsetenv(constants.SMTPPasswordENV)
+
+	os.Setenv(constants.TokenIssuerENV, "fake-issuer")
+	defer os.Unsetenv(constants.TokenIssuerENV)
+
+	os.Setenv(constants.TokenSecretKeyENV, "secret-key")
+	defer os.Unsetenv(constants.TokenSecretKeyENV)
 }
 
 // WithLiveServer adds a live test server to the context.
@@ -96,7 +117,7 @@ func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
 
 	user.Password = hashedPassword
 	user.ID = testUserID
-	user.Scopes = []string{client.UserManage}
+	user.Scopes = []string{constants.UserManage}
 	userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
 
 	tc.User = user
@@ -123,7 +144,7 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 		Type:          clientType,
 		Scopes:        scopes,
 		GrantTypes:    grantTypes,
-		ResponseTypes: []string{client.CodeResponseType},
+		ResponseTypes: []string{constants.CodeResponseType},
 		RedirectURIS:  []string{testRedirectURI},
 	}
 
@@ -178,15 +199,15 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 	if tc.OAuthClient == nil {
 		tc.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage},
-			[]string{client.ClientCredentials},
+			[]string{constants.ClientManage},
+			[]string{constants.ClientCredentials},
 		)
 	}
 
 	auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
 	formData := url.Values{}
-	formData.Add(common.GrantType, client.ClientCredentials)
-	formData.Add(common.Scope, client.ClientManage)
+	formData.Add(constants.GrantType, constants.ClientCredentials)
+	formData.Add(constants.Scope, constants.ClientManage)
 
 	headers := map[string]string{
 		"Content-Type":  "application/x-www-form-urlencoded",
@@ -258,9 +279,9 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	// tc.State = state
 
 	queryParams := url.Values{}
-	queryParams.Add(common.ClientID, testClientID)
-	queryParams.Add(common.RedirectURI, testRedirectURI)
-	// queryParams.Add(common.State, state)
+	queryParams.Add(constants.ClientID, testClientID)
+	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	// queryParams.Add(constants.State, state)
 	endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
 
 	rr := tc.SendHTTPRequest(
@@ -319,9 +340,9 @@ func (tc *VigiloTestContext) WithUserSession() {
 
 func (tc *VigiloTestContext) GetStateFromSession() string {
 	queryParams := url.Values{}
-	queryParams.Add(common.ClientID, testClientID)
-	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.Scope, testScope)
+	queryParams.Add(constants.ClientID, testClientID)
+	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	queryParams.Add(constants.Scope, testScope)
 	getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 	headers := map[string]string{"Cookie": tc.SessionCookie.Name + "=" + tc.SessionCookie.Value}
@@ -343,7 +364,7 @@ func (tc *VigiloTestContext) GetAuthzCode() string {
 	queryParams := tc.CreateAuthorizationCodeRequestQueryParams("", "")
 	parsedURL := tc.sendAuthorizationCodeRequest(queryParams)
 
-	authzCode := parsedURL.Query().Get(client.CodeResponseType)
+	authzCode := parsedURL.Query().Get(constants.CodeResponseType)
 	assert.NotEmpty(tc.T, authzCode, "Authorization code should not be empty")
 
 	return authzCode
@@ -351,18 +372,18 @@ func (tc *VigiloTestContext) GetAuthzCode() string {
 
 func (tc *VigiloTestContext) CreateAuthorizationCodeRequestQueryParams(codeChallenge, codeChallengeMethod string) url.Values {
 	queryParams := url.Values{}
-	queryParams.Add(common.ResponseType, client.CodeResponseType)
-	queryParams.Add(common.ClientID, testClientID)
-	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.Scope, client.ClientManage)
-	queryParams.Add(common.State, tc.State)
-	queryParams.Add(common.Approved, "true")
+	queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+	queryParams.Add(constants.ClientID, testClientID)
+	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	queryParams.Add(constants.Scope, constants.ClientManage)
+	queryParams.Add(constants.State, tc.State)
+	queryParams.Add(constants.ConsentApprovedURLValue, "true")
 
 	if codeChallenge != "" {
-		queryParams.Add(common.CodeChallenge, codeChallenge)
+		queryParams.Add(constants.CodeChallenge, codeChallenge)
 	}
 	if codeChallengeMethod != "" {
-		queryParams.Add(common.CodeChallengeMethod, codeChallengeMethod)
+		queryParams.Add(constants.CodeChallengeMethod, codeChallengeMethod)
 	}
 
 	return queryParams
@@ -372,7 +393,7 @@ func (tc *VigiloTestContext) GetAuthzCodeWithPKCE(codeChallenge, codeChallengeMe
 	queryParams := tc.CreateAuthorizationCodeRequestQueryParams(codeChallenge, codeChallengeMethod)
 	parsedURL := tc.sendAuthorizationCodeRequest(queryParams)
 
-	authzCode := parsedURL.Query().Get(common.AuthzCode)
+	authzCode := parsedURL.Query().Get(constants.CodeURLValue)
 	assert.NotEmpty(tc.T, authzCode, "Authorization code should not be empty")
 
 	return authzCode
@@ -427,7 +448,7 @@ func (tc *VigiloTestContext) sendAuthorizationCodeRequest(queryParams url.Values
 	rr := tc.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 	assert.Equal(tc.T, http.StatusFound, rr.Code)
 
-	location := rr.Header().Get(common.Location)
+	location := rr.Header().Get(constants.RedirectLocationURLValue)
 	assert.NotEmpty(tc.T, location, "Redirect location should not be empty")
 
 	parsedURL, err := url.Parse(location)

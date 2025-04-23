@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var (
@@ -94,7 +94,7 @@ func (cs *InMemoryClientRepository) GetClientByID(ctx context.Context, clientID 
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	client, found := cs.data[clientID]
 	if !found {
 		logger.Debug(module, requestID, "[GetClientByID]: No client found using the given ID=%s", clientID)
@@ -132,7 +132,7 @@ func (cs *InMemoryClientRepository) UpdateClient(ctx context.Context, client *cl
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if _, clientExists := cs.data[client.ID]; !clientExists {
 		logger.Debug(module, requestID, "[UpdateClient]: No client found using the given ID=%s", client.ID)
 		return errors.New(errors.ErrCodeClientNotFound, "client not found using provided ID")

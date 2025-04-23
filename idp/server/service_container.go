@@ -14,7 +14,7 @@ import (
 	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/idp/handlers"
 	"github.com/vigiloauth/vigilo/internal/background"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
@@ -46,7 +46,7 @@ import (
 	clientService "github.com/vigiloauth/vigilo/internal/service/client"
 	cookieService "github.com/vigiloauth/vigilo/internal/service/cookies"
 	emailService "github.com/vigiloauth/vigilo/internal/service/email"
-	auditEncryptor "github.com/vigiloauth/vigilo/internal/service/encryption"
+	encryptionService "github.com/vigiloauth/vigilo/internal/service/encryption"
 	loginService "github.com/vigiloauth/vigilo/internal/service/login"
 	sessionService "github.com/vigiloauth/vigilo/internal/service/session"
 	tokenService "github.com/vigiloauth/vigilo/internal/service/token"
@@ -223,9 +223,13 @@ func (c *ServiceContainer) initializeServices() {
 	}
 	c.auditEncryptionInit = func() encryption.AuditEncryptor {
 		c.logger.Debug(c.module, "", "Initializing AuditEncryptor")
-		return auditEncryptor.NewAuditEncryptor(func() string {
-			return os.Getenv(common.CryptoSecretKeyENV)
+		return encryptionService.NewAuditEncryptor(func() string {
+			return os.Getenv(constants.CryptoSecretKeyENV)
 		}, c.getEncryptor())
+	}
+	c.encryptionServiceInit = func() encryption.EncryptionService {
+		c.logger.Debug(c.module, "", "Initializing EncryptionService")
+		return encryptionService.NewEncryptionService()
 	}
 }
 

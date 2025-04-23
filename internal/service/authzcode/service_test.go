@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
@@ -245,9 +246,9 @@ func createTestClient() *client.Client {
 		Secret:        testClientSecret,
 		Type:          client.Confidential,
 		RedirectURIS:  []string{testRedirectURI},
-		Scopes:        []string{client.ClientManage, client.ClientRead, client.ClientWrite},
-		ResponseTypes: []string{client.CodeResponseType, client.TokenResponseType},
-		GrantTypes:    []string{client.AuthorizationCode},
+		Scopes:        []string{constants.ClientManage, constants.ClientRead, constants.ClientWrite},
+		ResponseTypes: []string{constants.CodeResponseType, constants.TokenResponseType},
+		GrantTypes:    []string{constants.AuthorizationCode},
 	}
 }
 
@@ -269,12 +270,12 @@ func createClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 		RedirectURI: testRedirectURI,
 		Client: &client.Client{
 			Type:          client.Public,
-			ResponseTypes: []string{client.CodeResponseType},
-			GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
+			ResponseTypes: []string{constants.CodeResponseType},
+			GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
 			Scopes:        []string{testScope},
 			RedirectURIS:  []string{testRedirectURI},
 		},
-		ResponseType:        client.CodeResponseType,
+		ResponseType:        constants.CodeResponseType,
 		CodeChallenge:       validCodeChallenge,
 		CodeChallengeMethod: client.Plain,
 	}

@@ -1,8 +1,10 @@
-package common
+package utils
 
 import (
 	"context"
 	"net/url"
+
+	"github.com/vigiloauth/vigilo/internal/constants"
 )
 
 // Helper function to truncate sensitive data for logging
@@ -25,19 +27,19 @@ func SanitizeURL(uri string) string {
 
 // GetRequestID retrieves the request ID from the context.
 func GetRequestID(ctx context.Context) string {
-	if requestID, ok := ctx.Value(ContextKeyRequestID).(string); ok {
+	if requestID, ok := ctx.Value(constants.ContextKeyRequestID).(string); ok {
 		return requestID
 	}
 	return ""
 }
 
-func GetValueFromContext(ctx context.Context, value ContextKey) string {
+func GetValueFromContext(ctx context.Context, value constants.ContextKey) string {
 	if value, ok := ctx.Value(value).(string); ok {
 		return value
 	}
 	return ""
 }
 
-func AddKeyValueToContext(ctx context.Context, key ContextKey, value string) context.Context {
+func AddKeyValueToContext(ctx context.Context, key constants.ContextKey, value string) context.Context {
 	return context.WithValue(ctx, key, value)
 }

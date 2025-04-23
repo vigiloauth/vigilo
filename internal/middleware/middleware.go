@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 	web "github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -50,7 +51,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			requestID := common.GetRequestID(ctx)
+			requestID := utils.GetRequestID(ctx)
 			m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Processing request method=[%s] url=[%s]", r.Method, r.URL.Path)
 
 			tokenString, err := web.ExtractBearerToken(r)
@@ -85,7 +86,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 // RedirectToHTTPS is a middleware that redirects HTTP requests to HTTPS.
 func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := common.GetRequestID(r.Context())
+		requestID := utils.GetRequestID(r.Context())
 		m.logger.Debug(m.module, "[RedirectToHTTPS]: Processing request method=[%s] url=[%s]", r.Method, r.URL.Path)
 
 		if r.TLS == nil {
@@ -102,7 +103,7 @@ func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 // RateLimit is a middleware that limits the number of requests based on the rate limiter.
 func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := common.GetRequestID(r.Context())
+		requestID := utils.GetRequestID(r.Context())
 		m.logger.Debug(m.module, requestID, "[RateLimit]: Applying rate limiting to request method=[%s] url=[%s]", r.Method, r.URL.Path)
 
 		if !m.rateLimiter.Allow(requestID) {
@@ -121,7 +122,7 @@ func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 	strictLimiter := NewRateLimiter(maxRequestsForStrictRateLimiting)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := common.GetRequestID(r.Context())
+		requestID := utils.GetRequestID(r.Context())
 		m.logger.Debug(m.module, requestID, "[StrictRateLimit]: Applying strict rate limiting to request method=[%s] url=[%s]", r.Method, r.URL.Path)
 
 		if !strictLimiter.Allow(requestID) {
@@ -140,7 +141,7 @@ func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			requestID := common.GetRequestID(r.Context())
+			requestID := utils.GetRequestID(r.Context())
 			m.logger.Debug(m.module, requestID, "[RequireRequestMethod]: Validating request method=[%s] for url=[%s]", r.Method, r.URL.Path)
 
 			if r.Method != requestMethod {
@@ -160,20 +161,20 @@ func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handle
 func (m *Middleware) WithContextValues(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		requestID := r.Header.Get(common.RequestIDHeader)
+		requestID := r.Header.Get(constants.RequestIDHeader)
 		if requestID == "" {
 			requestID = crypto.GenerateUUID()
 		}
-		w.Header().Set(common.RequestIDHeader, requestID)
+		w.Header().Set(constants.RequestIDHeader, requestID)
 
 		ipAddress := r.RemoteAddr
-		if forwardedFor := r.Header.Get(common.XForwardedHeader); forwardedFor != "" {
+		if forwardedFor := r.Header.Get(constants.XForwardedHeader); forwardedFor != "" {
 			ipAddress = forwardedFor
 		}
 
-		ctx = common.AddKeyValueToContext(ctx, common.ContextKeyIPAddress, ipAddress)
-		ctx = common.AddKeyValueToContext(ctx, common.ContextKeyRequestID, requestID)
-		ctx = common.AddKeyValueToContext(ctx, common.ContextKeyUserAgent, r.UserAgent())
+		ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, ipAddress)
+		ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyRequestID, requestID)
+		ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, r.UserAgent())
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -184,7 +185,7 @@ func (m *Middleware) WithContextValues(next http.Handler) http.Handler {
 func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			requestID := common.GetRequestID(r.Context())
+			requestID := utils.GetRequestID(r.Context())
 			m.logger.Debug(m.module, requestID, "[RequiresContentType]: Validating content type=[%s] for url=[%s]", contentType, r.URL.Path)
 
 			if r.Method == http.MethodOptions {

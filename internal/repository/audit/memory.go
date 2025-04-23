@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+
 	domain "github.com/vigiloauth/vigilo/internal/domain/audit"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var (
@@ -89,7 +90,7 @@ func (r *InMemoryAuditEventRepository) GetAuditEvents(
 
 	auditEvents, err := r.getFilteredEvents(ctx, filters, from, to)
 	if err != nil {
-		logger.Error(module, common.GetRequestID(ctx), "[GetRequestID]: An error occurred retrieving filtered events: %v", err)
+		logger.Error(module, utils.GetRequestID(ctx), "[GetRequestID]: An error occurred retrieving filtered events: %v", err)
 		return nil, err
 	}
 
@@ -154,7 +155,7 @@ loop:
 						continue loop
 					}
 				default:
-					logger.Warn(module, common.GetRequestID(ctx), "[GetAuditEvents]: Unknown filter: %s", key)
+					logger.Warn(module, utils.GetRequestID(ctx), "[GetAuditEvents]: Unknown filter: %s", key)
 					continue loop
 				}
 			}

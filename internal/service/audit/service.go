@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	encryptor "github.com/vigiloauth/vigilo/internal/domain/encryption"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var _ audit.AuditLogger = (*auditLogger)(nil)
@@ -40,7 +40,7 @@ func NewAuditLogger(auditRepo audit.AuditRepository, encryption encryptor.AuditE
 //   - method MethodType: The method used (password, email, etc).
 //   - err error: The error if applicable, otherwise nil.
 func (a *auditLogger) StoreEvent(ctx context.Context, eventType audit.EventType, success bool, action audit.ActionType, method audit.MethodType, err error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	var errCode string
 	if e, ok := err.(*errors.VigiloAuthError); ok {

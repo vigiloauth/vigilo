@@ -6,12 +6,13 @@ import (
 	"strings"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -53,7 +54,7 @@ func NewAuthenticationService(
 // Returns:
 //   - *TokenResponse: A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails.
 func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context, clientID, clientSecret, grantType, scopes string) (*token.TokenResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := s.clientService.AuthenticateClient(ctx, clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: Failed to authenticate client: %v", err)
 		return nil, errors.Wrap(err, "", "failed to authenticate client")
@@ -69,7 +70,7 @@ func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.BearerAuthHeader,
+		TokenType:    constants.BearerAuthHeader,
 		Scope:        scopes,
 	}, nil
 }
@@ -88,7 +89,7 @@ func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context,
 // Returns:
 //   - *TokenResponse: A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails.
 func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, clientID, clientSecret, grantType, scopes string, req *user.UserLoginAttempt) (*token.TokenResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := s.clientService.AuthenticateClient(ctx, clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to authenticate client: %v", err)
 		return nil, err
@@ -110,7 +111,7 @@ func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, cli
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.BearerAuthHeader,
+		TokenType:    constants.BearerAuthHeader,
 		Scope:        scopes,
 	}, nil
 }
@@ -129,7 +130,7 @@ func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, cli
 // Returns:
 //   - *TokenResponse: A TokenResponse containing the newly generated access token and related metadata, or an error if token refresh fails.
 func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID, clientSecret, grantType, refreshToken, scopes string) (*token.TokenResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := s.clientService.AuthenticateClient(ctx, clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to authenticate client: %v", err)
 		return nil, err
@@ -168,7 +169,7 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    common.BearerAuthHeader,
+		TokenType:    constants.BearerAuthHeader,
 	}, nil
 }
 
@@ -185,7 +186,7 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 //     validity, expiration, and any associated metadata. If the token is valid, this
 //     response will include all relevant claims associated with the token.
 func (s *authenticationService) IntrospectToken(ctx context.Context, tokenStr string) *token.TokenIntrospectionResponse {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	retrievedToken, err := s.tokenService.GetToken(ctx, tokenStr)
 	if retrievedToken == nil || err != nil {
 		return &token.TokenIntrospectionResponse{Active: false}
@@ -231,12 +232,12 @@ func (s *authenticationService) IntrospectToken(ctx context.Context, tokenStr st
 //   - error: Returns an error if the header is malformed, the credentials are invalid,
 //     or the token fails validation.
 func (s *authenticationService) AuthenticateClientRequest(ctx context.Context, r *http.Request, scope string) error {
-	authHeader := r.Header.Get(common.Authorization)
+	authHeader := r.Header.Get(constants.AuthorizationHeader)
 
 	switch {
-	case strings.HasPrefix(authHeader, common.BasicAuthHeader):
+	case strings.HasPrefix(authHeader, constants.BasicAuthHeader):
 		return s.authenticateWithBasicAuth(ctx, r, scope)
-	case strings.HasPrefix(authHeader, common.BearerAuthHeader):
+	case strings.HasPrefix(authHeader, constants.BearerAuthHeader):
 		return s.authenticateWithBearerToken(ctx, r, scope)
 	default:
 		return errors.New(errors.ErrCodeInvalidClient, "failed to authorize client: missing authorization header")
@@ -251,7 +252,7 @@ func (s *authenticationService) AuthenticateClientRequest(ctx context.Context, r
 //   - ctx Context: The context for managing timeouts and cancellations.
 //   - token string: The token to be revoked.
 func (s *authenticationService) RevokeToken(ctx context.Context, tokenStr string) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	retrievedToken, err := s.tokenService.GetToken(ctx, tokenStr)
 	if retrievedToken == nil || err != nil {

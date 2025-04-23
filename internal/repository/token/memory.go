@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
 	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var (
@@ -69,7 +69,7 @@ func (b *InMemoryTokenRepository) SaveToken(ctx context.Context, tokenStr string
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if _, blacklisted := b.blacklist[tokenStr]; blacklisted {
 		logger.Debug(module, requestID, "[SaveToken]: Token=%s is blacklisted and will not be saved", truncateToken(tokenStr))
 		return nil
@@ -97,7 +97,7 @@ func (b *InMemoryTokenRepository) GetToken(ctx context.Context, token string) (*
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	data, exists := b.tokens[token]
 	if !exists {
 		logger.Debug(module, requestID, "[GetToken]: Token not found")

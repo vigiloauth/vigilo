@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	domain "github.com/vigiloauth/vigilo/internal/domain/email"
 	"gopkg.in/gomail.v2"
 )
@@ -62,10 +62,10 @@ func (m *goMailer) DialAndSend(host string, port int, username string, password 
 //   - *gomail.Message: A new gomail message containing the provided email details.
 func (m *goMailer) NewMessage(request *domain.EmailRequest, body string, subject string, fromAddress string) *gomail.Message {
 	message := gomail.NewMessage()
-	message.SetHeader(common.FromAddress, fromAddress)
-	message.SetHeader(common.Recipient, request.Recipient)
-	message.SetHeader(common.EmailSubject, subject)
-	message.SetBody(common.HTMLBody, body)
+	message.SetHeader(constants.FromAddress, fromAddress)
+	message.SetHeader(constants.Recipient, request.Recipient)
+	message.SetHeader(constants.EmailSubject, subject)
+	message.SetBody(constants.HTMLBody, body)
 
 	return message
 }

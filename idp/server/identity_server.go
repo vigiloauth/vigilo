@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/idp/handlers"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/middleware"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
@@ -18,7 +18,7 @@ const (
 	contentTypeForm string = "application/x-www-form-urlencoded"
 )
 
-var clientURLParam string = fmt.Sprintf("/{%s}", common.ClientID)
+var clientURLParam string = fmt.Sprintf("/{%s}", constants.ClientID)
 
 // VigiloIdentityServer represents the identity library's functionality.
 type VigiloIdentityServer struct {

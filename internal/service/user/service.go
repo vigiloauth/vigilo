@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
@@ -13,6 +13,7 @@ import (
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var _ users.UserService = (*userService)(nil)
@@ -60,7 +61,7 @@ func NewUserService(
 //   - *UserRegistrationResponse: The registered user object and an access token.
 //   - error: An error if any occurred during the process.
 func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.UserRegistrationResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	if err := u.saveUser(ctx, user); err != nil {
 		u.auditLogger.StoreEvent(ctx, audit.RegistrationAttempt, false, audit.RegistrationAction, audit.EmailMethod, err)
@@ -93,7 +94,7 @@ func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.
 //   - *User: The retrieved user, otherwise nil.
 //   - error: If an error occurs retrieving the user.
 func (u *userService) GetUserByUsername(ctx context.Context, username string) (*users.User, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	u.logger.Debug(u.module, requestID, "[GetUserByUsername]: Retrieving user by username=[%s]", username)
 	return u.userRepo.GetUserByUsername(ctx, username)
 }
@@ -114,7 +115,7 @@ func (u *userService) GetUserByUsername(ctx context.Context, username string) (*
 //   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 //   - error: An error if authentication fails or if the input is invalid.
 func (u *userService) HandleOAuthLogin(ctx context.Context, request *users.UserLoginRequest, clientID, redirectURI string) (*users.UserLoginResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := request.Validate(); err != nil {
 		u.logger.Error(u.module, requestID, "[HandleOAuthLogin]: Failed to validate request: %v", err)
 		return nil, err
@@ -149,8 +150,8 @@ func (u *userService) AuthenticateUserWithRequest(ctx context.Context, request *
 		Password: request.Password,
 	}
 
-	ipAddress := common.GetValueFromContext(ctx, common.ContextKeyIPAddress)
-	userAgent := common.GetValueFromContext(ctx, common.ContextKeyUserAgent)
+	ipAddress := utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress)
+	userAgent := utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent)
 	loginAttempt := users.NewUserLoginAttempt(ipAddress, userAgent)
 	return u.authenticateUser(ctx, user, loginAttempt)
 }
@@ -165,8 +166,8 @@ func (u *userService) AuthenticateUserWithRequest(ctx context.Context, request *
 //   - *User: The User object if found, or nil if not found.
 //   - error: If an error occurs retrieving the user.
 func (u *userService) GetUserByID(ctx context.Context, userID string) (*users.User, error) {
-	requestID := common.GetRequestID(ctx)
-	u.logger.Debug(u.module, requestID, "[GetUserByID]: Retrieving user by ID=[%s]", common.TruncateSensitive(userID))
+	requestID := utils.GetRequestID(ctx)
+	u.logger.Debug(u.module, requestID, "[GetUserByID]: Retrieving user by ID=[%s]", utils.TruncateSensitive(userID))
 	return u.userRepo.GetUserByID(ctx, userID)
 }
 
@@ -180,7 +181,7 @@ func (u *userService) GetUserByID(ctx context.Context, userID string) (*users.Us
 // Returns:
 //   - error: an error if validation fails, otherwise nil.
 func (u *userService) ValidateVerificationCode(ctx context.Context, verificationCode string) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if verificationCode == "" {
 		u.logger.Error(u.module, requestID, "[ValidateVerificationCode]: Verification code provided is empty")
 		return errors.New(errors.ErrCodeInvalidRequest, "missing one or more required parameters in the request")
@@ -237,7 +238,7 @@ func (u *userService) DeleteUnverifiedUsers(ctx context.Context) error {
 
 	for _, user := range expiredUsers {
 		if err := u.userRepo.DeleteUserByID(ctx, user.ID); err != nil {
-			u.logger.Error(u.module, "", "[DeleteUnverifiedUsers]: An error occurred deleting user by ID=[%s]: %v", common.TruncateSensitive(user.ID), err)
+			u.logger.Error(u.module, "", "[DeleteUnverifiedUsers]: An error occurred deleting user by ID=[%s]: %v", utils.TruncateSensitive(user.ID), err)
 			u.auditLogger.StoreEvent(ctx, audit.AccountDeletion, false, audit.AccountDeletionAction, audit.IDMethod, err)
 			return errors.NewInternalServerError()
 		}
@@ -258,7 +259,7 @@ func (u *userService) DeleteUnverifiedUsers(ctx context.Context) error {
 //   - *users.UserPasswordResetResponse: A response message.
 //   - error: An error if the operation fails.
 func (u *userService) ResetPassword(ctx context.Context, userEmail, newPassword, resetToken string) (*users.UserPasswordResetResponse, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	storedToken, err := u.tokenService.ParseToken(resetToken)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to parse reset token: %v", err)
@@ -338,7 +339,7 @@ func (u *userService) applyArtificialDelay(startTime time.Time) {
 func (u *userService) authenticateUser(ctx context.Context, loginUser *users.User, loginAttempt *users.UserLoginAttempt) (*users.UserLoginResponse, error) {
 	startTime := time.Now()
 	defer u.applyArtificialDelay(startTime)
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	retrievedUser, err := u.userRepo.GetUserByID(ctx, loginUser.ID)
 	if err != nil {
@@ -348,7 +349,7 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	} else if retrievedUser == nil {
 		err := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
 		u.logLoginEvent(ctx, false, err, loginAttempt.UserID)
-		u.logger.Error(u.module, requestID, "Failed to retrieve user by ID=[%s]: %v", common.TruncateSensitive(loginUser.ID), err)
+		u.logger.Error(u.module, requestID, "Failed to retrieve user by ID=[%s]: %v", utils.TruncateSensitive(loginUser.ID), err)
 		return nil, err
 	}
 
@@ -367,7 +368,7 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 
 	accessToken, err := u.tokenService.GenerateToken(ctx, retrievedUser.ID, "", u.tokenConfig.ExpirationTime())
 	if err != nil {
-		u.logger.Error(u.module, requestID, "Failed to generate access token for user=[%s]: %v", common.TruncateSensitive(retrievedUser.ID), err)
+		u.logger.Error(u.module, requestID, "Failed to generate access token for user=[%s]: %v", utils.TruncateSensitive(retrievedUser.ID), err)
 		return nil, errors.NewInternalServerError()
 	}
 
@@ -383,7 +384,7 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 }
 
 func (u *userService) updateAuthenticatedUser(ctx context.Context, user *users.User) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	if err := u.userRepo.UpdateUser(ctx, user); err != nil {
 		u.logger.Error(u.module, requestID, ": Failed to update user after successful authentication: %v", err)
 		return errors.Wrap(err, "", "failed to update user")
@@ -393,7 +394,7 @@ func (u *userService) updateAuthenticatedUser(ctx context.Context, user *users.U
 }
 
 func (u *userService) comparePasswords(ctx context.Context, loginUser *users.User, existingUser *users.User, loginAttempt *users.UserLoginAttempt) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	loginAttempt.UserID = existingUser.ID
 	if passwordsAreEqual := crypto.CompareHash(loginUser.Password, existingUser.Password); !passwordsAreEqual {
 		u.logger.Error(u.module, requestID, "Failed to compare passwords. Passwords do not match")
@@ -402,7 +403,7 @@ func (u *userService) comparePasswords(ctx context.Context, loginUser *users.Use
 		}
 
 		err := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
-		u.logger.Error(u.module, requestID, "Failed to authenticate user=[%s]: %v", common.TruncateSensitive(loginUser.ID), err)
+		u.logger.Error(u.module, requestID, "Failed to authenticate user=[%s]: %v", utils.TruncateSensitive(loginUser.ID), err)
 		return err
 	}
 
@@ -410,7 +411,7 @@ func (u *userService) comparePasswords(ctx context.Context, loginUser *users.Use
 }
 
 func (u *userService) userExistsByEmail(ctx context.Context, email string) (bool, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	user, err := u.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "Failed to retrieve user by email=[%s]: %v", email, err)
@@ -432,7 +433,7 @@ func (u *userService) encryptPassword(user *users.User) error {
 }
 
 func (u *userService) saveUser(ctx context.Context, user *users.User) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	exists, err := u.userExistsByEmail(ctx, user.Email)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[CreateUser]: An error occurred retrieving the user: %v", err)
@@ -446,7 +447,7 @@ func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 	}
 
 	user.CreatedAt = time.Now()
-	user.ID = common.UserIDPrefix + crypto.GenerateUUID()
+	user.ID = constants.UserIDPrefix + crypto.GenerateUUID()
 	if err := u.userRepo.AddUser(ctx, user); err != nil {
 		u.logger.Error(u.module, requestID, "Failed to save user: %v", err)
 		return errors.NewInternalServerError()
@@ -456,7 +457,7 @@ func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 }
 
 func (u *userService) sendVerificationEmail(ctx context.Context, user *users.User) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	verificationCode, err := u.tokenService.GenerateToken(ctx, user.Email, "", u.tokenConfig.AccessTokenDuration())
 	if err != nil {
 		u.logger.Error(u.module, requestID, "Failed to generate verification code: %v", err)
@@ -468,11 +469,11 @@ func (u *userService) sendVerificationEmail(ctx context.Context, user *users.Use
 }
 
 func (u *userService) logLoginEvent(ctx context.Context, success bool, err error, userID string) {
-	ctx = common.AddKeyValueToContext(ctx, common.ContextKeyUserID, userID)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserID, userID)
 	u.auditLogger.StoreEvent(ctx, audit.LoginAttempt, success, audit.AuthenticationAction, audit.OAuthMethod, err)
 }
 
 func (u *userService) logPasswordResetEvent(ctx context.Context, success bool, err error, userID string) {
-	ctx = common.AddKeyValueToContext(ctx, common.ContextKeyUserID, userID)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserID, userID)
 	u.auditLogger.StoreEvent(ctx, audit.PasswordChange, success, audit.PasswordResetAction, audit.EmailMethod, err)
 }

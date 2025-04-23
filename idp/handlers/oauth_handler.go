@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
@@ -16,6 +16,7 @@ import (
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
@@ -70,12 +71,12 @@ func (h *OAuthHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Processing request")
 
 	query := r.URL.Query()
-	clientID := query.Get(common.ClientID)
-	redirectURI := query.Get(common.RedirectURI)
+	clientID := query.Get(constants.ClientID)
+	redirectURI := query.Get(constants.RedirectURI)
 
 	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
 	if err != nil {
@@ -110,13 +111,13 @@ func (h *OAuthHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[UserConsent]: Processing request")
 
 	query := r.URL.Query()
-	clientID := query.Get(common.ClientID)
-	redirectURI := query.Get(common.RedirectURI)
-	scope := query.Get(common.Scope)
+	clientID := query.Get(constants.ClientID)
+	redirectURI := query.Get(constants.RedirectURI)
+	scope := query.Get(constants.Scope)
 
 	// Validate required parameters
 	if clientID == "" || redirectURI == "" || scope == "" {
@@ -184,12 +185,12 @@ func (h *OAuthHandler) handlePostConsent(w http.ResponseWriter, r *http.Request,
 func (h *OAuthHandler) buildOAuthRedirectURL(query url.Values, clientID, redirectURI string) string {
 	redirectURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s", web.OAuthEndpoints.Authorize, clientID, redirectURI)
 
-	state := query.Get(common.State)
+	state := query.Get(constants.State)
 	if state != "" {
 		redirectURL = fmt.Sprintf("%s&state=%s", redirectURL, url.QueryEscape(state))
 	}
 
-	scope := query.Get(common.Scope)
+	scope := query.Get(constants.Scope)
 	if scope != "" {
 		redirectURL = fmt.Sprintf("%s&scope=%s", redirectURL, url.QueryEscape(scope))
 	}

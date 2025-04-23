@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 // Ensure SessionService implements the Session interface.
@@ -66,16 +67,16 @@ func NewSessionService(
 //   - error: An error if token generation or cookie setting fails.
 func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, userID string, sessionExpiration time.Duration) error {
 	ctx := r.Context()
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	sessionToken, err := s.tokenService.GenerateToken(ctx, userID, "", sessionExpiration)
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to generate session token for user=[%s]: %v", common.TruncateSensitive(userID), err)
+		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to generate session token for user=[%s]: %v", utils.TruncateSensitive(userID), err)
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate session token")
 	}
 
 	sessionData := &session.SessionData{
-		ID:                 common.SessionIDPrefix + sessionToken,
+		ID:                 sessionToken,
 		UserID:             userID,
 		UserIPAddress:      r.RemoteAddr,
 		UserAgent:          r.UserAgent(),
@@ -90,7 +91,7 @@ func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, u
 		return wrappedErr
 	}
 
-	ctx = context.WithValue(ctx, common.ContextKeySessionID, sessionToken)
+	ctx = context.WithValue(ctx, constants.ContextKeySessionID, sessionToken)
 	s.auditLogger.StoreEvent(ctx, audit.SessionCreated, true, audit.SessionCreationAction, audit.CookieMethod, nil)
 	s.httpCookieService.SetSessionCookie(ctx, w, sessionToken, sessionExpiration)
 	return nil
@@ -106,17 +107,17 @@ func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, u
 //   - error: An error if token parsing or blacklist addition fails.
 func (s *sessionService) InvalidateSession(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	tokenString, err := s.parseTokenFromAuthzHeader(r)
 	if tokenString == "" || err != nil {
-		s.logger.Error(s.module, requestID, "[InvalidateSession]: Failed to invalidate session url=[%s]: %v", common.SanitizeURL(r.URL.String()), err)
+		s.logger.Error(s.module, requestID, "[InvalidateSession]: Failed to invalidate session url=[%s]: %v", utils.SanitizeURL(r.URL.String()), err)
 		return errors.Wrap(err, "", "failed to parse token from request headers")
 	}
 
 	claims, err := s.generateStandardClaims(ctx, tokenString)
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[InvalidateSession]: Failed to invalidate session url=[%s]: %v", common.SanitizeURL(r.URL.String()), err)
+		s.logger.Error(s.module, requestID, "[InvalidateSession]: Failed to invalidate session url=[%s]: %v", utils.SanitizeURL(r.URL.String()), err)
 		return errors.Wrap(err, "", "failed to generate JWT Standard Claims")
 	}
 
@@ -127,7 +128,7 @@ func (s *sessionService) InvalidateSession(w http.ResponseWriter, r *http.Reques
 
 	sessionID := claims.Subject
 	if err := s.sessionRepo.DeleteSessionByID(ctx, sessionID); err != nil {
-		s.logger.Error(s.module, requestID, "[InvalidateSession]: Failed to delete session=[%s]: %v", common.TruncateSensitive(sessionID), err)
+		s.logger.Error(s.module, requestID, "[InvalidateSession]: Failed to delete session=[%s]: %v", utils.TruncateSensitive(sessionID), err)
 		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to invalidate session")
 		s.auditLogger.StoreEvent(ctx, audit.SessionDeleted, false, audit.SessionDeletionAction, audit.CookieMethod, wrappedErr)
 		return wrappedErr
@@ -147,7 +148,7 @@ func (s *sessionService) InvalidateSession(w http.ResponseWriter, r *http.Reques
 //   - string: The user ID.
 func (s *sessionService) GetUserIDFromSession(r *http.Request) string {
 	ctx := r.Context()
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	tokenString, err := s.httpCookieService.GetSessionToken(r)
 	if err != nil {
@@ -176,7 +177,7 @@ func (s *sessionService) GetUserIDFromSession(r *http.Request) string {
 //   - error: If an error occurs during the update.
 func (s *sessionService) UpdateSession(r *http.Request, sessionData *session.SessionData) error {
 	ctx := r.Context()
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	sessionID, err := s.httpCookieService.GetSessionToken(r)
 	if err != nil {
@@ -186,18 +187,18 @@ func (s *sessionService) UpdateSession(r *http.Request, sessionData *session.Ses
 
 	if sessionID != sessionData.ID {
 		s.logger.Error(s.module, requestID, "[UpdateSession]: SessionID=[%s] and SessionDataID=[%s] do not match",
-			common.TruncateSensitive(sessionID),
-			common.TruncateSensitive(sessionData.ID),
+			utils.TruncateSensitive(sessionID),
+			utils.TruncateSensitive(sessionData.ID),
 		)
 		return errors.New(errors.ErrCodeUnauthorized, "session IDs do no match")
 	}
 
 	if err := s.sessionRepo.UpdateSessionByID(ctx, sessionID, sessionData); err != nil {
-		s.logger.Error(s.module, requestID, "[UpdateSession]: Failed to update session=[%s]: %v", common.TruncateSensitive(sessionID), err)
+		s.logger.Error(s.module, requestID, "[UpdateSession]: Failed to update session=[%s]: %v", utils.TruncateSensitive(sessionID), err)
 		return errors.Wrap(err, "", "failed to update session")
 	}
 
-	s.logger.Info(s.module, requestID, "[UpdateSession]: Session=[%s] updated successfully", common.TruncateSensitive(sessionID))
+	s.logger.Info(s.module, requestID, "[UpdateSession]: Session=[%s] updated successfully", utils.TruncateSensitive(sessionID))
 	return nil
 }
 
@@ -211,7 +212,7 @@ func (s *sessionService) UpdateSession(r *http.Request, sessionData *session.Ses
 //   - error: An error if retrieval fails.
 func (s *sessionService) GetSessionData(r *http.Request) (*session.SessionData, error) {
 	ctx := r.Context()
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	sessionID, err := s.httpCookieService.GetSessionToken(r)
 	if err != nil {
@@ -221,7 +222,7 @@ func (s *sessionService) GetSessionData(r *http.Request) (*session.SessionData, 
 
 	sessionData, err := s.sessionRepo.GetSessionByID(ctx, sessionID)
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[GetSessionData]: Failed to retrieve session by ID=[%s]: %v", common.TruncateSensitive(sessionID), err)
+		s.logger.Error(s.module, requestID, "[GetSessionData]: Failed to retrieve session by ID=[%s]: %v", utils.TruncateSensitive(sessionID), err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to retrieve session from repository")
 	}
 
@@ -237,15 +238,15 @@ func (s *sessionService) GetSessionData(r *http.Request) (*session.SessionData, 
 // Returns:
 //   - error: An error if the session update fails, or nil if successful.
 func (s *sessionService) ClearStateFromSession(ctx context.Context, sessionData *session.SessionData) error {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 
 	sessionData.State = ""
 	if err := s.sessionRepo.UpdateSessionByID(ctx, sessionData.ID, sessionData); err != nil {
-		s.logger.Error(s.module, requestID, "[ClearStateFromSession]: Failed to update session=[%s]: %v", common.TruncateSensitive(sessionData.ID), err)
+		s.logger.Error(s.module, requestID, "[ClearStateFromSession]: Failed to update session=[%s]: %v", utils.TruncateSensitive(sessionData.ID), err)
 		return errors.Wrap(err, "", "failed to update session")
 	}
 
-	s.logger.Debug(s.module, requestID, "[ClearStateFromSession]: State successfully cleared from session=[%s]", common.TruncateSensitive(sessionData.ID))
+	s.logger.Debug(s.module, requestID, "[ClearStateFromSession]: State successfully cleared from session=[%s]", utils.TruncateSensitive(sessionData.ID))
 	return nil
 }
 
@@ -258,18 +259,18 @@ func (s *sessionService) ClearStateFromSession(ctx context.Context, sessionData 
 //   - *SessionData: The retrieved session data if validation is successful.
 //   - error: An error if retrieving session data fails or if the state parameter does not match.
 func (s *sessionService) ValidateSessionState(r *http.Request) (*session.SessionData, error) {
-	requestID := common.GetRequestID(r.Context())
+	requestID := utils.GetRequestID(r.Context())
 	sessionData, err := s.GetSessionData(r)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[ValidateSessionState]: Failed to retrieve session data: %v", err)
 		return nil, errors.Wrap(err, "", "failed to retrieve session data")
 	}
 
-	state := r.URL.Query().Get(common.State)
+	state := r.URL.Query().Get(constants.State)
 	if state == "" || state != sessionData.State {
 		s.logger.Error(s.module, requestID, "[ValidateSessionData]: State parameter=[%s] does not match with session state=[%s]",
-			common.TruncateSensitive(state),
-			common.TruncateSensitive(sessionData.State),
+			utils.TruncateSensitive(state),
+			utils.TruncateSensitive(sessionData.State),
 		)
 		return nil, errors.New(errors.ErrCodeInvalidRequest, "state parameter does not match with session state")
 	}
@@ -279,15 +280,15 @@ func (s *sessionService) ValidateSessionState(r *http.Request) (*session.Session
 }
 
 func (s *sessionService) parseTokenFromAuthzHeader(r *http.Request) (string, error) {
-	requestID := common.GetRequestID(r.Context())
-	authHeader := r.Header.Get(common.Authorization)
+	requestID := utils.GetRequestID(r.Context())
+	authHeader := r.Header.Get(constants.AuthorizationHeader)
 	if authHeader == "" {
 		err := errors.New(errors.ErrCodeMissingHeader, "authorization header is missing")
 		s.logger.Error(s.module, requestID, "Failed to parse token from authorization header: %v", err)
 		return "", err
 	}
 
-	token := strings.TrimPrefix(authHeader, common.BearerAuthHeader)
+	token := strings.TrimPrefix(authHeader, constants.BearerAuthHeader)
 	if token == authHeader {
 		err := errors.New(errors.ErrCodeInvalidFormat, "malformed authorization header")
 		s.logger.Error(s.module, requestID, "Failed to parse token from authorization header: %v", err)
@@ -298,7 +299,7 @@ func (s *sessionService) parseTokenFromAuthzHeader(r *http.Request) (string, err
 }
 
 func (s *sessionService) generateStandardClaims(ctx context.Context, token string) (*token.TokenClaims, error) {
-	requestID := common.GetRequestID(ctx)
+	requestID := utils.GetRequestID(ctx)
 	claims, err := s.tokenService.ParseToken(token)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "Failed to generate token with standard claims: %v", err)
