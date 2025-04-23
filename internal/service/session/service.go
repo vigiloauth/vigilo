@@ -75,7 +75,7 @@ func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, u
 	}
 
 	sessionData := &session.SessionData{
-		ID:                 sessionToken,
+		ID:                 common.SessionIDPrefix + sessionToken,
 		UserID:             userID,
 		UserIPAddress:      r.RemoteAddr,
 		UserAgent:          r.UserAgent(),

@@ -55,7 +55,7 @@ func (m MethodType) String() string { return string(m) }
 
 func NewAuditEvent(ctx context.Context, eventType EventType, success bool, action ActionType, method MethodType, errCode string) *AuditEvent {
 	event := &AuditEvent{
-		EventID:   "event-" + crypto.GenerateUUID(),
+		EventID:   common.AuditEventIDPrefix + crypto.GenerateUUID(),
 		Timestamp: time.Now(),
 		EventType: eventType,
 		Success:   success,
@@ -69,92 +69,6 @@ func NewAuditEvent(ctx context.Context, eventType EventType, success bool, actio
 
 	event.addEventDetails(action, method)
 	return event
-}
-
-func (e *AuditEvent) Encrypt() error {
-	secretKey := "your-32-byte-long-secret-key-here-12345"
-	encryptedUserID, err := crypto.EncryptString(e.UserID, secretKey)
-	if err != nil {
-		return err
-	}
-	e.UserID = encryptedUserID
-
-	encryptedIP, err := crypto.EncryptString(e.IP, secretKey)
-	if err != nil {
-		return err
-	}
-	e.IP = encryptedIP
-
-	if len(e.Details) > 0 {
-		encDetails, err := crypto.EncryptBytes(e.Details, []byte(secretKey))
-		if err != nil {
-			return err
-		}
-		e.Details = json.RawMessage([]byte(encDetails))
-	}
-
-	if e.SessionID != "" {
-		encSessionID, err := crypto.EncryptString(e.SessionID, secretKey)
-		if err != nil {
-			return err
-		}
-		e.SessionID = encSessionID
-	}
-
-	if e.ErrCode != "" {
-		encErrCode, err := crypto.EncryptString(e.ErrCode, secretKey)
-		if err != nil {
-			return err
-		}
-		e.ErrCode = encErrCode
-	}
-
-	return nil
-}
-
-func (e *AuditEvent) Decrypt() error {
-	secretKey := "your-32-byte-long-secret-key-here-12345"
-	if e.UserID != "" {
-		plainUserID, err := crypto.DecryptString(e.UserID, secretKey)
-		if err != nil {
-			return err
-		}
-		e.UserID = plainUserID
-	}
-
-	if e.IP != "" {
-		plainIP, err := crypto.DecryptString(e.IP, secretKey)
-		if err != nil {
-			return err
-		}
-		e.IP = plainIP
-	}
-
-	if len(e.Details) > 0 {
-		plainDetails, err := crypto.DecryptBytes(string(e.Details), []byte(secretKey))
-		if err != nil {
-			return err
-		}
-		e.Details = plainDetails
-	}
-
-	if e.SessionID != "" {
-		plainSessionID, err := crypto.DecryptString(e.SessionID, secretKey)
-		if err != nil {
-			return err
-		}
-		e.SessionID = plainSessionID
-	}
-
-	if e.ErrCode != "" {
-		plainErrCode, err := crypto.DecryptString(e.ErrCode, secretKey)
-		if err != nil {
-			return err
-		}
-		e.ErrCode = plainErrCode
-	}
-
-	return nil
 }
 
 func (e *AuditEvent) addEventDetails(action ActionType, method MethodType) {

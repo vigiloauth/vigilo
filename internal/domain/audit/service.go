@@ -7,7 +7,7 @@ import (
 
 type AuditLogger interface {
 	// StoreEvent saves an AuditEvent to the repository.
-	// If an error occurrs storing the audit event, no error will be returned so that the flow is not disrupted.
+	// If an error occurs storing the audit event, no error will be returned so that the flow is not disrupted.
 	//
 	// Parameters:
 	//	- ctx Context: The context for managing timeouts, cancellations, and for storing/retrieving event metadata.

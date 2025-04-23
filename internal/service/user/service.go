@@ -446,7 +446,7 @@ func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 	}
 
 	user.CreatedAt = time.Now()
-	user.ID = crypto.GenerateUUID()
+	user.ID = common.UserIDPrefix + crypto.GenerateUUID()
 	if err := u.userRepo.AddUser(ctx, user); err != nil {
 		u.logger.Error(u.module, requestID, "Failed to save user: %v", err)
 		return errors.NewInternalServerError()

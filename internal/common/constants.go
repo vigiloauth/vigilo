@@ -1,5 +1,6 @@
 package common
 
+// Commonly used constants
 const (
 	ClientID                      string = "client_id"
 	ClientSecret                  string = "client_secret"
@@ -34,16 +35,31 @@ const (
 	HTMLBody                      string = "text/html"
 	VerifyEmailAddress            string = "Verify Your Email Address"
 	AccountDeletion               string = "Your Account Has Been Deleted"
+)
 
-	ActionDetails string = "action"
-	MethodDetails string = "method"
-
+// Environment variables constants
+const (
 	TokenSecretKeyENV string = "TOKEN_SECRET_KEY"
 	TokenIssuerENV    string = "TOKEN_ISSUER"
 
 	SMTPFromAddressENV string = "SMTP_FROM_ADDRESS"
 	SMTPUsernameENV    string = "SMTP_USERNAME"
 	SMTPPasswordENV    string = "SMTP_PASSWORD"
+
+	CryptoSecretKeyENV string = "CRYPTO_SECRET_KEY"
+)
+
+// ID prefix constants
+const (
+	UserIDPrefix       string = "user-"
+	SessionIDPrefix    string = "sess-"
+	AuditEventIDPrefix string = "audit-"
+)
+
+// Audit event secret keys
+const (
+	ActionDetails string = "action"
+	MethodDetails string = "method"
 )
 
 type ContextKey string

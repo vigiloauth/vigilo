@@ -90,8 +90,11 @@ func GenerateRandomString(length int) (string, error) {
 //   - string: The encrypted text, base64-encoded.
 //   - error: Error if an encryption issue occurs.
 func EncryptString(plaintext, secretKey string) (string, error) {
-	key := []byte(secretKey)
-	if len(key) != 32 {
+	key, err := base64.StdEncoding.DecodeString(secretKey)
+	if err != nil {
+		logger.Error(module, "", "[EncryptString]: Error decoding base64 secret key: %v", err)
+		return "", errors.NewInternalServerError()
+	} else if len(key) != 32 {
 		err := errors.New(errors.ErrCodeInvalidInput, "secret key must be 32 bytes for AES-256")
 		logger.Error(module, "", "[EncryptString]: Invalid input: %v", err)
 		return "", err
@@ -115,36 +118,39 @@ func EncryptString(plaintext, secretKey string) (string, error) {
 		return "", errors.NewInternalServerError()
 	}
 
-	ciphertext := aesGCM.Seal(nil, nonce, []byte(plaintext), nil)
-	result := append(nonce, ciphertext...)
+	cipherText := aesGCM.Seal(nil, nonce, []byte(plaintext), nil)
+	result := append(nonce, cipherText...)
 	return base64.StdEncoding.EncodeToString(result), nil
 }
 
-// DecryptString decrypts a base64-encoded ciphertext string using AES-GCM and a secret key.
+// DecryptString decrypts a base64-encoded cipher text string using AES-GCM and a secret key.
 // It returns the decrypted plaintext string.
 //
 // Parameters:
-//   - ciphertextBase64: The base64-encoded encrypted string.
+//   - cipherTextBase64: The base64-encoded encrypted string.
 //   - secretKey: The secret key used for encryption.
 //
 // Returns:
 //   - string: The decrypted plaintext string.
 //   - error: Error if decryption fails.
-func DecryptString(ciphertextBase64, secretKey string) (string, error) {
-	key := []byte(secretKey)
-	if len(key) != 32 {
+func DecryptString(cipherTextBase64, secretKey string) (string, error) {
+	key, err := base64.StdEncoding.DecodeString(secretKey)
+	if err != nil {
+		logger.Error(module, "", "[DecryptString]: Error decoding base64 secret key: %v", err)
+		return "", errors.NewInternalServerError()
+	} else if len(key) != 32 {
 		err := errors.New(errors.ErrCodeInvalidInput, "secret key must be 32 bytes for AES-256")
 		logger.Error(module, "", "[DecryptString]: Invalid input: %v", err)
 		return "", err
 	}
 
-	ciphertext, err := base64.StdEncoding.DecodeString(ciphertextBase64)
+	cipherText, err := base64.StdEncoding.DecodeString(cipherTextBase64)
 	if err != nil {
-		logger.Error(module, "", "[DecryptString]: Error decoding base64 ciphertext: %v", err)
+		logger.Error(module, "", "[DecryptString]: Error decoding base64 cipher text: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
-	nonce := ciphertext[:12]
+	nonce := cipherText[:12]
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		logger.Error(module, "", "[DecryptString]: Error creating AES cipher: %v", err)
@@ -157,9 +163,9 @@ func DecryptString(ciphertextBase64, secretKey string) (string, error) {
 		return "", errors.NewInternalServerError()
 	}
 
-	plaintext, err := aesGCM.Open(nil, nonce, ciphertext[12:], nil)
+	plaintext, err := aesGCM.Open(nil, nonce, cipherText[12:], nil)
 	if err != nil {
-		logger.Error(module, "", "[DecryptString]: Error decrypting ciphertext: %v", err)
+		logger.Error(module, "", "[DecryptString]: Error decrypting cipher text: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
@@ -175,14 +181,19 @@ func DecryptString(ciphertextBase64, secretKey string) (string, error) {
 // Returns:
 //   - string: The base64-encoded encrypted data.
 //   - error: Any error that occurs during encryption.
-func EncryptBytes(plainBytes []byte, secretKey []byte) (string, error) {
-	if len(secretKey) != 32 {
-		logger.Error(module, "", "[EncryptBytes]: Invalid key length. AES-256 requires a 32-byte key.")
-		return "", errors.New(errors.ErrCodeInvalidInput, "secret key must be 32 bytes for AES-256")
+func EncryptBytes(plainBytes []byte, secretKey string) (string, error) {
+	key, err := base64.StdEncoding.DecodeString(secretKey)
+	if err != nil {
+		logger.Error(module, "", "[EncryptBytes]: Error decoding base64 secret key: %v", err)
+		return "", errors.NewInternalServerError()
+	} else if len(key) != 32 {
+		err := errors.New(errors.ErrCodeInvalidInput, "secret key must be 32 bytes for AES-256")
+		logger.Error(module, "", "[EncryptBytes]: Invalid input: %v", err)
+		return "", err
 	}
 
 	// Generate a new AES cipher block based on the secret key
-	block, err := aes.NewCipher(secretKey)
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		logger.Error(module, "", "[EncryptBytes]: Error creating AES cipher: %v", err)
 		return "", errors.NewInternalServerError()
@@ -203,13 +214,13 @@ func EncryptBytes(plainBytes []byte, secretKey []byte) (string, error) {
 	}
 
 	// Encrypt the data
-	ciphertext := aesGCM.Seal(nil, nonce, plainBytes, nil)
+	cipherText := aesGCM.Seal(nil, nonce, plainBytes, nil)
 
-	// Combine the nonce and ciphertext for transmission (nonce + ciphertext)
-	result := append(nonce, ciphertext...)
+	// Combine the nonce and cipherText for transmission (nonce + cipherText)
+	result := append(nonce, cipherText...)
 
 	// Base64-encode the result to make it easily transmittable as a string
-	encodedResult := base64.RawURLEncoding.EncodeToString(result)
+	encodedResult := base64.StdEncoding.EncodeToString(result)
 
 	return encodedResult, nil
 }
@@ -217,21 +228,25 @@ func EncryptBytes(plainBytes []byte, secretKey []byte) (string, error) {
 // DecryptBytes decrypts an AES-GCM encrypted string (base64 encoded) into a byte slice.
 //
 // Parameters:
-//   - encryptedData string: The base64 encoded encrypted data (nonce + ciphertext).
+//   - encryptedData string: The base64 encoded encrypted data (nonce + cipherText).
 //   - secretKey []byte: The key used for decryption. It must be 32 bytes long for AES-256.
 //
 // Returns:
 //   - []byte: The decrypted byte slice (plain data).
 //   - error: Any error that occurs during decryption.
-func DecryptBytes(encryptedData string, secretKey []byte) ([]byte, error) {
-	// Ensure the secret key is of valid length (32 bytes for AES-256)
-	if len(secretKey) != 32 {
-		logger.Error(module, "", "[DecryptBytes]: Invalid key length. AES-256 requires a 32-byte key.")
-		return nil, errors.New(errors.ErrCodeInvalidInput, "secret key must be 32 bytes for AES-256")
+func DecryptBytes(encryptedData string, secretKey string) ([]byte, error) {
+	key, err := base64.StdEncoding.DecodeString(secretKey)
+	if err != nil {
+		logger.Error(module, "", "[DecryptBytes]: Error decoding base64 secret key: %v", err)
+		return nil, errors.NewInternalServerError()
+	} else if len(key) != 32 {
+		err := errors.New(errors.ErrCodeInvalidInput, "secret key must be 32 bytes for AES-256")
+		logger.Error(module, "", "[DecryptBytes]: Invalid input: %v", err)
+		return nil, err
 	}
 
 	// Decode the base64 encoded data
-	decodedData, err := base64.RawURLEncoding.DecodeString(encryptedData)
+	decodedData, err := base64.StdEncoding.DecodeString(encryptedData)
 	if err != nil {
 		logger.Error(module, "", "[DecryptBytes]: Error decoding base64 data: %v", err)
 		return nil, err
@@ -240,18 +255,18 @@ func DecryptBytes(encryptedData string, secretKey []byte) ([]byte, error) {
 	// Ensure the decoded data is at least the size of the nonce
 	if len(decodedData) < 12 {
 		err := errors.New(errors.ErrCodeInvalidInput, "invalid data length")
-		logger.Error(module, "", "[DecryptBytes]: Invalid data length. It must include a nonce and ciphertext.")
+		logger.Error(module, "", "[DecryptBytes]: Invalid data length. It must include a nonce and cipher text.")
 		return nil, err
 	}
 
 	// Extract the nonce (first 12 bytes)
 	nonce := decodedData[:12]
 
-	// Extract the ciphertext (remaining bytes)
-	ciphertext := decodedData[12:]
+	// Extract the cipherText (remaining bytes)
+	cipherText := decodedData[12:]
 
 	// Generate a new AES cipher block based on the secret key
-	block, err := aes.NewCipher(secretKey)
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		logger.Error(module, "", "[DecryptBytes]: Error creating AES cipher: %v", err)
 		return nil, errors.NewInternalServerError()
@@ -264,8 +279,8 @@ func DecryptBytes(encryptedData string, secretKey []byte) ([]byte, error) {
 		return nil, errors.NewInternalServerError()
 	}
 
-	// Decrypt the ciphertext using the nonce
-	plainBytes, err := aesGCM.Open(nil, nonce, ciphertext, nil)
+	// Decrypt the cipherText using the nonce
+	plainBytes, err := aesGCM.Open(nil, nonce, cipherText, nil)
 	if err != nil {
 		logger.Error(module, "", "[DecryptBytes]: Error decrypting data: %v", err)
 		return nil, errors.NewInternalServerError()
