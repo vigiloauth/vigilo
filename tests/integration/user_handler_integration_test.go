@@ -19,12 +19,7 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	defer testContext.TearDown()
 
-	requestBody := &users.UserRegistrationRequest{
-		Username: testUsername,
-		Email:    testEmail,
-		Password: testPassword1,
-		Roles:    []string{constants.AdminRole},
-	}
+	requestBody := testContext.GetUserRegistrationRequest()
 
 	body, err := json.Marshal(requestBody)
 	assert.NoError(t, err)
@@ -140,7 +135,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		userRepo := repository.GetInMemoryUserRepository()
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
 		assert.NoError(t, err)
-		assert.True(t, retrievedUser.Verified)
+		assert.True(t, retrievedUser.EmailVerified)
 	})
 
 	t.Run("Error is returned when the verification code is missing in the request", func(t *testing.T) {
@@ -157,7 +152,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
 		assert.NoError(t, err)
-		assert.False(t, retrievedUser.Verified)
+		assert.False(t, retrievedUser.EmailVerified)
 	})
 
 	t.Run("Error is returned when the verification code is expired", func(t *testing.T) {
@@ -176,7 +171,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		userRepo := repository.GetInMemoryUserRepository()
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
 		assert.NoError(t, err)
-		assert.False(t, retrievedUser.Verified)
+		assert.False(t, retrievedUser.EmailVerified)
 	})
 
 	t.Run("Error is returned when the user does not exist", func(t *testing.T) {

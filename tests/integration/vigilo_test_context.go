@@ -43,6 +43,17 @@ import (
 const (
 	// Test constants for reuse
 	testUsername        string = "testUser"
+	testFirstName       string = "John"
+	testMiddleName      string = "Mary"
+	testFamilyName      string = "Doe"
+	testBirthdate       string = "2000-12-06"
+	testPhoneNumber     string = "+14255551212"
+	testGender          string = "male"
+	testStreetAddress   string = "123 Main St"
+	testLocality        string = "Springfield"
+	testRegion          string = "IL"
+	testPostalCode      string = "62704"
+	testCountry         string = "USA"
 	testEmail           string = "test@email.com"
 	testPassword1       string = "Password123!@"
 	testPassword2       string = "NewPassword_$55"
@@ -438,6 +449,29 @@ func (tc *VigiloTestContext) WithAuditEvents() {
 		event := audit.NewAuditEvent(ctx, audit.LoginAttempt, false, audit.AuthenticationAction, audit.EmailMethod, errors.ErrCodeAccountLocked)
 		err := auditEventRepo.GetInMemoryAuditEventRepository().StoreAuditEvent(ctx, event)
 		assert.NoError(tc.T, err)
+	}
+}
+
+func (tc *VigiloTestContext) GetUserRegistrationRequest() *users.UserRegistrationRequest {
+	return &users.UserRegistrationRequest{
+		Username:    testUsername,
+		FirstName:   testFirstName,
+		MiddleName:  testMiddleName,
+		FamilyName:  testFamilyName,
+		Birthdate:   testBirthdate,
+		Email:       testEmail,
+		Gender:      testGender,
+		PhoneNumber: testPhoneNumber,
+		Password:    testPassword1,
+		Scopes:      []string{constants.UserManage},
+		Roles:       []string{constants.AdminRole},
+		Address: users.UserAddress{
+			StreetAddress: testStreetAddress,
+			Locality:      testLocality,
+			Region:        testRegion,
+			PostalCode:    testPostalCode,
+			Country:       testCountry,
+		},
 	}
 }
 

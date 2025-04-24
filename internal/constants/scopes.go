@@ -12,10 +12,15 @@ const (
 	TokenRevoke     string = "tokens:revoke"
 
 	// User Management Scopes
-	UserRead   string = "users:read"   // Read user details (e.g., profile, email, etc.).
-	UserWrite  string = "users:write"  // Modify user details.
-	UserDelete string = "users:delete" // Delete a user account.
-	UserManage string = "users:manage" // Full control over users ('read', 'write'. and 'delete').
+	UserRead          string = "users:read"           // Read user details (e.g., profile, email, etc.).
+	UserWrite         string = "users:write"          // Modify user details.
+	UserDelete        string = "users:delete"         // Delete a user account.
+	UserManage        string = "users:manage"         // Full control over users ('read', 'write'. and 'delete').
+	UserProfile       string = "users:profile"        // Access to user profile (`name`, `middle_name`, `family_name`, `birthdate`, and `update_at`).
+	UserEmail         string = "users:email"          // Access to the user's email address (`email` and `email_verified`).
+	UserPhone         string = "users:phone"          // Access to the user's phone number (`phone_number` and `phone_number_verified`).
+	UserAddress       string = "users:address"        // Access to the user's address.
+	UserOfflineAccess string = "users:offline_access" // Access to the user's information while they are offline.
 )
 
 var ValidScopes = map[string]bool{
@@ -27,8 +32,13 @@ var ValidScopes = map[string]bool{
 	TokenIntrospect: true,
 	TokenRevoke:     true,
 
-	UserManage: true,
-	UserRead:   true,
-	UserDelete: true,
-	UserWrite:  true,
+	UserManage:        true,
+	UserRead:          true,
+	UserDelete:        true,
+	UserWrite:         true,
+	UserProfile:       true,
+	UserEmail:         true,
+	UserPhone:         true,
+	UserAddress:       true,
+	UserOfflineAccess: true,
 }

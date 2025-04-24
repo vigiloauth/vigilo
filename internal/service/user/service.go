@@ -72,7 +72,6 @@ func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.
 
 	if err := u.sendVerificationEmail(ctx, user); err != nil {
 		u.logger.Error(u.module, requestID, "[CreateUser]: Failed to send account verification email: %v", err)
-		return nil, nil
 	}
 
 	accessToken, err := u.tokenService.GenerateToken(
@@ -233,11 +232,11 @@ func (u *userService) ValidateVerificationCode(ctx context.Context, verification
 		return errors.New(errors.ErrCodeUnauthorized, "the verification code is invalid")
 	}
 
-	if user.Verified {
+	if user.EmailVerified {
 		return nil
 	}
 
-	user.Verified = true
+	user.EmailVerified = true
 	if err := u.updateAuthenticatedUser(ctx, user); err != nil {
 		u.logger.Error(u.module, requestID, "[ValidateVerificationCode]: Failed to update the authenticated user: %v", err)
 		return err
@@ -466,6 +465,7 @@ func (u *userService) encryptPassword(user *users.User) error {
 
 func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 	requestID := utils.GetRequestID(ctx)
+
 	exists, err := u.userExistsByEmail(ctx, user.Email)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[CreateUser]: An error occurred retrieving the user: %v", err)
@@ -473,6 +473,7 @@ func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 	} else if exists {
 		return errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
 	}
+
 	if err := u.encryptPassword(user); err != nil {
 		u.logger.Error(u.module, requestID, "Failed to create new user: %v", err)
 		return errors.NewInternalServerError()
