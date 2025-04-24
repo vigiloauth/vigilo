@@ -252,7 +252,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithClient(test.clientType, []string{constants.UserManage}, []string{constants.PasswordGrant})
-				testContext.WithUser()
+				testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 				formData := url.Values{}
 				formData.Add(constants.GrantType, constants.PasswordGrant)
@@ -287,7 +287,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		defer testContext.TearDown()
 
 		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
-		testContext.WithUser()
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
 		formData.Add(constants.GrantType, constants.PasswordGrant)
@@ -311,7 +311,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		defer testContext.TearDown()
 
 		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
-		testContext.WithUser()
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
 		formData.Add(constants.GrantType, constants.PasswordGrant)
@@ -335,7 +335,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		defer testContext.TearDown()
 
 		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
-		testContext.WithUser()
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
 		formData.Add(constants.GrantType, constants.PasswordGrant)
@@ -360,14 +360,13 @@ func TestTokenHandler_TokenExchange(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
+		testContext.WithUserSession()
+		testContext.WithUserConsent()
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
 			[]string{constants.AuthorizationCode},
 		)
-		testContext.WithUser()
-		testContext.WithUserSession()
-		testContext.WithUserConsent()
 
 		authzCode := testContext.GetAuthzCode()
 
@@ -391,13 +390,12 @@ func TestTokenHandler_TokenExchange(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
+		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
 			[]string{constants.AuthorizationCode},
 		)
-		testContext.WithUserSession()
 
 		formData := url.Values{}
 		formData.Add(constants.CodeURLValue, "valid-code")
@@ -463,7 +461,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 				[]string{constants.ClientManage},
 				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
-			testContext.WithUser()
+
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 
@@ -524,7 +522,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 				[]string{constants.ClientManage},
 				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
-			testContext.WithUser()
+
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 

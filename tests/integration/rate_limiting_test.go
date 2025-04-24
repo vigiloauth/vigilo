@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
@@ -25,8 +26,7 @@ func TestRateLimiting(t *testing.T) {
 	testContext.WithCustomConfig(config.WithMaxRequestsPerMinute(requestsPerMinute))
 
 	for range requestsPerMinute {
-		testContext.WithUser()
-
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.UserEndpoints.Login,

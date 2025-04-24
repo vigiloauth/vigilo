@@ -14,14 +14,12 @@ import (
 	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/idp/handlers"
 	"github.com/vigiloauth/vigilo/internal/background"
-	"github.com/vigiloauth/vigilo/internal/constants"
 	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
 	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
-	encryption "github.com/vigiloauth/vigilo/internal/domain/encryption"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -46,7 +44,6 @@ import (
 	clientService "github.com/vigiloauth/vigilo/internal/service/client"
 	cookieService "github.com/vigiloauth/vigilo/internal/service/cookies"
 	emailService "github.com/vigiloauth/vigilo/internal/service/email"
-	encryptionService "github.com/vigiloauth/vigilo/internal/service/encryption"
 	loginService "github.com/vigiloauth/vigilo/internal/service/login"
 	sessionService "github.com/vigiloauth/vigilo/internal/service/session"
 	tokenService "github.com/vigiloauth/vigilo/internal/service/token"
@@ -79,8 +76,6 @@ type ServiceContainer struct {
 	emailServiceOnce         sync.Once
 	mailerOnce               sync.Once
 	auditLoggerOnce          sync.Once
-	auditEncryptorOnce       sync.Once
-	encryptorOnce            sync.Once
 
 	tokenService         token.TokenService
 	sessionService       session.SessionService
@@ -95,8 +90,6 @@ type ServiceContainer struct {
 	emailService         email.EmailService
 	mailer               email.Mailer
 	auditLogger          audit.AuditLogger
-	auditEncryption      encryption.AuditEncryptor
-	encryptionService    encryption.EncryptionService
 
 	tokenServiceInit         func() token.TokenService
 	sessionServiceInit       func() session.SessionService
@@ -111,14 +104,13 @@ type ServiceContainer struct {
 	emailServiceInit         func() email.EmailService
 	mailerInit               func() email.Mailer
 	auditLoggerInit          func() audit.AuditLogger
-	auditEncryptionInit      func() encryption.AuditEncryptor
-	encryptionServiceInit    func() encryption.EncryptionService
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
 	tokenHandler  *handlers.TokenHandler
 	authzHandler  *handlers.AuthorizationHandler
 	oauthHandler  *handlers.OAuthHandler
+	adminHandler  *handlers.AdminHandler
 
 	middleware *middleware.Middleware
 	tlsConfig  *tls.Config
@@ -219,17 +211,7 @@ func (c *ServiceContainer) initializeServices() {
 	}
 	c.auditLoggerInit = func() audit.AuditLogger {
 		c.logger.Debug(c.module, "", "Initializing AuditLogger")
-		return auditLogger.NewAuditLogger(c.auditEventRepo, c.getAuditEncryptor())
-	}
-	c.auditEncryptionInit = func() encryption.AuditEncryptor {
-		c.logger.Debug(c.module, "", "Initializing AuditEncryptor")
-		return encryptionService.NewAuditEncryptor(func() string {
-			return os.Getenv(constants.CryptoSecretKeyENV)
-		}, c.getEncryptor())
-	}
-	c.encryptionServiceInit = func() encryption.EncryptionService {
-		c.logger.Debug(c.module, "", "Initializing EncryptionService")
-		return encryptionService.NewEncryptionService()
+		return auditLogger.NewAuditLogger(c.auditEventRepo)
 	}
 }
 
@@ -241,6 +223,7 @@ func (c *ServiceContainer) initializeHandlers() {
 	c.tokenHandler = handlers.NewTokenHandler(c.getAuthService(), c.getSessionService(), c.getAuthorizationService())
 	c.authzHandler = handlers.NewAuthorizationHandler(c.getAuthorizationService(), c.getSessionService())
 	c.oauthHandler = handlers.NewOAuthHandler(c.getUserService(), c.getSessionService(), c.getClientService(), c.getConsentService(), c.getAuthzCodeService())
+	c.adminHandler = handlers.NewAdminHandler(c.getAuditLogger())
 }
 
 // initializeServerConfigs initializes the server-related configurations,
@@ -419,14 +402,4 @@ func (c *ServiceContainer) getGoMailer() email.Mailer {
 func (c *ServiceContainer) getAuditLogger() audit.AuditLogger {
 	c.auditLoggerOnce.Do(func() { c.auditLogger = c.auditLoggerInit() })
 	return c.auditLogger
-}
-
-func (c *ServiceContainer) getAuditEncryptor() encryption.AuditEncryptor {
-	c.auditEncryptorOnce.Do(func() { c.auditEncryption = c.auditEncryptionInit() })
-	return c.auditEncryption
-}
-
-func (c *ServiceContainer) getEncryptor() encryption.EncryptionService {
-	c.encryptorOnce.Do(func() { c.encryptionService = c.encryptionServiceInit() })
-	return c.encryptionService
 }

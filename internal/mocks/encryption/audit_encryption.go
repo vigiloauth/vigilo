@@ -10,6 +10,7 @@ var _ encryption.AuditEncryptor = (*MockAuditEncryptor)(nil)
 type MockAuditEncryptor struct {
 	EncryptAuditEventFunc func(event *audit.AuditEvent) error
 	DecryptAuditEventFunc func(event *audit.AuditEvent) error
+	EncryptStringFunc     func(value string) (string, error)
 }
 
 func (m *MockAuditEncryptor) EncryptAuditEvent(event *audit.AuditEvent) error {
@@ -18,4 +19,8 @@ func (m *MockAuditEncryptor) EncryptAuditEvent(event *audit.AuditEvent) error {
 
 func (m *MockAuditEncryptor) DecryptAuditEvent(event *audit.AuditEvent) error {
 	return m.DecryptAuditEventFunc(event)
+}
+
+func (m *MockAuditEncryptor) EncryptString(value string) (string, error) {
+	return m.EncryptStringFunc(value)
 }

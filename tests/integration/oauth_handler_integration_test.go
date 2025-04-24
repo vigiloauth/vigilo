@@ -21,7 +21,7 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
@@ -90,7 +90,6 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
@@ -115,7 +114,6 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
@@ -193,7 +191,6 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithUser()
 				testContext.WithUserSession()
 				testContext.WithClient(
 					client.Confidential,
@@ -210,10 +207,8 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 	t.Run("Post Request - state mismatch", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithUser()
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
@@ -248,7 +243,6 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
@@ -294,7 +288,6 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,

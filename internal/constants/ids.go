@@ -4,5 +4,8 @@ package constants
 const (
 	AuditEventIDPrefix string = "audit-"
 	SessionIDPrefix    string = "sess-"
-	UserIDPrefix       string = "user-"
+	RequestIDPrefix    string = "req-"
+	UserRoleIDPrefix   string = "user-"
+	AdminRoleIDPrefix  string = "admin-"
+	ClientIDPrefix     string = "client-"
 )

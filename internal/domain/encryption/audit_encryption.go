@@ -23,4 +23,6 @@ type AuditEncryptor interface {
 	// Returns:
 	//   - error: An error if decryption of any field fails, nil on success
 	DecryptAuditEvent(event *domain.AuditEvent) error
+
+	EncryptString(value string) (string, error)
 }

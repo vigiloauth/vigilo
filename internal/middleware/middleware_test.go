@@ -20,7 +20,6 @@ const email string = "test@example.com"
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	mockTokenService := &mocks.MockTokenService{}
-
 	tokenString := "validToken"
 
 	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {

@@ -22,7 +22,7 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 		[]string{constants.ClientManage, constants.UserManage},
 		[]string{constants.AuthorizationCode},
 	)
-	testContext.WithUser()
+	testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
 
@@ -55,7 +55,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 		[]string{constants.ClientManage, constants.UserManage},
 		[]string{constants.AuthorizationCode, constants.PKCE},
 	)
-	testContext.WithUser()
+
 	testContext.WithUserSession()
 
 	// Call AuthorizeClient Endpoint
@@ -85,7 +85,7 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 		[]string{constants.ClientManage, constants.UserManage},
 		[]string{constants.AuthorizationCode, constants.PKCE},
 	)
-	testContext.WithUser()
+
 	testContext.WithUserConsent()
 
 	// Call AuthorizeClient Endpoint
@@ -115,7 +115,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 		[]string{constants.ClientManage, constants.UserManage},
 		[]string{constants.AuthorizationCode},
 	)
-	testContext.WithUser()
+
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
 
@@ -149,7 +149,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 		[]string{constants.ClientManage, constants.UserManage},
 		[]string{constants.AuthorizationCode},
 	)
-	testContext.WithUser()
+
 	testContext.WithUserSession()
 
 	// Call AuthorizeClient Endpoint
@@ -209,7 +209,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 				[]string{constants.ClientManage},
 				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
-			testContext.WithUser()
+
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 
@@ -242,7 +242,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			[]string{constants.ClientManage},
 			[]string{constants.AuthorizationCode},
 		)
-		testContext.WithUser()
+
 		testContext.WithUserSession()
 		testContext.WithUserConsent()
 
@@ -266,7 +266,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			[]string{constants.ClientManage},
 			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
-		testContext.WithUser()
+
 		testContext.WithUserSession()
 		testContext.WithUserConsent()
 
@@ -290,7 +290,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			[]string{constants.ClientManage},
 			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
-		testContext.WithUser()
+
 		testContext.WithUserSession()
 		testContext.WithUserConsent()
 
@@ -354,7 +354,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 				[]string{constants.ClientManage},
 				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
-			testContext.WithUser()
+
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 

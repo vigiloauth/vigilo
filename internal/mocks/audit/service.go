@@ -12,6 +12,7 @@ var _ domain.AuditLogger = (*MockAuditLogger)(nil)
 type MockAuditLogger struct {
 	StoreEventFunc      func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error)
 	DeleteOldEventsFunc func(cts context.Context, olderThan time.Time) error
+	GetAuditEventsFunc  func(ctx context.Context, filters map[string]any, from string, to string, limit, offset int) ([]*domain.AuditEvent, error)
 }
 
 func (m *MockAuditLogger) StoreEvent(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
@@ -20,4 +21,8 @@ func (m *MockAuditLogger) StoreEvent(ctx context.Context, eventType domain.Event
 
 func (m *MockAuditLogger) DeleteOldEvents(ctx context.Context, olderThan time.Time) error {
 	return m.DeleteOldEventsFunc(ctx, olderThan)
+}
+
+func (m *MockAuditLogger) GetAuditEvents(ctx context.Context, filters map[string]any, from string, to string, limit, offset int) ([]*domain.AuditEvent, error) {
+	return m.GetAuditEventsFunc(ctx, filters, from, to, limit, offset)
 }

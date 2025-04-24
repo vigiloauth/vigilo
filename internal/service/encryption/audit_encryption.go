@@ -137,3 +137,7 @@ func (a *auditEncryptor) DecryptAuditEvent(event *audit.AuditEvent) error {
 
 	return nil
 }
+
+func (a *auditEncryptor) EncryptString(value string) (string, error) {
+	return a.encryption.EncryptString(value, a.secretKey)
+}

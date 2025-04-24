@@ -5,6 +5,7 @@ const (
 	defaultClientEndpoint string = "/client"
 	defaultOAuthEndpoint  string = "/oauth"
 	defaultTokenEndpoint  string = "/token"
+	defaultAdminEndpoint  string = "/admin"
 )
 
 var UserEndpoints = struct {
@@ -47,4 +48,10 @@ var OAuthEndpoints = struct {
 	TokenExchange:   defaultOAuthEndpoint + "/token",
 	IntrospectToken: defaultOAuthEndpoint + defaultTokenEndpoint + "/introspect",
 	RevokeToken:     defaultOAuthEndpoint + defaultTokenEndpoint + "/revoke",
+}
+
+var AdminEndpoints = struct {
+	GetAuditEvents string
+}{
+	GetAuditEvents: defaultAdminEndpoint + "/audit-events",
 }

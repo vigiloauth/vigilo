@@ -158,8 +158,8 @@ func (u *userService) AuthenticateUserWithRequest(ctx context.Context, request *
 		Password: request.Password,
 	}
 
-	ipAddress := utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress)
-	userAgent := utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent)
+	ipAddress := utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress).(string)
+	userAgent := utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent).(string)
 	loginAttempt := users.NewUserLoginAttempt(ipAddress, userAgent)
 	return u.authenticateUser(ctx, user, loginAttempt)
 }
@@ -462,7 +462,12 @@ func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 	}
 
 	user.CreatedAt = time.Now()
-	user.ID = constants.UserIDPrefix + crypto.GenerateUUID()
+	if user.HasRole(constants.AdminRole) {
+		user.ID = constants.AdminRoleIDPrefix + crypto.GenerateUUID()
+	} else {
+		user.ID = constants.UserRoleIDPrefix + crypto.GenerateUUID()
+	}
+
 	if err := u.userRepo.AddUser(ctx, user); err != nil {
 		u.logger.Error(u.module, requestID, "Failed to save user: %v", err)
 		return errors.NewInternalServerError()

@@ -124,6 +124,10 @@ loop:
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
+			event.Timestamp = event.Timestamp.UTC().Truncate(time.Second)
+			from = from.UTC().Truncate(time.Second)
+			to = to.UTC().Truncate(time.Second)
+
 			if event.Timestamp.Before(from) || event.Timestamp.After(to) {
 				continue
 			}

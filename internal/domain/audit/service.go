@@ -27,4 +27,19 @@ type AuditLogger interface {
 	// Returns:
 	//  - error: An error if deletion fails, otherwise nil.
 	DeleteOldEvents(ctx context.Context, olderThan time.Time) error
+
+	// GetAuditEvents retrieves audit events that match the provided filters and time range.
+	//
+	// Parameters:
+	//	- ctx Context: The context for managing timeouts and cancellations.
+	//  - filters map[string]any: A map of filter keys and values to apply.
+	//  - from string: The start time of the time range to filter events (must be RFC3339 Format).
+	//  - to string: The end time of the time range to filter events (must be RFC3339 Format).
+	//  - limit int: The maximum number of events to return.
+	//  - offset int: The number of events to skip (for pagination).
+	//
+	// Returns:
+	//  - []*AuditEvent: A slice of matching audit events.
+	//  - error: An error if the retrieval fails, otherwise nil.
+	GetAuditEvents(ctx context.Context, filters map[string]any, fromStr string, toStr string, limit, offset int) ([]*AuditEvent, error)
 }

@@ -2,15 +2,11 @@ package constants
 
 // Predefined user roles
 const (
-	UserRole       string = "USER"
-	AdminRole      string = "ADMIN"
-	SuperAdminRole string = "SUPER_ADMIN"
-	AuditorRole    string = "AUDITOR"
+	UserRole  string = "USER"
+	AdminRole string = "ADMIN"
 )
 
 var ValidRoles = map[string]bool{
-	UserRole:       true,
-	AdminRole:      true,
-	SuperAdminRole: true,
-	AuditorRole:    true,
+	UserRole:  true,
+	AdminRole: true,
 }

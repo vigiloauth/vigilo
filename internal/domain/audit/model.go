@@ -57,15 +57,24 @@ func (m MethodType) String() string { return string(m) }
 func NewAuditEvent(ctx context.Context, eventType EventType, success bool, action ActionType, method MethodType, errCode string) *AuditEvent {
 	event := &AuditEvent{
 		EventID:   constants.AuditEventIDPrefix + crypto.GenerateUUID(),
-		Timestamp: time.Now(),
+		Timestamp: time.Now().UTC(),
 		EventType: eventType,
 		Success:   success,
-		UserID:    utils.GetValueFromContext(ctx, constants.ContextKeyUserID),
-		IP:        utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress),
-		UserAgent: utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent),
 		RequestID: utils.GetRequestID(ctx),
-		SessionID: utils.GetValueFromContext(ctx, constants.ContextKeySessionID),
 		ErrCode:   errCode,
+	}
+
+	if userID := utils.GetValueFromContext(ctx, constants.ContextKeyUserID); userID != nil {
+		event.UserID, _ = userID.(string)
+	}
+	if IP := utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress); IP != nil {
+		event.IP, _ = IP.(string)
+	}
+	if userAgent := utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent); userAgent != nil {
+		event.UserAgent, _ = userAgent.(string)
+	}
+	if sessionID := utils.GetValueFromContext(ctx, constants.ContextKeySessionID); sessionID != nil {
+		event.SessionID, _ = sessionID.(string)
 	}
 
 	event.addEventDetails(action, method)

@@ -41,7 +41,7 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 func TestUserHandler_RegisterUser_DuplicateEmail(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	defer testContext.TearDown()
-	testContext.WithUser()
+	testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 	requestBody := users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1)
 	body, err := json.Marshal(requestBody)
@@ -59,9 +59,9 @@ func TestUserHandler_RegisterUser_DuplicateEmail(t *testing.T) {
 func TestUserHandler_UserAuthentication(t *testing.T) {
 	t.Run("Successful Login", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithUser()
 		defer testContext.TearDown()
 
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 		requestBody := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
 		body, err := json.Marshal(requestBody)
 		assert.NoError(t, err)
@@ -78,8 +78,9 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 
 	t.Run("Successful Logout", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithUser()
 		defer testContext.TearDown()
+
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		// Login to get token
 		loginRequest := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
@@ -111,9 +112,10 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 
 	t.Run("Protected Route With Expired Token", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithUser()
-		testContext.WithExpiredToken()
 		defer testContext.TearDown()
+
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		testContext.WithExpiredToken()
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.UserEndpoints.Logout, nil, nil)
 
@@ -145,7 +147,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 		endpoint := web.UserEndpoints.Verify + "?token="
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
 

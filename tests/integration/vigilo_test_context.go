@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -19,6 +20,8 @@ import (
 	"github.com/vigiloauth/vigilo/idp/server"
 	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
+	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
+
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	userConsent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
@@ -28,6 +31,7 @@ import (
 	tokenRepo "github.com/vigiloauth/vigilo/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
 	tokenService "github.com/vigiloauth/vigilo/internal/service/token"
+	"github.com/vigiloauth/vigilo/internal/utils"
 
 	"github.com/vigiloauth/vigilo/internal/web"
 
@@ -45,15 +49,15 @@ const (
 	testClientName1     string = "Test App"
 	testClientName2     string = "Test App 2"
 	testInvalidPassword string = "weak"
-	testClientID        string = "test-client-id"
-	testUserID          string = "test-user-id"
+	testClientID        string = "client-1234"
+	testUserID          string = "user-1234"
 	testClientSecret    string = "a-string-secret-at-least-256-bits-long-enough"
 	testScope           string = "clients:manage users:manage"
 	encodedTestScope    string = "client%3Amanage%20user%3Amanage"
 	testRedirectURI     string = "https://vigiloauth.com/callback"
 	testConsentApproved string = "true"
 	testAuthzCode       string = "valid-auth-code"
-	testRole            string = "ADMIN"
+	testIP              string = "192.168.1.10"
 )
 
 // VigiloTestContext encapsulates constants testing functionality across all test types
@@ -71,37 +75,22 @@ type VigiloTestContext struct {
 	State              string
 	SH256CodeChallenge string
 	PlainCodeChallenge string
+	secretKey          string
 }
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
-	setEnvVariables()
+	secretKey := getSecretKey()
+	setEnvVariables(secretKey)
+	vs := server.NewVigiloIdentityServer()
+
 	return &VigiloTestContext{
 		T:                  t,
-		VigiloServer:       server.NewVigiloIdentityServer(),
+		VigiloServer:       vs,
+		secretKey:          secretKey,
 		SH256CodeChallenge: crypto.EncodeSHA256(testClientSecret),
 		PlainCodeChallenge: testClientSecret,
 	}
-}
-
-func setEnvVariables() {
-	os.Setenv(constants.CryptoSecretKeyENV, "test-secret-key")
-	defer os.Unsetenv(constants.CryptoSecretKeyENV)
-
-	os.Setenv(constants.SMTPUsernameENV, "fake@email")
-	defer os.Unsetenv(constants.SMTPUsernameENV)
-
-	os.Setenv(constants.SMTPFromAddressENV, "fake@email")
-	defer os.Unsetenv(constants.SMTPFromAddressENV)
-
-	os.Setenv(constants.SMTPPasswordENV, "password")
-	defer os.Unsetenv(constants.SMTPPasswordENV)
-
-	os.Setenv(constants.TokenIssuerENV, "fake-issuer")
-	defer os.Unsetenv(constants.TokenIssuerENV)
-
-	os.Setenv(constants.TokenSecretKeyENV, "secret-key")
-	defer os.Unsetenv(constants.TokenSecretKeyENV)
 }
 
 // WithLiveServer adds a live test server to the context.
@@ -111,15 +100,15 @@ func (tc *VigiloTestContext) WithLiveHTTPServer() *VigiloTestContext {
 }
 
 // WithUser creates and adds a user to the system.
-func (tc *VigiloTestContext) WithUser() *VigiloTestContext {
+func (tc *VigiloTestContext) WithUser(scopes, roles []string) *VigiloTestContext {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
 	hashedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(tc.T, err)
 
 	user.Password = hashedPassword
 	user.ID = testUserID
-	user.Roles = []string{constants.AdminRole}
-	user.Scopes = []string{constants.UserManage}
+	user.Scopes = scopes
+	user.Roles = roles
 	userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
 
 	tc.User = user
@@ -159,11 +148,14 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 // WithJWTToken creates and adds a user JWT token to the system.
 func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *VigiloTestContext {
 	if tc.User == nil {
-		tc.WithUser()
+		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(context.Background(), id, testScope, testRole, duration)
+	token, err := tokenService.GenerateToken(
+		context.Background(), id, testScope,
+		strings.Join(tc.User.Roles, " "), duration,
+	)
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
@@ -174,7 +166,7 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(context.Background(), id, testScope, testRole, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
+	token, err := tokenService.GenerateToken(context.Background(), id, testScope, constants.AdminRole, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
@@ -234,11 +226,11 @@ func (tc *VigiloTestContext) WithExpiredToken() *VigiloTestContext {
 // WithPasswordResetToken generates a password reset token.
 func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (string, *VigiloTestContext) {
 	if tc.User == nil {
-		tc.WithUser()
+		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	resetToken, err := tokenService.GenerateToken(context.Background(), tc.User.Email, testScope, testRole, duration)
+	resetToken, err := tokenService.GenerateToken(context.Background(), tc.User.Email, testScope, constants.AdminRole, duration)
 	assert.NoError(tc.T, err)
 
 	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), resetToken, tc.User.Email, time.Now().Add(duration))
@@ -312,7 +304,7 @@ func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Re
 
 func (tc *VigiloTestContext) WithUserSession() {
 	if tc.User == nil {
-		tc.WithUser()
+		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 	}
 
 	loginRequest := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
@@ -433,12 +425,29 @@ func (tc *VigiloTestContext) WithDebugLogs() {
 	config.GetServerConfig().Logger().SetLevel("DEBUG")
 }
 
+func (tc *VigiloTestContext) WithAuditEvents() {
+	ctx := context.Background()
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserID, testUserID)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIP)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyRequestID, "req-"+crypto.GenerateUUID())
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeySessionID, "sess-"+crypto.GenerateUUID())
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyTokenClaims, tc.JWTToken)
+
+	eventCount := 100
+	for range eventCount {
+		event := audit.NewAuditEvent(ctx, audit.LoginAttempt, false, audit.AuthenticationAction, audit.EmailMethod, errors.ErrCodeAccountLocked)
+		err := auditEventRepo.GetInMemoryAuditEventRepository().StoreAuditEvent(ctx, event)
+		assert.NoError(tc.T, err)
+	}
+}
+
 // TearDown performs cleanup operations.
 func (tc *VigiloTestContext) TearDown() {
 	if tc.TestServer != nil {
 		tc.TestServer.Close()
 	}
 	tc.VigiloServer.Shutdown()
+	clearEnvVariables()
 	resetInMemoryStores()
 }
 
@@ -489,4 +498,31 @@ func (tc *VigiloTestContext) decodeErrorResponse(rr *httptest.ResponseRecorder) 
 	err := json.NewDecoder(rr.Body).Decode(&errResp)
 	assert.NoError(tc.T, err, "Failed to unmarshal response body")
 	return errResp
+}
+
+func getSecretKey() string {
+	key := make([]byte, 32)
+	_, err := io.ReadFull(rand.Reader, key)
+	if err != nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(key)
+}
+
+func setEnvVariables(secretKey string) {
+	os.Setenv(constants.CryptoSecretKeyENV, secretKey)
+	os.Setenv(constants.SMTPUsernameENV, "fake@email")
+	os.Setenv(constants.SMTPFromAddressENV, "fake@email")
+	os.Setenv(constants.SMTPPasswordENV, "password")
+	os.Setenv(constants.TokenIssuerENV, "fake-issuer")
+	os.Setenv(constants.TokenSecretKeyENV, "secret-key")
+}
+
+func clearEnvVariables() {
+	os.Unsetenv(constants.CryptoSecretKeyENV)
+	os.Unsetenv(constants.SMTPUsernameENV)
+	os.Unsetenv(constants.SMTPFromAddressENV)
+	os.Unsetenv(constants.SMTPPasswordENV)
+	os.Unsetenv(constants.TokenIssuerENV)
+	os.Unsetenv(constants.TokenSecretKeyENV)
 }

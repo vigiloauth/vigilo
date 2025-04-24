@@ -30,6 +30,7 @@ type VigiloIdentityServer struct {
 	tokenHandler  *handlers.TokenHandler
 	authzHandler  *handlers.AuthorizationHandler
 	oauthHandler  *handlers.OAuthHandler
+	adminHandler  *handlers.AdminHandler
 
 	serverConfig *config.ServerConfig
 	tlsConfig    *tls.Config
@@ -57,6 +58,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 		tokenHandler:  container.tokenHandler,
 		authzHandler:  container.authzHandler,
 		oauthHandler:  container.oauthHandler,
+		adminHandler:  container.adminHandler,
 		serverConfig:  serverConfig,
 		tlsConfig:     container.tlsConfig,
 		httpServer:    container.httpServer,
@@ -83,6 +85,7 @@ func (s *VigiloIdentityServer) Shutdown() {
 func (s *VigiloIdentityServer) setupRoutes() {
 	s.applyGlobalMiddleware()
 	s.setupPublicRoutes()
+	s.setupAdminRoutes()
 	s.setupFormDataRequiredRoutes()
 	s.setupProtectedRoutes()
 }
@@ -149,6 +152,14 @@ func (s *VigiloIdentityServer) setupProtectedRoutes() {
 				sr.Post(web.ClientEndpoints.RegenerateSecret+clientURLParam, s.clientHandler.RegenerateSecret)
 			})
 		})
+	})
+}
+
+func (s *VigiloIdentityServer) setupAdminRoutes() {
+	s.router.Group(func(r chi.Router) {
+		r.Use(s.middleware.AuthMiddleware())
+		r.Use(s.middleware.WithRole(constants.AdminRole))
+		r.Get(web.AdminEndpoints.GetAuditEvents, s.adminHandler.GetAuditEvents)
 	})
 }
 

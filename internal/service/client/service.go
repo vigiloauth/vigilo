@@ -67,7 +67,7 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 		cs.logger.Error(cs.module, requestID, "[Register]: Failed to generate client ID: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate client ID")
 	}
-	newClient.ID = clientID
+	newClient.ID = constants.ClientIDPrefix + clientID
 
 	var plainSecret string
 	if newClient.Type == client.Confidential {

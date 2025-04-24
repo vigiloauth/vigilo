@@ -29,6 +29,7 @@ const (
 	ErrCodeUnauthorized       = "unauthorized"
 	ErrCodeLoginRequired      = "login_required"
 	ErrCodeConsentRequired    = "consent_required"
+	ErrCodeInsufficientRole   = "insufficient_role"
 
 	// Token errors
 	ErrCodeTokenNotFound = "token_not_found"
@@ -121,6 +122,7 @@ var statusCodeMap = map[string]int{
 	// 403 Forbidden
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,
 	ErrCodeAccessDenied:       http.StatusForbidden,
+	ErrCodeInsufficientRole:   http.StatusForbidden,
 
 	// 409 Conflict
 	ErrCodeDuplicateUser:    http.StatusConflict,

@@ -6,7 +6,6 @@ import (
 
 	"github.com/vigiloauth/vigilo/idp/config"
 	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
-	encryptor "github.com/vigiloauth/vigilo/internal/domain/encryption"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/utils"
 )
@@ -14,18 +13,16 @@ import (
 var _ audit.AuditLogger = (*auditLogger)(nil)
 
 type auditLogger struct {
-	auditRepo  audit.AuditRepository
-	encryption encryptor.AuditEncryptor
-	logger     *config.Logger
-	module     string
+	auditRepo audit.AuditRepository
+	logger    *config.Logger
+	module    string
 }
 
-func NewAuditLogger(auditRepo audit.AuditRepository, encryption encryptor.AuditEncryptor) audit.AuditLogger {
+func NewAuditLogger(auditRepo audit.AuditRepository) audit.AuditLogger {
 	return &auditLogger{
-		auditRepo:  auditRepo,
-		encryption: encryption,
-		logger:     config.GetServerConfig().Logger(),
-		module:     "Audit Logger",
+		auditRepo: auditRepo,
+		logger:    config.GetServerConfig().Logger(),
+		module:    "Audit Logger",
 	}
 }
 
@@ -48,15 +45,49 @@ func (a *auditLogger) StoreEvent(ctx context.Context, eventType audit.EventType,
 	}
 
 	event := audit.NewAuditEvent(ctx, eventType, success, action, method, errCode)
-	if err := a.encryption.EncryptAuditEvent(event); err != nil {
-		a.logger.Error(a.module, requestID, "[StoreEvent]: Failed to encrypt audit event: %v", err)
-		return
-	}
-
 	if err := a.auditRepo.StoreAuditEvent(ctx, event); err != nil {
 		a.logger.Error(a.module, requestID, "[StoreEvent]: Failed to store audit event: %v", err)
 		return
 	}
+}
+
+// GetAuditEvents retrieves audit events that match the provided filters and time range.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - filters map[string]any: A map of filter keys and values to apply.
+//   - from time.Time: The start time of the time range to filter events.
+//   - to time.Time: The end time of the time range to filter events.
+//   - limit int: The maximum number of events to return.
+//   - offset int: The number of events to skip (for pagination).
+//
+// Returns:
+//   - []*AuditEvent: A slice of matching audit events.
+//   - error: An error if the retrieval fails, otherwise nil.
+func (a *auditLogger) GetAuditEvents(ctx context.Context, filters map[string]any, fromStr string, toStr string, limit, offset int) ([]*audit.AuditEvent, error) {
+	requestID := utils.GetRequestID(ctx)
+
+	from, err := time.Parse(time.RFC3339, fromStr)
+	if err != nil {
+		err := errors.New(errors.ErrCodeInvalidInput, "invalid 'from' timestamp - must be in RFC3339 format")
+		a.logger.Error(a.module, requestID, "[GetAuditEvents]: Invalid 'from' timestamp format=[%s]", fromStr)
+		return nil, err
+	}
+
+	to, err := time.Parse(time.RFC3339, toStr)
+	if err != nil {
+		err := errors.New(errors.ErrCodeInvalidInput, "invalid 'to' timestamp - must be in RFC3339 format")
+		a.logger.Error(a.module, requestID, "[GetAuditEvents]: Invalid 'to' timestamp format=[%s]", toStr)
+		return nil, err
+	}
+
+	events, err := a.auditRepo.GetAuditEvents(ctx, filters, from, to, limit, offset)
+	if err != nil {
+		a.logger.Error(a.module, requestID, "[GetAuditEvents]: An error occurred retrieving audit events: %v", err)
+		return nil, errors.NewInternalServerError()
+	}
+
+	return events, nil
 }
 
 // DeleteOldEvents deletes audit events older than the specified timestamp.

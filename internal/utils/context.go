@@ -28,13 +28,9 @@ func GetRequestID(ctx context.Context) string {
 //   - value constants.ContextKey: The key of type constants.ContextKey used to retrieve the value.
 //
 // Returns:
-//   - string: The string value if found, otherwise an empty string.
-func GetValueFromContext(ctx context.Context, value constants.ContextKey) string {
-	if value, ok := ctx.Value(value).(string); ok {
-		return value
-	}
-
-	return ""
+//   - any: The value if found, otherwise an empty string.
+func GetValueFromContext(ctx context.Context, value constants.ContextKey) any {
+	return ctx.Value(value)
 }
 
 // AddKeyValueToContext returns a new context with the specified key-value pair added.
@@ -42,10 +38,10 @@ func GetValueFromContext(ctx context.Context, value constants.ContextKey) string
 // Parameters:
 //   - ctx context.Context: The base context.
 //   - key constants.ContextKey: The key of type constants.ContextKey to associate with the value.
-//   - value string: The string value to store in the context.
+//   - value any: The value to store in the context.
 //
 // Returns:
 //   - context.Context: A new context with the key-value pair added.
-func AddKeyValueToContext(ctx context.Context, key constants.ContextKey, value string) context.Context {
+func AddKeyValueToContext(ctx context.Context, key constants.ContextKey, value any) context.Context {
 	return context.WithValue(ctx, key, value)
 }
