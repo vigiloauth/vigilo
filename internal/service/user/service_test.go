@@ -20,6 +20,7 @@ import (
 	mLoginService "github.com/vigiloauth/vigilo/internal/mocks/login"
 	mTokenService "github.com/vigiloauth/vigilo/internal/mocks/token"
 	mUserRepo "github.com/vigiloauth/vigilo/internal/mocks/user"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 const (
@@ -171,6 +172,9 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 
 func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 	ctx := context.Background()
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIPAddress)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, testUserAgent)
+
 	user := createNewUser()
 	encryptedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(t, err)

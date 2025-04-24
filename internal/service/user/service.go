@@ -152,15 +152,32 @@ func (u *userService) HandleOAuthLogin(ctx context.Context, request *users.UserL
 //   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 //   - error: An error if authentication fails or if the input is invalid.
 func (u *userService) AuthenticateUserWithRequest(ctx context.Context, request *users.UserLoginRequest) (*users.UserLoginResponse, error) {
+	requestID := utils.GetRequestID(ctx)
 	user := &users.User{
 		ID:       request.ID,
 		Username: request.Username,
 		Password: request.Password,
 	}
 
-	ipAddress := utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress).(string)
-	userAgent := utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent).(string)
-	loginAttempt := users.NewUserLoginAttempt(ipAddress, userAgent)
+	loginAttempt := &users.UserLoginAttempt{
+		Timestamp:      time.Now().UTC(),
+		FailedAttempts: 0,
+	}
+
+	if IP := utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress); IP != nil {
+		loginAttempt.IPAddress, _ = IP.(string)
+	} else {
+		u.logger.Error(u.module, requestID, "[AuthenticateUserWithRequest]: There was an error retrieving the IP address from context")
+		return nil, errors.NewInternalServerError()
+	}
+
+	if userAgent := utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent); userAgent != nil {
+		loginAttempt.UserAgent, _ = userAgent.(string)
+	} else {
+		u.logger.Error(u.module, requestID, "[AuthenticateUserWithRequest]: There was an error retrieving the user agent from context")
+		return nil, errors.NewInternalServerError()
+	}
+
 	return u.authenticateUser(ctx, user, loginAttempt)
 }
 
