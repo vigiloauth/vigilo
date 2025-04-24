@@ -462,6 +462,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
 
+			testContext.WithUser([]string{constants.ClientManage}, []string{constants.AdminRole})
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 
@@ -523,6 +524,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
 
+			testContext.WithUser([]string{constants.ClientManage}, []string{constants.AdminRole})
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 

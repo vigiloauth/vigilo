@@ -212,6 +212,8 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 
 func TestUserService_AuthenticateUserInvalidPassword(t *testing.T) {
 	ctx := context.Background()
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIPAddress)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, testUserAgent)
 
 	mockUserRepo := &mUserRepo.MockUserRepository{
 		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
@@ -239,6 +241,9 @@ func TestUserService_AuthenticateUserInvalidPassword(t *testing.T) {
 
 func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
 	ctx := context.Background()
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIPAddress)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, testUserAgent)
+
 	mockUserRepo := &mUserRepo.MockUserRepository{
 		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
 			return nil, nil
@@ -267,6 +272,9 @@ func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
 
 func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
 	ctx := context.Background()
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIPAddress)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, testUserAgent)
+
 	user := createNewUser()
 	encryptedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(t, err)
@@ -305,6 +313,9 @@ func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
 
 func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
 	ctx := context.Background()
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIPAddress)
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, testUserAgent)
+
 	user := createNewUser()
 	encryptedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(t, err)
