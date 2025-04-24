@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/vigiloauth/vigilo/identity/config"
-	domain "github.com/vigiloauth/vigilo/internal/domain/client"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
@@ -26,7 +26,7 @@ func (req *UserRegistrationRequest) Validate() error {
 
 	if len(req.Scopes) > 0 {
 		for _, scope := range req.Scopes {
-			if _, ok := domain.ValidScopes[scope]; !ok {
+			if _, ok := constants.ValidScopes[scope]; !ok {
 				err := errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid scope '%s'", scope))
 				errorCollection.Add(err)
 			}
@@ -35,6 +35,7 @@ func (req *UserRegistrationRequest) Validate() error {
 
 	validateEmail(req.Email, errorCollection)
 	validatePassword(req.Password, errorCollection)
+	req.validateRole(errorCollection)
 
 	if errorCollection.HasErrors() {
 		return errorCollection
@@ -162,4 +163,16 @@ func containsSymbol(password string) bool {
 	return strings.IndexFunc(password, func(r rune) bool {
 		return !(unicode.IsLetter(r) || unicode.IsNumber(r))
 	}) >= 0
+}
+
+func (req *UserRegistrationRequest) validateRole(errorCollection *errors.ErrorCollection) {
+	if len(req.Roles) == 0 {
+		req.Roles = append(req.Roles, constants.UserRole)
+	}
+
+	for _, role := range req.Roles {
+		if _, ok := constants.ValidRoles[role]; !ok {
+			errorCollection.Add(errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid role: %s", role)))
+		}
+	}
 }

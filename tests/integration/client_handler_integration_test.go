@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,8 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	clientRepo "github.com/vigiloauth/vigilo/internal/repository/client"
@@ -44,9 +45,9 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 			requestBody: &client.ClientRegistrationRequest{
 				Name:          testClientName1,
 				RedirectURIS:  []string{testRedirectURI},
-				GrantTypes:    []string{client.AuthorizationCode},
-				Scopes:        []string{client.ClientRead, client.ClientWrite},
-				ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
+				GrantTypes:    []string{constants.AuthorizationCode},
+				Scopes:        []string{constants.ClientRead, constants.ClientWrite},
+				ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 			},
 			expectedStatus: http.StatusBadRequest,
 			isPublicClient: true,
@@ -238,14 +239,14 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	testContext.WithClient(
 		client.Confidential,
-		[]string{client.ClientManage},
-		[]string{client.ClientCredentials},
+		[]string{constants.ClientManage},
+		[]string{constants.ClientCredentials},
 	)
 	testContext.WithClientCredentialsToken()
 	defer testContext.TearDown()
 
 	endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.RegenerateSecret, testClientID)
-	headers := map[string]string{common.BearerAuthHeader: testContext.ClientAuthToken}
+	headers := map[string]string{constants.BearerAuthHeader: testContext.ClientAuthToken}
 
 	rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, headers)
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -265,8 +266,8 @@ func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsEr
 	defer testContext.TearDown()
 	testContext.WithClient(
 		client.Confidential,
-		[]string{client.ClientManage},
-		[]string{client.ClientCredentials},
+		[]string{constants.ClientManage},
+		[]string{constants.ClientCredentials},
 	)
 	testContext.WithClientCredentialsToken()
 
@@ -281,14 +282,14 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientRead},
-			[]string{client.ClientCredentials},
+			[]string{constants.ClientRead},
+			[]string{constants.ClientCredentials},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -303,14 +304,14 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage},
-			[]string{client.ClientCredentials},
+			[]string{constants.ClientManage},
+			[]string{constants.ClientCredentials},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -327,14 +328,14 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage},
-			[]string{client.ClientCredentials},
+			[]string{constants.ClientManage},
+			[]string{constants.ClientCredentials},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/invalid-id", web.ClientEndpoints.ClientConfiguration)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeUnauthorized, "failed to validate and retrieve client information")
@@ -345,14 +346,14 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage},
-			[]string{client.ClientCredentials},
+			[]string{constants.ClientManage},
+			[]string{constants.ClientCredentials},
 		)
 		testContext.WithJWTToken("invalid-ID", 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		t.Log(rr.Body.String())
@@ -375,7 +376,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		// Update client name
 		request.Name = testClientName2
@@ -399,7 +400,8 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		assert.NotEqual(t, "", clientInformationResponse.Secret, "client secret be included in the response for confidential clients")
 
 		// Assert Client is updated in the database
-		updatedClient := clientRepo.GetInMemoryClientRepository().GetClientByID(testClientID)
+		updatedClient, err := clientRepo.GetInMemoryClientRepository().GetClientByID(context.Background(), testClientID)
+		assert.NoError(t, err)
 		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
 		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
 		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
@@ -417,7 +419,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		// Update client name
 		request.Name = testClientName2
@@ -441,7 +443,8 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		assert.Equal(t, "", clientInformationResponse.Secret, "client secret not be included in the response for public clients")
 
 		// Assert Client is updated in the database
-		updatedClient := clientRepo.GetInMemoryClientRepository().GetClientByID(testClientID)
+		updatedClient, err := clientRepo.GetInMemoryClientRepository().GetClientByID(context.Background(), testClientID)
+		assert.NoError(t, err)
 		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
 		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
 		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
@@ -459,7 +462,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodPut, endpoint, nil, headers)
 
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidRequest, "missing one or more required fields in the request")
@@ -478,7 +481,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		// Attempt to update with invalid redirect URIs
 		request.RedirectURIS = append(request.RedirectURIS, "http://test.com/callback", "https://example.com/*")
@@ -507,12 +510,12 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		// Attempt to update with invalid response types.
 		// Client Credentials is not allowed with Authorization Code.
-		request.GrantTypes = []string{client.ClientCredentials}
-		request.ResponseTypes = []string{client.CodeResponseType}
+		request.GrantTypes = []string{constants.ClientCredentials}
+		request.ResponseTypes = []string{constants.CodeResponseType}
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
 
@@ -538,7 +541,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -565,7 +568,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -592,7 +595,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, "invalid-client-id")
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -620,7 +623,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -640,14 +643,14 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientRead},
+			[]string{constants.ClientRead},
 			request.GetGrantTypes(),
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{common.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -668,8 +671,8 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientManage, client.ClientDelete},
-			[]string{client.AuthorizationCode, client.PKCE},
+			[]string{constants.ClientManage, constants.ClientDelete},
+			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -684,8 +687,8 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientManage, client.ClientDelete},
-			[]string{client.AuthorizationCode, client.PKCE},
+			[]string{constants.ClientManage, constants.ClientDelete},
+			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
 		testContext.WithJWTToken("invalid-id", 1*time.Hour)
 		defer testContext.TearDown()
@@ -700,8 +703,8 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientManage, client.ClientDelete},
-			[]string{client.AuthorizationCode, client.PKCE},
+			[]string{constants.ClientManage, constants.ClientDelete},
+			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
 		testContext.WithJWTToken(testClientID, -1*time.Hour)
 		defer testContext.TearDown()
@@ -716,8 +719,8 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientManage, client.ClientDelete},
-			[]string{client.AuthorizationCode, client.PKCE},
+			[]string{constants.ClientManage, constants.ClientDelete},
+			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -733,7 +736,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{},
-			[]string{client.AuthorizationCode, client.PKCE},
+			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -749,9 +752,9 @@ func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 	return &client.ClientRegistrationRequest{
 		Name:          testClientName1,
 		RedirectURIS:  []string{testRedirectURI},
-		GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
-		Scopes:        []string{client.ClientRead, client.ClientWrite},
-		ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
+		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
+		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }
 
@@ -760,8 +763,8 @@ func createClientUpdateRequest() *client.ClientUpdateRequest {
 		ID:            testClientID,
 		Name:          testClientName1,
 		RedirectURIS:  []string{testRedirectURI},
-		GrantTypes:    []string{client.AuthorizationCode, client.PKCE},
-		Scopes:        []string{client.ClientRead, client.ClientWrite, client.UserManage, client.ClientManage},
-		ResponseTypes: []string{client.CodeResponseType, client.IDTokenResponseType},
+		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		Scopes:        []string{constants.ClientRead, constants.ClientWrite, constants.UserManage, constants.ClientManage},
+		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }

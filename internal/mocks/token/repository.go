@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"context"
 	"time"
 
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -8,49 +9,40 @@ import (
 
 var _ token.TokenRepository = (*MockTokenRepository)(nil)
 
-// MockTokenRepository is a mock implementation of the token.TokenStore interface.
 type MockTokenRepository struct {
-	// SaveTokenFunc is a mock function for the AddToken method.
-	SaveTokenFunc func(token string, id string, expiration time.Time)
-
-	// IsTokenBlacklistedFunc is a mock function for the IsTokenBlacklisted method.
-	IsTokenBlacklistedFunc func(token string) bool
-
-	// GetTokenFunc is a mock function for the GetToken method.
-	GetTokenFunc func(token string) *token.TokenData
-
-	// DeleteTokenFunc is a mock function for the DeleteToken method.
-	DeleteTokenFunc func(token string) error
-
-	BlacklistTokenFunc func(token string) error
-
-	ExistsByTokenIDFunc func(tokenID string) bool
+	SaveTokenFunc          func(ctx context.Context, token string, id string, expiration time.Time) error
+	IsTokenBlacklistedFunc func(ctx context.Context, token string) (bool, error)
+	GetTokenFunc           func(ctx context.Context, token string) (*token.TokenData, error)
+	DeleteTokenFunc        func(ctx context.Context, token string) error
+	BlacklistTokenFunc     func(ctx context.Context, token string) error
+	ExistsByTokenIDFunc    func(ctx context.Context, tokenID string) (bool, error)
+	GetExpiredTokensFunc   func(ctx context.Context) ([]*token.TokenData, error)
 }
 
-// AddToken calls the mock AddTokenFunc.
-func (m *MockTokenRepository) SaveToken(token string, id string, expiration time.Time) {
-	m.SaveTokenFunc(token, id, expiration)
+func (m *MockTokenRepository) SaveToken(ctx context.Context, token string, id string, expiration time.Time) error {
+	return m.SaveTokenFunc(ctx, token, id, expiration)
 }
 
-// IsTokenBlacklisted calls the mock IsTokenBlacklistedFunc.
-func (m *MockTokenRepository) IsTokenBlacklisted(token string) bool {
-	return m.IsTokenBlacklistedFunc(token)
+func (m *MockTokenRepository) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
+	return m.IsTokenBlacklistedFunc(ctx, token)
 }
 
-// GetToken calls the mock GetTokenFunc.
-func (m *MockTokenRepository) GetToken(token string) *token.TokenData {
-	return m.GetTokenFunc(token)
+func (m *MockTokenRepository) GetToken(ctx context.Context, token string) (*token.TokenData, error) {
+	return m.GetTokenFunc(ctx, token)
 }
 
-// DeleteToken calls the mock DeleteTokenFunc.
-func (m *MockTokenRepository) DeleteToken(token string) error {
-	return m.DeleteTokenFunc(token)
+func (m *MockTokenRepository) DeleteToken(ctx context.Context, token string) error {
+	return m.DeleteTokenFunc(ctx, token)
 }
 
-func (m *MockTokenRepository) BlacklistToken(token string) error {
-	return m.BlacklistTokenFunc(token)
+func (m *MockTokenRepository) BlacklistToken(ctx context.Context, token string) error {
+	return m.BlacklistTokenFunc(ctx, token)
 }
 
-func (m *MockTokenRepository) ExistsByTokenID(tokenID string) bool {
-	return m.ExistsByTokenIDFunc(tokenID)
+func (m *MockTokenRepository) ExistsByTokenID(ctx context.Context, tokenID string) (bool, error) {
+	return m.ExistsByTokenIDFunc(ctx, tokenID)
+}
+
+func (m *MockTokenRepository) GetExpiredTokens(ctx context.Context) ([]*token.TokenData, error) {
+	return m.GetExpiredTokensFunc(ctx)
 }

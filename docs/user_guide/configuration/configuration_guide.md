@@ -8,6 +8,8 @@
   - [3. Token Configuration](#3-token-configuration)
   - [4. Login Configuration](#4-login-configuration)
   - [5. Password Configuration](#5-password-configuration)
+  - [6. SMTP Configuration](#6-smtp-configuration)
+  - [7. Audit Log Configuration](#7-audit-log-configuration)
 
 ---
 
@@ -48,7 +50,7 @@ The `VigiloIdentityServer` can be configured using various options to suit your 
 | **Expiration Time**               | Token expiration time in hours.                          | `24 hours`                      |
 | **Signing Method**                | Signing Method used for tokens.                          | `HS256`                         |
 | **Access Token Duration**         | Access token duration in minutes.                        | `30 minutes`                    |
-| **Refresh Token Duration**        | Refresh token duration in minutes.                       | `1440==minutes`                  |
+| **Refresh Token Duration**        | Refresh token duration in minutes.                       | `1440==minutes`                 |
 
 ___
 
@@ -61,9 +63,30 @@ ___
 ---
 
 ## 5. Password Configuration
-| **Configuration Option**          | **Description**                                       | **Default Value**    |
-|-----------------------------------|-------------------------------------------------------|----------------------|
-| **Require Uppercase**             | Wether or not uppercase letters are required.         | `false`              |
-| **Require Number**                | Wether or not numbers are required.                   | `false`              |
-| **Require Symbol**                | Wether or not symbols are required.                   | `false`              |
-| **Minimum Length**                | Minium required password length.                      | `5`                  |
+| **Configuration Option**          | **Description**                                        | **Default Value**    |
+|-----------------------------------|--------------------------------------------------------|----------------------|
+| **Require Uppercase**             | Whether or not uppercase letters are required.         | `false`              |
+| **Require Number**                | Whether or not numbers are required.                   | `false`              |
+| **Require Symbol**                | Whether or not symbols are required.                   | `false`              |
+| **Minimum Length**                | Minium required password length.                       | `5`                  |
+
+---
+
+## 6. SMTP Configuration
+| **Configuration Option**          | **Description**                                       | **Default Value**      |
+|-----------------------------------|-------------------------------------------------------|------------------------|
+| **SMTP Host**                     | The SMTP host to use.                                 | `smtp.gmail.com`       |
+| **Use SSL**                       | Whether or not the config should use SSL.             | `false`                |
+| **Use TLS**                       | Whether or not the config should use TLS.             | `true`                 |
+| **Credentials**                   | The username and password to use to authenticate.     | N/A                    |
+| **From Address**                  | The address to use to send emails from.               | `vigiloauth@gmail.com` |
+| **Encryption**                    | The type of encryption to use.                        | `tls`                  |
+
+**Note:** If no configuration is provided, VigiloAuth will use their own SMTP configuration to handle any emails in the system. It is also important to note that if one configuration option is provided, all the rest are required as well.
+
+---
+
+## 7. Audit Log Configuration
+| **Configuration Option**          | **Description**                                       | **Default Value**      |
+|-----------------------------------|-------------------------------------------------------|------------------------|
+| **Retention Period**              | How long audit events should stay in the system.      | `90 days`              |

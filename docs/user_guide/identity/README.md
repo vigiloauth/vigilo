@@ -21,6 +21,9 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [User Logout](../identity/endpoints/user_handler/user_logout.md)
     - [Password Reset](../identity/endpoints/user_handler/password_reset.md)
     - [Password Reset Email Request](../identity/endpoints/user_handler/password_reset_request.md)
+    - [Account Verification](../identity/endpoints/user_handler/verify.md)
+- **Administrative Access:**
+    - [Get Audit Events](../identity/endpoints/admin_handler/get_audit_events.md)
 - **Client Management:**
     - [Client Registration](../identity/endpoints/client_handler/client_registration.md)
     - [Client Credentials Flow](../identity/endpoints/token_handler/client_credentials_grant.md)

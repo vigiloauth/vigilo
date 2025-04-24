@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	mocks "github.com/vigiloauth/vigilo/internal/mocks/token"
@@ -19,10 +20,9 @@ const email string = "test@example.com"
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	mockTokenService := &mocks.MockTokenService{}
-
 	tokenString := "validToken"
 
-	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
 	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
@@ -32,7 +32,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 			},
 		}, nil
 	}
-	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
+	mockTokenService.ValidateTokenFunc = func(ctx context.Context, tokenString string) error {
 		return nil
 	}
 
@@ -56,7 +56,7 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 
 	tokenString := "blacklistedToken"
 
-	mockTokenService.GenerateTokenFunc = func(subject, scopes string, expirationTime time.Duration) (string, error) {
+	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
 	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
@@ -66,7 +66,7 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 			},
 		}, nil
 	}
-	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
+	mockTokenService.ValidateTokenFunc = func(ctx context.Context, tokenString string) error {
 		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
 	}
 
@@ -88,7 +88,7 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	mockTokenService := &mocks.MockTokenService{}
 
-	mockTokenService.ValidateTokenFunc = func(tokenString string) error {
+	mockTokenService.ValidateTokenFunc = func(ctx context.Context, tokenString string) error {
 		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
 	}
 	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {

@@ -1,98 +1,78 @@
 package mocks
 
 import (
+	"context"
 	"time"
 
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 )
 
-// MockTokenService is a mock implementation of the token.TokenManager interface.
+var _ token.TokenService = (*MockTokenService)(nil)
+
 type MockTokenService struct {
-	// GenerateTokenFunc is a mock function for the GenerateToken method.
-	GenerateTokenFunc func(id, scopes string, duration time.Duration) (string, error)
-
-	// GenerateTokenPairFunc is a mock function for the GenerateTokenPair method.
-	GenerateTokensWithAudienceFunc func(userID, clientID, scopes string) (string, string, error)
-
-	// SaveTokenFunc is a mock function for the AddToken method.
-	SaveTokenFunc func(token, id string, expiry time.Time)
-
-	// ParseTokenFunc is a mock function for the ParseToken method.
-	ParseTokenFunc func(token string) (*token.TokenClaims, error)
-
-	// IsTokenBlacklistedFunc is a mock function for the IsTokenBlacklisted method.
-	IsTokenBlacklistedFunc func(token string) bool
-
-	// GetTokenFunc is a mock function for the GetToken method.
-	GetTokenFunc func(token string) (*token.TokenData, error)
-
-	// DeleteTokenFunc is a mock function for the DeleteToken method.
-	DeleteTokenFunc func(token string) error
-
-	// IsTokenExpired is a mock function for the IsTokenExpired method
-	IsTokenExpiredFunc func(token string) bool
-
-	ValidateTokenFunc func(token string) error
-
-	DeleteTokenAsyncFunc func(token string) <-chan error
-
-	GenerateRefreshAndAccessTokensFunc func(subject, scopes string) (string, string, error)
-
-	BlacklistTokenFunc func(token string) error
+	GenerateTokenFunc                  func(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error)
+	GenerateTokensWithAudienceFunc     func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error)
+	SaveTokenFunc                      func(ctx context.Context, token, id string, expiry time.Time) error
+	ParseTokenFunc                     func(token string) (*token.TokenClaims, error)
+	IsTokenBlacklistedFunc             func(ctx context.Context, token string) (bool, error)
+	GetTokenFunc                       func(ctx context.Context, token string) (*token.TokenData, error)
+	DeleteTokenFunc                    func(ctx context.Context, token string) error
+	IsTokenExpiredFunc                 func(token string) bool
+	ValidateTokenFunc                  func(ctx context.Context, token string) error
+	DeleteTokenAsyncFunc               func(ctx context.Context, token string) <-chan error
+	GenerateRefreshAndAccessTokensFunc func(ctx context.Context, subject, scopes, roles string) (string, string, error)
+	BlacklistTokenFunc                 func(ctx context.Context, token string) error
+	DeleteExpiredTokensFunc            func(ctx context.Context) error
 }
 
-// GenerateToken calls the mock GenerateTokenFunc.
-func (m *MockTokenService) GenerateToken(id, scopes string, duration time.Duration) (string, error) {
-	return m.GenerateTokenFunc(id, scopes, duration)
+func (m *MockTokenService) GenerateToken(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
+	return m.GenerateTokenFunc(ctx, id, scopes, roles, duration)
 }
 
-// GenerateTokens calls the mock GenerateTokensFunc
-func (m *MockTokenService) GenerateTokensWithAudience(userID, clientID, scopes string) (string, string, error) {
-	return m.GenerateTokensWithAudienceFunc(userID, clientID, scopes)
+func (m *MockTokenService) GenerateTokensWithAudience(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
+	return m.GenerateTokensWithAudienceFunc(ctx, userID, clientID, scopes, roles)
 }
 
-// AddToken calls the mock AddTokenFunc.
-func (m *MockTokenService) SaveToken(token, id string, expiry time.Time) {
-	m.SaveTokenFunc(token, id, expiry)
+func (m *MockTokenService) SaveToken(ctx context.Context, token, id string, expiry time.Time) error {
+	return m.SaveTokenFunc(ctx, token, id, expiry)
 }
 
-// ParseToken calls the mock ParseTokenFunc.
 func (m *MockTokenService) ParseToken(token string) (*token.TokenClaims, error) {
 	return m.ParseTokenFunc(token)
 }
 
-// IsTokenBlacklisted calls the mock IsTokenBlacklistedFunc.
-func (m *MockTokenService) IsTokenBlacklisted(token string) bool {
-	return m.IsTokenBlacklistedFunc(token)
+func (m *MockTokenService) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
+	return m.IsTokenBlacklistedFunc(ctx, token)
 }
 
-// GetToken calls the mock GetTokenFunc.
-func (m *MockTokenService) GetToken(token string) (*token.TokenData, error) {
-	return m.GetTokenFunc(token)
+func (m *MockTokenService) GetToken(ctx context.Context, token string) (*token.TokenData, error) {
+	return m.GetTokenFunc(ctx, token)
 }
 
-// DeleteToken calls the mock DeleteTokenFunc.
-func (m *MockTokenService) DeleteToken(token string) error {
-	return m.DeleteTokenFunc(token)
+func (m *MockTokenService) DeleteToken(ctx context.Context, token string) error {
+	return m.DeleteTokenFunc(ctx, token)
 }
 
-// IsTokenExpired calls the mock IsTokenExpiredFunc
 func (m *MockTokenService) IsTokenExpired(token string) bool {
 	return m.IsTokenExpiredFunc(token)
 }
 
-func (m *MockTokenService) ValidateToken(token string) error {
-	return m.ValidateTokenFunc(token)
+func (m *MockTokenService) ValidateToken(ctx context.Context, token string) error {
+	return m.ValidateTokenFunc(ctx, token)
 }
 
-func (m *MockTokenService) DeleteTokenAsync(token string) <-chan error {
-	return m.DeleteTokenAsyncFunc(token)
+func (m *MockTokenService) DeleteTokenAsync(ctx context.Context, token string) <-chan error {
+	return m.DeleteTokenAsyncFunc(ctx, token)
 }
 
-func (m *MockTokenService) GenerateRefreshAndAccessTokens(subject, scopes string) (string, string, error) {
-	return m.GenerateRefreshAndAccessTokensFunc(subject, scopes)
+func (m *MockTokenService) GenerateRefreshAndAccessTokens(ctx context.Context, subject, scopes, roles string) (string, string, error) {
+	return m.GenerateRefreshAndAccessTokensFunc(ctx, subject, scopes, roles)
 }
 
-func (m *MockTokenService) BlacklistToken(token string) error {
-	return m.BlacklistTokenFunc(token)
+func (m *MockTokenService) BlacklistToken(ctx context.Context, token string) error {
+	return m.BlacklistTokenFunc(ctx, token)
+}
+
+func (m *MockTokenService) DeleteExpiredTokens(ctx context.Context) error {
+	return m.DeleteExpiredTokensFunc(ctx)
 }

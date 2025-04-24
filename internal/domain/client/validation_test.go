@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vigiloauth/vigilo/internal/constants"
 )
 
 const validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_"
@@ -26,7 +27,7 @@ func TestClientRegistrationRequest_Validate(t *testing.T) {
 
 	t.Run("Invalid Grant Types", func(t *testing.T) {
 		client := createClientRegistrationRequest()
-		client.GrantTypes = append(client.GrantTypes, ClientCredentials)
+		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentials)
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -52,7 +53,7 @@ func TestClientRegistrationRequest_Validate(t *testing.T) {
 
 	t.Run("Invalid Response Types", func(t *testing.T) {
 		client := createClientRegistrationRequest()
-		client.ResponseTypes = []string{TokenResponseType}
+		client.ResponseTypes = []string{constants.TokenResponseType}
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -80,12 +81,12 @@ func TestClientRegistrationRequest_Validate(t *testing.T) {
 
 		err := client.Validate()
 		assert.NoError(t, err)
-		assert.Equal(t, ClientRead, client.Scopes[0])
+		assert.Equal(t, constants.ClientRead, client.Scopes[0])
 	})
 
 	t.Run("Return error when public client is not using PKCE", func(t *testing.T) {
 		client := createClientRegistrationRequest()
-		client.GrantTypes = []string{AuthorizationCode}
+		client.GrantTypes = []string{constants.AuthorizationCode}
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -101,7 +102,7 @@ func TestClientUpdateRequest_Validate(t *testing.T) {
 
 	t.Run("Invalid Grant Types", func(t *testing.T) {
 		client := createClientUpdateRequest()
-		client.GrantTypes = append(client.GrantTypes, ClientCredentials)
+		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentials)
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -127,7 +128,7 @@ func TestClientUpdateRequest_Validate(t *testing.T) {
 
 	t.Run("Invalid Response Types", func(t *testing.T) {
 		client := createClientUpdateRequest()
-		client.ResponseTypes = []string{TokenResponseType}
+		client.ResponseTypes = []string{constants.TokenResponseType}
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -160,7 +161,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 				name: "Valid Base64 URL-encoded string (43-44 chars)",
 				request: &ClientAuthorizationRequest{
 					Client:              createClient(),
-					ResponseType:        CodeResponseType,
+					ResponseType:        constants.CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWasdasd2dasXyz0123456789-_",
 					CodeChallengeMethod: S256,
 				},
@@ -169,7 +170,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 				name: "Valid long Base64 URL-encoded string (greater than 44 chars)",
 				request: &ClientAuthorizationRequest{
 					Client:              createClient(),
-					ResponseType:        CodeResponseType,
+					ResponseType:        constants.CodeResponseType,
 					CodeChallenge:       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_",
 					CodeChallengeMethod: S256,
 				},
@@ -191,7 +192,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 				name: "Code challenge contains invalid characters (+, /)",
 				request: &ClientAuthorizationRequest{
 					Client:              createClient(),
-					ResponseType:        CodeResponseType,
+					ResponseType:        constants.CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWXyz01234562345654323456789+/",
 					CodeChallengeMethod: S256,
 				},
@@ -200,7 +201,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 				name: "Code challenge contains invalid characters (@, #, !)",
 				request: &ClientAuthorizationRequest{
 					Client:              createClient(),
-					ResponseType:        CodeResponseType,
+					ResponseType:        constants.CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWXyz012345012345678765434567887656789@#!",
 					CodeChallengeMethod: S256,
 				},
@@ -220,7 +221,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			CodeChallenge:       "short",
 			CodeChallengeMethod: S256,
 			Client:              createClient(),
-			ResponseType:        CodeResponseType,
+			ResponseType:        constants.CodeResponseType,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
@@ -235,7 +236,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			CodeChallenge:       validCodeChallenge,
 			CodeChallengeMethod: "invalid",
 			Client:              createClient(),
-			ResponseType:        CodeResponseType,
+			ResponseType:        constants.CodeResponseType,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
@@ -248,7 +249,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 	t.Run("Code challenge method defaults to plain if not present", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client:        createClient(),
-			ResponseType:  CodeResponseType,
+			ResponseType:  constants.CodeResponseType,
 			CodeChallenge: validCodeChallenge,
 		}
 
@@ -259,11 +260,11 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 
 	t.Run("Error is returned when client does not have 'code' response type", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
-			ResponseType: IDTokenResponseType,
+			ResponseType: constants.IDTokenResponseType,
 			Client: &Client{
 				Type:          Public,
-				GrantTypes:    []string{AuthorizationCode, PKCE},
-				ResponseTypes: []string{IDTokenResponseType},
+				GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+				ResponseTypes: []string{constants.IDTokenResponseType},
 			},
 			CodeChallenge: validCodeChallenge,
 		}
@@ -277,11 +278,11 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 
 	t.Run("Success when request does not have PKCE grant and no code challenge is passed", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
-			ResponseType: CodeResponseType,
+			ResponseType: constants.CodeResponseType,
 			Client: &Client{
 				Type:          Confidential,
-				ResponseTypes: []string{CodeResponseType},
-				GrantTypes:    []string{AuthorizationCode},
+				ResponseTypes: []string{constants.CodeResponseType},
+				GrantTypes:    []string{constants.AuthorizationCode},
 			},
 		}
 
@@ -293,10 +294,10 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
 				Type:          Public,
-				ResponseTypes: []string{CodeResponseType},
-				GrantTypes:    []string{PKCE},
+				ResponseTypes: []string{constants.CodeResponseType},
+				GrantTypes:    []string{constants.PKCE},
 			},
-			ResponseType:        CodeResponseType,
+			ResponseType:        constants.CodeResponseType,
 			CodeChallengeMethod: Plain,
 		}
 
@@ -311,10 +312,10 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
 				Type:          Public,
-				ResponseTypes: []string{CodeResponseType},
-				GrantTypes:    []string{AuthorizationCode},
+				ResponseTypes: []string{constants.CodeResponseType},
+				GrantTypes:    []string{constants.AuthorizationCode},
 			},
-			ResponseType:        CodeResponseType,
+			ResponseType:        constants.CodeResponseType,
 			CodeChallenge:       validCodeChallenge,
 			CodeChallengeMethod: Plain,
 		}
@@ -330,10 +331,10 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
 				Type:          Public,
-				ResponseTypes: []string{CodeResponseType},
-				GrantTypes:    []string{AuthorizationCode, PKCE},
+				ResponseTypes: []string{constants.CodeResponseType},
+				GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
 			},
-			ResponseType: CodeResponseType,
+			ResponseType: constants.CodeResponseType,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
@@ -347,10 +348,10 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
 				Type:          Confidential,
-				ResponseTypes: []string{CodeResponseType},
-				GrantTypes:    []string{AuthorizationCode},
+				ResponseTypes: []string{constants.CodeResponseType},
+				GrantTypes:    []string{constants.AuthorizationCode},
 			},
-			ResponseType: CodeResponseType,
+			ResponseType: constants.CodeResponseType,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
@@ -361,10 +362,10 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
 				Type:          Confidential,
-				ResponseTypes: []string{CodeResponseType},
-				GrantTypes:    []string{AuthorizationCode},
+				ResponseTypes: []string{constants.CodeResponseType},
+				GrantTypes:    []string{constants.AuthorizationCode},
 			},
-			ResponseType:  CodeResponseType,
+			ResponseType:  constants.CodeResponseType,
 			CodeChallenge: validCodeChallenge,
 		}
 
@@ -381,9 +382,9 @@ func createClientRegistrationRequest() *ClientRegistrationRequest {
 		Name:          "Test Client",
 		Type:          Public,
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
-		GrantTypes:    []string{AuthorizationCode, PKCE},
-		Scopes:        []string{ClientRead, ClientWrite},
-		ResponseTypes: []string{CodeResponseType, IDTokenResponseType},
+		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
+		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }
 
@@ -392,9 +393,9 @@ func createClientUpdateRequest() *ClientUpdateRequest {
 		Name:          "Test Client",
 		Type:          Public,
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
-		GrantTypes:    []string{AuthorizationCode, PKCE},
-		Scopes:        []string{ClientRead, ClientWrite},
-		ResponseTypes: []string{CodeResponseType, IDTokenResponseType},
+		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
+		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }
 
@@ -403,8 +404,8 @@ func createClient() *Client {
 		Name:          "Test Client",
 		Type:          Public,
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
-		GrantTypes:    []string{AuthorizationCode, PKCE},
-		Scopes:        []string{ClientRead, ClientWrite},
-		ResponseTypes: []string{CodeResponseType, IDTokenResponseType},
+		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
+		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }

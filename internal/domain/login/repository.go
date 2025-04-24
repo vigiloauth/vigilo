@@ -1,22 +1,32 @@
 package domain
 
-import user "github.com/vigiloauth/vigilo/internal/domain/user"
+import (
+	"context"
+
+	user "github.com/vigiloauth/vigilo/internal/domain/user"
+)
 
 // LoginAttemptRepository defines the interface for storing and retrieving login attempts.
 type LoginAttemptRepository interface {
 
-	// SaveLoginAttempt logs a login attempt.
+	// SaveLoginAttempt saves a login attempt.
 	//
 	// Parameters:
-	//   attempt *UserLoginAttempt: The login attempt to save.
-	SaveLoginAttempt(attempt *user.UserLoginAttempt) error
-
-	// GetLoginAttempts retrieves all login attempts for a given user.
-	//
-	// Parameters:
-	//   userID string: The user ID.
+	//	- ctx Context: The context for managing timeouts and cancellations.
+	//	- attempt *UserLoginAttempt: The login attempt to save.
 	//
 	// Returns:
-	//   []*UserLoginAttempt: A slice of login attempts for the user.
-	GetLoginAttempts(userID string) []*user.UserLoginAttempt
+	//	- error: If an error occurs saving the login attempts.
+	SaveLoginAttempt(ctx context.Context, attempt *user.UserLoginAttempt) error
+
+	// GetLoginAttemptsByUserID retrieves all login attempts for a given user.
+	//
+	// Parameters:
+	//	- ctx Context: The context for managing timeouts and cancellations.
+	//	- userID string: The user ID.
+	//
+	// Returns:
+	//	- []*UserLoginAttempt: A slice of login attempts for the user.
+	//	- error: If an error occurs retrieving user login attempts.
+	GetLoginAttemptsByUserID(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error)
 }

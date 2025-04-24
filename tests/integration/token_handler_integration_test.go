@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/identity/config"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
@@ -44,13 +44,13 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 
 				testContext.WithClient(
 					test.clientType,
-					[]string{client.ClientManage},
-					[]string{client.ClientCredentials},
+					[]string{constants.ClientManage},
+					[]string{constants.ClientCredentials},
 				)
 
 				formData := url.Values{}
-				formData.Add(common.GrantType, client.ClientCredentials)
-				formData.Add(common.Scope, client.ClientManage)
+				formData.Add(constants.GrantType, constants.ClientCredentials)
+				formData.Add(constants.Scope, constants.ClientManage)
 
 				headers := generateHeaderWithCredentials(testClientID, test.clientSecret)
 
@@ -69,7 +69,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, common.BearerAuthHeader, tokenResponse.TokenType)
+				assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -81,13 +81,13 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage},
-			[]string{client.ClientCredentials},
+			[]string{constants.ClientManage},
+			[]string{constants.ClientCredentials},
 		)
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.ClientCredentials)
-		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(constants.GrantType, constants.ClientCredentials)
+		formData.Add(constants.Scope, constants.ClientManage)
 
 		headers := generateHeaderWithCredentials("non-existing-id", testClientSecret)
 		rr := testContext.SendHTTPRequest(
@@ -109,8 +109,8 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		defer testContext.TearDown()
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.ClientCredentials)
-		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(constants.GrantType, constants.ClientCredentials)
+		formData.Add(constants.Scope, constants.ClientManage)
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 		rr := testContext.SendHTTPRequest(
@@ -134,8 +134,8 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		}
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.ClientCredentials)
-		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(constants.GrantType, constants.ClientCredentials)
+		formData.Add(constants.Scope, constants.ClientManage)
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
@@ -154,13 +154,13 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage},
-			[]string{client.ClientCredentials},
+			[]string{constants.ClientManage},
+			[]string{constants.ClientCredentials},
 		)
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.ClientCredentials)
-		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(constants.GrantType, constants.ClientCredentials)
+		formData.Add(constants.Scope, constants.ClientManage)
 		headers := generateHeaderWithCredentials(testClientID, "invalid-secret")
 
 		rr := testContext.SendHTTPRequest(
@@ -180,13 +180,13 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage},
-			[]string{client.AuthorizationCode}, // unsupported grant type
+			[]string{constants.ClientManage},
+			[]string{constants.AuthorizationCode}, // unsupported grant type
 		)
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.ClientCredentials)
-		formData.Add(common.Scope, client.ClientManage)
+		formData.Add(constants.GrantType, constants.ClientCredentials)
+		formData.Add(constants.Scope, constants.ClientManage)
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := testContext.SendHTTPRequest(
@@ -206,13 +206,13 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientRead},
-			[]string{client.ClientCredentials},
+			[]string{constants.ClientRead},
+			[]string{constants.ClientCredentials},
 		)
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.ClientCredentials)
-		formData.Add(common.Scope, client.ClientDelete)
+		formData.Add(constants.GrantType, constants.ClientCredentials)
+		formData.Add(constants.Scope, constants.ClientDelete)
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := testContext.SendHTTPRequest(
@@ -251,14 +251,14 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{client.UserManage}, []string{client.PasswordGrant})
-				testContext.WithUser()
+				testContext.WithClient(test.clientType, []string{constants.UserManage}, []string{constants.PasswordGrant})
+				testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 				formData := url.Values{}
-				formData.Add(common.GrantType, client.PasswordGrant)
-				formData.Add(common.Scope, client.UserManage)
-				formData.Add(common.Username, testUsername)
-				formData.Add(common.Password, testPassword1)
+				formData.Add(constants.GrantType, constants.PasswordGrant)
+				formData.Add(constants.Scope, constants.UserManage)
+				formData.Add(constants.Username, testUsername)
+				formData.Add(constants.Password, testPassword1)
 
 				headers := generateHeaderWithCredentials(testClientID, test.clientSecret)
 				rr := testContext.SendHTTPRequest(
@@ -276,7 +276,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, common.BearerAuthHeader, tokenResponse.TokenType)
+				assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -286,14 +286,14 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{client.UserManage}, []string{client.PasswordGrant})
-		testContext.WithUser()
+		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.PasswordGrant)
-		formData.Add(common.Scope, client.ClientManage)
-		formData.Add(common.Username, testUsername)
-		formData.Add(common.Password, testPassword1)
+		formData.Add(constants.GrantType, constants.PasswordGrant)
+		formData.Add(constants.Scope, constants.ClientManage)
+		formData.Add(constants.Username, testUsername)
+		formData.Add(constants.Password, testPassword1)
 
 		headers := generateHeaderWithCredentials("non-existing-id", testClientSecret)
 		rr := testContext.SendHTTPRequest(
@@ -310,14 +310,14 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{client.UserManage}, []string{client.PasswordGrant})
-		testContext.WithUser()
+		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.PasswordGrant)
-		formData.Add(common.Scope, client.UserManage)
-		formData.Add(common.Username, testUsername)
-		formData.Add(common.Password, "invalid-password")
+		formData.Add(constants.GrantType, constants.PasswordGrant)
+		formData.Add(constants.Scope, constants.UserManage)
+		formData.Add(constants.Username, testUsername)
+		formData.Add(constants.Password, "invalid-password")
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := testContext.SendHTTPRequest(
@@ -334,14 +334,14 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{client.UserManage}, []string{client.PasswordGrant})
-		testContext.WithUser()
+		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.PasswordGrant)
-		formData.Add(common.Scope, client.UserManage)
-		formData.Add(common.Username, testUsername)
-		formData.Add(common.Password, testPassword1)
+		formData.Add(constants.GrantType, constants.PasswordGrant)
+		formData.Add(constants.Scope, constants.UserManage)
+		formData.Add(constants.Username, testUsername)
+		formData.Add(constants.Password, testPassword1)
 
 		headers := generateHeaderWithCredentials(testClientID, "invalid-secret")
 		rr := testContext.SendHTTPRequest(
@@ -360,22 +360,21 @@ func TestTokenHandler_TokenExchange(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(
-			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
-		)
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithUserConsent()
+		testContext.WithClient(
+			client.Confidential,
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
+		)
 
 		authzCode := testContext.GetAuthzCode()
 
 		formData := url.Values{}
-		formData.Add(common.AuthzCode, authzCode)
-		formData.Add(common.RedirectURI, testRedirectURI)
-		formData.Add(common.State, testContext.State)
-		formData.Add(common.GrantType, client.AuthorizationCode)
+		formData.Add(constants.CodeURLValue, authzCode)
+		formData.Add(constants.RedirectURI, testRedirectURI)
+		formData.Add(constants.State, testContext.State)
+		formData.Add(constants.GrantType, constants.AuthorizationCode)
 
 		headers := map[string]string{
 			"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
@@ -391,19 +390,18 @@ func TestTokenHandler_TokenExchange(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
+		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
 		)
-		testContext.WithUserSession()
 
 		formData := url.Values{}
-		formData.Add(common.AuthzCode, "valid-code")
-		formData.Add(common.RedirectURI, testRedirectURI)
-		formData.Add(common.State, "invalid-state")
-		formData.Add(common.GrantType, client.AuthorizationCode)
+		formData.Add(constants.CodeURLValue, "valid-code")
+		formData.Add(constants.RedirectURI, testRedirectURI)
+		formData.Add(constants.State, "invalid-state")
+		formData.Add(constants.GrantType, constants.AuthorizationCode)
 
 		headers := map[string]string{
 			"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
@@ -460,10 +458,11 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 		for _, test := range tests {
 			testContext.WithClient(
 				test.clientType,
-				[]string{client.ClientManage},
-				[]string{client.AuthorizationCode, client.PKCE},
+				[]string{constants.ClientManage},
+				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
-			testContext.WithUser()
+
+			testContext.WithUser([]string{constants.ClientManage}, []string{constants.AdminRole})
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 
@@ -474,16 +473,16 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			}
 
 			formData := url.Values{}
-			formData.Add(common.AuthzCode, authorizationCode)
-			formData.Add(common.RedirectURI, testRedirectURI)
-			formData.Add(common.State, testContext.State)
-			formData.Add(common.GrantType, client.PKCE)
-			formData.Add(common.CodeVerifier, test.codeVerifier)
+			formData.Add(constants.CodeURLValue, authorizationCode)
+			formData.Add(constants.RedirectURI, testRedirectURI)
+			formData.Add(constants.State, testContext.State)
+			formData.Add(constants.GrantType, constants.PKCE)
+			formData.Add(constants.CodeVerifier, test.codeVerifier)
 
 			if test.clientType == client.Confidential {
 				headers["Authorization"] = "Basic " + encodeClientCredentials(testClientID, testClientSecret)
 			} else {
-				formData.Add(common.ClientID, testClientID)
+				formData.Add(constants.ClientID, testClientID)
 			}
 
 			rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
@@ -521,10 +520,11 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 		for _, test := range tests {
 			testContext.WithClient(
 				test.clientType,
-				[]string{client.ClientManage},
-				[]string{client.AuthorizationCode, client.PKCE},
+				[]string{constants.ClientManage},
+				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
-			testContext.WithUser()
+
+			testContext.WithUser([]string{constants.ClientManage}, []string{constants.AdminRole})
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 
@@ -535,16 +535,16 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			}
 
 			formData := url.Values{}
-			formData.Add(common.AuthzCode, authorizationCode)
-			formData.Add(common.RedirectURI, testRedirectURI)
-			formData.Add(common.State, testContext.State)
-			formData.Add(common.GrantType, client.PKCE)
-			formData.Add(common.CodeVerifier, test.codeVerifier)
+			formData.Add(constants.CodeURLValue, authorizationCode)
+			formData.Add(constants.RedirectURI, testRedirectURI)
+			formData.Add(constants.State, testContext.State)
+			formData.Add(constants.GrantType, constants.PKCE)
+			formData.Add(constants.CodeVerifier, test.codeVerifier)
 
 			if test.clientType == client.Confidential {
 				headers["Authorization"] = "Basic " + encodeClientCredentials(testClientID, testClientSecret)
 			} else {
-				formData.Add(common.ClientID, testClientID)
+				formData.Add(constants.ClientID, testClientID)
 			}
 
 			rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
@@ -576,19 +576,19 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{client.ClientManage}, []string{client.RefreshToken})
+				testContext.WithClient(test.clientType, []string{constants.ClientManage}, []string{constants.RefreshToken})
 				testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 
 				formData := url.Values{}
-				formData.Add(common.GrantType, client.RefreshToken)
-				formData.Add(common.Scope, client.ClientManage)
-				formData.Add(common.RefreshToken, testContext.JWTToken)
+				formData.Add(constants.GrantType, constants.RefreshToken)
+				formData.Add(constants.Scope, constants.ClientManage)
+				formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
 
 				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 				if test.clientType == client.Confidential {
 					headers["Authorization"] = "Basic " + encodeClientCredentials(testClientID, testClientSecret)
 				} else {
-					formData.Add(common.ClientID, testClientID)
+					formData.Add(constants.ClientID, testClientID)
 				}
 
 				rr := testContext.SendHTTPRequest(
@@ -606,7 +606,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, common.BearerAuthHeader, tokenResponse.TokenType)
+				assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -614,12 +614,12 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 
 	t.Run("Invalid request error is returned for missing parameters", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
 		testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 
 		formData := url.Values{}
-		formData.Add(common.ClientID, testClientID)
-		formData.Add(common.RefreshToken, testContext.JWTToken)
+		formData.Add(constants.ClientID, testClientID)
+		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 		rr := testContext.SendHTTPRequest(
@@ -634,14 +634,14 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 
 	t.Run("Invalid request error is returned for an unsupported grant type", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
 		testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 
 		formData := url.Values{}
-		formData.Add(common.ClientID, testClientID)
-		formData.Add(common.RefreshToken, testContext.JWTToken)
-		formData.Add(common.Scope, client.ClientManage)
-		formData.Add(common.GrantType, "invalid-grant-type")
+		formData.Add(constants.ClientID, testClientID)
+		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
+		formData.Add(constants.Scope, constants.ClientManage)
+		formData.Add(constants.GrantType, "invalid-grant-type")
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 		rr := testContext.SendHTTPRequest(
@@ -658,13 +658,13 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.RefreshToken)
-		formData.Add(common.Scope, client.ClientManage)
-		formData.Add(common.RefreshToken, "invalid-token")
-		formData.Add(common.ClientID, testClientID)
+		formData.Add(constants.GrantType, constants.RefreshToken)
+		formData.Add(constants.Scope, constants.ClientManage)
+		formData.Add(constants.RefreshTokenURLValue, "invalid-token")
+		formData.Add(constants.ClientID, testClientID)
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 
@@ -682,14 +682,14 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
 		testContext.WithExpiredToken()
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.RefreshToken)
-		formData.Add(common.Scope, client.ClientManage)
-		formData.Add(common.RefreshToken, testContext.JWTToken)
-		formData.Add(common.ClientID, testClientID)
+		formData.Add(constants.GrantType, constants.RefreshToken)
+		formData.Add(constants.Scope, constants.ClientManage)
+		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
+		formData.Add(constants.ClientID, testClientID)
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 
@@ -707,14 +707,14 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
 		testContext.WithBlacklistedToken(testClientID)
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.RefreshToken)
-		formData.Add(common.Scope, client.ClientManage)
-		formData.Add(common.RefreshToken, testContext.JWTToken)
-		formData.Add(common.ClientID, testClientID)
+		formData.Add(constants.GrantType, constants.RefreshToken)
+		formData.Add(constants.Scope, constants.ClientManage)
+		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
+		formData.Add(constants.ClientID, testClientID)
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 
@@ -732,14 +732,14 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{client.ClientManage}, []string{client.AuthorizationCode})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.AuthorizationCode})
 		testContext.WithJWTToken(testClientID, time.Duration(5)*time.Minute)
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.RefreshToken)
-		formData.Add(common.Scope, client.ClientManage)
-		formData.Add(common.RefreshToken, testContext.JWTToken)
-		formData.Add(common.ClientID, testClientID)
+		formData.Add(constants.GrantType, constants.RefreshToken)
+		formData.Add(constants.Scope, constants.ClientManage)
+		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
+		formData.Add(constants.ClientID, testClientID)
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 
@@ -757,14 +757,14 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{client.ClientRead}, []string{client.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientRead}, []string{constants.RefreshToken})
 		testContext.WithJWTToken(testClientID, time.Duration(5)*time.Minute)
 
 		formData := url.Values{}
-		formData.Add(common.GrantType, client.RefreshToken)
-		formData.Add(common.Scope, client.ClientManage)
-		formData.Add(common.RefreshToken, testContext.JWTToken)
-		formData.Add(common.ClientID, testClientID)
+		formData.Add(constants.GrantType, constants.RefreshToken)
+		formData.Add(constants.Scope, constants.ClientManage)
+		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
+		formData.Add(constants.ClientID, testClientID)
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 
@@ -800,7 +800,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{client.TokenIntrospect}, []string{client.PKCE})
+				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.PKCE})
 				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
@@ -811,7 +811,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				}
 
 				formValue := url.Values{}
-				formValue.Add(common.Token, testContext.JWTToken)
+				formValue.Add(constants.Token, testContext.JWTToken)
 				rr := testContext.SendHTTPRequest(
 					http.MethodPost,
 					web.OAuthEndpoints.IntrospectToken,
@@ -837,7 +837,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				expectedStatus: http.StatusUnauthorized,
 				headers: map[string]string{
 					"Content-Type":  "application/x-www-form-urlencoded",
-					"Authorization": common.BasicAuthHeader + encodeClientCredentials("invalidID", testClientSecret),
+					"Authorization": constants.BasicAuthHeader + encodeClientCredentials("invalidID", testClientSecret),
 				},
 			},
 			{
@@ -846,7 +846,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				clientType:     client.Confidential,
 				headers: map[string]string{
 					"Content-Type":  "application/x-www-form-urlencoded",
-					"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, "invalidSecret"),
+					"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, "invalidSecret"),
 				},
 			},
 			{
@@ -855,7 +855,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				clientType:     client.Public,
 				headers: map[string]string{
 					"Content-Type":  "application/x-www-form-urlencoded",
-					"Authorization": common.BearerAuthHeader + "invalid-token",
+					"Authorization": constants.BearerAuthHeader + "invalid-token",
 				},
 			},
 		}
@@ -865,11 +865,11 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{client.TokenIntrospect}, []string{client.ClientCredentials})
+				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.ClientCredentials})
 				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				formValue := url.Values{}
-				formValue.Add(common.Token, testContext.JWTToken)
+				formValue.Add(constants.Token, testContext.JWTToken)
 
 				rr := testContext.SendHTTPRequest(
 					http.MethodPost,
@@ -887,15 +887,15 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{client.TokenIntrospect}, []string{client.ClientCredentials})
+		testContext.WithClient(client.Confidential, []string{constants.TokenIntrospect}, []string{constants.ClientCredentials})
 		testContext.WithExpiredToken()
 
 		formValue := url.Values{}
-		formValue.Add(common.Token, testContext.JWTToken)
+		formValue.Add(constants.Token, testContext.JWTToken)
 
 		headers := map[string]string{
 			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
+			"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
 		}
 
 		rr := testContext.SendHTTPRequest(
@@ -918,15 +918,15 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{client.TokenIntrospect}, []string{client.ClientCredentials})
+		testContext.WithClient(client.Confidential, []string{constants.TokenIntrospect}, []string{constants.ClientCredentials})
 		testContext.WithBlacklistedToken(testClientID)
 
 		formValue := url.Values{}
-		formValue.Add(common.Token, testContext.JWTToken)
+		formValue.Add(constants.Token, testContext.JWTToken)
 
 		headers := map[string]string{
 			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
+			"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
 		}
 
 		rr := testContext.SendHTTPRequest(
@@ -949,15 +949,15 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{client.ClientRead}, []string{client.ClientCredentials})
+		testContext.WithClient(client.Confidential, []string{constants.ClientRead}, []string{constants.ClientCredentials})
 		testContext.WithBlacklistedToken(testClientID)
 
 		formValue := url.Values{}
-		formValue.Add(common.Token, testContext.JWTToken)
+		formValue.Add(constants.Token, testContext.JWTToken)
 
 		headers := map[string]string{
 			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
+			"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
 		}
 
 		rr := testContext.SendHTTPRequest(
@@ -992,7 +992,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{client.TokenRevoke}, []string{client.PKCE})
+				testContext.WithClient(test.clientType, []string{constants.TokenRevoke}, []string{constants.PKCE})
 				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
@@ -1003,7 +1003,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				}
 
 				formValue := url.Values{}
-				formValue.Add(common.Token, testContext.JWTToken)
+				formValue.Add(constants.Token, testContext.JWTToken)
 				rr := testContext.SendHTTPRequest(
 					http.MethodPost,
 					web.OAuthEndpoints.RevokeToken,
@@ -1029,7 +1029,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				expectedStatus: http.StatusUnauthorized,
 				headers: map[string]string{
 					"Content-Type":  "application/x-www-form-urlencoded",
-					"Authorization": common.BasicAuthHeader + encodeClientCredentials("invalidID", testClientSecret),
+					"Authorization": constants.BasicAuthHeader + encodeClientCredentials("invalidID", testClientSecret),
 				},
 			},
 			{
@@ -1038,7 +1038,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				clientType:     client.Confidential,
 				headers: map[string]string{
 					"Content-Type":  "application/x-www-form-urlencoded",
-					"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, "invalidSecret"),
+					"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, "invalidSecret"),
 				},
 			},
 			{
@@ -1047,7 +1047,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				clientType:     client.Public,
 				headers: map[string]string{
 					"Content-Type":  "application/x-www-form-urlencoded",
-					"Authorization": common.BearerAuthHeader + "invalid-token",
+					"Authorization": constants.BearerAuthHeader + "invalid-token",
 				},
 			},
 		}
@@ -1057,11 +1057,11 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{client.TokenIntrospect}, []string{client.ClientCredentials})
+				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.ClientCredentials})
 				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				formValue := url.Values{}
-				formValue.Add(common.Token, testContext.JWTToken)
+				formValue.Add(constants.Token, testContext.JWTToken)
 
 				rr := testContext.SendHTTPRequest(
 					http.MethodPost,
@@ -1079,15 +1079,15 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{client.ClientRead}, []string{client.ClientCredentials})
+		testContext.WithClient(client.Confidential, []string{constants.ClientRead}, []string{constants.ClientCredentials})
 		testContext.WithBlacklistedToken(testClientID)
 
 		formValue := url.Values{}
-		formValue.Add(common.Token, testContext.JWTToken)
+		formValue.Add(constants.Token, testContext.JWTToken)
 
 		headers := map[string]string{
 			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": common.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
+			"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
 		}
 
 		rr := testContext.SendHTTPRequest(

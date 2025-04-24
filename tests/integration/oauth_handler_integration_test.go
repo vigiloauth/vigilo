@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
@@ -21,11 +21,11 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
 		)
 
 		loginRequest := users.UserLoginRequest{
@@ -38,8 +38,8 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 		assert.NoError(t, err)
 
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
 		endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(
@@ -57,8 +57,8 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
 		)
 
 		loginRequest := users.UserLoginRequest{
@@ -71,8 +71,8 @@ func TestOauthHandler_OAuthLogin(t *testing.T) {
 		assert.NoError(t, err)
 
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
 		endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(
@@ -90,21 +90,20 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
 
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
-		queryParams.Add(common.Scope, testScope)
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.Scope, testScope)
 		endpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
@@ -115,12 +114,11 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
@@ -128,15 +126,15 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 		state := testContext.GetStateFromSession()
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
-		queryParams.Add(common.Scope, testScope)
-		queryParams.Add(common.State, state)
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.Scope, testScope)
+		queryParams.Add(constants.State, state)
 		postEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		userConsentRequest := &consent.UserConsentRequest{
 			Approved: true,
-			Scopes:   []string{client.ClientManage, client.UserManage},
+			Scopes:   []string{constants.ClientManage, constants.UserManage},
 		}
 
 		requestBody, err := json.Marshal(userConsentRequest)
@@ -153,14 +151,14 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
 		)
 
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
-		queryParams.Add(common.Scope, testScope)
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.Scope, testScope)
 
 		endpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 		rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, nil)
@@ -193,12 +191,11 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithUser()
 				testContext.WithUserSession()
 				testContext.WithClient(
 					client.Confidential,
-					[]string{client.ClientManage, client.UserManage},
-					[]string{client.AuthorizationCode},
+					[]string{constants.ClientManage, constants.UserManage},
+					[]string{constants.AuthorizationCode},
 				)
 
 				rr := testContext.SendHTTPRequest(http.MethodGet, test.endpoint, nil, nil)
@@ -210,30 +207,28 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 	t.Run("Post Request - state mismatch", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithUser()
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
 
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
-		queryParams.Add(common.Scope, testScope)
-		queryParams.Add(common.State, "invalid-state")
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.Scope, testScope)
+		queryParams.Add(constants.State, "invalid-state")
 		endpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		userConsentRequest := &consent.UserConsentRequest{
 			Approved: true,
-			Scopes:   []string{client.ClientManage, client.UserRead},
+			Scopes:   []string{constants.ClientManage, constants.UserRead},
 		}
 
 		requestBody, err := json.Marshal(userConsentRequest)
@@ -248,12 +243,11 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage},
+			[]string{constants.AuthorizationCode},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
@@ -261,9 +255,9 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 		// Send GET request to fetch state
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
-		queryParams.Add(common.Scope, testScope)
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.Scope, testScope)
 		getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
@@ -276,11 +270,11 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		state := consentResponse.State
 		assert.NotEmpty(t, state)
 
-		queryParams.Add(common.State, state)
+		queryParams.Add(constants.State, state)
 		postEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 		userConsentRequest := &consent.UserConsentRequest{
 			Approved: true,
-			Scopes:   []string{client.ClientManage, client.UserManage},
+			Scopes:   []string{constants.ClientManage, constants.UserManage},
 		}
 
 		requestBody, err := json.Marshal(userConsentRequest)
@@ -294,12 +288,11 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser()
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{client.ClientManage, client.UserManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
@@ -307,9 +300,9 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 
 		// Send GET request to fetch state
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
-		queryParams.Add(common.Scope, testScope)
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.Scope, testScope)
 		getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
@@ -321,7 +314,7 @@ func TestOAuthHandler_UserConsent(t *testing.T) {
 		state := consentResponse.State
 		assert.NotEmpty(t, state)
 
-		queryParams.Add(common.State, state)
+		queryParams.Add(constants.State, state)
 		postEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 		userConsentRequest := &consent.UserConsentRequest{
 			Approved: false,

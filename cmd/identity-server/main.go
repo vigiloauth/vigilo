@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	config "github.com/vigiloauth/vigilo/cmd/config/application"
-	"github.com/vigiloauth/vigilo/identity/server"
+	"github.com/vigiloauth/vigilo/idp/server"
 )
 
 func main() {

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/common"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/web"
@@ -19,19 +19,19 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{client.ClientManage, client.UserManage},
-		[]string{client.AuthorizationCode},
+		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.AuthorizationCode},
 	)
-	testContext.WithUser()
+	testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
 
 	queryParams := url.Values{}
-	queryParams.Add(common.ClientID, testClientID)
-	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.Scope, testScope)
-	queryParams.Add(common.ResponseType, client.CodeResponseType)
-	queryParams.Add(common.Approved, fmt.Sprintf("%v", testConsentApproved))
+	queryParams.Add(constants.ClientID, testClientID)
+	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	queryParams.Add(constants.Scope, testScope)
+	queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 
 	sessionCookie := testContext.GetSessionCookie()
 	headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -52,19 +52,19 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{client.ClientManage, client.UserManage},
-		[]string{client.AuthorizationCode, client.PKCE},
+		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.AuthorizationCode, constants.PKCE},
 	)
-	testContext.WithUser()
+
 	testContext.WithUserSession()
 
 	// Call AuthorizeClient Endpoint
 	testContext.WithUserConsent()
 	queryParams := url.Values{}
-	queryParams.Add(common.ClientID, testClientID)
-	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.Scope, testScope)
-	queryParams.Add(common.Approved, fmt.Sprintf("%v", testConsentApproved))
+	queryParams.Add(constants.ClientID, testClientID)
+	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	queryParams.Add(constants.Scope, testScope)
+	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 
 	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
 	rr := testContext.SendHTTPRequest(
@@ -82,18 +82,18 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{client.ClientManage, client.UserManage},
-		[]string{client.AuthorizationCode, client.PKCE},
+		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.AuthorizationCode, constants.PKCE},
 	)
-	testContext.WithUser()
+
 	testContext.WithUserConsent()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
-	queryParams.Add(common.ClientID, testClientID)
-	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.Scope, testScope)
-	queryParams.Add(common.Approved, fmt.Sprintf("%v", testConsentApproved))
+	queryParams.Add(constants.ClientID, testClientID)
+	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	queryParams.Add(constants.Scope, testScope)
+	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 
 	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
 	rr := testContext.SendHTTPRequest(
@@ -112,20 +112,20 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{client.ClientManage, client.UserManage},
-		[]string{client.AuthorizationCode},
+		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.AuthorizationCode},
 	)
-	testContext.WithUser()
+
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
-	queryParams.Add(common.ClientID, testClientID)
-	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.Scope, testScope)
-	queryParams.Add(common.ResponseType, client.CodeResponseType)
-	queryParams.Add(common.Approved, "false")
+	queryParams.Add(constants.ClientID, testClientID)
+	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	queryParams.Add(constants.Scope, testScope)
+	queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+	queryParams.Add(constants.ConsentApprovedURLValue, "false")
 
 	sessionCookie := testContext.GetSessionCookie()
 	headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -146,19 +146,19 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{client.ClientManage, client.UserManage},
-		[]string{client.AuthorizationCode},
+		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.AuthorizationCode},
 	)
-	testContext.WithUser()
+
 	testContext.WithUserSession()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
-	queryParams.Add(common.ClientID, testClientID)
-	queryParams.Add(common.RedirectURI, testRedirectURI)
-	queryParams.Add(common.Scope, testScope)
-	queryParams.Add(common.ResponseType, client.CodeResponseType)
-	queryParams.Add(common.Approved, testConsentApproved)
+	queryParams.Add(constants.ClientID, testClientID)
+	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	queryParams.Add(constants.Scope, testScope)
+	queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+	queryParams.Add(constants.ConsentApprovedURLValue, testConsentApproved)
 
 	sessionCookie := testContext.GetSessionCookie()
 	headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -206,21 +206,21 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext := NewVigiloTestContext(t)
 			testContext.WithClient(
 				test.clientType,
-				[]string{client.ClientManage},
-				[]string{client.AuthorizationCode, client.PKCE},
+				[]string{constants.ClientManage},
+				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
-			testContext.WithUser()
+
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 
 			queryParams := url.Values{}
-			queryParams.Add(common.ClientID, testClientID)
-			queryParams.Add(common.RedirectURI, testRedirectURI)
-			queryParams.Add(common.Scope, client.ClientManage)
-			queryParams.Add(common.ResponseType, client.CodeResponseType)
-			queryParams.Add(common.Approved, fmt.Sprintf("%v", testConsentApproved))
-			queryParams.Add(common.CodeChallenge, testContext.SH256CodeChallenge)
-			queryParams.Add(common.CodeChallengeMethod, test.codeChallengeMethod)
+			queryParams.Add(constants.ClientID, testClientID)
+			queryParams.Add(constants.RedirectURI, testRedirectURI)
+			queryParams.Add(constants.Scope, constants.ClientManage)
+			queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+			queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
+			queryParams.Add(constants.CodeChallenge, testContext.SH256CodeChallenge)
+			queryParams.Add(constants.CodeChallengeMethod, test.codeChallengeMethod)
 
 			sessionCookie := testContext.GetSessionCookie()
 			headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -239,10 +239,10 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientManage},
-			[]string{client.AuthorizationCode},
+			[]string{constants.ClientManage},
+			[]string{constants.AuthorizationCode},
 		)
-		testContext.WithUser()
+
 		testContext.WithUserSession()
 		testContext.WithUserConsent()
 
@@ -263,10 +263,10 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientManage},
-			[]string{client.AuthorizationCode, client.PKCE},
+			[]string{constants.ClientManage},
+			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
-		testContext.WithUser()
+
 		testContext.WithUserSession()
 		testContext.WithUserConsent()
 
@@ -287,21 +287,21 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 		testContext.WithClient(
 			client.Public,
-			[]string{client.ClientManage},
-			[]string{client.AuthorizationCode, client.PKCE},
+			[]string{constants.ClientManage},
+			[]string{constants.AuthorizationCode, constants.PKCE},
 		)
-		testContext.WithUser()
+
 		testContext.WithUserSession()
 		testContext.WithUserConsent()
 
 		queryParams := url.Values{}
-		queryParams.Add(common.ClientID, testClientID)
-		queryParams.Add(common.RedirectURI, testRedirectURI)
-		queryParams.Add(common.Scope, client.ClientManage)
-		queryParams.Add(common.ResponseType, client.CodeResponseType)
-		queryParams.Add(common.Approved, fmt.Sprintf("%v", testConsentApproved))
-		queryParams.Add(common.CodeChallenge, testContext.SH256CodeChallenge)
-		queryParams.Add(common.CodeChallengeMethod, "unsupported")
+		queryParams.Add(constants.ClientID, testClientID)
+		queryParams.Add(constants.RedirectURI, testRedirectURI)
+		queryParams.Add(constants.Scope, constants.ClientManage)
+		queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+		queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
+		queryParams.Add(constants.CodeChallenge, testContext.SH256CodeChallenge)
+		queryParams.Add(constants.CodeChallengeMethod, "unsupported")
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -351,10 +351,10 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext := NewVigiloTestContext(t)
 			testContext.WithClient(
 				client.Public,
-				[]string{client.ClientManage},
-				[]string{client.AuthorizationCode, client.PKCE},
+				[]string{constants.ClientManage},
+				[]string{constants.AuthorizationCode, constants.PKCE},
 			)
-			testContext.WithUser()
+
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 

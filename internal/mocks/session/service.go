@@ -1,11 +1,14 @@
 package mocks
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 )
+
+var _ session.SessionService = (*MockSessionService)(nil)
 
 type MockSessionService struct {
 	CreateSessionFunc         func(w http.ResponseWriter, r *http.Request, userID string, sessionExpiration time.Duration) error
@@ -13,7 +16,7 @@ type MockSessionService struct {
 	GetUserIDFromSessionFunc  func(r *http.Request) string
 	UpdateSessionFunc         func(r *http.Request, sessionData *session.SessionData) error
 	GetSessionDataFunc        func(r *http.Request) (*session.SessionData, error)
-	ClearStateFromSessionFunc func(sessionData *session.SessionData) error
+	ClearStateFromSessionFunc func(ctx context.Context, sessionData *session.SessionData) error
 	ValidateSessionStateFunc  func(r *http.Request) (*session.SessionData, error)
 }
 
@@ -37,8 +40,8 @@ func (m *MockSessionService) GetSessionData(r *http.Request) (*session.SessionDa
 	return m.GetSessionDataFunc(r)
 }
 
-func (m *MockSessionService) ClearStateFromSession(sessionData *session.SessionData) error {
-	return m.ClearStateFromSessionFunc(sessionData)
+func (m *MockSessionService) ClearStateFromSession(ctx context.Context, sessionData *session.SessionData) error {
+	return m.ClearStateFromSessionFunc(ctx, sessionData)
 }
 
 func (m *MockSessionService) ValidateSessionState(r *http.Request) (*session.SessionData, error) {

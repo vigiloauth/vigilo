@@ -1,12 +1,14 @@
 package repository
 
 import (
+	"context"
 	"sync"
 	"time"
 
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/idp/config"
 	domain "github.com/vigiloauth/vigilo/internal/domain/token"
 	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/internal/utils"
 )
 
 var (
@@ -33,12 +35,11 @@ type InMemoryTokenRepository struct {
 //	*InMemoryTokenStore: The singleton instance of InMemoryTokenStore.
 func GetInMemoryTokenRepository() *InMemoryTokenRepository {
 	once.Do(func() {
-		logger.Debug(module, "Creating new instance of InMemoryTokenRepository")
+		logger.Debug(module, "", "Creating new instance of InMemoryTokenRepository")
 		instance = &InMemoryTokenRepository{
 			tokens:    make(map[string]*domain.TokenData),
 			blacklist: make(map[string]struct{}),
 		}
-		go instance.cleanupExpiredTokens()
 	})
 	return instance
 }
@@ -46,7 +47,7 @@ func GetInMemoryTokenRepository() *InMemoryTokenRepository {
 // ResetInMemoryTokenRepository resets the in-memory token store for testing purposes.
 func ResetInMemoryTokenRepository() {
 	if instance != nil {
-		logger.Debug(module, "Resetting instance")
+		logger.Debug(module, "", "Resetting instance")
 		instance.mu.Lock()
 		instance.tokens = make(map[string]*domain.TokenData)
 		instance.blacklist = make(map[string]struct{})
@@ -57,17 +58,21 @@ func ResetInMemoryTokenRepository() {
 // SaveToken adds a token to the store.
 //
 // Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - token string: The token string to add.
+//   - id string: The id associated with the token.
+//   - expiration time.Time: The token's expiration time.
 //
-//	token string: The token string.
-//	id string: The id associated with the token.
-//	expiration time.Time: The token's expiration time.
-func (b *InMemoryTokenRepository) SaveToken(tokenStr string, id string, expiration time.Time) {
+// Returns:
+//   - error: If an error occurs saving the token.
+func (b *InMemoryTokenRepository) SaveToken(ctx context.Context, tokenStr string, id string, expiration time.Time) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	requestID := utils.GetRequestID(ctx)
 	if _, blacklisted := b.blacklist[tokenStr]; blacklisted {
-		logger.Debug(module, "SaveToken: Token=%s is blacklisted and will not be saved", truncateToken(tokenStr))
-		return
+		logger.Debug(module, requestID, "[SaveToken]: Token=%s is blacklisted and will not be saved", truncateToken(tokenStr))
+		return nil
 	}
 
 	b.tokens[tokenStr] = &domain.TokenData{
@@ -75,132 +80,154 @@ func (b *InMemoryTokenRepository) SaveToken(tokenStr string, id string, expirati
 		ExpiresAt: expiration,
 		Token:     tokenStr,
 	}
+
+	return nil
 }
 
 // GetToken retrieves a token from the store and validates it.
 //
 // Parameters:
-//
-//	tokenStr string: The token string to retrieve.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - tokenStr string: The token string to retrieve.
 //
 // Returns:
-//
-//	*TokenData: The TokenData if the token is valid, or nil if not found.
-func (b *InMemoryTokenRepository) GetToken(token string) *domain.TokenData {
+//   - *TokenData: The TokenData if the token is valid, or nil if not found.
+//   - error: If an error occurs retrieving the token.
+func (b *InMemoryTokenRepository) GetToken(ctx context.Context, token string) (*domain.TokenData, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
+	requestID := utils.GetRequestID(ctx)
 	data, exists := b.tokens[token]
 	if !exists {
-		logger.Debug(module, "GetToken: Token not found")
-		return nil
+		logger.Debug(module, requestID, "[GetToken]: Token not found")
+		return nil, nil
 	}
 
-	return data
+	return data, nil
 }
 
-func (b *InMemoryTokenRepository) BlacklistToken(token string) error {
+// BlacklistToken adds a token to the blacklist.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - token string: The token string to delete.
+//
+// Returns:
+//   - error: An error if the token blacklisting fails.
+func (b *InMemoryTokenRepository) BlacklistToken(ctx context.Context, token string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	data, exists := b.tokens[token]
 	if !exists || time.Now().After(data.ExpiresAt) {
-		logger.Debug(module, "BlacklistToken: Token=%s not found or expired", truncateToken(token))
+		logger.Debug(module, "", "[BlacklistToken]: Token not found or expired")
 		return errors.New(errors.ErrCodeTokenNotFound, "token not found or expired")
 	}
 
 	b.blacklist[token] = struct{}{}
-	logger.Debug(module, "BlacklistToken: Token=%s has been blacklisted", truncateToken(token))
+	logger.Debug(module, "", "[BlacklistToken]: Token has been blacklisted")
 	return nil
 }
 
 // IsTokenBlacklisted checks if a token is blacklisted.
 //
 // Parameters:
-//
-//	token string: The token string to check.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - token string: The token string to check.
 //
 // Returns:
-//
-//	bool: True if the token is blacklisted (exists and is not expired), false otherwise.
-func (b *InMemoryTokenRepository) IsTokenBlacklisted(token string) bool {
+//   - bool: True if the token is blacklisted, false otherwise.
+//   - error: If an error occurs checking the token.
+func (b *InMemoryTokenRepository) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
 	_, blacklisted := b.blacklist[token]
 	if blacklisted {
-		logger.Debug(module, "IsTokenBlacklisted: Token=%s is blacklisted", truncateToken(token))
-		return true
+		logger.Debug(module, "", "[IsTokenBlacklisted]: Token is blacklisted")
+		return true, nil
 	}
 
 	data, exists := b.tokens[token]
 	if !exists {
-		logger.Debug(module, "IsTokenBlacklisted: Token=%s is not blacklisted", truncateToken(token))
-		return false
+		logger.Debug(module, "", "[IsTokenBlacklisted]: Token is not blacklisted")
+		return false, nil
 	}
 
 	if time.Now().After(data.ExpiresAt) {
-		logger.Debug(module, "IsTokenBlacklisted: Deleting expired token=%s", truncateToken(token))
+		logger.Debug(module, "", "[IsTokenBlacklisted]: Deleting expired token")
 		delete(b.tokens, token)
-		return true
+		return true, nil
 	}
 
-	logger.Debug(module, "IsTokenBlacklisted: Token=%s is blacklisted", truncateToken(token))
-	return false
+	return false, nil
 }
 
 // DeleteToken removes a token from the store.
 //
 // Parameters:
-//
-//	token string: The token string to delete.
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - token string: The token string to delete.
 //
 // Returns:
-//
-//	error: An error if the token is not found.
-func (b *InMemoryTokenRepository) DeleteToken(token string) error {
+//   - error: An error if the token deletion fails.
+func (b *InMemoryTokenRepository) DeleteToken(ctx context.Context, token string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	if _, exists := b.tokens[token]; !exists {
-		logger.Warn(module, "DeleteToken: Attempted to delete non-existent token=%s", truncateToken(token))
+		logger.Warn(module, "", "[DeleteToken]: Attempted to delete non-existent token=[%s]", truncateToken(token))
 		return errors.New(errors.ErrCodeTokenNotFound, "token not found")
 	}
 
 	delete(b.tokens, token)
 	delete(b.blacklist, token)
 
-	logger.Debug(module, "DeleteToken: Successfully deleted token=%s", truncateToken(token))
+	logger.Debug(module, "", "[DeleteToken]: Successfully deleted token=[%s]", truncateToken(token))
 	return nil
 }
 
-func (b *InMemoryTokenRepository) ExistsByTokenID(tokenID string) bool {
+// ExistsByTokenID checks to see if the given ID matches with any token in the repository.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - tokenID string: The token ID to search.
+//
+// Returns:
+//   - error: An error if the searching for the token fails.
+func (b *InMemoryTokenRepository) ExistsByTokenID(ctx context.Context, tokenID string) (bool, error) {
 	for _, data := range b.tokens {
 		if data.TokenID == tokenID {
-			return true
+			return true, nil
 		}
 	}
 
-	return false
+	return false, nil
 }
 
-// cleanupExpiredTokens periodically removes expired tokens from the store.
-func (b *InMemoryTokenRepository) cleanupExpiredTokens() {
-	logger.Debug(module, "Starting cleanup of expired tokens")
-	ticker := time.NewTicker(1 * time.Minute)
-	for range ticker.C {
-		b.mu.Lock()
-		now := time.Now()
-		for token, data := range b.tokens {
-			if now.After(data.ExpiresAt) {
-				logger.Debug(module, "Deleting expired token=%s", truncateToken(token))
-				delete(b.tokens, token)
-				delete(b.blacklist, token)
-			}
+// GetExpiredTokens searches for all expired tokens in the repository.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//
+// Returns:
+//   - []*TokenData: A slice of token data.
+//   - error: An error if searching fails.
+func (b *InMemoryTokenRepository) GetExpiredTokens(ctx context.Context) ([]*domain.TokenData, error) {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	now := time.Now()
+	tokens := []*domain.TokenData{}
+
+	for _, data := range b.tokens {
+		if now.After(data.ExpiresAt) {
+			tokens = append(tokens, data)
 		}
-		b.mu.Unlock()
 	}
-	logger.Debug(module, "Finished cleanup of expired tokens")
+
+	return tokens, nil
 }
 
 // truncateToken truncates a token for safe logging.

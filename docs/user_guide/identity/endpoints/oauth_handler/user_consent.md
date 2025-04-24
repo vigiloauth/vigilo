@@ -63,9 +63,9 @@ GET /oauth/consent HTTP/1.1
 Accept: application/json
 Authorization: Bearer reg-23410913-abewfq.123483
 
-client_id=abc123
-&redirect_uri=https://client.example.com/callback&
-scope=users:read+users:write
+?client_id=abc123
+&redirect_uri=https://client.example.com/callback
+&scope=users:read+users:write
 &state=xyz123
 ```
 
