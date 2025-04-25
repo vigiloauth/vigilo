@@ -662,7 +662,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 			headers,
 		)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
 
@@ -744,7 +744,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
 		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
 

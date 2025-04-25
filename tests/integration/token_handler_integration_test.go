@@ -223,7 +223,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		)
 
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInsufficientScope, "invalid client credentials or unauthorized grant type/scopes")
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
 
@@ -775,7 +775,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 			headers,
 		)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
 
@@ -851,7 +851,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 			},
 			{
 				name:           "Invalid client error is returned for public clients",
-				expectedStatus: http.StatusBadRequest,
+				expectedStatus: http.StatusUnauthorized,
 				clientType:     client.Public,
 				headers: map[string]string{
 					"Content-Type":  "application/x-www-form-urlencoded",
@@ -967,7 +967,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 			headers,
 		)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
 
@@ -1043,7 +1043,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 			},
 			{
 				name:           "Invalid client error is returned for public clients",
-				expectedStatus: http.StatusBadRequest,
+				expectedStatus: http.StatusUnauthorized,
 				clientType:     client.Public,
 				headers: map[string]string{
 					"Content-Type":  "application/x-www-form-urlencoded",
@@ -1097,7 +1097,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 			headers,
 		)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
 

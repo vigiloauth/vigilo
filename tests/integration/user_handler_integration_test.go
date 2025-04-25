@@ -39,6 +39,8 @@ func TestUserHandler_RegisterUser_DuplicateEmail(t *testing.T) {
 	testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 	requestBody := users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1)
+	requestBody.Birthdate = testBirthdate
+
 	body, err := json.Marshal(requestBody)
 	assert.NoError(t, err)
 	rr := testContext.SendHTTPRequest(

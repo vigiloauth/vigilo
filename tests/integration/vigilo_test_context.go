@@ -112,14 +112,39 @@ func (tc *VigiloTestContext) WithLiveHTTPServer() *VigiloTestContext {
 
 // WithUser creates and adds a user to the system.
 func (tc *VigiloTestContext) WithUser(scopes, roles []string) *VigiloTestContext {
-	user := users.NewUser(testUsername, testEmail, testPassword1)
+	user := &users.User{
+		ID:                  testUserID,
+		Username:            testUsername,
+		FullName:            testFirstName + " " + testMiddleName + " " + testFamilyName,
+		FirstName:           testFirstName,
+		MiddleName:          testMiddleName,
+		FamilyName:          testFamilyName,
+		Email:               testEmail,
+		PhoneNumber:         testPhoneNumber,
+		Password:            testPassword1,
+		Birthdate:           testBirthdate,
+		Gender:              testGender,
+		Scopes:              scopes,
+		Roles:               roles,
+		LastFailedLogin:     time.Time{},
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
+		AccountLocked:       false,
+		EmailVerified:       false,
+		PhoneNumberVerified: true,
+		Address: &users.UserAddress{
+			Formatted:     testStreetAddress + ", " + testLocality + ", " + testRegion + ", " + testPostalCode + ", " + testCountry,
+			StreetAddress: testStreetAddress,
+			Locality:      testLocality,
+			Region:        testRegion,
+			PostalCode:    testPostalCode,
+			Country:       testCountry,
+		},
+	}
 	hashedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(tc.T, err)
 
 	user.Password = hashedPassword
-	user.ID = testUserID
-	user.Scopes = scopes
-	user.Roles = roles
 	userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
 
 	tc.User = user
@@ -175,6 +200,25 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 	return tc
 }
 
+func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, scopes []string, duration time.Duration) *VigiloTestContext {
+	if tc.User == nil {
+		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+	}
+
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
+	accessToken, refreshToken, err := tokenService.GenerateTokensWithAudience(
+		context.Background(), subject, audience, strings.Join(scopes, " "),
+		strings.Join(tc.User.Roles, " "),
+	)
+	assert.NoError(tc.T, err)
+
+	tc.JWTToken = accessToken
+	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), accessToken, subject, time.Now().Add(duration))
+	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), refreshToken, subject, time.Now().Add(duration))
+
+	return tc
+}
+
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
 	token, err := tokenService.GenerateToken(context.Background(), id, testScope, constants.AdminRole, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
@@ -183,6 +227,11 @@ func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext 
 	tc.JWTToken = token
 	tokenService.BlacklistToken(context.Background(), token)
 
+	return tc
+}
+
+func (tc *VigiloTestContext) SetLoggerLevel(level string) *VigiloTestContext {
+	config.GetServerConfig().Logger().SetLevel(level)
 	return tc
 }
 
@@ -481,6 +530,7 @@ func (tc *VigiloTestContext) TearDown() {
 		tc.TestServer.Close()
 	}
 	tc.VigiloServer.Shutdown()
+	tc.SetLoggerLevel("info")
 	clearEnvVariables()
 	resetInMemoryStores()
 }
