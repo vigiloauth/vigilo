@@ -52,6 +52,7 @@ func (c *httpCookieService) SetSessionCookie(ctx context.Context, w http.Respons
 		HttpOnly: true,
 		Secure:   shouldUseHTTPS,
 		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
 	})
 }
 
