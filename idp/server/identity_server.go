@@ -52,20 +52,25 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 	serverConfig := config.GetServerConfig()
 
 	server := &VigiloIdentityServer{
-		router:        chi.NewRouter(),
-		container:     container,
+		router:    chi.NewRouter(),
+		container: container,
+
+		// Handlers
 		userHandler:   container.userHandler,
 		clientHandler: container.clientHandler,
 		tokenHandler:  container.tokenHandler,
 		authzHandler:  container.authzHandler,
 		oauthHandler:  container.oauthHandler,
 		adminHandler:  container.adminHandler,
-		serverConfig:  serverConfig,
-		tlsConfig:     container.tlsConfig,
-		httpServer:    container.httpServer,
-		middleware:    container.middleware,
-		logger:        logger,
-		module:        module,
+		oidcHandler:   container.oidcHandler,
+
+		// Configuration and server components
+		serverConfig: serverConfig,
+		tlsConfig:    container.tlsConfig,
+		httpServer:   container.httpServer,
+		middleware:   container.middleware,
+		logger:       logger,
+		module:       module,
 	}
 
 	server.setupRoutes()
