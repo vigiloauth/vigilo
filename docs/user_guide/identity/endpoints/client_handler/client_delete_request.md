@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-DELETE /oauth/client/register/{client_id}
+DELETE /oauth2/client/register/{client_id}
 ```
 
 --- 
@@ -87,7 +87,7 @@ Pragma: no-cache
 ```
 
 ### 4. Insufficient Scopes
-#### HTTP Status Code: `401 Unauthorized`
+#### HTTP Status Code: `403 Forbidden`
 #### Response Body
 ```json
 {

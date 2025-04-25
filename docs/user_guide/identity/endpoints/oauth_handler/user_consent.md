@@ -2,8 +2,8 @@
 
 ## Endpoint
 ```http
-GET /oauth/consent
-POST /oauth/consent
+GET /oauth2/consent
+POST /oauth2/consent
 ```
 
 ---

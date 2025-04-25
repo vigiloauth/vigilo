@@ -20,6 +20,7 @@ This endpoint is responsible for retrieving the servers audit events.
 | Content-Type    | application/json              | Indicates that the request body is JSON. |
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.  |
 | Content-Length  | [Content-Length]              | The length of the request body in bytes. |
+| Authorization   | Bearer <token>                | The bearer token.                        |
 
 ---
 
