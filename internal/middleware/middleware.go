@@ -58,7 +58,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 			tokenString, err := web.ExtractBearerToken(r)
 			if err != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to extract bearer token: %v", err)
-				wrappedErr := errors.Wrap(err, "", "failed to extract bearer token from authorization header")
+				wrappedErr := errors.Wrap(err, errors.ErrCodeUnauthorized, "missing or invalid authorization header")
 				web.WriteError(w, wrappedErr)
 				return
 			}
