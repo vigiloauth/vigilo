@@ -79,6 +79,8 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 			}
 
 			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyTokenClaims, claims)
+			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyAccessToken, tokenString)
+
 			m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Token validated successfully, passing request to next handler")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
