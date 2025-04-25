@@ -27,6 +27,7 @@ type User struct {
 
 	LastFailedLogin time.Time
 	CreatedAt       time.Time
+	UpdatedAt       time.Time
 
 	AccountLocked       bool
 	EmailVerified       bool
@@ -63,12 +64,16 @@ type UserInfoResponse struct {
 	Sub                 string       `json:"sub"`
 	Username            string       `json:"username,omitempty"`
 	Name                string       `json:"name,omitempty"`
+	FirstName           string       `json:"first_name,omitempty"`
+	MiddleName          string       `json:"middle_name,omitempty"`
+	FamilyName          string       `json:"family_name,omitempty"`
 	Birthdate           string       `json:"birthdate,omitempty"`
 	Email               string       `json:"email,omitempty"`
 	EmailVerified       bool         `json:"email_verified,omitempty"`
 	PhoneNumber         string       `json:"phone_number,omitempty"`
 	PhoneNumberVerified bool         `json:"phone_number_verified,omitempty"`
 	Address             *UserAddress `json:"address,omitempty"`
+	UpdatedAt           time.Time    `json:"updated_at,omitempty"`
 }
 
 // UserRegistrationResponse represents the registration response payload.
