@@ -7,7 +7,8 @@
         {"type": "breaking", "release": "major"},
         {"type": "feat", "release": "minor"},
         {"type": "fix", "release": "patch"},
-
+        
+        {"type": "task", "release": false},
         {"type": "test", "release":  false},
         {"type": "refactor", "release": false},
         {"type": "perf", "release": false},
