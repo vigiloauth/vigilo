@@ -43,7 +43,7 @@ var OAuthEndpoints = struct {
 }{
 	Token:           defaultOAuthEndpoint + "/token",
 	Authorize:       defaultOAuthEndpoint + "/authorize",
-	Login:           defaultOAuthEndpoint + "/login/authorization",
+	Login:           defaultOAuthEndpoint + "/authenticate",
 	UserConsent:     defaultOAuthEndpoint + "/consent",
 	TokenExchange:   defaultOAuthEndpoint + "/token",
 	IntrospectToken: defaultOAuthEndpoint + defaultTokenEndpoint + "/introspect",
