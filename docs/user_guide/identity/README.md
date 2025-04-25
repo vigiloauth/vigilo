@@ -42,4 +42,6 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [User Authentication](../identity/endpoints/oauth_handler/user_authentication.md)
     - [User Consent](../identity/endpoints/oauth_handler/user_consent.md)
     - [Token Exchange](../identity/endpoints/token_handler/token_exchange.md)
+- **Open ID Connect Flows:**
+    -   [UserInfo Endpoint](../identity/endpoints/oidc_handler/user_info.md)
 
