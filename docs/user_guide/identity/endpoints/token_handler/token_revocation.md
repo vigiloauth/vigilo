@@ -70,7 +70,7 @@ Content-Type: application/json
     "error_details": "failed to authenticate client: client credentials are either missing or invalid"
 }
 ```
-*Note:* This error is returned for confidentials clients using the basic authorization header with invalid credentials (client ID or client secret).
+*Note:* This error is returned for confidential clients using the basic authorization header with invalid credentials (client ID or client secret).
 
 ### 2. Invalid Bearer Token
 #### HTTP Status Code: `400 Bad Request`
@@ -85,7 +85,7 @@ Content-Type: application/json
 *Note:* This error is returned for public clients using the bearer token authorization header with an invalid token.
 
 ### 3. Missing Required Scopes
-#### HTTP Status Code: `400 Bad Request`
+#### HTTP Status Code: `403 Forbidden`
 #### Response Body:
 ```json
 {

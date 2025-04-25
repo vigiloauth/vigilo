@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-PUT /oauth/client/register/{client_id}
+PUT /oauth2/client/register/{client_id}
 ```
 
 **Description:**
@@ -188,7 +188,7 @@ The `id_token` response type is not allowed with the following grant types:
 ```
 
 ### 8. Insufficient Scopes
-#### HTTP Status Code: `401 Unauthorized`
+#### HTTP Status Code: `403 Forbidden`
 #### Response Body
 ```json
 {

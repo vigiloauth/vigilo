@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /oauth/login/authorization
+POST /oauth2/authenticate
 ```
 
 ---

@@ -222,7 +222,7 @@ func (u *InMemoryUserRepository) FindUnverifiedUsersOlderThanWeek(ctx context.Co
 	oneWeekAgo := time.Now().AddDate(0, 0, -7) // 7 days ago
 
 	for _, user := range u.users {
-		if !user.Verified && user.CreatedAt.Before(oneWeekAgo) {
+		if !user.EmailVerified && user.CreatedAt.Before(oneWeekAgo) {
 			expiredUsers = append(expiredUsers, user)
 		}
 	}

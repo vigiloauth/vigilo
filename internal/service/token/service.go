@@ -321,12 +321,12 @@ func (ts *tokenService) IsTokenExpired(token string) bool {
 func (ts *tokenService) ValidateToken(ctx context.Context, token string) error {
 	requestID := utils.GetRequestID(ctx)
 
-	if _, err := ts.ParseToken(token); err != nil {
-		ts.logger.Error(ts.module, requestID, "[ValidateToken]: An error occurred parsing the token: %v", err)
-		return errors.New(errors.ErrCodeInvalidGrant, "invalid token format")
-	} else if ts.IsTokenExpired(token) {
+	if ts.IsTokenExpired(token) {
 		ts.logger.Warn(ts.module, "[ValidateToken]: Token=[%s] is expired", utils.TruncateSensitive(token))
 		return errors.New(errors.ErrCodeExpiredToken, "the token is expired")
+	} else if _, err := ts.ParseToken(token); err != nil {
+		ts.logger.Error(ts.module, requestID, "[ValidateToken]: An error occurred parsing the token: %v", err)
+		return errors.New(errors.ErrCodeInvalidGrant, "invalid token format")
 	}
 
 	isTokenBlacklisted, err := ts.IsTokenBlacklisted(ctx, token)

@@ -14,22 +14,42 @@ POST /auth/signup
 ---
 
 ### Request Body
-| Field       | Type       | Required  | Description                                                   |
-|:------------|:-----------|:----------|:--------------------------------------------------------------|
-| `username`  | `string`   | Yes       | The user's username.                                          |
-| `email`     | `string`   | Yes       | The user's email address.                                     |
-| `password`  | `string`   | Yes       | The password for the account.                                 |
-| `scopes`    | `[]string` | Yes       | The user's requested scopes.                                  |
-| `roles`     | `[]string` | No        | The user's requested roles. Defaults to `USER` if left empty. |
+| Field            | Type          | Required  | Description                                                              |
+|:-----------------|:--------------|:----------|:-------------------------------------------------------------------------|
+| `username`       | `string`      | Yes       | The user's username.                                                     |
+| `first_name`     | `string`      | Yes       | The user's first name.                                                   |
+| `middle_name`    | `string`      | Yes       | The user's middle name.                                                  |
+| `last_name`      | `string`      | Yes       | The user's last name.                                                    |
+| `birthdate`      | `string`      | Yes       | The user's birthdate. Must follow the `ISO 8601:2004 YYYY-MM-DD` format. |
+| `email`          | `string`      | Yes       | The user's email address.                                                |
+| `gender`         | `string`      | Yes       | The user's gender.                                                       |
+| `phone_number`   | `string`      | No        | The user's phone number. Must follow the `E.164` format.                 |
+| `password`       | `string`      | Yes       | The password for the account.                                            |
+| `address`        | `UserAddress` | Yes       | The user's address. For more information, view the example request.      |
+| `scopes`         | `[]string`    | Yes       | The user's requested scopes.                                             |
+| `roles`          | `[]string`    | No        | The user's requested roles. Defaults to `USER` if left empty.            |
 
 ---
 
 ### Example Request
 ```json
 {
-    "username": "John",
+    "username": "john.doe",
+    "first_name": "John",
+    "middle_name": "Mary",
+    "family_name": "Doe",
+    "birthdate": "2000-12-06",
     "email": "john.doe@mail.com",
+    "gender": "male",
+    "phone_number": "+919367788755",
     "password": "Pas$_w0rds",
+    "address": {
+      "street_address": "123 Main St",
+      "locality": "Springfield",
+      "region": "IL",
+      "postal_code": "62704",
+      "country": "USA",
+    }
     "scopes": ["users:read"],
     "roles": ["ADMIN"]
 }
@@ -41,8 +61,14 @@ POST /auth/signup
 #### Response Body:
 ```json
 {
-    "username": "John Doe",
-    "email": "john.doe@email.com"
+    "username": "john.doe",
+    "name": "John Mary Doe",
+    "gender": "male",
+    "birthdate": "2000-12-06",
+    "email": "john.doe@email.com",
+    "phone_number": "+919367788755",
+    "address": "123 Main St\nSpringfield\nIL 62704\nUSA",
+    "token": "abc1234edf"
 }
 ```
 
@@ -81,7 +107,40 @@ POST /auth/signup
 }
 ```
 
-## 3. Invalid Password
+## 3. Invalid Phone Number
+#### HTTP Status Code: `400 Bad Request`
+#### Response Body:
+```json
+{
+  "error": "validation_error",
+  "error_description": "one or more validation errors occurred.",
+  "errors": [
+    {
+      "error": "invalid_format",
+      "error_description": "invalid phone number format",
+    }
+  ]
+}
+```
+
+## 4. Invalid Birthdate
+#### HTTP Status Code: `400 Bad Request`
+#### Response Body:
+```json
+{
+  "error": "validation_error",
+  "error_description": "one or more validation errors occurred.",
+  "errors": [
+    {
+      "error": "invalid_format",
+      "error_description": "the birthdate provided is an invalid date",
+    }
+  ]
+}
+```
+
+
+## 5. Invalid Password
 #### HTTP Status Code: `400 Bad Request`
 #### Response Body:
 ```json
@@ -109,7 +168,7 @@ POST /auth/signup
 }
 ```
 
-## 4. Duplicate User
+## 6. Duplicate User
 #### HTTP Status Code: `409 Conflict`
 #### Response Body:
 ```json

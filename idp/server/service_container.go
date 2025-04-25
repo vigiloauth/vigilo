@@ -21,6 +21,7 @@ import (
 	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
 	email "github.com/vigiloauth/vigilo/internal/domain/email"
 	login "github.com/vigiloauth/vigilo/internal/domain/login"
+	oidc "github.com/vigiloauth/vigilo/internal/domain/oidc"
 	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -45,6 +46,7 @@ import (
 	cookieService "github.com/vigiloauth/vigilo/internal/service/cookies"
 	emailService "github.com/vigiloauth/vigilo/internal/service/email"
 	loginService "github.com/vigiloauth/vigilo/internal/service/login"
+	oidcService "github.com/vigiloauth/vigilo/internal/service/oidc"
 	sessionService "github.com/vigiloauth/vigilo/internal/service/session"
 	tokenService "github.com/vigiloauth/vigilo/internal/service/token"
 	userService "github.com/vigiloauth/vigilo/internal/service/user"
@@ -76,6 +78,7 @@ type ServiceContainer struct {
 	emailServiceOnce         sync.Once
 	mailerOnce               sync.Once
 	auditLoggerOnce          sync.Once
+	oidcServiceOnce          sync.Once
 
 	tokenService         token.TokenService
 	sessionService       session.SessionService
@@ -90,6 +93,7 @@ type ServiceContainer struct {
 	emailService         email.EmailService
 	mailer               email.Mailer
 	auditLogger          audit.AuditLogger
+	oidcService          oidc.OIDCService
 
 	tokenServiceInit         func() token.TokenService
 	sessionServiceInit       func() session.SessionService
@@ -104,6 +108,7 @@ type ServiceContainer struct {
 	emailServiceInit         func() email.EmailService
 	mailerInit               func() email.Mailer
 	auditLoggerInit          func() audit.AuditLogger
+	oidcServiceInit          func() oidc.OIDCService
 
 	userHandler   *handlers.UserHandler
 	clientHandler *handlers.ClientHandler
@@ -111,6 +116,7 @@ type ServiceContainer struct {
 	authzHandler  *handlers.AuthorizationHandler
 	oauthHandler  *handlers.OAuthHandler
 	adminHandler  *handlers.AdminHandler
+	oidcHandler   *handlers.OIDCHandler
 
 	middleware *middleware.Middleware
 	tlsConfig  *tls.Config
@@ -195,7 +201,7 @@ func (c *ServiceContainer) initializeServices() {
 	}
 	c.authorizationServiceInit = func() authz.AuthorizationService {
 		c.logger.Debug(c.module, "", "Initializing AuthorizationService")
-		return authzService.NewAuthorizationService(c.getAuthzCodeService(), c.getConsentService(), c.getTokenService(), c.getClientService())
+		return authzService.NewAuthorizationService(c.getAuthzCodeService(), c.getConsentService(), c.getTokenService(), c.getClientService(), c.getUserService(), c.getSessionService())
 	}
 	c.authServiceInit = func() auth.AuthenticationService {
 		c.logger.Debug(c.module, "", "Initializing AuthenticationService")
@@ -213,6 +219,10 @@ func (c *ServiceContainer) initializeServices() {
 		c.logger.Debug(c.module, "", "Initializing AuditLogger")
 		return auditLogger.NewAuditLogger(c.auditEventRepo)
 	}
+	c.oidcServiceInit = func() oidc.OIDCService {
+		c.logger.Debug(c.module, "", "Initializing OIDCService")
+		return oidcService.NewOIDCService(c.getAuthorizationService())
+	}
 }
 
 // initializeHandlers initializes the HTTP handlers used by the service container.
@@ -224,6 +234,7 @@ func (c *ServiceContainer) initializeHandlers() {
 	c.authzHandler = handlers.NewAuthorizationHandler(c.getAuthorizationService(), c.getSessionService())
 	c.oauthHandler = handlers.NewOAuthHandler(c.getUserService(), c.getSessionService(), c.getClientService(), c.getConsentService(), c.getAuthzCodeService())
 	c.adminHandler = handlers.NewAdminHandler(c.getAuditLogger())
+	c.oidcHandler = handlers.NewOIDCHandler(c.getOIDCService())
 }
 
 // initializeServerConfigs initializes the server-related configurations,
@@ -342,6 +353,11 @@ func (c *ServiceContainer) registerAuditLogJobs() {
 func (c *ServiceContainer) getTokenService() token.TokenService {
 	c.tokenServiceOnce.Do(func() { c.tokenService = c.tokenServiceInit() })
 	return c.tokenService
+}
+
+func (c *ServiceContainer) getOIDCService() oidc.OIDCService {
+	c.oidcServiceOnce.Do(func() { c.oidcService = c.oidcServiceInit() })
+	return c.oidcService
 }
 
 func (c *ServiceContainer) getSessionService() session.SessionService {

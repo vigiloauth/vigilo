@@ -16,6 +16,14 @@ const (
 	UserWrite  string = "users:write"  // Modify user details.
 	UserDelete string = "users:delete" // Delete a user account.
 	UserManage string = "users:manage" // Full control over users ('read', 'write'. and 'delete').
+
+	// OIDC Scopes
+	OIDC              string = "oidc"
+	UserProfile       string = "profile"        // Access to user profile (`name`, `middle_name`, `family_name`, `birthdate`, and `update_at`).
+	UserEmail         string = "email"          // Access to the user's email address (`email` and `email_verified`).
+	UserPhone         string = "phone"          // Access to the user's phone number (`phone_number` and `phone_number_verified`).
+	UserAddress       string = "address"        // Access to the user's address.
+	UserOfflineAccess string = "offline_access" // Access to the user's information while they are offline.
 )
 
 var ValidScopes = map[string]bool{
@@ -27,8 +35,13 @@ var ValidScopes = map[string]bool{
 	TokenIntrospect: true,
 	TokenRevoke:     true,
 
-	UserManage: true,
-	UserRead:   true,
-	UserDelete: true,
-	UserWrite:  true,
+	UserManage:        true,
+	UserRead:          true,
+	UserDelete:        true,
+	UserWrite:         true,
+	UserProfile:       true,
+	UserEmail:         true,
+	UserPhone:         true,
+	UserAddress:       true,
+	UserOfflineAccess: true,
 }

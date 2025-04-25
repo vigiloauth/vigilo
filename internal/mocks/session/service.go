@@ -18,6 +18,7 @@ type MockSessionService struct {
 	GetSessionDataFunc        func(r *http.Request) (*session.SessionData, error)
 	ClearStateFromSessionFunc func(ctx context.Context, sessionData *session.SessionData) error
 	ValidateSessionStateFunc  func(r *http.Request) (*session.SessionData, error)
+	IsUserSessionPresentFunc  func(r *http.Request, userID string) bool
 }
 
 func (m *MockSessionService) CreateSession(w http.ResponseWriter, r *http.Request, userID string, sessionExpiration time.Duration) error {
@@ -46,4 +47,8 @@ func (m *MockSessionService) ClearStateFromSession(ctx context.Context, sessionD
 
 func (m *MockSessionService) ValidateSessionState(r *http.Request) (*session.SessionData, error) {
 	return m.ValidateSessionStateFunc(r)
+}
+
+func (m *MockSessionService) IsUserSessionPresent(r *http.Request, userID string) bool {
+	return m.IsUserSessionPresentFunc(r, userID)
 }

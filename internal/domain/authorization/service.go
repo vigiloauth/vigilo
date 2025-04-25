@@ -2,10 +2,12 @@ package domain
 
 import (
 	"context"
+	"net/http"
 
 	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
+	users "github.com/vigiloauth/vigilo/internal/domain/user"
 )
 
 // AuthorizationService defines the interface for handling client authorization requests.
@@ -53,4 +55,20 @@ type AuthorizationService interface {
 	//	- *token.TokenResponse: A fully formed token response with access and refresh tokens.
 	//	- error: An error if token generation fails.
 	GenerateTokens(ctx context.Context, authCodeData *authz.AuthorizationCodeData) (*token.TokenResponse, error)
+
+	// AuthorizeUserInfoRequest validates whether the provided access token claims grant sufficient
+	// permission to access the /userinfo endpoint.
+	//
+	// This method is responsible for performing authorization checks and retrieving the user only. It does not validate the token itself (assumes
+	// the token has already been validated by the time this method is called).
+	//
+	// Parameters:
+	//	- ctx context.Context: The context for managing timeouts and cancellations.
+	//	- claims *TokenClaims: The token claims extracted from the a valid access token. These claims should include the
+	//		'scope' field, which will be used to verify whether the client is authorized for the request.
+	//
+	// Returns:
+	//	- *User: The retrieved user if authorization succeeds, otherwise nil.
+	//	- error: An error if authorization fails, otherwise nil.
+	AuthorizeUserInfoRequest(ctx context.Context, claims *token.TokenClaims, r *http.Request) (*users.User, error)
 }

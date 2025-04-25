@@ -3,13 +3,19 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
+	"slices"
+	"strings"
 
 	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/internal/constants"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	session "github.com/vigiloauth/vigilo/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	"github.com/vigiloauth/vigilo/internal/utils"
@@ -26,6 +32,8 @@ type authorizationService struct {
 	userConsentService consent.UserConsentService
 	tokenService       token.TokenService
 	clientService      client.ClientService
+	userService        user.UserService
+	sessionService     session.SessionService
 
 	logger *config.Logger
 	module string
@@ -46,12 +54,16 @@ func NewAuthorizationService(
 	userConsentService consent.UserConsentService,
 	tokenService token.TokenService,
 	clientService client.ClientService,
+	userService user.UserService,
+	sessionService session.SessionService,
 ) authz.AuthorizationService {
 	return &authorizationService{
 		authzCodeService:   authzCodeService,
 		userConsentService: userConsentService,
 		tokenService:       tokenService,
 		clientService:      clientService,
+		userService:        userService,
+		sessionService:     sessionService,
 		logger:             config.GetServerConfig().Logger(),
 		module:             "Authorization Service",
 	}
@@ -170,6 +182,86 @@ func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData 
 	}
 
 	return response, nil
+}
+
+// AuthorizeUserInfoRequest validates whether the provided access token claims grant sufficient
+// permission to access the /userinfo endpoint.
+//
+// This method is responsible for performing authorization checks and retrieving the user only. It does not validate the token itself (assumes
+// the token has already been validated by the time this method is called).
+//
+// Parameters:
+//   - ctx context.Context: The context for managing timeouts and cancellations.
+//   - claims *TokenClaims: The token claims extracted from the a valid access token. These claims should include the
+//     'scope' field, which will be used to verify whether the client is authorized for the request.
+//   - r *http.Request: The HTTP request containing the cookies.
+
+// Returns:
+//   - error: An error if authorization fails, otherwise nil.
+func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, claims *token.TokenClaims, r *http.Request) (*user.User, error) {
+	requestID := utils.GetRequestID(ctx)
+	if claims == nil {
+		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: Token claims provided are nil")
+		return nil, errors.NewInternalServerError()
+	}
+
+	userID := claims.StandardClaims.Subject
+	requestedScopes := strings.Split(claims.Scopes, " ")
+
+	if len(requestedScopes) == 0 || !slices.Contains(requestedScopes, constants.OIDC) {
+		return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
+	}
+
+	if !s.sessionService.IsUserSessionPresent(r, userID) && !slices.Contains(requestedScopes, constants.UserOfflineAccess) {
+		return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
+	}
+
+	retrievedUser, err := s.validateUserScopes(ctx, userID, requestedScopes)
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: An error occurred retrieving and validating the user: %v", err)
+		return nil, err
+	}
+
+	if err := s.validateClientScopes(ctx, claims.StandardClaims.Audience, requestedScopes); err != nil {
+		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: An error occurred retrieving and validating the client: %v", err)
+		return nil, err
+	}
+
+	return retrievedUser, nil
+}
+
+func (s *authorizationService) validateUserScopes(ctx context.Context, userID string, requestedScopes []string) (*user.User, error) {
+	retrievedUser, err := s.userService.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, errors.NewInternalServerError()
+	} else if retrievedUser == nil {
+		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid token subject")
+	}
+
+	for _, scope := range requestedScopes {
+		if !retrievedUser.HasScope(scope) {
+			return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
+		}
+	}
+
+	return retrievedUser, nil
+}
+
+func (s *authorizationService) validateClientScopes(ctx context.Context, clientID string, requestedScopes []string) error {
+	retrievedClient, err := s.clientService.GetClientByID(ctx, clientID)
+	if err != nil {
+		return errors.NewInternalServerError()
+	} else if retrievedClient == nil {
+		return errors.New(errors.ErrCodeUnauthorized, "invalid token audience")
+	}
+
+	for _, scope := range requestedScopes {
+		if !retrievedClient.HasScope(scope) {
+			return errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
+		}
+	}
+
+	return nil
 }
 
 func (s *authorizationService) validateClient(ctx context.Context, code *authzCode.AuthorizationCodeData, tokenRequest *token.TokenRequest) error {

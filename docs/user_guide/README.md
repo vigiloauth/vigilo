@@ -113,14 +113,15 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 - `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
 - `feat`: Add a new feature that enhances the functionality of the project.
 - `fix`: Apply a bug fix that resolves an issue without affecting functionality. 
-- `docs`: Update documentation, such as fixing typos or adding new information. 
-- `style`: Changes that don’t affect the code’s behavior, like formatting or code style adjustments. 
-- `refactor`: Refactor code without adding features or fixing bugs. 
-- `test`: Add or modify tests. 
-- `chore`: Miscellaneous changes like updates to build tools or dependencies.
+- `task`: Add or modify internal functionality that supports the codebase but doesn't introduce a new feature or fix a bug (e.g., utility methods, service logic, or internal improvements).
+- `chore`: Miscellaneous or updates that aren't features or fixes (e.g., updating build tools, dependencies, or configuration files).
+- `docs`: Modify documentation, such as fixing typos or adding new content. 
+- `style`: Apply code style or formatting changes that do not affect behavior.
+- `refactor`: Restructure existing code without changing its external behavior. 
+- `test`: Add or modify tests without affecting functionality. 
 
 ## 6. License
-Copyright 2024 Olivier Pimparé-Charbonneau, Zachary Sexton
+Copyright 2024 Olivier Pimparé-Charbonneau
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

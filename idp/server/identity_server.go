@@ -31,6 +31,7 @@ type VigiloIdentityServer struct {
 	authzHandler  *handlers.AuthorizationHandler
 	oauthHandler  *handlers.OAuthHandler
 	adminHandler  *handlers.AdminHandler
+	oidcHandler   *handlers.OIDCHandler
 
 	serverConfig *config.ServerConfig
 	tlsConfig    *tls.Config
@@ -51,20 +52,25 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 	serverConfig := config.GetServerConfig()
 
 	server := &VigiloIdentityServer{
-		router:        chi.NewRouter(),
-		container:     container,
+		router:    chi.NewRouter(),
+		container: container,
+
+		// Handlers
 		userHandler:   container.userHandler,
 		clientHandler: container.clientHandler,
 		tokenHandler:  container.tokenHandler,
 		authzHandler:  container.authzHandler,
 		oauthHandler:  container.oauthHandler,
 		adminHandler:  container.adminHandler,
-		serverConfig:  serverConfig,
-		tlsConfig:     container.tlsConfig,
-		httpServer:    container.httpServer,
-		middleware:    container.middleware,
-		logger:        logger,
-		module:        module,
+		oidcHandler:   container.oidcHandler,
+
+		// Configuration and server components
+		serverConfig: serverConfig,
+		tlsConfig:    container.tlsConfig,
+		httpServer:   container.httpServer,
+		middleware:   container.middleware,
+		logger:       logger,
+		module:       module,
 	}
 
 	server.setupRoutes()
@@ -135,6 +141,8 @@ func (s *VigiloIdentityServer) setupProtectedRoutes() {
 	// Protected Routes (Auth Required)
 	s.router.Group(func(r chi.Router) {
 		r.Use(s.middleware.AuthMiddleware())
+		r.Get(web.OIDCEndpoints.UserInfo, s.oidcHandler.UserInfo)
+
 		r.Route(web.ClientEndpoints.ClientConfiguration, func(cr chi.Router) {
 			cr.Get(clientURLParam, s.clientHandler.ManageClientConfiguration)
 			cr.Put(clientURLParam, s.clientHandler.ManageClientConfiguration)

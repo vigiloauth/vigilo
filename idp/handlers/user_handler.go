@@ -46,8 +46,7 @@ func NewUserHandler(userService users.UserService, sessionService session.Sessio
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
+	ctx := r.Context()
 
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[Register]: Processing request")
@@ -63,7 +62,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := users.NewUser(request.Username, request.Email, request.Password)
+	user := users.NewUserFromRegistrationRequest(request)
 	response, err := h.userService.CreateUser(ctx, user)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to create user")

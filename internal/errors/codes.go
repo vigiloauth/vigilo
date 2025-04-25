@@ -20,6 +20,7 @@ const (
 	ErrCodeMethodNotAllowed      = "method_not_allowed"
 	ErrCodeBadRequest            = "bad_request"
 	ErrCodeInvalidInput          = "invalid_input"
+	ErrCodeInvalidDate           = "invalid_date"
 
 	// User errors
 	ErrCodeDuplicateUser      = "duplicate_user"
@@ -96,8 +97,8 @@ var statusCodeMap = map[string]int{
 	ErrCodeBadRequest:             http.StatusBadRequest,
 	ErrCodeInvalidClientMetadata:  http.StatusBadRequest,
 	ErrCodeInvalidGrant:           http.StatusBadRequest,
-	ErrCodeInsufficientScope:      http.StatusBadRequest,
 	ErrCodeInvalidInput:           http.StatusBadRequest,
+	ErrCodeInvalidDate:            http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -123,6 +124,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,
 	ErrCodeAccessDenied:       http.StatusForbidden,
 	ErrCodeInsufficientRole:   http.StatusForbidden,
+	ErrCodeInsufficientScope:  http.StatusForbidden,
 
 	// 409 Conflict
 	ErrCodeDuplicateUser:    http.StatusConflict,

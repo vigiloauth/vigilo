@@ -3,7 +3,7 @@ package web
 const (
 	defaultAuthEndpoint   string = "/auth"
 	defaultClientEndpoint string = "/client"
-	defaultOAuthEndpoint  string = "/oauth"
+	defaultOAuthEndpoint  string = "/oauth2"
 	defaultTokenEndpoint  string = "/token"
 	defaultAdminEndpoint  string = "/admin"
 )
@@ -43,7 +43,7 @@ var OAuthEndpoints = struct {
 }{
 	Token:           defaultOAuthEndpoint + "/token",
 	Authorize:       defaultOAuthEndpoint + "/authorize",
-	Login:           defaultOAuthEndpoint + "/login/authorization",
+	Login:           defaultOAuthEndpoint + "/authenticate",
 	UserConsent:     defaultOAuthEndpoint + "/consent",
 	TokenExchange:   defaultOAuthEndpoint + "/token",
 	IntrospectToken: defaultOAuthEndpoint + defaultTokenEndpoint + "/introspect",
@@ -54,4 +54,10 @@ var AdminEndpoints = struct {
 	GetAuditEvents string
 }{
 	GetAuditEvents: defaultAdminEndpoint + "/audit-events",
+}
+
+var OIDCEndpoints = struct {
+	UserInfo string
+}{
+	UserInfo: defaultOAuthEndpoint + "/userinfo",
 }
