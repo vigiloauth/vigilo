@@ -235,7 +235,7 @@ func (s *authorizationService) validateUserScopes(ctx context.Context, userID st
 	if err != nil {
 		return nil, errors.NewInternalServerError()
 	} else if retrievedUser == nil {
-		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid user ID")
+		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid token subject")
 	}
 
 	for _, scope := range requestedScopes {
@@ -252,7 +252,7 @@ func (s *authorizationService) validateClientScopes(ctx context.Context, clientI
 	if err != nil {
 		return errors.NewInternalServerError()
 	} else if retrievedClient == nil {
-		return errors.New(errors.ErrCodeUnauthorized, "invalid client ID")
+		return errors.New(errors.ErrCodeUnauthorized, "invalid token audience")
 	}
 
 	for _, scope := range requestedScopes {
