@@ -25,15 +25,39 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - ✅ **User Registration**
     - Allow users to register with basic credentials (e.g., email, password).
     - Includes input validation and error handling.
+- ✅ **User Authentication**
+- ✅ **User Email Verification**
+- ✅ **Authorization Code Flow**
+- ✅ **Authorization Code Flow Including PKCE**
+- ✅ **Resource Owner Password Credentials Flow**
+- ✅ **Client Credentials Flow**
+- ✅ **Dynamic Client Registration**
+- ✅ **Refresh Tokens**
+- ✅ **OIDC UserInfo Endpoint**
+- ✅ **Audit Logging**
+    - The audit logging currently only logs events such as user authentication and session management.
+- ✅ **Docker Server Instance**
+- ✅ **Token Introspection**
+- ✅ **Token Revocation**
+
 ### 2.2 Planned Features
-- 🛠️ **User Login and Authentication** (in progress)
-    - OAuth 2.0 and OIDC-compliant login endpoints.
+- 🛠️ **Phone Number Verification** 
 - 🛠️ **Password Recovery**
-    - Endpoint for password reset using email verification.
 - 🛠️ **User Profile Management**
-    - Ability to update user details like email and name.
 - 🛠️ **Role-Based Access Control (RBAC)**
-    - Assign roles and manage permissions.
+- 🛠️ **OIDC Well-Known Endpoint**
+- 🛠️ **OIDC Discovery Endpoint**
+- 🛠️ **JSON Web Key Set Endpoint**
+- 🛠️ **Scope-Based Access Control**
+- 🛠️ **User Consent Management**
+- 🛠️ **Time-Based OTP Authentication**
+- 🛠️ **Backup Recovery Codes**
+- 🛠️ **Implicit Grant Flow**
+- 🛠️ **OIDC Hybrid Flow**
+- 🛠️ **Device Authorization Grant**
+- 🛠️ **Back Channel Authentication Flow**
+- 🛠️ **Social Login Integration Hooks**
+- 🛠️ **Dynamic Database Configuration**
 
 ## 3. Documentation
 Comprehensive documentation is available in the [User Guide](docs/user_guide/README.md).
@@ -90,15 +114,14 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 - `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
 - `feat`: Add a new feature that enhances the functionality of the project.
 - `fix`: Apply a bug fix that resolves an issue without affecting functionality. 
-- `task`: Add or modify internal functionality that supports the codebase but doesn't introduce a new feature or fix a bug (e.g., utility methods, service logic, or internal improvements).
-- `chore`: Miscellaneous or updates that aren't features or fixes (e.g., updating build tools, dependencies, or configuration files).
-- `docs`: Modify documentation, such as fixing typos or adding new content. 
-- `style`: Apply code style or formatting changes that do not affect behavior.
-- `refactor`: Restructure existing code without changing its external behavior. 
-- `test`: Add or modify tests without affecting functionality. 
+- `docs`: Update documentation, such as fixing typos or adding new information. 
+- `style`: Changes that don’t affect the code’s behavior, like formatting or code style adjustments. 
+- `refactor`: Refactor code without adding features or fixing bugs. 
+- `test`: Add or modify tests. 
+- `chore`: Miscellaneous changes like updates to build tools or dependencies.
 
 ## 6. License
-Copyright 2024 Olivier Pimparé-Charbonneau
+Copyright 2024 Olivier Pimparé-Charbonneau, Zachary Sexton
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
