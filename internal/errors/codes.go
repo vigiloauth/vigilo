@@ -97,7 +97,6 @@ var statusCodeMap = map[string]int{
 	ErrCodeBadRequest:             http.StatusBadRequest,
 	ErrCodeInvalidClientMetadata:  http.StatusBadRequest,
 	ErrCodeInvalidGrant:           http.StatusBadRequest,
-	ErrCodeInsufficientScope:      http.StatusBadRequest,
 	ErrCodeInvalidInput:           http.StatusBadRequest,
 	ErrCodeInvalidDate:            http.StatusBadRequest,
 
@@ -125,6 +124,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,
 	ErrCodeAccessDenied:       http.StatusForbidden,
 	ErrCodeInsufficientRole:   http.StatusForbidden,
+	ErrCodeInsufficientScope:  http.StatusForbidden,
 
 	// 409 Conflict
 	ErrCodeDuplicateUser:    http.StatusConflict,
