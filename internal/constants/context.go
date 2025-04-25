@@ -9,4 +9,5 @@ const (
 	ContextKeyUserAgent   ContextKey = "user_agent"
 	ContextKeyUserID      ContextKey = "user_id"
 	ContextKeyTokenClaims ContextKey = "token_claims"
+	ContextKeyAccessToken ContextKey = "access_token"
 )
