@@ -45,7 +45,6 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - 🛠️ **Password Recovery**
 - 🛠️ **User Profile Management**
 - 🛠️ **Role-Based Access Control (RBAC)**
-- 🛠️ **OIDC Well-Known Endpoint**
 - 🛠️ **OIDC Discovery Endpoint**
 - 🛠️ **JSON Web Key Set Endpoint**
 - 🛠️ **Scope-Based Access Control**
