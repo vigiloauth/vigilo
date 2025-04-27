@@ -44,11 +44,11 @@ func NewRepositoryRegistry(logger *config.Logger) *RepositoryRegistry {
 		module: module,
 	}
 
-	rr.initRepositories()
+	rr.initInMemoryRepositories()
 	return rr
 }
 
-func (dr *RepositoryRegistry) initRepositories() {
+func (dr *RepositoryRegistry) initInMemoryRepositories() {
 	dr.tokenRepo = tokenRepo.GetInMemoryTokenRepository()
 	dr.loginAttemptRepo = loginRepo.GetInMemoryLoginRepository()
 	dr.userRepo = userRepo.GetInMemoryUserRepository()
