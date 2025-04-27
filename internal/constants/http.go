@@ -10,6 +10,8 @@ const (
 	SessionTokenHeader  string = "vigilo-auth-session-token"
 	XForwardedHeader    string = "X-Forwarded-For"
 	NoStoreHeader       string = "no-store"
+	ContentTypeJSON     string = "application/json"
+	ContentTypeForm     string = "application/x-www-form-urlencoded"
 )
 
 // URL Values
