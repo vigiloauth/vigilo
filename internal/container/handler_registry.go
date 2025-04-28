@@ -127,7 +127,7 @@ func (h *HandlerRegistry) UserHandler() *handlers.UserHandler {
 	return h.userHandler.Get()
 }
 
-func (h *HandlerRegistry) GetClientHandler() *handlers.ClientHandler {
+func (h *HandlerRegistry) ClientHandler() *handlers.ClientHandler {
 	h.logger.Debug(h.module, "", "Getting Client Handler")
 	return h.clientHandler.Get()
 }
@@ -152,7 +152,7 @@ func (h *HandlerRegistry) AdminHandler() *handlers.AdminHandler {
 	return h.adminHandler.Get()
 }
 
-func (h *HandlerRegistry) GetOIDCHandler() *handlers.OIDCHandler {
+func (h *HandlerRegistry) OIDCHandler() *handlers.OIDCHandler {
 	h.logger.Debug(h.module, "", "Getting OIDC Handler")
 	return h.oidcHandler.Get()
 }
