@@ -96,12 +96,12 @@ func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
 		os.Exit(1)
 	}
 
-	setEnvVariables(privateKey, publicKey, secretKey)
-	vs := server.NewVigiloIdentityServer()
+	config.GetServerConfig().Logger().SetLevel("debug")
 
+	setEnvVariables(privateKey, publicKey, secretKey)
 	return &VigiloTestContext{
 		T:                  t,
-		VigiloServer:       vs,
+		VigiloServer:       server.NewVigiloIdentityServer(),
 		secretKey:          secretKey,
 		SH256CodeChallenge: crypto.EncodeSHA256(testClientSecret),
 		PlainCodeChallenge: testClientSecret,
@@ -231,11 +231,6 @@ func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext 
 	tc.JWTToken = token
 	tokenService.BlacklistToken(context.Background(), token)
 
-	return tc
-}
-
-func (tc *VigiloTestContext) SetLoggerLevel(level string) *VigiloTestContext {
-	config.GetServerConfig().Logger().SetLevel(level)
 	return tc
 }
 
@@ -534,7 +529,7 @@ func (tc *VigiloTestContext) TearDown() {
 		tc.TestServer.Close()
 	}
 	tc.VigiloServer.Shutdown()
-	tc.SetLoggerLevel("info")
+	config.GetServerConfig().Logger().SetLevel("info")
 	clearEnvVariables()
 	resetInMemoryStores()
 }
