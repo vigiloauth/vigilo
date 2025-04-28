@@ -471,7 +471,15 @@ func isInMinutes(duration time.Duration) bool      { return duration%time.Minute
 func isInMilliseconds(duration time.Duration) bool { return duration%time.Millisecond == 0 }
 
 func defaultServerConfig() *ServerConfig {
-	cfg := &ServerConfig{
+	logger := GetLogger()
+	module := "Server Config"
+
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		logger.Warn(module, "", "No .env file loaded")
+	}
+
+	return &ServerConfig{
 		port:                      defaultPort,
 		forceHTTPS:                defaultHTTPSRequirement,
 		readTimeout:               defaultReadTimeout,
@@ -484,16 +492,9 @@ func defaultServerConfig() *ServerConfig {
 		requestsPerMinute:         defaultRequestsPerMinute,
 		sessionCookieName:         defaultSessionCookieName,
 		authorizationCodeDuration: defaultAuthorizationCodeDuration,
-		logger:                    GetLogger(),
-		module:                    "Server Config",
+		logger:                    logger,
+		module:                    module,
 	}
-
-	err := godotenv.Load()
-	if err != nil {
-		cfg.logger.Warn(cfg.module, "", "No .env file loaded")
-	}
-
-	return cfg
 }
 
 func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {

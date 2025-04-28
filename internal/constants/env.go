@@ -7,5 +7,6 @@ const (
 	SMTPPasswordENV    string = "SMTP_PASSWORD"
 	SMTPUsernameENV    string = "SMTP_USERNAME"
 	TokenIssuerENV     string = "TOKEN_ISSUER"
-	TokenSecretKeyENV  string = "TOKEN_SECRET_KEY"
+	TokenPrivateKeyENV string = "TOKEN_PRIVATE_KEY"
+	TokenPublicKeyENV  string = "TOKEN_PUBLIC_KEY"
 )

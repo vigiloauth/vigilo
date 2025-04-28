@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/rsa"
 	"math/rand"
 	"time"
 
@@ -18,8 +19,10 @@ var _ token.TokenService = (*tokenService)(nil)
 
 type tokenService struct {
 	tokenRepo            token.TokenRepository
-	secretKey            string
-	tokenIssuer          string
+	privateKey           *rsa.PrivateKey
+	publicKey            *rsa.PublicKey
+	keyID                string
+	issuer               string
 	signingMethod        jwt.SigningMethod
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
@@ -38,8 +41,10 @@ type tokenService struct {
 func NewTokenService(tokenRepo token.TokenRepository) token.TokenService {
 	return &tokenService{
 		tokenRepo:            tokenRepo,
-		secretKey:            config.GetServerConfig().TokenConfig().SecretKey(),
-		tokenIssuer:          config.GetServerConfig().TokenConfig().Issuer(),
+		privateKey:           config.GetServerConfig().TokenConfig().SecretKey(),
+		publicKey:            config.GetServerConfig().TokenConfig().PublicKey(),
+		keyID:                config.GetServerConfig().TokenConfig().KeyID(),
+		issuer:               config.GetServerConfig().TokenConfig().Issuer(),
 		signingMethod:        config.GetServerConfig().TokenConfig().SigningMethod(),
 		accessTokenDuration:  config.GetServerConfig().TokenConfig().AccessTokenDuration(),
 		refreshTokenDuration: config.GetServerConfig().TokenConfig().RefreshTokenDuration(),
@@ -119,10 +124,10 @@ func (ts *tokenService) GenerateTokensWithAudience(ctx context.Context, userID, 
 //   - error: An error if token parsing or validation fails.
 func (ts *tokenService) ParseToken(tokenString string) (*token.TokenClaims, error) {
 	tokenClaims, err := jwt.ParseWithClaims(tokenString, &token.TokenClaims{}, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, errors.New(errors.ErrCodeTokenParsing, "unexpected signing method")
 		}
-		return []byte(ts.secretKey), nil
+		return ts.publicKey, nil
 	})
 
 	if err != nil {
@@ -408,8 +413,10 @@ func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject, audi
 			continue
 		}
 
-		token := jwt.NewWithClaims(ts.signingMethod, claims)
-		signedToken, err := token.SignedString([]byte(ts.secretKey))
+		token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+		token.Header["kid"] = ts.keyID
+
+		signedToken, err := token.SignedString(ts.privateKey)
 		if err != nil {
 			ts.logger.Warn(ts.module, "", "Failed to sign token. Incrementing retry count")
 			currentRetry++
@@ -429,7 +436,7 @@ func (ts *tokenService) generateStandardClaims(ctx context.Context, subject, aud
 	claims := &token.TokenClaims{
 		StandardClaims: &jwt.StandardClaims{
 			Subject:   subject,
-			Issuer:    ts.tokenIssuer,
+			Issuer:    ts.issuer,
 			IssuedAt:  time.Now().Unix(),
 			ExpiresAt: tokenExpiration,
 		},

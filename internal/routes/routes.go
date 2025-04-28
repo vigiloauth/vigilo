@@ -81,8 +81,9 @@ func (ar *AppRouter) setupOIDCRoutes() {
 	oidcHandler := ar.handlerRegistry.GetOIDCHandler()
 	ar.router.Group(func(r chi.Router) {
 		r.Use(ar.middleware.AuthMiddleware())
-		r.Get(web.OIDCEndpoints.UserInfo, oidcHandler.UserInfo)
+		r.Get(web.OIDCEndpoints.UserInfo, oidcHandler.GetUserInfo)
 	})
+	ar.router.Get(web.OIDCEndpoints.JWKS, oidcHandler.GetJWKS)
 }
 
 func (ar *AppRouter) setupClientRoutes() {
