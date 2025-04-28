@@ -23,7 +23,6 @@ type tokenService struct {
 	publicKey            *rsa.PublicKey
 	keyID                string
 	issuer               string
-	signingMethod        jwt.SigningMethod
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 
@@ -45,7 +44,6 @@ func NewTokenService(tokenRepo token.TokenRepository) token.TokenService {
 		publicKey:            config.GetServerConfig().TokenConfig().PublicKey(),
 		keyID:                config.GetServerConfig().TokenConfig().KeyID(),
 		issuer:               config.GetServerConfig().TokenConfig().Issuer(),
-		signingMethod:        config.GetServerConfig().TokenConfig().SigningMethod(),
 		accessTokenDuration:  config.GetServerConfig().TokenConfig().AccessTokenDuration(),
 		refreshTokenDuration: config.GetServerConfig().TokenConfig().RefreshTokenDuration(),
 		logger:               config.GetServerConfig().Logger(),
