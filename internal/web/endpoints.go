@@ -6,6 +6,7 @@ const (
 	defaultOAuthEndpoint  string = "/oauth2"
 	defaultTokenEndpoint  string = "/token"
 	defaultAdminEndpoint  string = "/admin"
+	wellKnown             string = "/.well-known"
 )
 
 var UserEndpoints = struct {
@@ -58,6 +59,8 @@ var AdminEndpoints = struct {
 
 var OIDCEndpoints = struct {
 	UserInfo string
+	JWKS     string
 }{
 	UserInfo: defaultOAuthEndpoint + "/userinfo",
+	JWKS:     defaultOAuthEndpoint + wellKnown + "/jwks.json",
 }

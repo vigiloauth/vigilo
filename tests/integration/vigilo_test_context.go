@@ -91,8 +91,12 @@ type VigiloTestContext struct {
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
-	secretKey := getSecretKey()
-	setEnvVariables(secretKey)
+	privateKey, publicKey, secretKey, err := generateTestKeys()
+	if err != nil {
+		os.Exit(1)
+	}
+
+	setEnvVariables(privateKey, publicKey, secretKey)
 	vs := server.NewVigiloIdentityServer()
 
 	return &VigiloTestContext{
@@ -593,13 +597,34 @@ func getSecretKey() string {
 	return base64.StdEncoding.EncodeToString(key)
 }
 
-func setEnvVariables(secretKey string) {
+func generateTestKeys() (string, string, string, error) {
+	privateKeyBase64 := os.Getenv(constants.TokenPrivateKeyENV)
+	publicKeyBase64 := os.Getenv(constants.TokenPublicKeyENV)
+
+	privateKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+	if err != nil {
+		panic("Failed to decode private key: " + err.Error())
+	}
+
+	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
+	if err != nil {
+		panic("Failed to decode public key: " + err.Error())
+	}
+
+	secretKey := getSecretKey()
+
+	return string(privateKeyBytes), string(publicKeyBytes), secretKey, nil
+}
+
+func setEnvVariables(privateKey, publicKey, secretKey string) {
 	os.Setenv(constants.CryptoSecretKeyENV, secretKey)
 	os.Setenv(constants.SMTPUsernameENV, "fake@email")
 	os.Setenv(constants.SMTPFromAddressENV, "fake@email")
 	os.Setenv(constants.SMTPPasswordENV, "password")
 	os.Setenv(constants.TokenIssuerENV, "fake-issuer")
-	os.Setenv(constants.TokenSecretKeyENV, "secret-key")
+	os.Setenv(constants.TokenPrivateKeyENV, privateKey)
+	os.Setenv(constants.TokenPublicKeyENV, publicKey)
+
 }
 
 func clearEnvVariables() {
@@ -608,5 +633,6 @@ func clearEnvVariables() {
 	os.Unsetenv(constants.SMTPFromAddressENV)
 	os.Unsetenv(constants.SMTPPasswordENV)
 	os.Unsetenv(constants.TokenIssuerENV)
-	os.Unsetenv(constants.TokenSecretKeyENV)
+	os.Unsetenv(constants.TokenPrivateKeyENV)
+	os.Unsetenv(constants.TokenPublicKeyENV)
 }

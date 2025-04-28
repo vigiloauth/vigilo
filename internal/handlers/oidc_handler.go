@@ -28,7 +28,7 @@ func NewOIDCHandler(oidcService oidc.OIDCService) *OIDCHandler {
 	}
 }
 
-func (h *OIDCHandler) UserInfo(w http.ResponseWriter, r *http.Request) {
+func (h *OIDCHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
@@ -58,4 +58,15 @@ func (h *OIDCHandler) UserInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	web.WriteJSON(w, http.StatusOK, userInfoResponse)
+}
+
+func (h *OIDCHandler) GetJWKS(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := utils.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[GetJWKS]: Processing request")
+	jwks := h.oidcService.GetJwks(ctx)
+
+	web.WriteJSON(w, http.StatusOK, jwks)
 }

@@ -87,7 +87,6 @@ server_config:
 Here is an example on how to configure the token requirements to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 ```yaml
 token_config:
-  secret_key: secret
   expiration_time: 30 # in minutes
   access_token_duration: 30 # in minutes
   refresh_token_duration: 2 # in days

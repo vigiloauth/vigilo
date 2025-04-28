@@ -8,6 +8,7 @@ import (
 	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/constants"
 	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
+	jwks "github.com/vigiloauth/vigilo/internal/domain/jwks"
 	oidc "github.com/vigiloauth/vigilo/internal/domain/oidc"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
@@ -63,6 +64,25 @@ func (o *oidcService) GetUserInfo(ctx context.Context, accessTokenClaims *token.
 	o.populateUserInfoFromScopes(userInfoResponse, retrievedUser, requestedScopes)
 
 	return userInfoResponse, nil
+}
+
+// GetJwks retrieves the JSON Web Key Set (JWKS) used for verifying signatures
+// of tokens issued by the OpenID Connect provider.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//
+// Returns:
+//   - *Jwks: A pointer to a Jwks struct containing the public keys in JWKS format.
+func (o *oidcService) GetJwks(ctx context.Context) *jwks.Jwks {
+	tokenConfig := config.GetServerConfig().TokenConfig()
+	publicKey := tokenConfig.PublicKey()
+	keyID := tokenConfig.KeyID()
+	return &jwks.Jwks{
+		Keys: []jwks.JWK{
+			jwks.NewJWK(keyID, publicKey),
+		},
+	}
 }
 
 func (o *oidcService) populateUserInfoFromScopes(

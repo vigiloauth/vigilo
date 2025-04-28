@@ -9,15 +9,9 @@ import (
 	"io"
 
 	"github.com/google/uuid"
-	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var logger = config.GetServerConfig().Logger()
-
-const module = "Crypto"
 
 // HashString takes a plain text string and returns a hashed
 // version of it using bcrypt with the default cost.
@@ -31,11 +25,24 @@ const module = "Crypto"
 func HashString(plainStr string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plainStr), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Error(module, "", "[HashString]: Error hashing string: %v", err)
 		return "", err
 	}
 
 	return string(hash), nil
+}
+
+// GenerateJWKKeyID generates a JWK Key ID (kid) by hashing the provided key
+// using SHA-256 and encoding it in base64 URL format.
+//
+// Parameters:
+//   - key string: The key to generate the JWK Key ID from.
+//
+// Returns:
+//   - string: The base64 URL encoded JWK Key ID.
+func GenerateJWKKeyID(key string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(key))
+	return base64.RawURLEncoding.EncodeToString(hasher.Sum(nil))
 }
 
 // CompareHash compares a plain text string with a hashed
@@ -49,7 +56,6 @@ func HashString(plainStr string) (string, error) {
 //   - bool: True if they match, otherwise false.
 func CompareHash(plainStr, hashStr string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashStr), []byte(plainStr))
-	logger.Warn(module, "", "[CompareHash]: Error comparing hashes")
 	return err == nil
 }
 
@@ -60,7 +66,6 @@ func CompareHash(plainStr, hashStr string) bool {
 //   - string: A string representation of the generated UUID.
 func GenerateUUID() string {
 	uuid := uuid.New().String()
-	logger.Debug(module, "", "[GenerateUUID]: Generated UUID: [%s]", utils.TruncateSensitive(uuid))
 	return uuid
 }
 
@@ -101,25 +106,21 @@ func GenerateRandomString(length int) (string, error) {
 func EncryptString(plaintext, secretKey string) (string, error) {
 	key, err := decodeAndValidateSecretKey(secretKey)
 	if err != nil {
-		logger.Error(module, "", "[EncryptString]: An error occurred decoding the secret key: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
 	block, err := generateAESCipherBlock(key)
 	if err != nil {
-		logger.Error(module, "", "[EncryptString]: An error occurred generating the AES cipher block: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
 	nonce, err := generateRandomNonce()
 	if err != nil {
-		logger.Error(module, "", "[EncryptString]: Error generating nonce: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
 	aesGCM, err := generateGCMCipher(block)
 	if err != nil {
-		logger.Error(module, "", "[EncryptString]: Error creating the GCM cipher: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
@@ -141,32 +142,27 @@ func EncryptString(plaintext, secretKey string) (string, error) {
 func DecryptString(cipherTextBase64, secretKey string) (string, error) {
 	key, err := decodeAndValidateSecretKey(secretKey)
 	if err != nil {
-		logger.Error(module, "", "[DecryptString]: An error occurred decoding the secret key: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
 	cipherText, err := decodeBase64String(cipherTextBase64)
 	if err != nil {
-		logger.Error(module, "", "[DecryptString]: An error occurred decoding the base64 cipher text: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
 	nonce := cipherText[:12]
 	block, err := generateAESCipherBlock(key)
 	if err != nil {
-		logger.Error(module, "", "[DecryptString]: An error occurred generating the AES Cipher Block: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
 	aesGCM, err := generateGCMCipher(block)
 	if err != nil {
-		logger.Error(module, "", "[DecryptString]: Error creating the GCM cipher: %v", err)
 		return "", err
 	}
 
 	plaintext, err := decryptCipherText(aesGCM, nonce, cipherText[12:])
 	if err != nil {
-		logger.Error(module, "", "[DecryptString]: Error decrypting the cipher text: %v", err)
 		return "", errors.NewInternalServerError()
 	}
 
@@ -185,25 +181,21 @@ func DecryptString(cipherTextBase64, secretKey string) (string, error) {
 func EncryptBytes(plainBytes []byte, secretKey string) (string, error) {
 	key, err := decodeAndValidateSecretKey(secretKey)
 	if err != nil {
-		logger.Error(module, "", "[EncryptBytes]: An error occurred decoding the secret key: %v", err)
 		return "", err
 	}
 
 	block, err := generateAESCipherBlock(key)
 	if err != nil {
-		logger.Error(module, "", "[EncryptBytes]: An error occurred generating the AES Cipher Block: %v", err)
 		return "", err
 	}
 
 	nonce, err := generateRandomNonce()
 	if err != nil {
-		logger.Error(module, "", "[EncryptBytes]: Error generating nonce: %v", err)
 		return "", err
 	}
 
 	aesGCM, err := generateGCMCipher(block)
 	if err != nil {
-		logger.Error(module, "", "[EncryptBytes]: Error creating GCM Cipher: %v", err)
 		return "", err
 	}
 
@@ -226,20 +218,17 @@ func EncryptBytes(plainBytes []byte, secretKey string) (string, error) {
 func DecryptBytes(encryptedData string, secretKey string) ([]byte, error) {
 	key, err := decodeAndValidateSecretKey(secretKey)
 	if err != nil {
-		logger.Error(module, "", "[DecryptBytes]: An error occurred decoding the secret key: %v", err)
 		return nil, err
 	}
 
 	// Decode the base64 encoded data
 	decodedData, err := decodeBase64String(encryptedData)
 	if err != nil {
-		logger.Error(module, "", "[DecryptBytes]: Error decoding base64 data: %v", err)
 		return nil, err
 	}
 
 	if len(decodedData) < 12 {
 		err := errors.New(errors.ErrCodeInvalidInput, "invalid data length")
-		logger.Error(module, "", "[DecryptBytes]: Invalid data length. It must include a nonce and cipher text.")
 		return nil, err
 	}
 
@@ -248,19 +237,16 @@ func DecryptBytes(encryptedData string, secretKey string) ([]byte, error) {
 
 	block, err := generateAESCipherBlock(key)
 	if err != nil {
-		logger.Error(module, "", "[DecryptBytes]: Error creating AES cipher block: %v", err)
 		return nil, errors.NewInternalServerError()
 	}
 
 	aesGCM, err := generateGCMCipher(block)
 	if err != nil {
-		logger.Error(module, "", "[DecryptBytes]: Error creating GCM cipher: %v", err)
 		return nil, errors.NewInternalServerError()
 	}
 
 	plainBytes, err := decryptCipherText(aesGCM, nonce, cipherText)
 	if err != nil {
-		logger.Error(module, "", "[DecryptBytes]: Error decrypting data: %v", err)
 		return nil, errors.NewInternalServerError()
 	}
 

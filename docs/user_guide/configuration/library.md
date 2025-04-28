@@ -126,7 +126,6 @@ import (
 
 func main() {
     tokenConfig := config.NewTokenConfig(
-        config.WithSecret("your-secret"),
         config.WithExpirationTime(time.Duration(2) * time.Hour),
         config.WithAccessTokenDuration(time.Duration(10) * time.Minute),
         config.WithRefreshTokenDuration(time.Duration(1) * 24 * time.Hour),
