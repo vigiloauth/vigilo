@@ -23,7 +23,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 	logger.Info(module, "", "Initializing Vigilo Identity Server")
 
 	container := container.NewDIContainer(logger).Init()
-	appRouter := routes.NewAppRouter(
+	appRouter := routes.NewRouterConfig(
 		chi.NewRouter(), logger,
 		config.GetServerConfig().ForceHTTPS(),
 		config.GetServerConfig().EnableRequestLogging(),
