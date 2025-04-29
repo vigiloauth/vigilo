@@ -16,6 +16,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
+        
+      - name: Create .env.test file
+        run: |
+          echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env.test
+          echo "SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }}" >> .env.test
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env.test
+          echo "TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }}" >> .env.test
+          echo "TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}" >> .env.test
+          echo "TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}" >> .env.test
+          echo "CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }}" >> .env.test
 
       - name: Install necessary dependencies
         run: go mod tidy
