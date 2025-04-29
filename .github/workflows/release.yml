@@ -97,7 +97,8 @@ jobs:
             --build-arg CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }} \
             -f Dockerfile \
             -t vigiloauth/server:$version \
-            -t vigiloauth/server:latest .
+            -t vigiloauth/server:latest \
+            .
           echo "Pushing Docker image..."
           docker push vigiloauth/server:$version
           docker push vigiloauth/server:latest
