@@ -144,6 +144,7 @@ func (rc *RouterConfig) registerRouteGroup(group RouteGroup) {
 				rc.logger.Debug(rc.module, "", "Registered route: %s %s", method, route.Pattern)
 			}
 		}
+
 	})
 }
 

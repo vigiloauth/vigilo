@@ -64,17 +64,17 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			if err := m.tokenService.ValidateToken(ctx, tokenString); err != nil {
-				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to validate token: %s", err)
-				wrappedErr := errors.Wrap(err, errors.ErrCodeUnauthorized, "an error occurred validating the access token")
+			claims, err := m.tokenService.ParseAndValidateToken(ctx, tokenString)
+			if err != nil {
+				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse token: %s", err)
+				wrappedErr := errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse token")
 				web.WriteError(w, wrappedErr)
 				return
 			}
 
-			claims, err := m.tokenService.ParseToken(tokenString)
-			if err != nil {
-				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse token: %s", err)
-				wrappedErr := errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse token")
+			if err := m.tokenService.ValidateToken(ctx, tokenString); err != nil {
+				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to validate token: %s", err)
+				wrappedErr := errors.Wrap(err, errors.ErrCodeUnauthorized, "an error occurred validating the access token")
 				web.WriteError(w, wrappedErr)
 				return
 			}

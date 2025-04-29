@@ -98,7 +98,7 @@ func (cs *InMemoryClientRepository) GetClientByID(ctx context.Context, clientID 
 	client, found := cs.data[clientID]
 	if !found {
 		logger.Debug(module, requestID, "[GetClientByID]: No client found using the given ID=%s", clientID)
-		return nil, nil
+		return nil, errors.New(errors.ErrCodeClientNotFound, "client not found")
 	}
 
 	return client, nil

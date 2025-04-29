@@ -46,6 +46,8 @@ type TokenService interface {
 	//	- error: An error if token parsing or validation fails.
 	ParseToken(tokenString string) (*TokenClaims, error)
 
+	ParseAndValidateToken(ctx context.Context, tokenString string) (*TokenClaims, error)
+
 	// IsTokenBlacklisted checks if a token is blacklisted.
 	//
 	// Parameters:
@@ -153,4 +155,26 @@ type TokenService interface {
 	// Returns:
 	//	- error: An error if retrieval or deletion fails.
 	DeleteExpiredTokens(ctx context.Context) error
+
+	// EncryptToken encrypts a signed JWT token using a specified encryption algorithm.
+	//
+	// Parameters:
+	//	 - ctx Context: The context for managing timeouts and cancellations.
+	//   - signedToken string: The signed JWT token to be encrypted.
+	//
+	// Returns:
+	//   - string: The encrypted token in JWE (JSON Web Encryption) format.
+	//   - error: An error if the encryption process fails.
+	EncryptToken(ctx context.Context, signedToken string) (string, error)
+
+	// DecryptToken decrypts an encrypted JWT token back to its original signed form.
+	//
+	// Parameters:
+	//	 - ctx Context: The context for managing timeouts and cancellations.
+	//   - encryptedToken string: The encrypted JWT token in JWE format.
+	//
+	// Returns:
+	//   - string: The decrypted signed JWT token.
+	//   - error: An error if the decryption process fails.
+	DecryptToken(ctx context.Context, encryptedToken string) (string, error)
 }

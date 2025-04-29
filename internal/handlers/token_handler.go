@@ -59,7 +59,7 @@ func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenRequest := r.FormValue(constants.Token)
+	tokenRequest := r.FormValue(constants.TokenReqField)
 	response := h.authService.IntrospectToken(ctx, tokenRequest)
 
 	web.WriteJSON(w, http.StatusOK, response)
@@ -83,7 +83,7 @@ func (h *TokenHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenRequest := r.FormValue(constants.Token)
+	tokenRequest := r.FormValue(constants.TokenReqField)
 	h.authService.RevokeToken(ctx, tokenRequest)
 	web.WriteJSON(w, http.StatusOK, nil)
 }
@@ -108,8 +108,8 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestedGrantType := r.FormValue(constants.GrantType)
-	requestedScopes := r.FormValue(constants.Scope)
+	requestedGrantType := r.FormValue(constants.GrantTypeReqField)
+	requestedScopes := r.FormValue(constants.ScopeReqField)
 
 	if requestedGrantType == "" {
 		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "one or more required parameters are missing"))
@@ -148,13 +148,13 @@ func (h *TokenHandler) handleClientCredentialsRequest(ctx context.Context, w htt
 }
 
 func (h *TokenHandler) handlePasswordGrantRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
-	if r.URL.Query().Get(constants.Password) != "" {
+	if r.URL.Query().Get(constants.PasswordReqField) != "" {
 		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "password must not be in the URL"))
 		return
 	}
 
-	username := r.FormValue(constants.Username)
-	password := r.FormValue(constants.Password)
+	username := r.FormValue(constants.UsernameReqField)
+	password := r.FormValue(constants.PasswordReqField)
 
 	loginAttempt := &user.UserLoginAttempt{
 		Username:        username,
@@ -177,14 +177,14 @@ func (h *TokenHandler) handlePasswordGrantRequest(ctx context.Context, w http.Re
 
 func (h *TokenHandler) handleAuthorizationCodeTokenExchange(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret string) {
 	tokenRequest := &token.TokenRequest{
-		GrantType:         r.FormValue(constants.GrantType),
+		GrantType:         r.FormValue(constants.GrantTypeReqField),
 		AuthorizationCode: r.FormValue(constants.CodeURLValue),
-		RedirectURI:       r.FormValue(constants.RedirectURI),
+		RedirectURI:       r.FormValue(constants.RedirectURIReqField),
 		ClientID:          clientID,
-		State:             r.FormValue(constants.State),
+		State:             r.FormValue(constants.StateReqField),
 	}
 
-	codeVerifier := r.FormValue(constants.CodeVerifier)
+	codeVerifier := r.FormValue(constants.CodeVerifierReqField)
 	if codeVerifier != "" {
 		tokenRequest.CodeVerifier = codeVerifier
 	}
@@ -254,8 +254,8 @@ func (h *TokenHandler) handleRefreshTokenRequest(ctx context.Context, w http.Res
 func (h *TokenHandler) extractClientCredentials(r *http.Request) (string, string, error) {
 	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
 	if err != nil {
-		clientID = r.FormValue(constants.ClientID)
-		clientSecret = r.FormValue(constants.ClientSecret)
+		clientID = r.FormValue(constants.ClientIDReqField)
+		clientSecret = r.FormValue(constants.ClientSecretReqField)
 		if clientID == "" {
 			return "", "", errors.New(errors.ErrCodeInvalidClient, "missing client identification")
 		}

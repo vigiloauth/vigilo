@@ -28,7 +28,7 @@ func (req *UserRegistrationRequest) Validate() error {
 
 	if len(req.Scopes) > 0 {
 		for _, scope := range req.Scopes {
-			if _, ok := constants.ValidScopes[scope]; !ok {
+			if _, ok := constants.SupportedScopes[scope]; !ok {
 				err := errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid scope '%s'", scope))
 				errorCollection.Add(err)
 			}

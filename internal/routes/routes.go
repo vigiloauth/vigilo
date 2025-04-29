@@ -59,12 +59,12 @@ func (ar *RouterConfig) getOIDCRoutes() RouteGroup {
 
 func (ar *RouterConfig) getClientRoutes() RouteGroup {
 	handler := ar.handlerRegistry.ClientHandler()
-	urlParam := fmt.Sprintf("/{%s}", constants.ClientID)
+	urlParam := fmt.Sprintf("/{%s}", constants.ClientIDReqField)
 
 	return RouteGroup{
 		Name: "Client Routes",
 		Middleware: []func(http.Handler) http.Handler{
-			ar.middleware.AuthMiddleware(),
+			ar.middleware.RequiresContentType(constants.ContentTypeJSON),
 		},
 		Routes: []Route{
 			// Basic client registration
@@ -77,6 +77,7 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 
 			// Client configuration management
 			NewRoute().
+				SetMiddleware(ar.middleware.AuthMiddleware()).
 				SetMethods(http.MethodGet, http.MethodPut, http.MethodDelete).
 				SetPattern(web.ClientEndpoints.ClientConfiguration + urlParam).
 				SetHandler(handler.ManageClientConfiguration).
@@ -86,6 +87,7 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 			// Sensitive operations with strict rate limiting
 			NewRoute().
 				SetMethod(http.MethodPost).
+				SetMiddleware(ar.middleware.AuthMiddleware()).
 				SetPattern(web.ClientEndpoints.RegenerateSecret + urlParam).
 				SetHandler(handler.RegenerateSecret).
 				SetDescription("Regenerate client secret").
@@ -133,6 +135,13 @@ func (ar *RouterConfig) getUserRoutes() RouteGroup {
 				SetHandler(handler.ResetPassword).
 				SetDescription("User password reset").
 				Build(),
+
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetPattern(web.OAuthEndpoints.Login).
+				SetHandler(handler.OAuthLogin).
+				SetDescription("OAuth user authentication").
+				Build(),
 		},
 	}
 }
@@ -150,12 +159,6 @@ func (ar *RouterConfig) getOAuthRoutes() RouteGroup {
 				SetPattern(web.OAuthEndpoints.UserConsent).
 				SetHandler(handler.UserConsent).
 				SetDescription("Manage user consent").
-				Build(),
-			NewRoute().
-				SetMethod(http.MethodPost).
-				SetPattern(web.OAuthEndpoints.Login).
-				SetHandler(handler.OAuthLogin).
-				SetDescription("OAuth user authentication").
 				Build(),
 		},
 	}

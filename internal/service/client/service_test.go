@@ -41,7 +41,6 @@ func TestClientService_Register(t *testing.T) {
 		cs := NewClientService(mockClientStore, mockTokenService)
 		response, err := cs.Register(ctx, testClient)
 
-		t.Log(response.ConfigurationEndpoint)
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.NotEqual(t, "", response.ConfigurationEndpoint)
@@ -63,6 +62,9 @@ func TestClientService_Register(t *testing.T) {
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
 		mockTokenService.GenerateTokenFunc = func(ctx context.Context, id, scope, roles string, duration time.Duration) (string, error) {
+			return testToken, nil
+		}
+		mockTokenService.EncryptTokenFunc = func(ctx context.Context, signedToken string) (string, error) {
 			return testToken, nil
 		}
 
@@ -341,7 +343,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   testClientID,
@@ -349,6 +351,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 				},
 			}, nil
 		}
+
 		mockTokenService.DeleteTokenAsyncFunc = func(ctx context.Context, token string) <-chan error { return nil }
 
 		cs := NewClientService(mockClientStore, mockTokenService)
@@ -370,13 +373,16 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   testClientID,
 					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 				},
 			}, nil
+		}
+		mockTokenService.DecryptTokenFunc = func(ctx context.Context, encryptedToken string) (string, error) {
+			return testToken, nil
 		}
 
 		cs := NewClientService(mockClientStore, mockTokenService)
@@ -410,13 +416,16 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   "invalid-id",
 					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 				},
 			}, nil
+		}
+		mockTokenService.DecryptTokenFunc = func(ctx context.Context, encryptedToken string) (string, error) {
+			return testToken, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(ctx context.Context, token string) error { return nil }
 
@@ -435,13 +444,16 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   "invalid-id",
 					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 				},
 			}, nil
+		}
+		mockTokenService.DecryptTokenFunc = func(ctx context.Context, encryptedToken string) (string, error) {
+			return testToken, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(ctx context.Context, token string) error { return nil }
 
@@ -462,7 +474,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return createTestClient(), nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   testClientID,
@@ -507,7 +519,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   "invalid-id",
@@ -533,13 +545,16 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   testClientID,
 					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 				},
 			}, nil
+		}
+		mockTokenService.DecryptTokenFunc = func(ctx context.Context, encryptedToken string) (string, error) {
+			return testToken, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(ctx context.Context, token string) error { return nil }
 
@@ -559,13 +574,16 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   testClientID,
 					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 				},
 			}, nil
+		}
+		mockTokenService.DecryptTokenFunc = func(ctx context.Context, encryptedToken string) (string, error) {
+			return testToken, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(ctx context.Context, token string) error { return nil }
 
@@ -593,7 +611,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return createTestClient(), nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   testClientID,
@@ -636,13 +654,16 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   "invalid",
 					ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 				},
 			}, nil
+		}
+		mockTokenService.DecryptTokenFunc = func(ctx context.Context, encryptedToken string) (string, error) {
+			return testToken, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(ctx context.Context, token string) error { return nil }
 
@@ -678,13 +699,16 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
 		}
-		mockTokenService.ParseTokenFunc = func(token string) (*domain.TokenClaims, error) {
+		mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, token string) (*domain.TokenClaims, error) {
 			return &domain.TokenClaims{
 				StandardClaims: &jwt.StandardClaims{
 					Subject:   testClientID,
 					ExpiresAt: time.Now().Add(-1 * time.Hour).Unix(),
 				},
 			}, nil
+		}
+		mockTokenService.DecryptTokenFunc = func(ctx context.Context, encryptedToken string) (string, error) {
+			return testToken, nil
 		}
 		mockTokenService.DeleteTokenFunc = func(ctx context.Context, token string) error { return nil }
 

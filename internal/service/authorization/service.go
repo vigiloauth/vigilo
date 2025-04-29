@@ -95,10 +95,7 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 	retrievedClient, err := s.clientService.GetClientByID(ctx, request.ClientID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Failed to retrieve client by ID: %v", err)
-		return "", err
-	} else if retrievedClient == nil {
-		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Invalid client ID=[%s]", request.ClientID)
-		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client ID")
+		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 	request.Client = retrievedClient
 
@@ -168,9 +165,33 @@ func (s *authorizationService) AuthorizeTokenExchange(ctx context.Context, token
 //   - *token.TokenResponse: A fully formed token response with access and refresh tokens.
 //   - error: An error if token generation fails.
 func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
+	requestID := utils.GetRequestID(ctx)
+
+	// Generate access and refresh tokens
 	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "")
 	if err != nil {
+		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate tokens: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate tokens")
+	}
+
+	client, err := s.clientService.GetClientByID(ctx, authCodeData.ClientID)
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to retrieve client: %v", err)
+		return nil, errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client")
+	}
+
+	if client.IsConfidential() {
+		accessToken, err = s.tokenService.EncryptToken(ctx, accessToken)
+		if err != nil {
+			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt access token: %v", err)
+			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt access token")
+		}
+
+		refreshToken, err = s.tokenService.EncryptToken(ctx, refreshToken)
+		if err != nil {
+			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt refresh token: %v", err)
+			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt refresh token")
+		}
 	}
 
 	response := &token.TokenResponse{

@@ -228,9 +228,6 @@ func (c authorizationCodeService) validateClientParameters(ctx context.Context, 
 	client, err := c.clientService.GetClientByID(ctx, clientID)
 	if err != nil {
 		c.logger.Error(c.module, "", "Failed to retrieve client: %v", err)
-		return err
-	} else if client == nil {
-		c.logger.Error(c.module, "Failed to validate client: invalid client ID=[%s]", clientID)
 		return errors.New(errors.ErrCodeUnauthorizedClient, "invalid client ID")
 	}
 
@@ -290,12 +287,9 @@ func (c *authorizationCodeService) handlePKCE(req *client.ClientAuthorizationReq
 }
 
 func (c *authorizationCodeService) validateUserAndClient(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-	retrievedUser, err := c.userService.GetUserByID(ctx, req.UserID)
-	if err != nil {
+	if _, err := c.userService.GetUserByID(ctx, req.UserID); err != nil {
 		c.logger.Error(c.module, "", "An error occurred retrieving the user by ID: %v", err)
-		return errors.NewInternalServerError()
-	} else if retrievedUser == nil {
-		return errors.New(errors.ErrCodeUnauthorized, fmt.Sprintf("invalid user ID: %s", utils.TruncateSensitive(req.UserID)))
+		return errors.New(errors.ErrCodeUnauthorized, "invalid user credentials")
 	}
 
 	if err := c.validateClientParameters(ctx, req.RedirectURI, req.ClientID, req.Scope); err != nil {

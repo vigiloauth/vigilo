@@ -185,7 +185,6 @@ func defaultTokenConfig() *TokenConfig {
 		panic("Failed to decode public key: " + err.Error())
 	}
 
-	// Parse the PEM-encoded keys
 	privateKeyParsed, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyBytes)
 	if err != nil {
 		panic("Failed to parse private key: " + err.Error())

@@ -127,7 +127,7 @@ func (u *InMemoryUserRepository) GetUserByID(ctx context.Context, userID string)
 	user, found := u.users[userID]
 	if !found {
 		logger.Debug(module, requestID, "[GetUserByID]: User not found with the given ID=[%s]", userID)
-		return nil, nil
+		return nil, errors.New(errors.ErrCodeUserNotFound, "user not found")
 	}
 
 	return user, nil

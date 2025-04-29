@@ -23,30 +23,29 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 ## 2. Features
 ### 2.1 Currently Implemented
 - ✅ **User Registration**
-    - Allow users to register with basic credentials (e.g., email, password).
-    - Includes input validation and error handling.
-- ✅ **User Authentication**
+- ✅ **Basic User Authentication**
+- ✅ **OAuth User Authentication**
 - ✅ **User Email Verification**
 - ✅ **Authorization Code Flow**
-- ✅ **Authorization Code Flow Including PKCE**
+- ✅ **Authorization Code Flow With PKCE**
 - ✅ **Resource Owner Password Credentials Flow**
 - ✅ **Client Credentials Flow**
 - ✅ **Dynamic Client Registration**
-- ✅ **Refresh Tokens**
-- ✅ **OIDC UserInfo Endpoint**
 - ✅ **Audit Logging**
-    - The audit logging currently only logs events such as user authentication and session management.
 - ✅ **Docker Server Instance**
+- ✅ **Token Refresh**
 - ✅ **Token Introspection**
 - ✅ **Token Revocation**
+- ✅ **OIDC UserInfo Endpoint**
+- ✅ **OIDC Discovery Endpoint**
+- ✅ **OIDC JSON Web Key Set Endpoint**
+- ✅ **In Memory Storage**
 
 ### 2.2 Planned Features
 - 🛠️ **Phone Number Verification** 
 - 🛠️ **Password Recovery**
 - 🛠️ **User Profile Management**
 - 🛠️ **Role-Based Access Control (RBAC)**
-- 🛠️ **OIDC Discovery Endpoint**
-- 🛠️ **JSON Web Key Set Endpoint**
 - 🛠️ **Scope-Based Access Control**
 - 🛠️ **User Consent Management**
 - 🛠️ **Time-Based OTP Authentication**

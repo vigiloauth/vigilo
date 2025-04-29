@@ -1,7 +1,13 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -486,6 +492,10 @@ func (sc *ServerConfig) SetAuditLogConfig(auditLogConfig *AuditLogConfig) {
 	sc.auditLogConfig = auditLogConfig
 }
 
+func (sc *ServerConfig) SetBaseURL(url string) {
+	sc.baseURL = url
+}
+
 func isInSeconds(duration time.Duration) bool      { return duration%time.Second == 0 }
 func isInHours(duration time.Duration) bool        { return duration%time.Hour == 0 }
 func isInMinutes(duration time.Duration) bool      { return duration%time.Minute == 0 }
@@ -495,11 +505,7 @@ func defaultServerConfig() *ServerConfig {
 	logger := GetLogger()
 	module := "Server Config"
 
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		logger.Warn(module, "", "No .env file loaded")
-	}
-
+	loadEnv()
 	return &ServerConfig{
 		port:                      defaultPort,
 		forceHTTPS:                defaultHTTPSRequirement,
@@ -527,5 +533,42 @@ func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
 		}
 	} else {
 		cfg.logger.Info(cfg.module, "", "Using default server config")
+	}
+}
+
+func loadEnv() {
+	var (
+		_, b, _, _      = runtime.Caller(0) // Get the directory of this file
+		basePath        = filepath.Dir(b)   // Base path of the current file
+		EnvFilePath     = filepath.Join(basePath, "../../.env")
+		TestEnvFilePath = filepath.Join(basePath, "../../.env.test")
+	)
+
+	if isTestEnvironment() {
+		loadEnvFile(TestEnvFilePath)
+	} else {
+		fmt.Println("Loading environment file:", EnvFilePath)
+		loadEnvFile(EnvFilePath)
+	}
+}
+
+func isTestEnvironment() bool {
+	if testing.Testing() {
+		return true
+	}
+
+	for _, arg := range os.Args {
+		if strings.Contains(arg, "test.") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func loadEnvFile(fileName string) {
+	err := godotenv.Load(fileName)
+	if err != nil {
+		panic("no environment file loaded: " + fileName)
 	}
 }

@@ -94,7 +94,6 @@ func (c *userConsentService) CheckUserConsent(ctx context.Context, userID, clien
 }
 
 // SaveUserConsent records a user's consent for a client application
-// SaveUserConsent records a user's consent for a client application
 // to access resources within the specified scope.
 //
 // Parameters:
@@ -107,14 +106,9 @@ func (c *userConsentService) CheckUserConsent(ctx context.Context, userID, clien
 //   - error: An error if the consent cannot be saved, or nil if successful.
 func (c *userConsentService) SaveUserConsent(ctx context.Context, userID, clientID, scope string) error {
 	requestID := utils.GetRequestID(ctx)
-	user, err := c.userRepo.GetUserByID(ctx, userID)
-	if err != nil {
+	if _, err := c.userRepo.GetUserByID(ctx, userID); err != nil {
 		c.logger.Error(c.module, requestID, "[SaveUserConsent]: An error occurred retrieving the user by ID: %v", err)
 		return errors.NewInternalServerError()
-	} else if user == nil {
-		err := errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
-		c.logger.Error(c.module, requestID, "[SaveUserConsent]: Failed to save user consent: %v", err)
-		return err
 	}
 
 	return c.consentRepo.SaveConsent(ctx, userID, clientID, scope)
@@ -131,14 +125,9 @@ func (c *userConsentService) SaveUserConsent(ctx context.Context, userID, client
 //   - error: An error if the consent cannot be revoked, or nil if successful.
 func (c *userConsentService) RevokeConsent(ctx context.Context, userID, clientID string) error {
 	requestID := utils.GetRequestID(ctx)
-	user, err := c.userRepo.GetUserByID(ctx, userID)
-	if err != nil {
+	if _, err := c.userRepo.GetUserByID(ctx, userID); err != nil {
 		c.logger.Error(c.module, requestID, "[RevokeConsent]: An error occurred retrieving the user by ID: %v", err)
-		return errors.NewInternalServerError()
-	} else if user == nil {
-		err := errors.New(errors.ErrCodeAccessDenied, "user does not exist with the given ID")
-		c.logger.Error(c.module, requestID, "[RevokeConsent]: Failed to revoke user consent: %v", err)
-		return err
+		return errors.Wrap(err, "", "failed to revoke user consent")
 	}
 
 	return c.consentRepo.RevokeConsent(ctx, userID, clientID)
@@ -221,8 +210,12 @@ func (c *userConsentService) GetConsentDetails(userID, clientID, redirectURI, sc
 //   - *consent.UserConsentResponse: The response containing the result of the consent process (e.g., success or denial).
 //   - error: An error if the consent decision cannot be processed or stored.
 func (c *userConsentService) ProcessUserConsent(
-	userID, clientID, redirectURI, scope string,
-	consentRequest *consent.UserConsentRequest, r *http.Request,
+	userID string,
+	clientID string,
+	redirectURI string,
+	scope string,
+	consentRequest *consent.UserConsentRequest,
+	r *http.Request,
 ) (*consent.UserConsentResponse, error) {
 	requestID := utils.GetRequestID(r.Context())
 	if err := c.validateRequest(userID, clientID, redirectURI, scope); err != nil {
@@ -273,12 +266,18 @@ func (c *userConsentService) getApprovedScopes(defaultScopes string, requestScop
 	if len(requestScopes) > 0 {
 		return strings.Join(requestScopes, " ")
 	}
+
 	return defaultScopes
 }
 
 func (c *userConsentService) processApprovedConsent(
-	ctx context.Context, userID, clientID, redirectURI, scope string,
-	consentRequest *consent.UserConsentRequest, sessionData *session.SessionData,
+	ctx context.Context,
+	userID string,
+	clientID string,
+	redirectURI string,
+	scope string,
+	consentRequest *consent.UserConsentRequest,
+	sessionData *session.SessionData,
 ) (*consent.UserConsentResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 

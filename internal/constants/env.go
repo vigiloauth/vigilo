@@ -9,4 +9,7 @@ const (
 	TokenIssuerENV     string = "TOKEN_ISSUER"
 	TokenPrivateKeyENV string = "TOKEN_PRIVATE_KEY"
 	TokenPublicKeyENV  string = "TOKEN_PUBLIC_KEY"
+
+	EnvFilePath     string = "../../.env"
+	TestEnvFilePath string = "../../../.env.test"
 )

@@ -20,6 +20,7 @@ const (
 	ErrCodeBadRequest            string = "bad_request"
 	ErrCodeInvalidInput          string = "invalid_input"
 	ErrCodeInvalidDate           string = "invalid_date"
+	ErrCodeNotFound              string = "not_found"
 
 	// User errors
 	ErrCodeDuplicateUser      string = "duplicate_user"
@@ -121,6 +122,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeSessionNotFound:           http.StatusNotFound,
 	ErrCodeResourceNotFound:          http.StatusNotFound,
 	ErrCodeAuthorizationCodeNotFound: http.StatusNotFound,
+	ErrCodeNotFound:                  http.StatusNotFound,
 
 	// 403 Forbidden
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,

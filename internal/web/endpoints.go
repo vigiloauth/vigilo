@@ -58,9 +58,11 @@ var AdminEndpoints = struct {
 }
 
 var OIDCEndpoints = struct {
-	UserInfo string
-	JWKS     string
+	UserInfo  string
+	JWKS      string
+	Discovery string
 }{
-	UserInfo: defaultOAuthEndpoint + "/userinfo",
-	JWKS:     defaultOAuthEndpoint + wellKnown + "/jwks.json",
+	UserInfo:  defaultOAuthEndpoint + "/userinfo",
+	JWKS:      defaultOAuthEndpoint + wellKnown + "/jwks.json",
+	Discovery: defaultOAuthEndpoint + wellKnown + "/openid-configuration",
 }

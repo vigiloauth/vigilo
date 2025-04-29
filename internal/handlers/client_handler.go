@@ -92,7 +92,7 @@ func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request)
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[RegenerateSecret]: Processing request")
 
-	clientID := chi.URLParam(r, constants.ClientID)
+	clientID := chi.URLParam(r, constants.ClientIDReqField)
 	response, err := h.clientService.RegenerateClientSecret(ctx, clientID)
 	if err != nil {
 		web.WriteError(w, errors.Wrap(err, "", "failed to regenerate client_secret"))
@@ -115,7 +115,7 @@ func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http
 		registrationAccessToken, _ = token.(string)
 	}
 
-	clientID := chi.URLParam(r, constants.ClientID)
+	clientID := chi.URLParam(r, constants.ClientIDReqField)
 	switch r.Method {
 	case http.MethodGet:
 		h.getClient(w, clientID, registrationAccessToken, ctx)
