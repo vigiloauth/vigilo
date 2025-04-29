@@ -1,6 +1,6 @@
 # VigiloAuth
 
-![GitHub Release](https://img.shields.io/github/v/release/vigiloauth/vigilo?label=latest%20release)
+![Docker Release](https://img.shields.io/github/v/release/vigiloauth/vigilo?label=latest%20release)
 ![Github Repo Starts](https://img.shields.io/github/stars/vigiloauth/vigilo?style=flat)
 
 ## Table of Contents
@@ -11,12 +11,11 @@
 		- [2.1 Currently Implemented](#21-currently-implemented)
 		- [2.2 Planned Features](#22-planned-features)
 	- [3. Documentation](#3-documentation)
-	- [4. Getting Started](#4-getting-started)
-	- [5. Contributing](#5-contributing)
-		- [5.1 How to Contribute](#51-how-to-contribute)
-		- [5.2 Commit Standards](#52-commit-standards)
+	- [4. Contributing](#4-contributing)
+		- [4.1 How to Contribute](#41-how-to-contribute)
+		- [4.2 Commit Standards](#42-commit-standards)
 		- [5.3 Commit Types](#53-commit-types)
-	- [6. License](#6-license)
+	- [5. License](#5-license)
 
 ## 1. Introduction
 ⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
@@ -70,35 +69,10 @@ Comprehensive documentation is available in the [User Guide](docs/user_guide/REA
 - [Configuration Guide](docs/user_guide/configuration.md)
 - [Identity API Endpoints](docs/user_guide/endpoints/identity/README.md)
 
-## 4. Getting Started
-To install the library in your application, simply run:
-`go get -u github.com/vigiloauth/vigilo/v2@<latest available version>`
-```go
-package main
-
-import (
-	"fmt"
-	"net/http"
-	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/v2/idp/server"
-)
-
-func main() {
-	appRouter := chi.NewRouter()
-
-	vigiloIdentityServer := server.NewVigiloIdentityServer()
-	vigiloIdentityRouter := vigiloIdentityServer.Router()
-	appRouter.Mount("/identity", vigiloIdentityRouter)
-
-	fmt.Println("Starting server on :8080")
-	http.ListenAndServe(":8080", appRouter)
-}
-```
-
-## 5. Contributing
+## 4. Contributing
 We welcome contributions to improve VigiloAuth! Follow the steps below to ensure a smooth contribution process.
 
-### 5.1 How to Contribute
+### 4.1 How to Contribute
 1. **Fork the Repository:** Create your own fork of the repository on GitHub.
 2. **Clone Your Fork:** Clone your fork locally.
 3. **Create a Branch:** Create a feature or a bug fix branch from master.
@@ -108,7 +82,7 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 7. **Push Your Changes:** Push your branch to your forked repository.
 8. **Open a Pull Request (PR):** Submit a PR to the main repository with a clear description of your changes.
 
-### 5.2 Commit Standards
+### 4.2 Commit Standards
 We follow the **_Conventional Commit_** standards to ensure clear and meaningful commit messages. Use the format:
 ```azure
 <type>[optional scope]: <description>
@@ -125,7 +99,7 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 - `test`: Add or modify tests. 
 - `chore`: Miscellaneous changes like updates to build tools or dependencies.
 
-## 6. License
+## 5. License
 Copyright 2024 Olivier Pimparé-Charbonneau, Zachary Sexton
 
 Licensed under the Apache License, Version 2.0 (the "License");
