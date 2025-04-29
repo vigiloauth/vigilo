@@ -102,3 +102,5 @@ jobs:
             TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}
             TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}
             CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
