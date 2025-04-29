@@ -75,7 +75,7 @@ func (rc *RouterConfig) applyGlobalMiddleware() {
 	}
 
 	rc.router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*"},
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", constants.RequestIDHeader},
 		ExposedHeaders:   []string{"Link", constants.RequestIDHeader},
