@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/constants"
+	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	repository "github.com/vigiloauth/vigilo/internal/repository/user"
 	"github.com/vigiloauth/vigilo/internal/web"
@@ -19,12 +21,7 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	defer testContext.TearDown()
 
-	requestBody := &users.UserRegistrationRequest{
-		Username: testUsername,
-		Email:    testEmail,
-		Password: testPassword1,
-		Roles:    []string{constants.AdminRole},
-	}
+	requestBody := testContext.GetUserRegistrationRequest()
 
 	body, err := json.Marshal(requestBody)
 	assert.NoError(t, err)
@@ -38,12 +35,83 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rr.Code)
 }
 
+func TestUserHandler_OAuthLogin(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		testContext.WithClient(
+			client.Confidential,
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
+		)
+
+		loginRequest := users.UserLoginRequest{
+			ID:       testUserID,
+			Username: testUsername,
+			Password: testPassword1,
+		}
+
+		requestBody, err := json.Marshal(loginRequest)
+		assert.NoError(t, err)
+
+		queryParams := url.Values{}
+		queryParams.Add(constants.ClientIDReqField, testClientID)
+		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+		endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			endpoint,
+			bytes.NewReader(requestBody), nil,
+		)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	t.Run("Invalid UserLogin request", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithClient(
+			client.Confidential,
+			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.AuthorizationCode},
+		)
+
+		loginRequest := users.UserLoginRequest{
+			ID:       testUserID,
+			Username: testUsername,
+			Password: testPassword1,
+		}
+
+		requestBody, err := json.Marshal(loginRequest)
+		assert.NoError(t, err)
+
+		queryParams := url.Values{}
+		queryParams.Add(constants.ClientIDReqField, testClientID)
+		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+		endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
+
+		rr := testContext.SendHTTPRequest(
+			http.MethodPost,
+			endpoint,
+			bytes.NewReader(requestBody), nil,
+		)
+
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	})
+}
+
 func TestUserHandler_RegisterUser_DuplicateEmail(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	defer testContext.TearDown()
 	testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 	requestBody := users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1)
+	requestBody.Birthdate = testBirthdate
+
 	body, err := json.Marshal(requestBody)
 	assert.NoError(t, err)
 	rr := testContext.SendHTTPRequest(
@@ -140,7 +208,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		userRepo := repository.GetInMemoryUserRepository()
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
 		assert.NoError(t, err)
-		assert.True(t, retrievedUser.Verified)
+		assert.True(t, retrievedUser.EmailVerified)
 	})
 
 	t.Run("Error is returned when the verification code is missing in the request", func(t *testing.T) {
@@ -157,7 +225,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
 		assert.NoError(t, err)
-		assert.False(t, retrievedUser.Verified)
+		assert.False(t, retrievedUser.EmailVerified)
 	})
 
 	t.Run("Error is returned when the verification code is expired", func(t *testing.T) {
@@ -176,7 +244,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		userRepo := repository.GetInMemoryUserRepository()
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
 		assert.NoError(t, err)
-		assert.False(t, retrievedUser.Verified)
+		assert.False(t, retrievedUser.EmailVerified)
 	})
 
 	t.Run("Error is returned when the user does not exist", func(t *testing.T) {

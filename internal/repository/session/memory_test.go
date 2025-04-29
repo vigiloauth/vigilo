@@ -66,7 +66,7 @@ func TestInMemorySessionRepository_GetSessionByID(t *testing.T) {
 	t.Run("Returns nil when no session exists", func(t *testing.T) {
 		sessionRepo := NewInMemorySessionRepository()
 		existingSession, err := sessionRepo.GetSessionByID(ctx, testSessionID)
-		assert.NoError(t, err)
+		assert.Error(t, err)
 		assert.Nil(t, existingSession)
 	})
 }
@@ -119,7 +119,7 @@ func TestInMemorySessionRepository_DeleteSessionByID(t *testing.T) {
 
 	// Assert the session is deleted
 	deletedSession, err := sessionRepo.GetSessionByID(ctx, testSessionID)
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, deletedSession)
 }
 

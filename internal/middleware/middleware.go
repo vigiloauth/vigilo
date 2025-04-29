@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/constants"
@@ -58,7 +59,15 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 			tokenString, err := web.ExtractBearerToken(r)
 			if err != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to extract bearer token: %v", err)
-				wrappedErr := errors.Wrap(err, "", "failed to extract bearer token from authorization header")
+				wrappedErr := errors.Wrap(err, errors.ErrCodeUnauthorized, "missing or invalid authorization header")
+				web.WriteError(w, wrappedErr)
+				return
+			}
+
+			claims, err := m.tokenService.ParseAndValidateToken(ctx, tokenString)
+			if err != nil {
+				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse token: %s", err)
+				wrappedErr := errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse token")
 				web.WriteError(w, wrappedErr)
 				return
 			}
@@ -70,15 +79,9 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			claims, err := m.tokenService.ParseToken(tokenString)
-			if err != nil {
-				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse token: %s", err)
-				wrappedErr := errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse token")
-				web.WriteError(w, wrappedErr)
-				return
-			}
-
 			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyTokenClaims, claims)
+			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyAccessToken, tokenString)
+
 			m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Token validated successfully, passing request to next handler")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -261,6 +264,35 @@ func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func (m *Middleware) RequestLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		type responseWriterWrapper struct {
+			http.ResponseWriter
+			statusCode int
+		}
+
+		start := time.Now()
+		ww := &responseWriterWrapper{ResponseWriter: w, statusCode: http.StatusOK}
+		next.ServeHTTP(ww, r)
+		duration := time.Since(start)
+
+		requestID := ""
+		if r.Context().Value(constants.ContextKeyRequestID) != nil {
+			requestID = r.Context().Value(constants.ContextKeyRequestID).(string)
+		}
+
+		m.logger.Info(
+			m.module,
+			requestID,
+			"%s %s - Status: %d - Duration: %v",
+			r.Method,
+			r.URL.Path,
+			ww.statusCode,
+			duration,
+		)
+	})
 }
 
 // redirectToHttps redirects an HTTP request to HTTPS.

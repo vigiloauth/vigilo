@@ -25,7 +25,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
-	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
+	mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 		return &token.TokenClaims{
 			StandardClaims: &jwt.StandardClaims{
 				Subject: email,
@@ -59,7 +59,7 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
 		return tokenString, nil
 	}
-	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
+	mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 		return &token.TokenClaims{
 			StandardClaims: &jwt.StandardClaims{
 				Subject: email,
@@ -91,7 +91,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	mockTokenService.ValidateTokenFunc = func(ctx context.Context, tokenString string) error {
 		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
 	}
-	mockTokenService.ParseTokenFunc = func(tokenString string) (*token.TokenClaims, error) {
+	mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 		return nil, errors.New(errors.ErrCodeInvalidToken, "invalid-token")
 	}
 

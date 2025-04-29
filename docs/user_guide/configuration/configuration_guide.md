@@ -27,13 +27,14 @@ For more details and examples on how to use each configuration based on if you a
 
 The `VigiloIdentityServer` can be configured using various options to suit your needs. Below are the available configuration options that we offer and their default values, if applicable.
 
-| **Configuration Option**          | **Description**                                         | **Default Value**          |
-|-----------------------------------|---------------------------------------------------------|----------------------------|
+| **Configuration Option**          | **Description**                                         | **Default Value**           |
+|-----------------------------------|---------------------------------------------------------|-----------------------------|
 | **SSL Cert File Path**            | Path to the SSL Certificate when using HTTPS.           | N/A                         |
 | **Key File Path**                 | Path to the SSL Key file when using HTTPS.              | N/A                         |
 | **Base URL**                      | Base URL that the endpoints will be available on.       | N/A                         |
 | **Session Cookie Name**           | The name of the session cookie.                         | `vigilo-auth-session-cookie`|
 | **Force HTTPS**                   | Whether to force HTTPS connections.                     | `false`                     |
+| **Enable Request Logging**        | Whether to enable request logging or not.               | `true`                      |
 | **Port**                          | The port number the server listens to.                  | `8443`                      |
 | **Requests Per Minute**           | The maximum requests allowed per minute.                | `100`                       |
 | **Read Timeout**                  | Read timeout duration for HTTP requests in seconds.     | `15 seconds`                |
@@ -46,9 +47,7 @@ The `VigiloIdentityServer` can be configured using various options to suit your 
 ## 3. Token Configuration
 | **Configuration Option**          | **Description**                                          | **Default Value**               |
 |-----------------------------------|----------------------------------------------------------|---------------------------------|
-| **Secret Key**                    | Secret key used for signing and verifying tokens.        | `fallback_secure_default_key`   |
 | **Expiration Time**               | Token expiration time in hours.                          | `24 hours`                      |
-| **Signing Method**                | Signing Method used for tokens.                          | `HS256`                         |
 | **Access Token Duration**         | Access token duration in minutes.                        | `30 minutes`                    |
 | **Refresh Token Duration**        | Refresh token duration in minutes.                       | `1440==minutes`                 |
 

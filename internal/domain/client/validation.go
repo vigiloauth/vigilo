@@ -144,7 +144,7 @@ func validateGrantType(req ClientRequest, errorCollection *errors.ErrorCollectio
 		return
 	}
 
-	validGrantTypes := constants.ValidGrantTypes
+	validGrantTypes := constants.SupportedGrantTypes
 	for _, grantType := range req.GetGrantTypes() {
 		if _, ok := validGrantTypes[grantType]; !ok {
 			err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type '%s' is not supported", grantType))
@@ -267,7 +267,7 @@ func validateScopes(req ClientRequest, errorCollection *errors.ErrorCollection) 
 	}
 
 	for _, scope := range req.GetScopes() {
-		if _, ok := constants.ValidScopes[scope]; !ok {
+		if _, ok := constants.SupportedScopes[scope]; !ok {
 			err := errors.New(errors.ErrCodeInsufficientScope, fmt.Sprintf("scope '%s' is not supported", scope))
 			errorCollection.Add(err)
 			logger.Warn(module, "Unsupported scope: %s", scope)
@@ -285,7 +285,7 @@ func validateResponseTypes(req ClientRequest, errorCollection *errors.ErrorColle
 	}
 
 	for _, responseType := range req.GetResponseTypes() {
-		if _, ok := constants.ValidResponseTypes[responseType]; !ok {
+		if _, ok := constants.SupportedResponseTypes[responseType]; !ok {
 			err := errors.New(
 				errors.ErrCodeInvalidResponseType,
 				fmt.Sprintf("response type '%s' is not supported", responseType))

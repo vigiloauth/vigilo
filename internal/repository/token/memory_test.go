@@ -52,6 +52,6 @@ func TestTokenStore_DeleteToken(t *testing.T) {
 	assert.NoError(t, err)
 
 	retrievedToken, err := tokenStore.GetToken(ctx, testToken)
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, retrievedToken)
 }

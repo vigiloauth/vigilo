@@ -92,7 +92,7 @@ func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request)
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[RegenerateSecret]: Processing request")
 
-	clientID := chi.URLParam(r, constants.ClientID)
+	clientID := chi.URLParam(r, constants.ClientIDReqField)
 	response, err := h.clientService.RegenerateClientSecret(ctx, clientID)
 	if err != nil {
 		web.WriteError(w, errors.Wrap(err, "", "failed to regenerate client_secret"))
@@ -110,17 +110,12 @@ func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
-	registrationAccessToken, err := web.ExtractBearerToken(r)
-	if err != nil {
-		wrappedErr := errors.Wrap(
-			err, errors.ErrCodeInvalidToken,
-			"registration access token is not present in the authorization header",
-		)
-		web.WriteError(w, wrappedErr)
-		return
+	var registrationAccessToken string
+	if token := utils.GetValueFromContext(ctx, constants.ContextKeyAccessToken); token != nil {
+		registrationAccessToken, _ = token.(string)
 	}
 
-	clientID := chi.URLParam(r, constants.ClientID)
+	clientID := chi.URLParam(r, constants.ClientIDReqField)
 	switch r.Method {
 	case http.MethodGet:
 		h.getClient(w, clientID, registrationAccessToken, ctx)
@@ -138,7 +133,6 @@ func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http
 // getClient retrieves client information for the given client ID and registration access token.
 // It validates the token and client, then writes the client information as a JSON response.
 func (h *ClientHandler) getClient(w http.ResponseWriter, clientID, registrationAccessToken string, ctx context.Context) {
-
 	clientInformation, err := h.clientService.ValidateAndRetrieveClient(ctx, clientID, registrationAccessToken)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate and retrieve client information")

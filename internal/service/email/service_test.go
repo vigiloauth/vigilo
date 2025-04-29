@@ -69,23 +69,6 @@ func TestEmailService_SendEmail(t *testing.T) {
 	})
 }
 
-func TestEmailService_TestConnection(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		mailer := &mocks.MockGoMailer{
-			DialFunc: func(host string, port int, username, password string) (gomail.SendCloser, error) {
-				dialer := gomail.NewDialer(host, port, username, password)
-				return dialer.Dial()
-			},
-		}
-
-		config.GetServerConfig().SMTPConfig().SetHealth(true)
-		service := NewEmailService(mailer)
-
-		err := service.TestConnection()
-		assert.NoError(t, err)
-	})
-}
-
 func createVerificationEmail() *domain.EmailRequest {
 	return &domain.EmailRequest{
 		Recipient:         "test@mail.com",

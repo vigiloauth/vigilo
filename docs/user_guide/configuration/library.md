@@ -101,6 +101,7 @@ func main() {
         config.WithKeyFilePath("/path/to/key"),
         config.WithSessionCookieName("cookie-name"),
         config.WithForceHTTPS(),
+        config.WithRequestLogging(true),
         config.WithReadTimeout(time.Duration(15) * time.Second),
         config.WithWriteTimeout(time.Duration(15) * time.Second),
     )
@@ -126,7 +127,6 @@ import (
 
 func main() {
     tokenConfig := config.NewTokenConfig(
-        config.WithSecret("your-secret"),
         config.WithExpirationTime(time.Duration(2) * time.Hour),
         config.WithAccessTokenDuration(time.Duration(10) * time.Minute),
         config.WithRefreshTokenDuration(time.Duration(1) * 24 * time.Hour),
@@ -292,7 +292,6 @@ func main() {
     )
 
     tokenConfig := config.NewTokenConfig(
-        config.WithSecret("your-secret"),
         config.WithExpirationTime(time.Duration(2) * time.Hour),
         config.WithAccessTokenDuration(time.Duration(10) * time.Minute),
         config.WithRefreshTokenDuration(time.Duration(1) * 24 * time.Hour),
@@ -310,6 +309,15 @@ func main() {
     )
 
     config.NewServerConfig(
+        config.WithBaseURL("/identity"),
+        config.WithPort("8080"),
+        config.WithCertFilePath("/path/to/cert"),
+        config.WithKeyFilePath("/path/to/key"),
+        config.WithSessionCookieName("cookie-name"),
+        config.WithForceHTTPS(),
+        config.WithRequestLogging(true),
+        config.WithReadTimeout(time.Duration(15) * time.Second),
+        config.WithWriteTimeout(time.Duration(15) * time.Second),
         config.WithPasswordConfig(passwordConfig),
         config.WithLoginConfig(loginConfig),
         config.WithTokenConfig(tokenConfig),

@@ -1,22 +1,25 @@
 package config
 
 import (
+	"crypto/rsa"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/internal/constants"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/internal/crypto"
 )
 
 // TokenConfig holds the configuration for JWT token generation and validation.
 type TokenConfig struct {
-	secretKey            string            // Secret key used for signing and verifying JWT tokens.
-	expirationTime       time.Duration     // Expiration time for JWT tokens in hours
-	signingMethod        jwt.SigningMethod // Signing method used for JWT tokens.
-	accessTokenDuration  time.Duration     // Access token duration in minutes
-	refreshTokenDuration time.Duration     // Refresh token duration in days
+	privateKey           *rsa.PrivateKey // Secret key used for signing and verifying JWT tokens.
+	publicKey            *rsa.PublicKey  // Public key used for verifying JWT tokens.
+	keyID                string          // Key ID used to identify the key.
+	expirationTime       time.Duration   // Expiration time for JWT tokens in hours
+	accessTokenDuration  time.Duration   // Access token duration in minutes
+	refreshTokenDuration time.Duration   // Refresh token duration in days
 	issuer               string
 
 	logger *Logger
@@ -27,7 +30,7 @@ type TokenConfig struct {
 type TokenConfigOptions func(*TokenConfig)
 
 const (
-	defaultExpirationTime       time.Duration = time.Duration(24) * time.Hour // Default expiration time for JWT tokens (24 hours).
+	defaultExpirationTime       time.Duration = time.Duration(24) * time.Hour
 	defaultAccessTokenDuration  time.Duration = time.Duration(30) * time.Minute
 	defaultRefreshTokenDuration time.Duration = time.Duration(1) * 24 * time.Hour
 )
@@ -46,22 +49,6 @@ func NewTokenConfig(opts ...TokenConfigOptions) *TokenConfig {
 	cfg.loadOptions(opts...)
 	cfg.logger.Debug(cfg.module, "", "\n\nToken config parameters: %v", cfg.String())
 	return cfg
-}
-
-// WithSecret configures the secret key for the JWTConfig.
-//
-// Parameters:
-//
-//	secret string: The secret key to use.
-//
-// Returns:
-//
-//	JWTOption: A function that configures the secret key.
-func WithSecret(secret string) TokenConfigOptions {
-	return func(c *TokenConfig) {
-		c.logger.Debug(c.module, "", "Configuring TokenConfig with given secret=[%s]", utils.TruncateSensitive(secret))
-		c.secretKey = secret
-	}
 }
 
 // WithExpirationTime configures the expiration time, in minutes, for the Token Config.
@@ -124,29 +111,31 @@ func WithRefreshTokenDuration(duration time.Duration) TokenConfigOptions {
 	}
 }
 
-// WithSigningMethod configures the signing method for the JWTConfig.
-//
-// Parameters:
-//
-//	method jwt.SigningMethod: The signing method to use.
-//
-// Returns:
-//
-//	JWTOption: A function that configures the signing method.
-func WithSigningMethod(method jwt.SigningMethod) TokenConfigOptions {
-	return func(c *TokenConfig) {
-		c.logger.Debug(c.module, "", "Configuring TokenConfig with signing method=[%s]", method.Alg())
-		c.signingMethod = method
-	}
-}
-
 // SecretKey returns the secret key from the JWTConfig.
 //
 // Returns:
 //
 //	string: The secret key.
-func (j *TokenConfig) SecretKey() string {
-	return j.secretKey
+func (j *TokenConfig) SecretKey() *rsa.PrivateKey {
+	return j.privateKey
+}
+
+// PublicKey returns the public key from the JWTConfig.
+//
+// Returns:
+//
+//	*rsa.PublicKey: The public key.
+func (j *TokenConfig) PublicKey() *rsa.PublicKey {
+	return j.publicKey
+}
+
+// KeyID returns the key ID from the JWTConfig.
+//
+// Returns:
+//
+//	string: The key ID.
+func (j *TokenConfig) KeyID() string {
+	return j.keyID
 }
 
 // ExpirationTime returns the expiration time from the JWTConfig.
@@ -166,26 +155,15 @@ func (j *TokenConfig) AccessTokenDuration() time.Duration {
 	return j.accessTokenDuration
 }
 
-// SigningMethod returns the signing method from the JWTConfig.
-//
-// Returns:
-//
-//	jwt.SigningMethod: The signing method.
-func (j *TokenConfig) SigningMethod() jwt.SigningMethod {
-	return j.signingMethod
-}
-
 func (j *TokenConfig) Issuer() string {
 	return j.issuer
 }
 
 func (j *TokenConfig) String() string {
 	return fmt.Sprintf(
-		"\n\tSigningMethod: %s\n"+
-			"\tExpirationTime: %s\n"+
+		"\tExpirationTime: %s\n"+
 			"\tRefreshTokenDuration: %s\n"+
 			"\tAccessTokenDuration: %s\n",
-		j.signingMethod.Alg(),
 		j.expirationTime,
 		j.refreshTokenDuration,
 		j.accessTokenDuration,
@@ -193,15 +171,38 @@ func (j *TokenConfig) String() string {
 }
 
 func defaultTokenConfig() *TokenConfig {
-	secretKey := os.Getenv(constants.TokenSecretKeyENV)
+	privateKeyBase64 := os.Getenv(constants.TokenPrivateKeyENV)
+	publicKeyBase64 := os.Getenv(constants.TokenPublicKeyENV)
 	issuer := os.Getenv(constants.TokenIssuerENV)
+
+	privateKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+	if err != nil {
+		panic("Failed to decode private key: " + err.Error())
+	}
+
+	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
+	if err != nil {
+		panic("Failed to decode public key: " + err.Error())
+	}
+
+	privateKeyParsed, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyBytes)
+	if err != nil {
+		panic("Failed to parse private key: " + err.Error())
+	}
+
+	publicKeyParsed, err := jwt.ParseRSAPublicKeyFromPEM(publicKeyBytes)
+	if err != nil {
+		panic("Failed to parse public key: " + err.Error())
+	}
+
 	return &TokenConfig{
-		secretKey:            secretKey,
+		privateKey:           privateKeyParsed,
+		publicKey:            publicKeyParsed,
+		keyID:                crypto.GenerateJWKKeyID(publicKeyBase64),
 		issuer:               issuer,
 		expirationTime:       defaultExpirationTime,
 		accessTokenDuration:  defaultAccessTokenDuration,
 		refreshTokenDuration: defaultRefreshTokenDuration,
-		signingMethod:        jwt.SigningMethodHS256,
 		logger:               GetLogger(),
 		module:               "Token Config",
 	}

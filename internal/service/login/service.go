@@ -73,7 +73,7 @@ func (s *loginAttemptService) GetLoginAttemptsByUserID(ctx context.Context, user
 	attempts, err := s.loginRepo.GetLoginAttemptsByUserID(ctx, userID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GetLoginAttemptsByUserID]: An error occurred retrieving login attempts: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to retrieve user login attempts")
 	}
 
 	return attempts, nil
@@ -110,7 +110,7 @@ func (s *loginAttemptService) HandleFailedLoginAttempt(ctx context.Context, user
 			s.logger.Error(s.module, requestID, "[HandleFailedLoginAttempt]: Failed to lock account for user=[%s]: %v", utils.TruncateSensitive(user.ID), err)
 			return errors.Wrap(err, "", "failed to update the user")
 		}
-		s.logger.Info(s.module, requestID, "[HandleFailedLoginAttempt]: Account successfully locked for user=[%s]", utils.TruncateSensitive(user.ID))
+		s.logger.Debug(s.module, requestID, "[HandleFailedLoginAttempt]: Account successfully locked for user=[%s]", utils.TruncateSensitive(user.ID))
 	}
 
 	return nil

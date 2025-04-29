@@ -23,17 +23,39 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 ## 2. Features
 ### 2.1 Currently Implemented
 - ✅ **User Registration**
-    - Allow users to register with basic credentials (e.g., email, password).
-    - Includes input validation and error handling.
+- ✅ **Basic User Authentication**
+- ✅ **OAuth User Authentication**
+- ✅ **User Email Verification**
+- ✅ **Authorization Code Flow**
+- ✅ **Authorization Code Flow With PKCE**
+- ✅ **Resource Owner Password Credentials Flow**
+- ✅ **Client Credentials Flow**
+- ✅ **Dynamic Client Registration**
+- ✅ **Audit Logging**
+- ✅ **Docker Server Instance**
+- ✅ **Token Refresh**
+- ✅ **Token Introspection**
+- ✅ **Token Revocation**
+- ✅ **OIDC UserInfo Endpoint**
+- ✅ **OIDC Discovery Endpoint**
+- ✅ **OIDC JSON Web Key Set Endpoint**
+- ✅ **In Memory Storage**
+
 ### 2.2 Planned Features
-- 🛠️ **User Login and Authentication** (in progress)
-    - OAuth 2.0 and OIDC-compliant login endpoints.
+- 🛠️ **Phone Number Verification** 
 - 🛠️ **Password Recovery**
-    - Endpoint for password reset using email verification.
 - 🛠️ **User Profile Management**
-    - Ability to update user details like email and name.
 - 🛠️ **Role-Based Access Control (RBAC)**
-    - Assign roles and manage permissions.
+- 🛠️ **Scope-Based Access Control**
+- 🛠️ **User Consent Management**
+- 🛠️ **Time-Based OTP Authentication**
+- 🛠️ **Backup Recovery Codes**
+- 🛠️ **Implicit Grant Flow**
+- 🛠️ **OIDC Hybrid Flow**
+- 🛠️ **Device Authorization Grant**
+- 🛠️ **Back Channel Authentication Flow**
+- 🛠️ **Social Login Integration Hooks**
+- 🛠️ **Dynamic Database Configuration**
 
 ## 3. Documentation
 Comprehensive documentation is available in the [User Guide](docs/user_guide/README.md).

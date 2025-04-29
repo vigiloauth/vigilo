@@ -1,7 +1,13 @@
 package config
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -17,6 +23,7 @@ type ServerConfig struct {
 	forceHTTPS        bool   // Whether to force HTTPS connections.
 	port              string // Port number the server listens on.
 	requestsPerMinute int    // Maximum requests allowed per minute.
+	requestLogging    bool   // Whether to enable request logging or not.
 
 	readTimeout               time.Duration // Read timeout for HTTP requests in seconds. Default is 15
 	writeTimeout              time.Duration // Write timeout for HTTP responses in seconds. Default is 13.
@@ -50,6 +57,7 @@ const (
 
 	defaultRequestsPerMinute int    = 100                          // Default maximum requests per minute.
 	defaultSessionCookieName string = "vigilo-auth-session-cookie" // Default session cookie name.
+	defaultRequestLogging    bool   = true                         // Default request logging
 )
 
 // GetServerConfig returns the global server configuration instance (singleton).
@@ -284,7 +292,7 @@ func WithMaxRequestsPerMinute(requests int) ServerConfigOptions {
 //
 // Returns:
 //
-//	ServerConfigOptions: A function the configures the server configuration.
+//	ServerConfigOptions: A function that configures the server configuration.
 func WithAuthorizationCodeDuration(duration time.Duration) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.authorizationCodeDuration = duration
@@ -299,7 +307,7 @@ func WithAuthorizationCodeDuration(duration time.Duration) ServerConfigOptions {
 //
 // Returns:
 //
-//	ServerConfigOptions: A function the configures the server configuration.
+//	ServerConfigOptions: A function that configures the server configuration.
 func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.smtpConfig = smtpConfig
@@ -314,10 +322,25 @@ func WithSMTPConfig(smtpConfig *SMTPConfig) ServerConfigOptions {
 //
 // Returns:
 //
-//	ServerConfigOptions: A function the configures the server configuration.
+//	ServerConfigOptions: A function that configures the server configuration.
 func WithAuditLogConfig(auditLogConfig *AuditLogConfig) ServerConfigOptions {
 	return func(sc *ServerConfig) {
 		sc.auditLogConfig = auditLogConfig
+	}
+}
+
+// WithRequestLogging configures if the server uses request logging.
+//
+// Parameters:
+//
+//	enable bool: Whether or not to enable request logging.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function that configures the server configuration.
+func WithRequestLogging(enable bool) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.requestLogging = enable
 	}
 }
 
@@ -429,6 +452,10 @@ func (sc *ServerConfig) MaxRequestsPerMinute() int {
 	return sc.requestsPerMinute
 }
 
+func (sc *ServerConfig) EnableRequestLogging() bool {
+	return sc.requestLogging
+}
+
 func (sc *ServerConfig) Logger() *Logger {
 	return sc.logger
 }
@@ -465,15 +492,24 @@ func (sc *ServerConfig) SetAuditLogConfig(auditLogConfig *AuditLogConfig) {
 	sc.auditLogConfig = auditLogConfig
 }
 
+func (sc *ServerConfig) SetBaseURL(url string) {
+	sc.baseURL = url
+}
+
 func isInSeconds(duration time.Duration) bool      { return duration%time.Second == 0 }
 func isInHours(duration time.Duration) bool        { return duration%time.Hour == 0 }
 func isInMinutes(duration time.Duration) bool      { return duration%time.Minute == 0 }
 func isInMilliseconds(duration time.Duration) bool { return duration%time.Millisecond == 0 }
 
 func defaultServerConfig() *ServerConfig {
-	cfg := &ServerConfig{
+	logger := GetLogger()
+	module := "Server Config"
+
+	loadEnv()
+	return &ServerConfig{
 		port:                      defaultPort,
 		forceHTTPS:                defaultHTTPSRequirement,
+		requestLogging:            defaultRequestLogging,
 		readTimeout:               defaultReadTimeout,
 		writeTimeout:              defaultWriteTimeout,
 		tokenConfig:               NewTokenConfig(),
@@ -484,16 +520,9 @@ func defaultServerConfig() *ServerConfig {
 		requestsPerMinute:         defaultRequestsPerMinute,
 		sessionCookieName:         defaultSessionCookieName,
 		authorizationCodeDuration: defaultAuthorizationCodeDuration,
-		logger:                    GetLogger(),
-		module:                    "Server Config",
+		logger:                    logger,
+		module:                    module,
 	}
-
-	err := godotenv.Load()
-	if err != nil {
-		cfg.logger.Warn(cfg.module, "", "No .env file loaded")
-	}
-
-	return cfg
 }
 
 func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
@@ -504,5 +533,42 @@ func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
 		}
 	} else {
 		cfg.logger.Info(cfg.module, "", "Using default server config")
+	}
+}
+
+func loadEnv() {
+	var (
+		_, b, _, _      = runtime.Caller(0) // Get the directory of this file
+		basePath        = filepath.Dir(b)   // Base path of the current file
+		EnvFilePath     = filepath.Join(basePath, "../../.env")
+		TestEnvFilePath = filepath.Join(basePath, "../../.env.test")
+	)
+
+	if isTestEnvironment() {
+		loadEnvFile(TestEnvFilePath)
+	} else {
+		fmt.Println("Loading environment file:", EnvFilePath)
+		loadEnvFile(EnvFilePath)
+	}
+}
+
+func isTestEnvironment() bool {
+	if testing.Testing() {
+		return true
+	}
+
+	for _, arg := range os.Args {
+		if strings.Contains(arg, "test.") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func loadEnvFile(fileName string) {
+	err := godotenv.Load(fileName)
+	if err != nil {
+		panic("no environment file loaded: " + fileName)
 	}
 }

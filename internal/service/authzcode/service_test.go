@@ -68,10 +68,12 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the user does not exist with the given ID", func(t *testing.T) {
-		mockUserService.GetUserByIDFunc = func(ctx context.Context, userID string) (*user.User, error) { return nil, nil }
+		mockUserService.GetUserByIDFunc = func(ctx context.Context, userID string) (*user.User, error) {
+			return nil, errors.New(errors.ErrCodeUnauthorized, "invalid user credentials")
+		}
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
-		expected := errors.New(errors.ErrCodeUnauthorized, "invalid user ID: testU[REDACTED]")
+		expected := errors.New(errors.ErrCodeUnauthorized, "invalid user credentials")
 		code, actual := service.GenerateAuthorizationCode(ctx, createClientAuthorizationRequest())
 
 		assert.Error(t, actual)
@@ -81,10 +83,12 @@ func TestAuthorizationCodeService_GenerateAuthorizationCode(t *testing.T) {
 
 	t.Run("Error is returned when the client does not exist with the given ID", func(t *testing.T) {
 		mockUserService.GetUserByIDFunc = func(ctx context.Context, userID string) (*user.User, error) { return createTestUser(), nil }
-		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) { return nil, nil }
+		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
+			return nil, errors.New(errors.ErrCodeUnauthorized, "invalid client credentials")
+		}
 
 		service := NewAuthorizationCodeService(mockAuthzCodeRepo, mockUserService, mockClientService)
-		expected := errors.New(errors.ErrCodeUnauthorized, "invalid client ID")
+		expected := errors.New(errors.ErrCodeUnauthorized, "failed to validate client parameters: invalid client credentials")
 		code, actual := service.GenerateAuthorizationCode(ctx, createClientAuthorizationRequest())
 
 		assert.Error(t, actual)

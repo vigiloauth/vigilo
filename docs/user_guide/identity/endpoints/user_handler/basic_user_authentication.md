@@ -1,4 +1,5 @@
-# User Login
+# Basic User Authentication
+
 ## Endpoint
 ```
 POST /auth/login

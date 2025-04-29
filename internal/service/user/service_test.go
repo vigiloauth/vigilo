@@ -163,8 +163,8 @@ func TestUserRegistrationRequest_InvalidPasswordFormat(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.req.Validate()
-			if (err != nil) != test.wantError {
-				t.Errorf("UserRegistrationRequest.Validate() error = %v, wantErr %v", err, test.wantError)
+			if test.wantError {
+				assert.Error(t, err, "expected an error for test [%s]", test.name)
 			}
 		})
 	}
@@ -447,6 +447,7 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 
 func createNewUser() *users.User {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
+	user.Address = users.NewUserAddress("123 Main", "Springfield", "IL", "012345", "USA")
 	user.Scopes = []string{constants.UserRead}
 	user.Roles = []string{constants.AdminRole}
 	return user

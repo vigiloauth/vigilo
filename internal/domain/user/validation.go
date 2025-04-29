@@ -3,7 +3,9 @@ package domain
 import (
 	"fmt"
 	"net/mail"
+	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/vigiloauth/vigilo/idp/config"
@@ -26,7 +28,7 @@ func (req *UserRegistrationRequest) Validate() error {
 
 	if len(req.Scopes) > 0 {
 		for _, scope := range req.Scopes {
-			if _, ok := constants.ValidScopes[scope]; !ok {
+			if _, ok := constants.SupportedScopes[scope]; !ok {
 				err := errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid scope '%s'", scope))
 				errorCollection.Add(err)
 			}
@@ -35,6 +37,8 @@ func (req *UserRegistrationRequest) Validate() error {
 
 	validateEmail(req.Email, errorCollection)
 	validatePassword(req.Password, errorCollection)
+	validatePhoneNumber(req.PhoneNumber, errorCollection)
+	validateBirthdate(req.Birthdate, errorCollection)
 	req.validateRole(errorCollection)
 
 	if errorCollection.HasErrors() {
@@ -47,8 +51,7 @@ func (req *UserRegistrationRequest) Validate() error {
 // Validate validates the UserPasswordResetRequest fields.
 //
 // Returns:
-//
-//	error: An ErrorCollection if validation fails, or nil if validation succeeds.
+//   - error: An ErrorCollection if validation fails, or nil if validation succeeds.
 func (req *UserPasswordResetRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 	validatePassword(req.NewPassword, errorCollection)
@@ -63,8 +66,7 @@ func (req *UserPasswordResetRequest) Validate() error {
 // Validate validates the UserLoginRequest fields.
 //
 // Returns:
-//
-//	error: An ErrorCollection if validation fails, or nil if validation succeeds.
+//   - error: An ErrorCollection if validation fails, or nil if validation succeeds.
 func (req *UserLoginRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
@@ -87,9 +89,8 @@ func (req *UserLoginRequest) Validate() error {
 // validateEmail validates the email format and adds errors to the ErrorCollection.
 //
 // Parameters:
-//
-//	email string: The email address to validate.
-//	errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
+//   - email string: The email address to validate.
+//   - errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
 func validateEmail(email string, errorCollection *errors.ErrorCollection) {
 	if email == "" {
 		err := errors.New(errors.ErrCodeEmptyInput, "'email' is empty")
@@ -100,26 +101,11 @@ func validateEmail(email string, errorCollection *errors.ErrorCollection) {
 	}
 }
 
-// isValidEmailFormat validates the email format.
-//
-// Parameters:
-//
-//	email string: The email address to validate.
-//
-// Returns:
-//
-//	bool: True if the email format is valid, false otherwise.
-func isValidEmailFormat(email string) bool {
-	_, err := mail.ParseAddress(email)
-	return err == nil
-}
-
 // validatePassword validates the password and adds errors to the ErrorCollection.
 //
 // Parameters:
-//
-//	password string: The password to validate.
-//	errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
+//   - password string: The password to validate.
+//   - errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
 func validatePassword(password string, errorCollection *errors.ErrorCollection) {
 	if password == "" {
 		err := errors.New(errors.ErrCodeEmptyInput, "password is empty")
@@ -149,6 +135,67 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 		err := errors.New(errors.ErrCodeMissingSymbol, "password is missing a required symbol")
 		errorCollection.Add(err)
 	}
+}
+
+// validateBirthdate validates the user's password and ensures it follows the
+// ISO 8601:2004 YYYY-MM-DD format
+//
+// Parameters:
+//   - birthdate: The birthdate to validate.
+//   - errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
+func validateBirthdate(birthdate string, errorCollection *errors.ErrorCollection) {
+	if birthdate == "" {
+		err := errors.New(errors.ErrCodeEmptyInput, "birthdate is empty")
+		errorCollection.Add(err)
+		return
+	}
+
+	const pattern string = `^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$`
+	re := regexp.MustCompile(pattern)
+
+	if !re.MatchString(birthdate) {
+		err := errors.New(errors.ErrCodeInvalidFormat, "invalid birthdate format - must follow the ISO 8601:2004 YYYY-MM-DD format")
+		errorCollection.Add(err)
+		return
+	}
+
+	const dateFormat string = "2006-01-02"
+	if _, err := time.Parse(dateFormat, birthdate); err != nil {
+		err := errors.New(errors.ErrCodeInvalidDate, "the birthdate provided is an invalid date")
+		errorCollection.Add(err)
+		return
+	}
+}
+
+// validatePhoneNumber validates the phone number and makes sure it is in E.164 format.
+//
+// Parameters:
+//   - phoneNumber string: The phone number to verify.
+//   - errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
+func validatePhoneNumber(phoneNumber string, errorCollection *errors.ErrorCollection) {
+	if phoneNumber == "" {
+		return
+	}
+
+	const e164Format string = `^\+[1-9]\d{1,14}$`
+	re := regexp.MustCompile(e164Format)
+	if !re.MatchString(phoneNumber) {
+		err := errors.New(errors.ErrCodeInvalidFormat, "invalid phone number format")
+		errorCollection.Add(err)
+		return
+	}
+}
+
+// isValidEmailFormat validates the email format.
+//
+// Parameters:
+//   - email string: The email address to validate.
+//
+// Returns:
+//   - bool: True if the email format is valid, false otherwise.
+func isValidEmailFormat(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }
 
 func containsUppercase(password string) bool {

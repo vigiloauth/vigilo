@@ -40,10 +40,6 @@ func NewAuthorizationHandler(
 	}
 }
 
-// TODO:
-// - Add logs
-// - End to end test for entire flow
-
 // AuthorizeClient is the HTTP handler responsible for the authorization code flow.
 // It retrieves authorization parameters from the request, verifies the user's session,
 // and delegates the authorization logic to the AuthorizationService.

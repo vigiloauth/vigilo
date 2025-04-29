@@ -1,8 +1,8 @@
-# User Authentication
+# OAuth 2.0 User Authentication
 
 ## Endpoint
 ```http
-POST /oauth/login/authorization
+POST /oauth2/authenticate
 ```
 
 ---

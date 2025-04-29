@@ -16,10 +16,6 @@ type TokenConfigYAML struct {
 func (tc *TokenConfigYAML) ToOptions() []config.TokenConfigOptions {
 	options := []config.TokenConfigOptions{}
 
-	if tc.SecretKey != nil {
-		options = append(options, config.WithSecret(*tc.SecretKey))
-	}
-
 	if tc.ExpirationTime != nil {
 		duration := time.Duration(*tc.ExpirationTime) * time.Minute
 		options = append(options, config.WithExpirationTime(duration))

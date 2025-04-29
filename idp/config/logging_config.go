@@ -135,8 +135,8 @@ func (l *Logger) log(level LogLevel, module string, requestID string, format str
 		colorCode := colors[level]
 		// Include requestID if provided
 		if requestID != "" {
-			logLine = fmt.Sprintf("%s[%s] [RequestID=%s] %s%s%s [%s] %s",
-				colorCode, timestamp, requestID, colorCode, levelName, colorReset, module, message)
+			logLine = fmt.Sprintf("%s[%s] %s [RequestID=%s] %s%s [%s] %s",
+				colorCode, timestamp, levelName, requestID, colorCode, colorReset, module, message)
 		} else {
 			logLine = fmt.Sprintf("%s[%s] %s%s%s [%s] %s",
 				colorCode, timestamp, colorCode, levelName, colorReset, module, message)

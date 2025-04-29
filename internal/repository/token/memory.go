@@ -101,7 +101,7 @@ func (b *InMemoryTokenRepository) GetToken(ctx context.Context, token string) (*
 	data, exists := b.tokens[token]
 	if !exists {
 		logger.Debug(module, requestID, "[GetToken]: Token not found")
-		return nil, nil
+		return nil, errors.New(errors.ErrCodeTokenNotFound, "token not found or expired")
 	}
 
 	return data, nil

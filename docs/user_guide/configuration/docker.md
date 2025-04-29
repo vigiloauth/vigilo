@@ -56,7 +56,7 @@ server_config:
   read_timeout: 30 # in seconds
   write_timeout: 30 # in seconds
   authorization_code_duration: 30 # in minutes
-
+  enable_request_logging: true # boolean value (true or false)
 ```
 
 After adding the configuration file to your `docker-compose.yaml` file, simply run the following command in your terminal:
@@ -79,6 +79,7 @@ server_config:
   read_timeout: 30
   write_timeout: 30
   authorization_code_duration: 30
+  enable_request_logging: true 
 ```
 
 ---
@@ -87,7 +88,6 @@ server_config:
 Here is an example on how to configure the token requirements to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 ```yaml
 token_config:
-  secret_key: secret
   expiration_time: 30 # in minutes
   access_token_duration: 30 # in minutes
   refresh_token_duration: 2 # in days

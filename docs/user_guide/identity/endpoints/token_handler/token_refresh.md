@@ -155,7 +155,7 @@ The access token is a JWT that can be used to access protected resources. The `e
 ```
 
 ### 9. Client is Missing Required Scope
-#### HTTP Status Code: `400 Bad Request`
+#### HTTP Status Code: `403 Forbidden`
 #### Response Body: 
 ```json
 {

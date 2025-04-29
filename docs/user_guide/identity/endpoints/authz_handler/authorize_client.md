@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-GET /oauth/authorize
+GET /oauth2/authorize
 ```
 
 ---

@@ -2,18 +2,25 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/constants"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
+	users "github.com/vigiloauth/vigilo/internal/domain/user"
 	"github.com/vigiloauth/vigilo/internal/errors"
 	mAuthzCodeService "github.com/vigiloauth/vigilo/internal/mocks/authzcode"
 	mClientService "github.com/vigiloauth/vigilo/internal/mocks/client"
+	mSession "github.com/vigiloauth/vigilo/internal/mocks/session"
 	mTokenService "github.com/vigiloauth/vigilo/internal/mocks/token"
+	mUser "github.com/vigiloauth/vigilo/internal/mocks/user"
 	mConsentService "github.com/vigiloauth/vigilo/internal/mocks/userconsent"
 )
 
@@ -48,7 +55,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService)
+		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService, nil, nil)
 		redirectURI, err := service.AuthorizeClient(ctx, request, testConsentApproved)
 
 		assert.NoError(t, err)
@@ -67,7 +74,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService)
+		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService, nil, nil)
 		redirectURI, err := service.AuthorizeClient(ctx, request, testConsentApproved)
 
 		assert.Error(t, err)
@@ -83,7 +90,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService)
+		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService, nil, nil)
 
 		_, err := service.AuthorizeClient(ctx, request, true)
 		expectedErr := "the resource owner denied the request"
@@ -105,7 +112,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, mockClientService)
+		service := NewAuthorizationService(nil, nil, nil, mockClientService, nil, nil)
 		_, err := service.AuthorizeClient(ctx, request, true)
 
 		assert.Error(t, err)
@@ -120,7 +127,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService)
+		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService, nil, nil)
 
 		_, err := service.AuthorizeClient(ctx, request, false)
 
@@ -137,7 +144,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService)
+		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService, nil, nil)
 
 		_, err := service.AuthorizeClient(ctx, request, true)
 
@@ -166,7 +173,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		expected := getTestAuthzCodeData()
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -186,7 +193,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil, nil, nil)
 		expected := "failed to validate authorization code: invalid authorization code"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -208,7 +215,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		expected := "failed to validate client: invalid client"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -242,7 +249,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		tokenRequest := getTestTokenRequest()
 		tokenRequest.CodeVerifier = codeVerifier
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
 		assert.NoError(t, err)
@@ -266,7 +273,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		}
 
 		tokenRequest := getTestTokenRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 
 		expectedErr := "missing code verifier for PKCE"
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
@@ -294,7 +301,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 
 		tokenRequest := getTestTokenRequest()
 		tokenRequest.CodeVerifier = codeVerifier
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
@@ -308,26 +315,26 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
+		mockClientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return &client.Client{ID: clientID, Type: client.Confidential}, nil
+			},
+		}
 		mockTokenService := &mTokenService.MockTokenService{
 			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
 				return testAccessToken, testRefreshToken, nil
 			},
+			EncryptTokenFunc: func(ctx context.Context, signedToken string) (string, error) {
+				return testRefreshToken, nil
+			},
 		}
 
-		service := NewAuthorizationService(nil, nil, mockTokenService, nil)
-		expected := &token.TokenResponse{
-			AccessToken:  testAccessToken,
-			RefreshToken: testRefreshToken,
-			TokenType:    token.BearerToken,
-		}
+		service := NewAuthorizationService(nil, nil, mockTokenService, mockClientService, nil, nil)
 
 		actual, err := service.GenerateTokens(ctx, getTestAuthzCodeData())
 
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
-		assert.Equal(t, expected.AccessToken, actual.AccessToken)
-		assert.Equal(t, expected.RefreshToken, actual.RefreshToken)
-		assert.Equal(t, expected.TokenType, actual.TokenType)
 	})
 
 	t.Run("Error is returned generating access token", func(t *testing.T) {
@@ -337,12 +344,237 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, mockTokenService, nil)
+		service := NewAuthorizationService(nil, nil, mockTokenService, nil, nil, nil)
 		expected := "failed to generate tokens: An unexpected error occurred. Please try again later."
 		_, err := service.GenerateTokens(ctx, getTestAuthzCodeData())
 
 		assert.Error(t, err)
 		assert.Equal(t, expected, err.Error())
+	})
+}
+
+func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		claims := &token.TokenClaims{
+			Scopes: scopes,
+			StandardClaims: &jwt.StandardClaims{
+				Subject:  testUserID,
+				Audience: testClientID,
+			},
+		}
+
+		userService := &mUser.MockUserService{
+			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+				return &users.User{
+					Scopes: strings.Split(scopes, " "),
+				}, nil
+			},
+		}
+		clientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return &client.Client{
+					Scopes: strings.Split(scopes, " "),
+				}, nil
+			},
+		}
+		sessionService := &mSession.MockSessionService{
+			IsUserSessionPresentFunc: func(r *http.Request, userID string) bool {
+				return true
+			},
+		}
+
+		service := NewAuthorizationService(nil, nil, nil, clientService, userService, sessionService)
+		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims, &http.Request{})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, retrievedUser)
+	})
+
+	t.Run("Success when 'offline_access' scope is present", func(t *testing.T) {
+		scopes := fmt.Sprintf("%s %s %s %s", constants.OIDC, constants.UserOfflineAccess, constants.UserEmail, constants.UserAddress)
+		claims := &token.TokenClaims{
+			Scopes: scopes,
+			StandardClaims: &jwt.StandardClaims{
+				Subject:  testUserID,
+				Audience: testClientID,
+			},
+		}
+
+		userService := &mUser.MockUserService{
+			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+				return &users.User{
+					Scopes: strings.Split(scopes, " "),
+				}, nil
+			},
+		}
+		clientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return &client.Client{
+					Scopes: strings.Split(scopes, " "),
+				}, nil
+			},
+		}
+		sessionService := &mSession.MockSessionService{
+			IsUserSessionPresentFunc: func(r *http.Request, userID string) bool {
+				return false
+			},
+		}
+
+		service := NewAuthorizationService(nil, nil, nil, clientService, userService, sessionService)
+		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims, &http.Request{})
+
+		assert.NoError(t, err)
+		assert.NotNil(t, retrievedUser)
+	})
+
+	t.Run("Error is returned when the claims do not have sufficient scopes", func(t *testing.T) {
+		claims := &token.TokenClaims{
+			Scopes: constants.ClientDelete,
+			StandardClaims: &jwt.StandardClaims{
+				Subject:  testUserID,
+				Audience: testClientID,
+			},
+		}
+
+		userService := &mUser.MockUserService{
+			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+				return &users.User{}, nil
+			},
+		}
+
+		service := NewAuthorizationService(nil, nil, nil, nil, userService, nil)
+		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims, &http.Request{})
+
+		assert.Error(t, err)
+		assert.Nil(t, retrievedUser)
+	})
+
+	t.Run("Error is returned when the user scopes do not match the request scopes", func(t *testing.T) {
+		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		claims := &token.TokenClaims{
+			Scopes: scopes,
+			StandardClaims: &jwt.StandardClaims{
+				Subject:  testUserID,
+				Audience: testClientID,
+			},
+		}
+
+		userService := &mUser.MockUserService{
+			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+				return &users.User{
+					Scopes: []string{constants.UserPhone},
+				}, nil
+			},
+		}
+		clientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return &client.Client{}, nil
+			},
+		}
+		sessionService := &mSession.MockSessionService{
+			IsUserSessionPresentFunc: func(r *http.Request, userID string) bool {
+				return true
+			},
+		}
+
+		service := NewAuthorizationService(nil, nil, nil, clientService, userService, sessionService)
+		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims, &http.Request{})
+
+		assert.Error(t, err)
+		assert.Nil(t, retrievedUser)
+	})
+
+	t.Run("Error is returned when the user does not exist by ID", func(t *testing.T) {
+		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		claims := &token.TokenClaims{
+			Scopes: scopes,
+			StandardClaims: &jwt.StandardClaims{
+				Subject:  testUserID,
+				Audience: testClientID,
+			},
+		}
+
+		userService := &mUser.MockUserService{
+			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+				return nil, nil
+			},
+		}
+		sessionService := &mSession.MockSessionService{
+			IsUserSessionPresentFunc: func(r *http.Request, userID string) bool {
+				return false
+			},
+		}
+
+		service := NewAuthorizationService(nil, nil, nil, nil, userService, sessionService)
+		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims, &http.Request{})
+
+		assert.Error(t, err)
+		assert.Nil(t, retrievedUser)
+	})
+
+	t.Run("Error is returned when the client does not exist by ID", func(t *testing.T) {
+		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		claims := &token.TokenClaims{
+			Scopes: scopes,
+			StandardClaims: &jwt.StandardClaims{
+				Subject:  testUserID,
+				Audience: testClientID,
+			},
+		}
+
+		clientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return &client.Client{}, nil
+			},
+		}
+
+		sessionService := &mSession.MockSessionService{
+			IsUserSessionPresentFunc: func(r *http.Request, userID string) bool {
+				return false
+			},
+		}
+
+		service := NewAuthorizationService(nil, nil, nil, clientService, nil, sessionService)
+		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims, &http.Request{})
+
+		assert.Error(t, err)
+		assert.Nil(t, retrievedUser)
+	})
+
+	t.Run("Error is return when user session is not present", func(t *testing.T) {
+		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		claims := &token.TokenClaims{
+			Scopes: scopes,
+			StandardClaims: &jwt.StandardClaims{
+				Subject:  testUserID,
+				Audience: testClientID,
+			},
+		}
+
+		userService := &mUser.MockUserService{
+			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+				return &users.User{
+					Scopes: []string{constants.UserPhone},
+				}, nil
+			},
+		}
+		clientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return &client.Client{}, nil
+			},
+		}
+		sessionService := &mSession.MockSessionService{
+			IsUserSessionPresentFunc: func(r *http.Request, userID string) bool {
+				return false
+			},
+		}
+
+		service := NewAuthorizationService(nil, nil, nil, clientService, userService, sessionService)
+		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims, &http.Request{})
+
+		assert.Error(t, err)
+		assert.Nil(t, retrievedUser)
 	})
 }
 

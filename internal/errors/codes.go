@@ -5,74 +5,77 @@ import "net/http"
 // Error codes
 const (
 	// Validation errors
-	ErrCodeEmptyInput            = "empty_field"
-	ErrCodeInvalidPasswordFormat = "invalid_password_format"
-	ErrCodePasswordLength        = "invalid_password_length"
-	ErrCodeMissingUppercase      = "missing_required_uppercase"
-	ErrCodeMissingNumber         = "missing_required_number"
-	ErrCodeMissingSymbol         = "missing_required_symbol"
-	ErrCodeInvalidEmail          = "invalid_email_format"
-	ErrCodeInvalidFormat         = "invalid_format"
-	ErrCodeValidationError       = "validation_error"
-	ErrCodeMissingHeader         = "missing_header"
-	ErrCodeInvalidContentType    = "invalid_content_type"
-	ErrCodeInvalidRequest        = "invalid_request"
-	ErrCodeMethodNotAllowed      = "method_not_allowed"
-	ErrCodeBadRequest            = "bad_request"
-	ErrCodeInvalidInput          = "invalid_input"
+	ErrCodeEmptyInput            string = "empty_field"
+	ErrCodeInvalidPasswordFormat string = "invalid_password_format"
+	ErrCodePasswordLength        string = "invalid_password_length"
+	ErrCodeMissingUppercase      string = "missing_required_uppercase"
+	ErrCodeMissingNumber         string = "missing_required_number"
+	ErrCodeMissingSymbol         string = "missing_required_symbol"
+	ErrCodeInvalidEmail          string = "invalid_email_format"
+	ErrCodeInvalidFormat         string = "invalid_format"
+	ErrCodeValidationError       string = "validation_error"
+	ErrCodeMissingHeader         string = "missing_header"
+	ErrCodeInvalidContentType    string = "invalid_content_type"
+	ErrCodeInvalidRequest        string = "invalid_request"
+	ErrCodeBadRequest            string = "bad_request"
+	ErrCodeInvalidInput          string = "invalid_input"
+	ErrCodeInvalidDate           string = "invalid_date"
+	ErrCodeNotFound              string = "not_found"
 
 	// User errors
-	ErrCodeDuplicateUser      = "duplicate_user"
-	ErrCodeUserNotFound       = "user_not_found"
-	ErrCodeInvalidCredentials = "invalid_credentials"
-	ErrCodeAccountLocked      = "account_locked"
-	ErrCodeUnauthorized       = "unauthorized"
-	ErrCodeLoginRequired      = "login_required"
-	ErrCodeConsentRequired    = "consent_required"
-	ErrCodeInsufficientRole   = "insufficient_role"
+	ErrCodeDuplicateUser      string = "duplicate_user"
+	ErrCodeUserNotFound       string = "user_not_found"
+	ErrCodeInvalidCredentials string = "invalid_credentials"
+	ErrCodeAccountLocked      string = "account_locked"
+	ErrCodeUnauthorized       string = "unauthorized"
+	ErrCodeLoginRequired      string = "login_required"
+	ErrCodeConsentRequired    string = "consent_required"
+	ErrCodeInsufficientRole   string = "insufficient_role"
 
 	// Token errors
-	ErrCodeTokenNotFound = "token_not_found"
-	ErrCodeExpiredToken  = "token_expired"
-	ErrCodeTokenCreation = "token_creation"
-	ErrCodeInvalidToken  = "invalid_token"
-	ErrCodeTokenParsing  = "token_parsing"
+	ErrCodeTokenNotFound string = "token_not_found"
+	ErrCodeExpiredToken  string = "token_expired"
+	ErrCodeTokenCreation string = "token_creation"
+	ErrCodeInvalidToken  string = "invalid_token"
+	ErrCodeTokenParsing  string = "token_parsing"
 
 	// Email errors
-	ErrCodeConnectionFailed    = "connection_failed"
-	ErrCodeEmailDeliveryFailed = "delivery_failed"
+	ErrCodeConnectionFailed    string = "connection_failed"
+	ErrCodeEmailDeliveryFailed string = "delivery_failed"
 
 	// Client errors
-	ErrCodeInvalidClient          = "invalid_client"
-	ErrCodeInvalidGrant           = "invalid_grant"
-	ErrCodeInvalidRedirectURI     = "invalid_redirect_uri"
-	ErrCodeInsufficientScope      = "insufficient_scope"
-	ErrCodeClientSecretNotAllowed = "client_secret_not_allowed"
-	ErrCodeClientNotFound         = "client_not_found"
-	ErrCodeDuplicateClient        = "duplicate_client"
-	ErrCodeInvalidResponseType    = "invalid_response_type"
-	ErrCodeUnauthorizedClient     = "unauthorized_client"
-	ErrCodeUnsupportedGrantType   = "unsupported_grant_type"
-	ErrCodeAccessDenied           = "access_denied"
-	ErrCodeInvalidClientMetadata  = "invalid_client_metadata"
+	ErrCodeInvalidClient          string = "invalid_client"
+	ErrCodeInvalidGrant           string = "invalid_grant"
+	ErrCodeInvalidRedirectURI     string = "invalid_redirect_uri"
+	ErrCodeInsufficientScope      string = "insufficient_scope"
+	ErrCodeClientSecretNotAllowed string = "client_secret_not_allowed"
+	ErrCodeClientNotFound         string = "client_not_found"
+	ErrCodeDuplicateClient        string = "duplicate_client"
+	ErrCodeInvalidResponseType    string = "invalid_response_type"
+	ErrCodeUnauthorizedClient     string = "unauthorized_client"
+	ErrCodeUnsupportedGrantType   string = "unsupported_grant_type"
+	ErrCodeAccessDenied           string = "access_denied"
+	ErrCodeInvalidClientMetadata  string = "invalid_client_metadata"
 
 	// Session errors
-	ErrCodeDuplicateSession = "duplicate_session"
-	ErrCodeSessionNotFound  = "session_not_found"
-	ErrCodeInvalidSession   = "invalid_session"
+	ErrCodeDuplicateSession string = "duplicate_session"
+	ErrCodeSessionNotFound  string = "session_not_found"
+	ErrCodeInvalidSession   string = "invalid_session"
 
 	// Middleware Errors
 	ErrCodeRequestLimitExceeded = "request_limit_exceeded"
 
 	// System errors
-	ErrCodeInternalServerError = "server_error"
-	ErrCodeRequestTimeout      = "request_timeout"
-	ErrCodeRequestCancelled    = "request_cancelled"
+	ErrCodeInternalServerError string = "server_error"
+	ErrCodeRequestTimeout      string = "request_timeout"
+	ErrCodeRequestCancelled    string = "request_cancelled"
+	ErrCodeResourceNotFound    string = "resource_not_found"
+	ErrCodeMethodNotAllowed    string = "method_not_allowed"
 
 	// Authorization Code Errors
-	ErrCodeInvalidAuthorizationCode  = "invalid_authorization_code"
-	ErrCodeExpiredAuthorizationCode  = "expired_authorization_code"
-	ErrCodeAuthorizationCodeNotFound = "code_not_found"
+	ErrCodeInvalidAuthorizationCode  string = "invalid_authorization_code"
+	ErrCodeExpiredAuthorizationCode  string = "expired_authorization_code"
+	ErrCodeAuthorizationCodeNotFound string = "code_not_found"
 )
 
 // HTTP status code mappings
@@ -96,8 +99,8 @@ var statusCodeMap = map[string]int{
 	ErrCodeBadRequest:             http.StatusBadRequest,
 	ErrCodeInvalidClientMetadata:  http.StatusBadRequest,
 	ErrCodeInvalidGrant:           http.StatusBadRequest,
-	ErrCodeInsufficientScope:      http.StatusBadRequest,
 	ErrCodeInvalidInput:           http.StatusBadRequest,
+	ErrCodeInvalidDate:            http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -117,12 +120,15 @@ var statusCodeMap = map[string]int{
 	ErrCodeTokenNotFound:             http.StatusNotFound,
 	ErrCodeClientNotFound:            http.StatusNotFound,
 	ErrCodeSessionNotFound:           http.StatusNotFound,
+	ErrCodeResourceNotFound:          http.StatusNotFound,
 	ErrCodeAuthorizationCodeNotFound: http.StatusNotFound,
+	ErrCodeNotFound:                  http.StatusNotFound,
 
 	// 403 Forbidden
 	ErrCodeInvalidRedirectURI: http.StatusForbidden,
 	ErrCodeAccessDenied:       http.StatusForbidden,
 	ErrCodeInsufficientRole:   http.StatusForbidden,
+	ErrCodeInsufficientScope:  http.StatusForbidden,
 
 	// 409 Conflict
 	ErrCodeDuplicateUser:    http.StatusConflict,

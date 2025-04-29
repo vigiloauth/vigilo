@@ -276,13 +276,13 @@ func NewClientInformationResponse(clientID, clientSecret, registrationClientURI,
 
 func NewClientAuthorizationRequest(query url.Values, userID string) *ClientAuthorizationRequest {
 	return &ClientAuthorizationRequest{
-		ClientID:            query.Get(constants.ClientID),
-		RedirectURI:         query.Get(constants.RedirectURI),
-		Scope:               query.Get(constants.Scope),
-		State:               query.Get(constants.State),
-		ResponseType:        query.Get(constants.ResponseType),
-		CodeChallenge:       query.Get(constants.CodeChallenge),
-		CodeChallengeMethod: query.Get(constants.CodeChallengeMethod),
+		ClientID:            query.Get(constants.ClientIDReqField),
+		RedirectURI:         query.Get(constants.RedirectURIReqField),
+		Scope:               query.Get(constants.ScopeReqField),
+		State:               query.Get(constants.StateReqField),
+		ResponseType:        query.Get(constants.ResponseTypeReqField),
+		CodeChallenge:       query.Get(constants.CodeChallengeReqField),
+		CodeChallengeMethod: query.Get(constants.CodeChallengeMethodReqField),
 		UserID:              userID,
 	}
 }

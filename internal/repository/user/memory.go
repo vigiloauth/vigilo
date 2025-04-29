@@ -127,7 +127,7 @@ func (u *InMemoryUserRepository) GetUserByID(ctx context.Context, userID string)
 	user, found := u.users[userID]
 	if !found {
 		logger.Debug(module, requestID, "[GetUserByID]: User not found with the given ID=[%s]", userID)
-		return nil, nil
+		return nil, errors.New(errors.ErrCodeUserNotFound, "user not found")
 	}
 
 	return user, nil
@@ -222,7 +222,7 @@ func (u *InMemoryUserRepository) FindUnverifiedUsersOlderThanWeek(ctx context.Co
 	oneWeekAgo := time.Now().AddDate(0, 0, -7) // 7 days ago
 
 	for _, user := range u.users {
-		if !user.Verified && user.CreatedAt.Before(oneWeekAgo) {
+		if !user.EmailVerified && user.CreatedAt.Before(oneWeekAgo) {
 			expiredUsers = append(expiredUsers, user)
 		}
 	}
