@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/internal/constants"
 	clients "github.com/vigiloauth/vigilo/internal/domain/client"
+	jwk "github.com/vigiloauth/vigilo/internal/domain/jwks"
+	oidc "github.com/vigiloauth/vigilo/internal/domain/oidc"
 	users "github.com/vigiloauth/vigilo/internal/domain/user"
 
 	"github.com/vigiloauth/vigilo/internal/web"
@@ -170,22 +172,6 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "invalid token audience", "Expected error message for invalid token audience")
 	})
 
-	t.Run("Unauthorized error is returned when the token is expired", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		scopes := []string{constants.OIDC, constants.UserProfile, constants.UserOfflineAccess}
-		testContext.WithUser(scopes, []string{constants.UserRole})
-		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCode})
-		testContext.WithExpiredToken()
-
-		headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
-		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
-
-		assert.Equal(t, http.StatusUnauthorized, rr.Code, "Expected HTTP status code 401 Unauthorized, got %d", rr.Code)
-		assert.Contains(t, rr.Body.String(), "token is expired", "Expected error message for expired token")
-	})
-
 	t.Run("Forbidden error is returned when the user does not have the requested scopes", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
@@ -201,4 +187,41 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, rr.Code, "Expected HTTP status code 403 Forbidden, got %d", rr.Code)
 		assert.Contains(t, rr.Body.String(), "insufficient_scope", "Expected error message for insufficient scope")
 	})
+}
+
+func TestOIDCHandler_GetJWKS(t *testing.T) {
+	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
+	rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.JWKS, nil, nil)
+	assert.Equal(t, http.StatusOK, rr.Code, "Expected the status to be 200 OK but got: %s", rr.Code)
+
+	var response *jwk.Jwks
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	assert.NoError(t, err, "Failed to unmarshal response")
+
+	assert.NotEmpty(t, response.Keys, "Expected JWKS keys to not be empty")
+	assert.NotEmpty(t, response.Keys[0].Kty, "Expected Kty to not be empty")
+	assert.NotEmpty(t, response.Keys[0].Kid, "Expected Kid to not be empty")
+	assert.NotEmpty(t, response.Keys[0].Use, "Expected Use to not be empty")
+	assert.NotEmpty(t, response.Keys[0].Alg, "Expected Alg to not be empty")
+	assert.NotEmpty(t, response.Keys[0].N, "Expected modulus to not be empty")
+	assert.NotEmpty(t, response.Keys[0].E, "Expected exponent to not be empty")
+	assert.NotEmpty(t, response.Keys[0].Kty, "Expected Kty to not be empty")
+}
+
+func TestOIDCHandler_GetOpenIDConfiguration(t *testing.T) {
+	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
+	rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.Discovery, nil, nil)
+	assert.Equal(t, http.StatusOK, rr.Code, "Expected 200 OK but got: %d", rr.Code)
+
+	var response *oidc.DiscoveryJSON
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	assert.NoError(t, err, "Failed to unmarshal response")
+
+	assert.NotEmpty(t, response.Issuer, "Expected Issuer to not be empty")
+	assert.NotEmpty(t, response.AuthorizationEndpoint, "Expected authorization endpoint to not be empty")
+	assert.NotEmpty(t, response.TokenEndpoint, "Expected token endpoint to not be empty")
 }

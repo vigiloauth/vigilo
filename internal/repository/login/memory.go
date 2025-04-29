@@ -7,6 +7,7 @@ import (
 	"github.com/vigiloauth/vigilo/idp/config"
 	domain "github.com/vigiloauth/vigilo/internal/domain/login"
 	user "github.com/vigiloauth/vigilo/internal/domain/user"
+	"github.com/vigiloauth/vigilo/internal/errors"
 )
 
 // maxStoredLoginAttempts defines the maximum number of login attempts stored per user.
@@ -83,8 +84,11 @@ func (s *InMemoryLoginAttemptRepository) SaveLoginAttempt(ctx context.Context, a
 func (s *InMemoryLoginAttemptRepository) GetLoginAttemptsByUserID(ctx context.Context, userID string) ([]*user.UserLoginAttempt, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-
-	return s.attempts[userID], nil
+	attempts, found := s.attempts[userID]
+	if !found {
+		return nil, errors.New(errors.ErrCodeNotFound, "failed to retrieve user login attempts")
+	}
+	return attempts, nil
 }
 
 // trimLoginAttempts trims the list of login attempts for a user if it exceeds the maximum stored attempts.

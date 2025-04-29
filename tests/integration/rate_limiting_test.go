@@ -14,6 +14,9 @@ import (
 )
 
 func TestRateLimiting(t *testing.T) {
+	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
 	user := users.NewUser("", testEmail, testPassword1)
 	user.ID = testUserID
 
@@ -22,7 +25,6 @@ func TestRateLimiting(t *testing.T) {
 	assert.NoError(t, err, "failed to marshal request body")
 
 	requestsPerMinute := 5
-	testContext := NewVigiloTestContext(t)
 	testContext.WithCustomConfig(config.WithMaxRequestsPerMinute(requestsPerMinute))
 
 	for range requestsPerMinute {
@@ -34,7 +36,6 @@ func TestRateLimiting(t *testing.T) {
 			nil,
 		)
 
-		t.Logf("body: %s", rr.Body.String())
 		assert.Equal(t, http.StatusOK, rr.Code)
 		testContext.ClearSession()
 	}

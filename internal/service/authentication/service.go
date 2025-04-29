@@ -55,15 +55,36 @@ func NewAuthenticationService(
 //   - *TokenResponse: A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails.
 func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context, clientID, clientSecret, grantType, scopes string) (*token.TokenResponse, error) {
 	requestID := utils.GetRequestID(ctx)
+
 	if err := s.clientService.AuthenticateClient(ctx, clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: Failed to authenticate client: %v", err)
 		return nil, errors.Wrap(err, "", "failed to authenticate client")
+	}
+
+	client, err := s.clientService.GetClientByID(ctx, clientID)
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: Failed to retrieve client: %v", err)
+		return nil, errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client")
 	}
 
 	refreshToken, accessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(ctx, clientID, scopes, "")
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: An error occurred generating tokens: %v", err)
 		return nil, errors.Wrap(err, "", "failed to issue tokens")
+	}
+
+	if client.IsConfidential() {
+		accessToken, err = s.tokenService.EncryptToken(ctx, accessToken)
+		if err != nil {
+			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt access token: %v", err)
+			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt access token")
+		}
+
+		refreshToken, err = s.tokenService.EncryptToken(ctx, refreshToken)
+		if err != nil {
+			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt refresh token: %v", err)
+			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt refresh token")
+		}
 	}
 
 	return &token.TokenResponse{
@@ -112,6 +133,26 @@ func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, cli
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to generate token pair: %v", err)
 		return nil, err
+	}
+
+	client, err := s.clientService.GetClientByID(ctx, clientID)
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to retrieve client: %v", err)
+		return nil, errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client")
+	}
+
+	if client.IsConfidential() {
+		accessToken, err = s.tokenService.EncryptToken(ctx, accessToken)
+		if err != nil {
+			s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to encrypt access token: %v", err)
+			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt access token")
+		}
+
+		refreshToken, err = s.tokenService.EncryptToken(ctx, refreshToken)
+		if err != nil {
+			s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to encrypt refresh token: %v", err)
+			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt refresh token")
+		}
 	}
 
 	return &token.TokenResponse{
@@ -168,6 +209,26 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 		return nil, errors.Wrap(err, "", "failed to generate new tokens")
 	}
 
+	client, err := s.clientService.GetClientByID(ctx, clientID)
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to retrieve client: %v", err)
+		return nil, errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client")
+	}
+
+	if client.IsConfidential() {
+		newAccessToken, err = s.tokenService.EncryptToken(ctx, newAccessToken)
+		if err != nil {
+			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt access token: %v", err)
+			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt access token")
+		}
+
+		newRefreshToken, err = s.tokenService.EncryptToken(ctx, newRefreshToken)
+		if err != nil {
+			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt refresh token: %v", err)
+			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt refresh token")
+		}
+	}
+
 	if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
 		s.logger.Warn(s.module, requestID, "[RefreshAccessToken] Failed to blacklist old refresh token: %v", err)
 	}
@@ -199,7 +260,7 @@ func (s *authenticationService) IntrospectToken(ctx context.Context, tokenStr st
 		return &token.TokenIntrospectionResponse{Active: false}
 	}
 
-	claims, err := s.tokenService.ParseToken(tokenStr)
+	claims, err := s.tokenService.ParseAndValidateToken(ctx, tokenStr)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IntrospectToken]: Failed to parse token: %v", err)
 		return &token.TokenIntrospectionResponse{Active: false}
@@ -260,7 +321,6 @@ func (s *authenticationService) AuthenticateClientRequest(ctx context.Context, r
 //   - token string: The token to be revoked.
 func (s *authenticationService) RevokeToken(ctx context.Context, tokenStr string) {
 	requestID := utils.GetRequestID(ctx)
-
 	retrievedToken, err := s.tokenService.GetToken(ctx, tokenStr)
 	if retrievedToken == nil || err != nil {
 		s.logger.Error(s.module, requestID, "[RevokeToken]: Failed to revoke token")
@@ -274,7 +334,7 @@ func (s *authenticationService) RevokeToken(ctx context.Context, tokenStr string
 		return
 	}
 
-	if _, err := s.tokenService.ParseToken(tokenStr); err != nil {
+	if _, err := s.tokenService.ParseAndValidateToken(ctx, tokenStr); err != nil {
 		s.logger.Error(s.module, requestID, "[RevokeToken]: Failed to parse token: %v", err)
 		if err := s.tokenService.BlacklistToken(ctx, tokenStr); err != nil {
 			s.logger.Error(s.module, requestID, "[RevokeToken]: Failed to blacklist token: %v", err)
@@ -293,7 +353,7 @@ func (s *authenticationService) validateRefreshTokenAndMatchClient(ctx context.C
 		return false, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to validate refresh token")
 	}
 
-	claims, err := s.tokenService.ParseToken(refreshToken)
+	claims, err := s.tokenService.ParseAndValidateToken(ctx, refreshToken)
 	if err != nil {
 		return false, errors.New(errors.ErrCodeInternalServerError, "failed to parse refresh token")
 	}
@@ -310,10 +370,7 @@ func (s *authenticationService) authenticateUser(ctx context.Context, req *user.
 	existingUser, err := s.userService.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		s.logger.Error(s.module, "", "An error occurred retrieving user by username: %v", err)
-		return nil, errors.NewInternalServerError()
-	}
-	if existingUser == nil {
-		return nil, errors.New(errors.ErrCodeInvalidGrant, "user not found")
+		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "user not found")
 	}
 
 	scopeArr := strings.Split(scopes, " ")
@@ -355,7 +412,7 @@ func (s *authenticationService) authenticateWithBearerToken(ctx context.Context,
 		return errors.Wrap(err, "", "failed to validate bearer token")
 	}
 
-	claims, err := s.tokenService.ParseToken(bearerToken)
+	claims, err := s.tokenService.ParseAndValidateToken(ctx, bearerToken)
 	if err != nil {
 		return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
 	}

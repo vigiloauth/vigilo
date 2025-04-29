@@ -118,8 +118,12 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 		IDIssuedAt:              time.Now(),
 	}
 
-	if newClient.Type == client.Confidential {
+	if newClient.IsConfidential() {
 		response.Secret = plainSecret
+		response.RegistrationAccessToken, err = cs.tokenService.EncryptToken(ctx, accessToken)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if newClient.JwksURI != "" {
 		response.JwksURI = newClient.JwksURI
@@ -152,13 +156,9 @@ func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID st
 	retrievedClient, err := cs.clientRepo.GetClientByID(ctx, clientID)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: An error occurred retrieving the client: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, errors.ErrCodeInvalidClient, "failed to retrieve client")
 	}
-	if retrievedClient == nil {
-		err := errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
-		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to retrieve client=[%s]: %v", utils.TruncateSensitive(clientID), err)
-		return nil, err
-	}
+
 	if !retrievedClient.IsConfidential() {
 		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
 	}
@@ -213,10 +213,7 @@ func (cs *clientService) AuthenticateClient(ctx context.Context, clientID string
 	existingClient, err := cs.clientRepo.GetClientByID(ctx, clientID)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[AuthenticateClient]: An error occurred retrieving the client: %v", err)
-		return errors.NewInternalServerError()
-	} else if existingClient == nil {
-		cs.logger.Error(cs.module, requestID, "[AuthenticateClient]: Failed to authenticate client. Client does not exist with the ID=[%s]", utils.TruncateSensitive(clientID))
-		return errors.New(errors.ErrCodeInvalidClient, "client credentials are either missing or invalid")
+		return errors.Wrap(err, errors.ErrCodeInvalidClient, "failed to retrieve client")
 	}
 
 	if err := cs.validateClientAuthorization(existingClient, clientSecret, requestedGrant, requestedScopes); err != nil {
@@ -336,7 +333,7 @@ func (cs *clientService) ValidateAndUpdateClient(ctx context.Context, clientID, 
 		return nil, err
 	}
 
-	if retrievedClient.Type == client.Confidential {
+	if retrievedClient.IsConfidential() {
 		request.Type = client.Confidential
 		if err := request.Validate(); err != nil {
 			cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: Failed to validate ClientUpdateRequest: %v", err)
@@ -384,7 +381,8 @@ func (cs *clientService) ValidateAndDeleteClient(ctx context.Context, clientID, 
 		return err
 	}
 
-	if _, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, constants.ClientDelete); err != nil {
+	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, constants.ClientDelete)
+	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to validate client or registration access token: %v", err)
 		return err
 	}
@@ -392,6 +390,13 @@ func (cs *clientService) ValidateAndDeleteClient(ctx context.Context, clientID, 
 	if err := cs.clientRepo.DeleteClientByID(ctx, clientID); err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to delete client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to delete client")
+	}
+
+	if retrievedClient.IsConfidential() {
+		registrationAccessToken, err = cs.tokenService.DecryptToken(ctx, registrationAccessToken)
+		if err != nil {
+			return err
+		}
 	}
 
 	errChan := cs.tokenService.DeleteTokenAsync(ctx, registrationAccessToken)
@@ -442,16 +447,25 @@ func (cs *clientService) validateClientAuthorization(existingClient *client.Clie
 
 func (cs *clientService) validateClientAndToken(ctx context.Context, clientID, registrationAccessToken, scope string) (*client.Client, error) {
 	retrievedClient, err := cs.GetClientByID(ctx, clientID)
+	if retrievedClient == nil {
+		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
+	}
+
+	if retrievedClient.IsConfidential() {
+		registrationAccessToken, err = cs.tokenService.DecryptToken(ctx, registrationAccessToken)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if err != nil {
 		cs.logger.Error(cs.module, "", "An error occurred retrieving the client by ID: %v", err)
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInternalServerError, "an internal error occurred")
-	} else if retrievedClient == nil {
-		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
 	} else if !retrievedClient.HasScope(scope) && !retrievedClient.HasScope(constants.ClientManage) {
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInsufficientScope, "client does not have the required scopes for this request")
 	}
 
-	tokenClaim, err := cs.tokenService.ParseToken(registrationAccessToken)
+	tokenClaim, err := cs.tokenService.ParseAndValidateToken(ctx, registrationAccessToken)
 	if err != nil {
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInvalidToken, "failed to parse registration access token")
 	} else if tokenClaim.Subject != clientID {

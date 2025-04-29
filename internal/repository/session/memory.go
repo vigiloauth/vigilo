@@ -89,7 +89,7 @@ func (s *InMemorySessionRepository) GetSessionByID(ctx context.Context, sessionI
 	session, found := s.data[sessionID]
 	if !found {
 		logger.Debug(module, requestID, "[GetSessionByID]: No session exists with the given ID=%s", sessionID)
-		return nil, nil
+		return nil, errors.New(errors.ErrCodeSessionNotFound, "no session found with the given ID")
 	}
 
 	return session, nil

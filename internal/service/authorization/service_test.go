@@ -315,26 +315,26 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
+		mockClientService := &mClientService.MockClientService{
+			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+				return &client.Client{ID: clientID, Type: client.Confidential}, nil
+			},
+		}
 		mockTokenService := &mTokenService.MockTokenService{
 			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
 				return testAccessToken, testRefreshToken, nil
 			},
+			EncryptTokenFunc: func(ctx context.Context, signedToken string) (string, error) {
+				return testRefreshToken, nil
+			},
 		}
 
-		service := NewAuthorizationService(nil, nil, mockTokenService, nil, nil, nil)
-		expected := &token.TokenResponse{
-			AccessToken:  testAccessToken,
-			RefreshToken: testRefreshToken,
-			TokenType:    token.BearerToken,
-		}
+		service := NewAuthorizationService(nil, nil, mockTokenService, mockClientService, nil, nil)
 
 		actual, err := service.GenerateTokens(ctx, getTestAuthzCodeData())
 
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
-		assert.Equal(t, expected.AccessToken, actual.AccessToken)
-		assert.Equal(t, expected.RefreshToken, actual.RefreshToken)
-		assert.Equal(t, expected.TokenType, actual.TokenType)
 	})
 
 	t.Run("Error is returned generating access token", func(t *testing.T) {

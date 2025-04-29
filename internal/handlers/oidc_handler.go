@@ -14,12 +14,20 @@ import (
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
+// OIDCHandler handles OpenID Connect-related HTTP requests.
 type OIDCHandler struct {
 	oidcService oidc.OIDCService
 	logger      *config.Logger
 	module      string
 }
 
+// NewOIDCHandler creates a new instance of OIDCHandler.
+//
+// Parameters:
+//   - oidcService oidc.OIDCService: The OIDC service to use.
+//
+// Returns:
+//   - *OIDCHandler: A new OIDCHandler instance.
 func NewOIDCHandler(oidcService oidc.OIDCService) *OIDCHandler {
 	return &OIDCHandler{
 		oidcService: oidcService,
@@ -28,6 +36,16 @@ func NewOIDCHandler(oidcService oidc.OIDCService) *OIDCHandler {
 	}
 }
 
+// GetUserInfo handles the UserInfo endpoint of the ODIC specification.
+//
+// Parameters:
+//   - w http.ResponseWriter: The HTTP response writer.
+//   - r *http.Request: The HTTP request.
+//
+// Behavior:
+//   - Retrieves token claims from the request context.
+//   - Calls the OIDC service to fetch user information based on token claims.
+//   - Returns the user information as a JSON response or an error if something goes wrong.
 func (h *OIDCHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -60,6 +78,15 @@ func (h *OIDCHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	web.WriteJSON(w, http.StatusOK, userInfoResponse)
 }
 
+// GetJWKS handles the JWKS (JSON Web Key Set) endpoint of the OIDC specification.
+//
+// Parameters:
+//   - w http.ResponseWriter: The HTTP response writer.
+//   - r *http.Request: The HTTP request.
+//
+// Behavior:
+//   - Calls the OIDC service to retrieve the JWKS.
+//   - Returns the JWKS as a JSON response.
 func (h *OIDCHandler) GetJWKS(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
@@ -69,4 +96,26 @@ func (h *OIDCHandler) GetJWKS(w http.ResponseWriter, r *http.Request) {
 	jwks := h.oidcService.GetJwks(ctx)
 
 	web.WriteJSON(w, http.StatusOK, jwks)
+}
+
+// GetOpenIDConfiguration handles the OpenID Provider Configuration endpoint.
+//
+// Parameters:
+//   - w http.ResponseWriter: The HTTP response writer.
+//   - r *http.Request: The HTTP request.
+//
+// Behavior:
+//   - Constructs the OpenID Provider Configuration JSON object.
+//   - Returns the configuration as a JSON response.
+func (h *OIDCHandler) GetOpenIDConfiguration(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := utils.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[GetOpenIDConfiguration]: Processing request")
+
+	baseURL := config.GetServerConfig().BaseURL()
+	discoveryJSON := oidc.NewDiscoveryJSON(baseURL)
+
+	web.WriteJSON(w, http.StatusOK, discoveryJSON)
 }

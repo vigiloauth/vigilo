@@ -14,8 +14,10 @@ require gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4d
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-chi/cors v1.2.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	gopkg.in/yaml.v3 v3.0.1
 )

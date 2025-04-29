@@ -27,10 +27,10 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	testContext.WithUserConsent()
 
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientID, testClientID)
-	queryParams.Add(constants.RedirectURI, testRedirectURI)
-	queryParams.Add(constants.Scope, testScope)
-	queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+	queryParams.Add(constants.ClientIDReqField, testClientID)
+	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+	queryParams.Add(constants.ScopeReqField, testScope)
+	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 
 	sessionCookie := testContext.GetSessionCookie()
@@ -61,9 +61,9 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 	// Call AuthorizeClient Endpoint
 	testContext.WithUserConsent()
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientID, testClientID)
-	queryParams.Add(constants.RedirectURI, testRedirectURI)
-	queryParams.Add(constants.Scope, testScope)
+	queryParams.Add(constants.ClientIDReqField, testClientID)
+	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+	queryParams.Add(constants.ScopeReqField, testScope)
 	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 
 	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
@@ -90,9 +90,9 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientID, testClientID)
-	queryParams.Add(constants.RedirectURI, testRedirectURI)
-	queryParams.Add(constants.Scope, testScope)
+	queryParams.Add(constants.ClientIDReqField, testClientID)
+	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+	queryParams.Add(constants.ScopeReqField, testScope)
 	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 
 	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
@@ -121,10 +121,10 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientID, testClientID)
-	queryParams.Add(constants.RedirectURI, testRedirectURI)
-	queryParams.Add(constants.Scope, testScope)
-	queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+	queryParams.Add(constants.ClientIDReqField, testClientID)
+	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+	queryParams.Add(constants.ScopeReqField, testScope)
+	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 	queryParams.Add(constants.ConsentApprovedURLValue, "false")
 
 	sessionCookie := testContext.GetSessionCookie()
@@ -154,10 +154,10 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientID, testClientID)
-	queryParams.Add(constants.RedirectURI, testRedirectURI)
-	queryParams.Add(constants.Scope, testScope)
-	queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+	queryParams.Add(constants.ClientIDReqField, testClientID)
+	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+	queryParams.Add(constants.ScopeReqField, testScope)
+	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 	queryParams.Add(constants.ConsentApprovedURLValue, testConsentApproved)
 
 	sessionCookie := testContext.GetSessionCookie()
@@ -214,13 +214,13 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext.WithUserConsent()
 
 			queryParams := url.Values{}
-			queryParams.Add(constants.ClientID, testClientID)
-			queryParams.Add(constants.RedirectURI, testRedirectURI)
-			queryParams.Add(constants.Scope, constants.ClientManage)
-			queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+			queryParams.Add(constants.ClientIDReqField, testClientID)
+			queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+			queryParams.Add(constants.ScopeReqField, constants.ClientManage)
+			queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 			queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
-			queryParams.Add(constants.CodeChallenge, testContext.SH256CodeChallenge)
-			queryParams.Add(constants.CodeChallengeMethod, test.codeChallengeMethod)
+			queryParams.Add(constants.CodeChallengeReqField, testContext.SH256CodeChallenge)
+			queryParams.Add(constants.CodeChallengeMethodReqField, test.codeChallengeMethod)
 
 			sessionCookie := testContext.GetSessionCookie()
 			headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -295,13 +295,13 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		testContext.WithUserConsent()
 
 		queryParams := url.Values{}
-		queryParams.Add(constants.ClientID, testClientID)
-		queryParams.Add(constants.RedirectURI, testRedirectURI)
-		queryParams.Add(constants.Scope, constants.ClientManage)
-		queryParams.Add(constants.ResponseType, constants.CodeResponseType)
+		queryParams.Add(constants.ClientIDReqField, testClientID)
+		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+		queryParams.Add(constants.ScopeReqField, constants.ClientManage)
+		queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 		queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
-		queryParams.Add(constants.CodeChallenge, testContext.SH256CodeChallenge)
-		queryParams.Add(constants.CodeChallengeMethod, "unsupported")
+		queryParams.Add(constants.CodeChallengeReqField, testContext.SH256CodeChallenge)
+		queryParams.Add(constants.CodeChallengeMethodReqField, "unsupported")
 
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}

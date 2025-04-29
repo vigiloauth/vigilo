@@ -1,4 +1,4 @@
-# JWKS
+# JWKS Endpoint
 
 ## Endpoint
 ```http

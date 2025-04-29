@@ -23,6 +23,9 @@ type MockTokenService struct {
 	GenerateRefreshAndAccessTokensFunc func(ctx context.Context, subject, scopes, roles string) (string, string, error)
 	BlacklistTokenFunc                 func(ctx context.Context, token string) error
 	DeleteExpiredTokensFunc            func(ctx context.Context) error
+	EncryptTokenFunc                   func(ctx context.Context, signedToken string) (string, error)
+	DecryptTokenFunc                   func(ctx context.Context, encryptedToken string) (string, error)
+	ParseAndValidateTokenFunc          func(ctx context.Context, tokenStr string) (*token.TokenClaims, error)
 }
 
 func (m *MockTokenService) GenerateToken(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
@@ -75,4 +78,16 @@ func (m *MockTokenService) BlacklistToken(ctx context.Context, token string) err
 
 func (m *MockTokenService) DeleteExpiredTokens(ctx context.Context) error {
 	return m.DeleteExpiredTokensFunc(ctx)
+}
+
+func (m *MockTokenService) EncryptToken(ctx context.Context, signedToken string) (string, error) {
+	return m.EncryptTokenFunc(ctx, signedToken)
+}
+
+func (m *MockTokenService) DecryptToken(ctx context.Context, encryptedToken string) (string, error) {
+	return m.DecryptTokenFunc(ctx, encryptedToken)
+}
+
+func (m *MockTokenService) ParseAndValidateToken(ctx context.Context, tokenStr string) (*token.TokenClaims, error) {
+	return m.ParseAndValidateTokenFunc(ctx, tokenStr)
 }

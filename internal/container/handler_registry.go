@@ -11,7 +11,7 @@ type HandlerRegistry struct {
 	clientHandler LazyInit[*handlers.ClientHandler]
 	tokenHandler  LazyInit[*handlers.TokenHandler]
 	authzHandler  LazyInit[*handlers.AuthorizationHandler]
-	oauthHandler  LazyInit[*handlers.OAuthHandler]
+	oauthHandler  LazyInit[*handlers.ConsentHandler]
 	adminHandler  LazyInit[*handlers.AdminHandler]
 	oidcHandler   LazyInit[*handlers.OIDCHandler]
 
@@ -91,14 +91,12 @@ func (h *HandlerRegistry) initAuthzHandler() {
 
 func (h *HandlerRegistry) initOAuthHandler() {
 	h.logger.Debug(h.module, "", "Initializing OAuth Handler")
-	h.oauthHandler = LazyInit[*handlers.OAuthHandler]{
-		initFunc: func() *handlers.OAuthHandler {
-			return handlers.NewOAuthHandler(
+	h.oauthHandler = LazyInit[*handlers.ConsentHandler]{
+		initFunc: func() *handlers.ConsentHandler {
+			return handlers.NewConsentHandler(
 				h.sr.UserService(),
 				h.sr.SessionService(),
-				h.sr.ClientService(),
 				h.sr.UserConsentService(),
-				h.sr.AuthorizationCodeService(),
 			)
 		},
 	}
@@ -127,7 +125,7 @@ func (h *HandlerRegistry) UserHandler() *handlers.UserHandler {
 	return h.userHandler.Get()
 }
 
-func (h *HandlerRegistry) GetClientHandler() *handlers.ClientHandler {
+func (h *HandlerRegistry) ClientHandler() *handlers.ClientHandler {
 	h.logger.Debug(h.module, "", "Getting Client Handler")
 	return h.clientHandler.Get()
 }
@@ -142,7 +140,7 @@ func (h *HandlerRegistry) AuthorizationHandler() *handlers.AuthorizationHandler 
 	return h.authzHandler.Get()
 }
 
-func (h *HandlerRegistry) OAuthHandler() *handlers.OAuthHandler {
+func (h *HandlerRegistry) OAuthHandler() *handlers.ConsentHandler {
 	h.logger.Debug(h.module, "", "Getting OAuth Handler")
 	return h.oauthHandler.Get()
 }
@@ -152,7 +150,7 @@ func (h *HandlerRegistry) AdminHandler() *handlers.AdminHandler {
 	return h.adminHandler.Get()
 }
 
-func (h *HandlerRegistry) GetOIDCHandler() *handlers.OIDCHandler {
+func (h *HandlerRegistry) OIDCHandler() *handlers.OIDCHandler {
 	h.logger.Debug(h.module, "", "Getting OIDC Handler")
 	return h.oidcHandler.Get()
 }

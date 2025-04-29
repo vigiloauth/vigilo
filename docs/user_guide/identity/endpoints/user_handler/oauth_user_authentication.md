@@ -1,4 +1,4 @@
-# User Authentication
+# OAuth 2.0 User Authentication
 
 ## Endpoint
 ```http

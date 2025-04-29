@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/square/go-jose/v3"
 	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/crypto"
 	token "github.com/vigiloauth/vigilo/internal/domain/token"
@@ -23,7 +24,6 @@ type tokenService struct {
 	publicKey            *rsa.PublicKey
 	keyID                string
 	issuer               string
-	signingMethod        jwt.SigningMethod
 	accessTokenDuration  time.Duration
 	refreshTokenDuration time.Duration
 
@@ -45,7 +45,6 @@ func NewTokenService(tokenRepo token.TokenRepository) token.TokenService {
 		publicKey:            config.GetServerConfig().TokenConfig().PublicKey(),
 		keyID:                config.GetServerConfig().TokenConfig().KeyID(),
 		issuer:               config.GetServerConfig().TokenConfig().Issuer(),
-		signingMethod:        config.GetServerConfig().TokenConfig().SigningMethod(),
 		accessTokenDuration:  config.GetServerConfig().TokenConfig().AccessTokenDuration(),
 		refreshTokenDuration: config.GetServerConfig().TokenConfig().RefreshTokenDuration(),
 		logger:               config.GetServerConfig().Logger(),
@@ -143,6 +142,31 @@ func (ts *tokenService) ParseToken(tokenString string) (*token.TokenClaims, erro
 	return nil, errors.New(errors.ErrCodeInvalidToken, "provided token is invalid")
 }
 
+func (ts *tokenService) ParseAndValidateToken(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+	requestID := utils.GetRequestID(ctx)
+
+	claims, err := ts.ParseToken(tokenString)
+	if err == nil {
+		return claims, nil // Token is valid and not encrypted
+	}
+
+	ts.logger.Warn(ts.module, requestID, "[ParseAndValidateToken]: Failed to parse token directly, assuming it is encrypted: %v", err)
+
+	decryptedToken, err := ts.DecryptToken(ctx, tokenString)
+	if err != nil {
+		ts.logger.Error(ts.module, requestID, "[ParseAndValidateToken]: Failed to decrypt token: %v", err)
+		return nil, errors.New(errors.ErrCodeInvalidToken, "failed to parse or decrypt token")
+	}
+
+	claims, err = ts.ParseToken(decryptedToken)
+	if err != nil {
+		ts.logger.Error(ts.module, requestID, "[ParseAndValidateToken]: Failed to parse decrypted token: %v", err)
+		return nil, errors.New(errors.ErrCodeInvalidToken, "failed to parse decrypted token")
+	}
+
+	return claims, nil
+}
+
 // IsTokenBlacklisted checks if a token is blacklisted.
 //
 // Parameters:
@@ -159,8 +183,9 @@ func (ts *tokenService) IsTokenBlacklisted(ctx context.Context, token string) (b
 	isBlacklisted, err := ts.tokenRepo.IsTokenBlacklisted(ctx, hashedToken)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[IsTokenBlacklisted]: An error occurred searching for the token: %v", err)
-		return false, errors.NewInternalServerError()
+		return false, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred searching for the token")
 	}
+
 	return isBlacklisted, nil
 }
 
@@ -181,7 +206,7 @@ func (ts *tokenService) BlacklistToken(ctx context.Context, token string) error 
 	err := ts.tokenRepo.BlacklistToken(ctx, hashedToken)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[BlacklistToken]: An error occurred blacklisting a token: %v", err)
-		return errors.NewInternalServerError()
+		return errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred blacklisting the token")
 	}
 
 	return nil
@@ -204,7 +229,7 @@ func (ts *tokenService) SaveToken(ctx context.Context, token string, id string, 
 	err := ts.tokenRepo.SaveToken(ctx, hashedToken, id, expirationTime)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[SaveToken]: An error occurred saving the token: %v", err)
-		return errors.NewInternalServerError()
+		return errors.Wrap(err, "", "an error occurred saving the token")
 	}
 
 	return nil
@@ -226,11 +251,7 @@ func (ts *tokenService) GetToken(ctx context.Context, token string) (*token.Toke
 	retrievedToken, err := ts.tokenRepo.GetToken(ctx, hashedToken)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[GetToken]: Failed to retrieve token: %v", err)
-		return nil, errors.NewInternalServerError()
-	}
-
-	if retrievedToken == nil {
-		return nil, errors.New(errors.ErrCodeTokenNotFound, "failed to retrieve token")
+		return nil, errors.Wrap(err, "", "failed to retrieve token")
 	}
 
 	return retrievedToken, nil
@@ -251,7 +272,7 @@ func (ts *tokenService) DeleteToken(ctx context.Context, token string) error {
 	err := ts.tokenRepo.DeleteToken(ctx, hashedToken)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[DeleteToken]: An error occurred deleting a token: %v", err)
-		return errors.NewInternalServerError()
+		return errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred deleting the given token")
 	}
 
 	return nil
@@ -302,7 +323,7 @@ func (ts *tokenService) DeleteTokenAsync(ctx context.Context, token string) <-ch
 // Returns:
 //   - bool: True is expired, otherwise false.
 func (ts *tokenService) IsTokenExpired(token string) bool {
-	claims, err := ts.ParseToken(token)
+	claims, err := ts.ParseAndValidateToken(context.TODO(), token)
 	if err != nil {
 		ts.logger.Warn(ts.module, "", "[IsTokenExpired]: Token=[%s] is expired", utils.TruncateSensitive(token))
 		return true
@@ -329,7 +350,7 @@ func (ts *tokenService) ValidateToken(ctx context.Context, token string) error {
 	if ts.IsTokenExpired(token) {
 		ts.logger.Warn(ts.module, "[ValidateToken]: Token=[%s] is expired", utils.TruncateSensitive(token))
 		return errors.New(errors.ErrCodeExpiredToken, "the token is expired")
-	} else if _, err := ts.ParseToken(token); err != nil {
+	} else if _, err := ts.ParseAndValidateToken(ctx, token); err != nil {
 		ts.logger.Error(ts.module, requestID, "[ValidateToken]: An error occurred parsing the token: %v", err)
 		return errors.New(errors.ErrCodeInvalidGrant, "invalid token format")
 	}
@@ -387,17 +408,83 @@ func (ts *tokenService) DeleteExpiredTokens(ctx context.Context) error {
 	tokens, err := ts.tokenRepo.GetExpiredTokens(ctx)
 	if err != nil {
 		ts.logger.Error(ts.module, "", "[DeleteExpiredTokens]: An error occurred retrieving expired tokens: %v", err)
-		return err
+		return errors.Wrap(err, "", "an error occurred retrieving expired tokens")
 	}
 
 	for _, token := range tokens {
 		if err := ts.tokenRepo.DeleteToken(ctx, token.Token); err != nil {
 			ts.logger.Error(ts.module, "", "[DeleteExpiredTokens]: An error occurred deleting expired tokens: %v", err)
-			return err
+			return errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred deleting expired tokens")
 		}
 	}
 
 	return nil
+}
+
+// EncryptToken encrypts a signed JWT token using a specified encryption algorithm.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - signedToken string: The signed JWT token to be encrypted.
+//
+// Returns:
+//   - string: The encrypted token in JWE (JSON Web Encryption) format.
+//   - error: An error if the encryption process fails.
+func (ts *tokenService) EncryptToken(ctx context.Context, signedToken string) (string, error) {
+	requestID := utils.GetRequestID(ctx)
+	encrypter, err := jose.NewEncrypter(
+		jose.A256GCM,
+		jose.Recipient{
+			Algorithm: jose.RSA_OAEP,
+			Key:       ts.publicKey,
+		}, nil,
+	)
+
+	if err != nil {
+		ts.logger.Error(ts.module, requestID, "[EncryptToken]: An error occurred creating a new encrypter: %v", err)
+		return "", errors.NewInternalServerError()
+	}
+
+	encrypted, err := encrypter.Encrypt([]byte(signedToken))
+	if err != nil {
+		ts.logger.Error(ts.module, requestID, "[EncryptToken]: Failed to encrypt token: %v", err)
+		return "", errors.NewInternalServerError()
+	}
+
+	serializedToken, err := encrypted.CompactSerialize()
+	if err != nil {
+		ts.logger.Error(ts.module, requestID, "[EncryptToken]: Failed to serialize encrypted token: %v", err)
+		return "", errors.NewInternalServerError()
+	}
+
+	return serializedToken, nil
+}
+
+// DecryptToken decrypts an encrypted JWT token back to its original signed form.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - encryptedToken string: The encrypted JWT token in JWE format.
+//
+// Returns:
+//   - string: The decrypted signed JWT token.
+//   - error: An error if the decryption process fails.
+func (ts *tokenService) DecryptToken(ctx context.Context, encryptedToken string) (string, error) {
+	requestID := utils.GetRequestID(ctx)
+
+	object, err := jose.ParseEncrypted(encryptedToken)
+	if err != nil {
+		ts.logger.Error(ts.module, requestID, "[DecryptToken]: Failed to parse encrypted token: %v", err)
+		return "", errors.New(errors.ErrCodeInvalidToken, "failed to parse encrypted token")
+	}
+
+	decrypted, err := object.Decrypt(ts.privateKey)
+	if err != nil {
+		ts.logger.Error(ts.module, requestID, "[DecryptToken]: Failed to decrypt token: %v", err)
+		return "", errors.New(errors.ErrCodeInvalidToken, "failed to decrypt token")
+	}
+
+	return string(decrypted), nil
 }
 
 func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject, audience, scopes, roles string, duration time.Duration) (string, error) {

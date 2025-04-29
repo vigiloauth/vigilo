@@ -3,14 +3,12 @@ package integration
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -86,23 +84,16 @@ type VigiloTestContext struct {
 	State              string
 	SH256CodeChallenge string
 	PlainCodeChallenge string
-	secretKey          string
 }
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
-	privateKey, publicKey, secretKey, err := generateTestKeys()
-	if err != nil {
-		os.Exit(1)
-	}
-
-	setEnvVariables(privateKey, publicKey, secretKey)
-	vs := server.NewVigiloIdentityServer()
+	config.GetServerConfig().Logger().SetLevel("debug")
+	config.GetServerConfig().SetBaseURL("http://localhost")
 
 	return &VigiloTestContext{
 		T:                  t,
-		VigiloServer:       vs,
-		secretKey:          secretKey,
+		VigiloServer:       server.NewVigiloIdentityServer(),
 		SH256CodeChallenge: crypto.EncodeSHA256(testClientSecret),
 		PlainCodeChallenge: testClientSecret,
 	}
@@ -196,10 +187,33 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 		context.Background(), id, testScope,
 		strings.Join(tc.User.Roles, " "), duration,
 	)
+
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
 	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), token, id, time.Now().Add(duration))
+
+	return tc
+}
+
+func (tc *VigiloTestContext) WithEncryptedJWTToken(id string, duration time.Duration) *VigiloTestContext {
+	ctx := context.Background()
+	if tc.User == nil {
+		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+	}
+
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
+	token, err := tokenService.GenerateToken(
+		ctx, id, testScope,
+		strings.Join(tc.User.Roles, " "), duration,
+	)
+	assert.NoError(tc.T, err)
+
+	encryptedToken, err := tokenService.EncryptToken(ctx, token)
+	assert.NoError(tc.T, err)
+
+	tc.JWTToken = encryptedToken
+	tokenRepo.GetInMemoryTokenRepository().SaveToken(ctx, token, id, time.Now().Add(duration))
 
 	return tc
 }
@@ -216,7 +230,10 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 	)
 	assert.NoError(tc.T, err)
 
-	tc.JWTToken = accessToken
+	encryptedToken, err := tokenService.EncryptToken(context.Background(), accessToken)
+	assert.NoError(tc.T, err)
+
+	tc.JWTToken = encryptedToken
 	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), accessToken, subject, time.Now().Add(duration))
 	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), refreshToken, subject, time.Now().Add(duration))
 
@@ -231,11 +248,6 @@ func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext 
 	tc.JWTToken = token
 	tokenService.BlacklistToken(context.Background(), token)
 
-	return tc
-}
-
-func (tc *VigiloTestContext) SetLoggerLevel(level string) *VigiloTestContext {
-	config.GetServerConfig().Logger().SetLevel(level)
 	return tc
 }
 
@@ -263,8 +275,8 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 
 	auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
 	formData := url.Values{}
-	formData.Add(constants.GrantType, constants.ClientCredentials)
-	formData.Add(constants.Scope, constants.ClientManage)
+	formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+	formData.Add(constants.ScopeReqField, constants.ClientManage)
 
 	headers := map[string]string{
 		"Content-Type":  "application/x-www-form-urlencoded",
@@ -336,8 +348,8 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	// tc.State = state
 
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientID, testClientID)
-	queryParams.Add(constants.RedirectURI, testRedirectURI)
+	queryParams.Add(constants.ClientIDReqField, testClientID)
+	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
 	// queryParams.Add(constants.State, state)
 	endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
 
@@ -397,9 +409,9 @@ func (tc *VigiloTestContext) WithUserSession() {
 
 func (tc *VigiloTestContext) GetStateFromSession() string {
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientID, testClientID)
-	queryParams.Add(constants.RedirectURI, testRedirectURI)
-	queryParams.Add(constants.Scope, testScope)
+	queryParams.Add(constants.ClientIDReqField, testClientID)
+	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+	queryParams.Add(constants.ScopeReqField, testScope)
 	getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 	headers := map[string]string{"Cookie": tc.SessionCookie.Name + "=" + tc.SessionCookie.Value}
@@ -429,18 +441,18 @@ func (tc *VigiloTestContext) GetAuthzCode() string {
 
 func (tc *VigiloTestContext) CreateAuthorizationCodeRequestQueryParams(codeChallenge, codeChallengeMethod string) url.Values {
 	queryParams := url.Values{}
-	queryParams.Add(constants.ResponseType, constants.CodeResponseType)
-	queryParams.Add(constants.ClientID, testClientID)
-	queryParams.Add(constants.RedirectURI, testRedirectURI)
-	queryParams.Add(constants.Scope, constants.ClientManage)
-	queryParams.Add(constants.State, tc.State)
+	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
+	queryParams.Add(constants.ClientIDReqField, testClientID)
+	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+	queryParams.Add(constants.ScopeReqField, constants.ClientManage)
+	queryParams.Add(constants.StateReqField, tc.State)
 	queryParams.Add(constants.ConsentApprovedURLValue, "true")
 
 	if codeChallenge != "" {
-		queryParams.Add(constants.CodeChallenge, codeChallenge)
+		queryParams.Add(constants.CodeChallengeReqField, codeChallenge)
 	}
 	if codeChallengeMethod != "" {
-		queryParams.Add(constants.CodeChallengeMethod, codeChallengeMethod)
+		queryParams.Add(constants.CodeChallengeMethodReqField, codeChallengeMethod)
 	}
 
 	return queryParams
@@ -534,8 +546,7 @@ func (tc *VigiloTestContext) TearDown() {
 		tc.TestServer.Close()
 	}
 	tc.VigiloServer.Shutdown()
-	tc.SetLoggerLevel("info")
-	clearEnvVariables()
+	config.GetServerConfig().Logger().SetLevel("info")
 	resetInMemoryStores()
 }
 
@@ -586,53 +597,4 @@ func (tc *VigiloTestContext) decodeErrorResponse(rr *httptest.ResponseRecorder) 
 	err := json.NewDecoder(rr.Body).Decode(&errResp)
 	assert.NoError(tc.T, err, "Failed to unmarshal response body")
 	return errResp
-}
-
-func getSecretKey() string {
-	key := make([]byte, 32)
-	_, err := io.ReadFull(rand.Reader, key)
-	if err != nil {
-		return ""
-	}
-	return base64.StdEncoding.EncodeToString(key)
-}
-
-func generateTestKeys() (string, string, string, error) {
-	privateKeyBase64 := os.Getenv(constants.TokenPrivateKeyENV)
-	publicKeyBase64 := os.Getenv(constants.TokenPublicKeyENV)
-
-	privateKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
-	if err != nil {
-		panic("Failed to decode private key: " + err.Error())
-	}
-
-	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
-	if err != nil {
-		panic("Failed to decode public key: " + err.Error())
-	}
-
-	secretKey := getSecretKey()
-
-	return string(privateKeyBytes), string(publicKeyBytes), secretKey, nil
-}
-
-func setEnvVariables(privateKey, publicKey, secretKey string) {
-	os.Setenv(constants.CryptoSecretKeyENV, secretKey)
-	os.Setenv(constants.SMTPUsernameENV, "fake@email")
-	os.Setenv(constants.SMTPFromAddressENV, "fake@email")
-	os.Setenv(constants.SMTPPasswordENV, "password")
-	os.Setenv(constants.TokenIssuerENV, "fake-issuer")
-	os.Setenv(constants.TokenPrivateKeyENV, privateKey)
-	os.Setenv(constants.TokenPublicKeyENV, publicKey)
-
-}
-
-func clearEnvVariables() {
-	os.Unsetenv(constants.CryptoSecretKeyENV)
-	os.Unsetenv(constants.SMTPUsernameENV)
-	os.Unsetenv(constants.SMTPFromAddressENV)
-	os.Unsetenv(constants.SMTPPasswordENV)
-	os.Unsetenv(constants.TokenIssuerENV)
-	os.Unsetenv(constants.TokenPrivateKeyENV)
-	os.Unsetenv(constants.TokenPublicKeyENV)
 }

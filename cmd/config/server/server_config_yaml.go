@@ -7,12 +7,13 @@ import (
 )
 
 type ServerConfigYAML struct {
-	Port              *string `yaml:"port,omitempty"`
-	CertFilePath      *string `yaml:"cert_file_path,omitempty"`
-	KeyFilePath       *string `yaml:"key_file_path,omitempty"`
-	SessionCookieName *string `yaml:"session_cookie_name,omitempty"`
-	BaseURL           *string `yaml:"base_url,omitempty"`
-	ForceHTTPS        *bool   `yaml:"force_https,omitempty"`
+	Port                 *string `yaml:"port,omitempty"`
+	CertFilePath         *string `yaml:"cert_file_path,omitempty"`
+	KeyFilePath          *string `yaml:"key_file_path,omitempty"`
+	SessionCookieName    *string `yaml:"session_cookie_name,omitempty"`
+	BaseURL              *string `yaml:"base_url,omitempty"`
+	ForceHTTPS           *bool   `yaml:"force_https,omitempty"`
+	EnableRequestLogging *bool   `yaml:"enable_request_logging,omitempty"`
 
 	ReadTimeout       *int64 `yaml:"read_timeout,omitempty"`
 	WriteTimeout      *int64 `yaml:"write_timeout,omitempty"`
@@ -39,6 +40,9 @@ func (sc *ServerConfigYAML) ToOptions() []config.ServerConfigOptions {
 	}
 	if sc.ForceHTTPS != nil {
 		options = append(options, config.WithForceHTTPS())
+	}
+	if sc.EnableRequestLogging != nil {
+		options = append(options, config.WithRequestLogging(*sc.EnableRequestLogging))
 	}
 	if sc.ReadTimeout != nil {
 		timeoutDuration := time.Duration(*sc.ReadTimeout) * time.Second

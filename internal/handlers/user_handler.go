@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/vigiloauth/vigilo/idp/config"
@@ -115,6 +117,43 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
+// OAuthLogin handles login specifically for the OAuth authorization code flow
+// It expects the same login credentials as the regular Login endpoint,
+// but processes the OAuth context parameters and redirects accordingly
+func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := utils.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Processing request")
+
+	query := r.URL.Query()
+	clientID := query.Get(constants.ClientIDReqField)
+	redirectURI := query.Get(constants.RedirectURIReqField)
+
+	request, err := web.DecodeJSONRequest[users.UserLoginRequest](w, r)
+	if err != nil {
+		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
+		return
+	}
+
+	response, err := h.userService.HandleOAuthLogin(ctx, request, clientID, redirectURI)
+	if err != nil {
+		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
+		web.WriteError(w, wrappedErr)
+		return
+	}
+
+	if err := h.sessionService.CreateSession(w, r, response.UserID, h.tokenConfig.ExpirationTime()); err != nil {
+		web.WriteError(w, errors.NewSessionCreationError(err))
+		return
+	}
+
+	response.OAuthRedirectURL = h.buildOAuthRedirectURL(query, clientID, redirectURI)
+	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Successfully processed request")
+	web.WriteJSON(w, http.StatusOK, response)
+}
+
 // Logout is the HTTP handler for user logout.
 // It processes incoming HTTP requests for user logout, validates the JWT token,
 // adds the token to the blacklist to prevent further use, and sends an appropriate response.
@@ -179,7 +218,7 @@ func (h *UserHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info(h.module, requestID, "[VerifyAccount]: Processing request")
 
 	query := r.URL.Query()
-	verificationToken := query.Get(constants.Token)
+	verificationToken := query.Get(constants.TokenReqField)
 	if err := h.userService.ValidateVerificationCode(ctx, verificationToken); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate user account")
 		web.WriteError(w, wrappedErr)
@@ -187,4 +226,20 @@ func (h *UserHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	web.WriteJSON(w, http.StatusOK, "")
+}
+
+func (h *UserHandler) buildOAuthRedirectURL(query url.Values, clientID, redirectURI string) string {
+	redirectURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s", web.OAuthEndpoints.Authorize, clientID, redirectURI)
+
+	state := query.Get(constants.StateReqField)
+	if state != "" {
+		redirectURL = fmt.Sprintf("%s&state=%s", redirectURL, url.QueryEscape(state))
+	}
+
+	scope := query.Get(constants.ScopeReqField)
+	if scope != "" {
+		redirectURL = fmt.Sprintf("%s&scope=%s", redirectURL, url.QueryEscape(scope))
+	}
+
+	return redirectURL
 }

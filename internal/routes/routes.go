@@ -4,147 +4,208 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/idp/config"
 	"github.com/vigiloauth/vigilo/internal/constants"
-	"github.com/vigiloauth/vigilo/internal/container"
-	"github.com/vigiloauth/vigilo/internal/middleware"
 	"github.com/vigiloauth/vigilo/internal/web"
 )
 
-type AppRouter struct {
-	router     chi.Router
-	middleware *middleware.Middleware
-	logger     *config.Logger
-	module     string
-
-	forceHTTPS      bool
-	handlerRegistry *container.HandlerRegistry
-}
-
-func NewAppRouter(
-	router chi.Router,
-	logger *config.Logger,
-	forceHTTPS bool,
-	middleware *middleware.Middleware,
-	handlerRegistry *container.HandlerRegistry,
-) *AppRouter {
-	r := &AppRouter{
-		router:          router,
-		logger:          logger,
-		module:          "Vigilo Identity Provider",
-		forceHTTPS:      forceHTTPS,
-		middleware:      middleware,
-		handlerRegistry: handlerRegistry,
-	}
-
-	r.applyGlobalMiddleware()
-	r.setupRoutes()
-	return r
-}
-
-func (ar *AppRouter) Router() chi.Router {
-	return ar.router
-}
-
-func (ar *AppRouter) applyGlobalMiddleware() {
-	ar.router.Use(ar.middleware.WithContextValues)
-	ar.router.Use(ar.middleware.RateLimit)
-	if ar.forceHTTPS {
-		ar.logger.Info(ar.module, "", "The Vigilo Identity Provider is running on HTTPS")
-		ar.router.Use(ar.middleware.RedirectToHTTPS)
-	} else {
-		ar.logger.Warn(ar.module, "", "The Vigilo Identity Provider is running on HTTP. It is recommended to enable HTTPS in production environments")
+func (ar *RouterConfig) getAdminRoutes() RouteGroup {
+	handler := ar.handlerRegistry.AdminHandler()
+	return RouteGroup{
+		Name: "Admin Routes",
+		Middleware: []func(http.Handler) http.Handler{
+			ar.middleware.AuthMiddleware(),
+			ar.middleware.WithRole(constants.AdminRole),
+		},
+		Routes: []Route{
+			NewRoute().
+				SetMethod(http.MethodGet).
+				SetPattern(web.AdminEndpoints.GetAuditEvents).
+				SetHandler(handler.GetAuditEvents).
+				SetDescription("Get audit events").
+				Build(),
+		},
 	}
 }
 
-func (ar *AppRouter) setupRoutes() {
-	ar.setupAdminRoutes()
-	ar.setupOIDCRoutes()
-	ar.setupClientRoutes()
-	ar.setupUserRoutes()
-	ar.setupOAuthRoutes()
-	ar.setupAuthorizationHandler()
-	ar.setupTokenRoutes()
+func (ar *RouterConfig) getOIDCRoutes() RouteGroup {
+	handler := ar.handlerRegistry.OIDCHandler()
+	return RouteGroup{
+		Name: "Open ID Connect Routes",
+		Routes: []Route{
+			NewRoute().
+				SetMiddleware(ar.middleware.AuthMiddleware()).
+				SetMethod(http.MethodGet).
+				SetPattern(web.OIDCEndpoints.UserInfo).
+				SetHandler(handler.GetUserInfo).
+				SetDescription("Get user info").
+				Build(),
+
+			// Public Routes (no auth required)
+			NewRoute().
+				SetMethod(http.MethodGet).
+				SetPattern(web.OIDCEndpoints.JWKS).
+				SetHandler(handler.GetJWKS).
+				SetDescription("Get JSON web key sets").
+				Build(),
+			NewRoute().
+				SetMethod(http.MethodGet).
+				SetPattern(web.OIDCEndpoints.Discovery).
+				SetHandler(handler.GetOpenIDConfiguration).
+				SetDescription("Get OIDC configuration").
+				Build(),
+		},
+	}
 }
 
-func (ar *AppRouter) setupAdminRoutes() {
-	adminHandler := ar.handlerRegistry.AdminHandler()
-	ar.router.Group(func(r chi.Router) {
-		r.Use(ar.middleware.AuthMiddleware())
-		r.Use(ar.middleware.WithRole(constants.AdminRole))
-		r.Get(web.AdminEndpoints.GetAuditEvents, adminHandler.GetAuditEvents)
-	})
+func (ar *RouterConfig) getClientRoutes() RouteGroup {
+	handler := ar.handlerRegistry.ClientHandler()
+	urlParam := fmt.Sprintf("/{%s}", constants.ClientIDReqField)
+
+	return RouteGroup{
+		Name: "Client Routes",
+		Middleware: []func(http.Handler) http.Handler{
+			ar.middleware.RequiresContentType(constants.ContentTypeJSON),
+		},
+		Routes: []Route{
+			// Basic client registration
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetPattern(web.ClientEndpoints.Register).
+				SetHandler(handler.RegisterClient).
+				SetDescription("Register new client").
+				Build(),
+
+			// Client configuration management
+			NewRoute().
+				SetMiddleware(ar.middleware.AuthMiddleware()).
+				SetMethods(http.MethodGet, http.MethodPut, http.MethodDelete).
+				SetPattern(web.ClientEndpoints.ClientConfiguration + urlParam).
+				SetHandler(handler.ManageClientConfiguration).
+				SetDescription("Manage client configuration").
+				Build(),
+
+			// Sensitive operations with strict rate limiting
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetMiddleware(ar.middleware.AuthMiddleware()).
+				SetPattern(web.ClientEndpoints.RegenerateSecret + urlParam).
+				SetHandler(handler.RegenerateSecret).
+				SetDescription("Regenerate client secret").
+				SetMiddleware(ar.middleware.StrictRateLimit).
+				Build(),
+		},
+	}
 }
 
-func (ar *AppRouter) setupOIDCRoutes() {
-	oidcHandler := ar.handlerRegistry.GetOIDCHandler()
-	ar.router.Group(func(r chi.Router) {
-		r.Use(ar.middleware.AuthMiddleware())
-		r.Get(web.OIDCEndpoints.UserInfo, oidcHandler.GetUserInfo)
-	})
-	ar.router.Get(web.OIDCEndpoints.JWKS, oidcHandler.GetJWKS)
+func (ar *RouterConfig) getUserRoutes() RouteGroup {
+	handler := ar.handlerRegistry.UserHandler()
+	return RouteGroup{
+		Name: "User Routes",
+		Routes: []Route{
+			NewRoute().
+				SetMiddleware(ar.middleware.AuthMiddleware()).
+				SetMethod(http.MethodPost).
+				SetPattern(web.UserEndpoints.Logout).
+				SetHandler(handler.Logout).
+				SetDescription("User logout").
+				Build(),
+
+			// Public Routes (no auth required)
+			NewRoute().
+				SetMethod(http.MethodGet).
+				SetPattern(web.UserEndpoints.Verify).
+				SetHandler(handler.VerifyAccount).
+				SetDescription("User account verification").
+				Build(),
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetPattern(web.UserEndpoints.Registration).
+				SetHandler(handler.Register).
+				SetDescription("User registration").
+				Build(),
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetPattern(web.UserEndpoints.Login).
+				SetHandler(handler.Login).
+				SetDescription("Basic user authentication").
+				Build(),
+			NewRoute().
+				SetMethod(http.MethodPatch).
+				SetPattern(web.UserEndpoints.ResetPassword).
+				SetHandler(handler.ResetPassword).
+				SetDescription("User password reset").
+				Build(),
+
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetPattern(web.OAuthEndpoints.Login).
+				SetHandler(handler.OAuthLogin).
+				SetDescription("OAuth user authentication").
+				Build(),
+		},
+	}
 }
 
-func (ar *AppRouter) setupClientRoutes() {
-	var clientURLParam string = fmt.Sprintf("/{%s}", constants.ClientID)
-	clientHandler := ar.handlerRegistry.GetClientHandler()
-
-	ar.router.Group(func(r chi.Router) {
-		r.Use(ar.middleware.AuthMiddleware())
-		r.Post(web.ClientEndpoints.Register, clientHandler.RegisterClient)
-		r.Route(web.ClientEndpoints.ClientConfiguration, func(cr chi.Router) {
-			cr.Get(clientURLParam, clientHandler.ManageClientConfiguration)
-			cr.Put(clientURLParam, clientHandler.ManageClientConfiguration)
-			cr.Delete(clientURLParam, clientHandler.ManageClientConfiguration)
-		})
-
-		r.Group(func(sr chi.Router) {
-			sr.Use(ar.middleware.StrictRateLimit)
-			sr.Post(web.ClientEndpoints.RegenerateSecret+clientURLParam, clientHandler.RegenerateSecret)
-		})
-	})
+func (ar *RouterConfig) getOAuthRoutes() RouteGroup {
+	handler := ar.handlerRegistry.OAuthHandler()
+	return RouteGroup{
+		Name: "OAuth Routes",
+		Middleware: []func(http.Handler) http.Handler{
+			ar.middleware.RequiresContentType(constants.ContentTypeJSON),
+		},
+		Routes: []Route{
+			NewRoute().
+				SetMethods(http.MethodGet, http.MethodPost).
+				SetPattern(web.OAuthEndpoints.UserConsent).
+				SetHandler(handler.UserConsent).
+				SetDescription("Manage user consent").
+				Build(),
+		},
+	}
 }
 
-func (ar *AppRouter) setupUserRoutes() {
-	userHandler := ar.handlerRegistry.UserHandler()
-	ar.router.Group(func(r chi.Router) {
-		r.Use(ar.middleware.AuthMiddleware())
-		r.Post(web.UserEndpoints.Logout, userHandler.Logout)
-	})
-
-	ar.router.Get(web.UserEndpoints.Verify, userHandler.VerifyAccount)
-	ar.router.Post(web.UserEndpoints.Registration, userHandler.Register)
-	ar.router.Post(web.UserEndpoints.Login, userHandler.Login)
-	ar.router.Patch(web.UserEndpoints.ResetPassword, userHandler.ResetPassword)
+func (ar *RouterConfig) getAuthorizationRoutes() RouteGroup {
+	handler := ar.handlerRegistry.AuthorizationHandler()
+	return RouteGroup{
+		Name: "Authorization Handler",
+		Routes: []Route{
+			NewRoute().
+				SetMiddleware(ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
+				SetMethod(http.MethodGet).
+				SetPattern(web.OAuthEndpoints.Authorize).
+				SetHandler(handler.AuthorizeClient).
+				SetDescription("Client authorization").
+				Build(),
+		},
+	}
 }
 
-func (ar *AppRouter) setupOAuthRoutes() {
-	oauthHandler := ar.handlerRegistry.OAuthHandler()
-	ar.router.Group(func(r chi.Router) {
-		r.Use(ar.middleware.RequiresContentType(constants.ContentTypeJSON))
-		r.HandleFunc(web.OAuthEndpoints.UserConsent, oauthHandler.UserConsent)
-		r.Post(web.OAuthEndpoints.Login, oauthHandler.OAuthLogin)
-	})
-}
-
-func (ar *AppRouter) setupAuthorizationHandler() {
-	authorizationHandler := ar.handlerRegistry.AuthorizationHandler()
-	ar.router.Group(func(r chi.Router) {
-		r.Use(ar.middleware.RequiresContentType(constants.ContentTypeJSON))
-		r.Get(web.OAuthEndpoints.Authorize, authorizationHandler.AuthorizeClient)
-	})
-}
-
-func (ar *AppRouter) setupTokenRoutes() {
-	tokenHandler := ar.handlerRegistry.TokenHandler()
-	ar.router.Group(func(r chi.Router) {
-		r.Use(ar.middleware.RequiresContentType(constants.ContentTypeForm))
-		r.Group(func(pr chi.Router) {
-			pr.Use(ar.middleware.RequireRequestMethod(http.MethodPost))
-			pr.Post(web.OAuthEndpoints.Token, tokenHandler.IssueTokens)
-			pr.Post(web.OAuthEndpoints.IntrospectToken, tokenHandler.IntrospectToken)
-			pr.Post(web.OAuthEndpoints.RevokeToken, tokenHandler.RevokeToken)
-		})
-	})
+func (ar *RouterConfig) getTokenRoutes() RouteGroup {
+	handler := ar.handlerRegistry.TokenHandler()
+	return RouteGroup{
+		Name: "Token Handler",
+		Middleware: []func(http.Handler) http.Handler{
+			ar.middleware.RequiresContentType(constants.ContentTypeForm),
+		},
+		Routes: []Route{
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetPattern(web.OAuthEndpoints.Token).
+				SetHandler(handler.IssueTokens).
+				SetDescription("Token issuance").
+				Build(),
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetPattern(web.OAuthEndpoints.IntrospectToken).
+				SetHandler(handler.IntrospectToken).
+				SetDescription("Token introspection").
+				Build(),
+			NewRoute().
+				SetMethod(http.MethodPost).
+				SetPattern(web.OAuthEndpoints.RevokeToken).
+				SetHandler(handler.RevokeToken).
+				SetDescription("Token revocation").
+				Build(),
+		},
+	}
 }
