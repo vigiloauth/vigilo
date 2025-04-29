@@ -57,12 +57,17 @@ jobs:
             echo "new_release_published=false" >> $GITHUB_OUTPUT
           fi
 
-      # This crucial step fetches the newly created tag
+      - name: Exit if no new release
+        if: steps.semantic.outputs.new_release_published == 'false'
+        run: echo "No new release published. Exiting gracefully."
+        continue-on-error: true
+
       - name: Fetch tags
         if: steps.semantic.outputs.new_release_published == 'true'
         run: git fetch --tags origin
 
       - name: Debug Docker Build
+        if: steps.semantic.outputs.new_release_published == 'true'
         run: |
           echo "New release published: ${{ steps.semantic.outputs.new_release_published }}"
           echo "New version: ${{ steps.semantic.outputs.new_release_version }}"
