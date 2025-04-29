@@ -27,6 +27,17 @@ jobs:
         with:
           node-version: 'lts/*'
 
+      - name: Create .env file
+        run: |
+          echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env
+          echo "SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }}" >> .env
+          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
+          echo "TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }}" >> .env
+          echo "TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}" >> .env
+          echo "TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}" >> .env
+          echo "CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }}" >> .env
+  
+
       - name: Install semantic-release
         run: npm install -g semantic-release @semantic-release/github
 
