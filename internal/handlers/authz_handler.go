@@ -7,14 +7,14 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 // AuthorizationHandler handles HTTP requests related to authorization.

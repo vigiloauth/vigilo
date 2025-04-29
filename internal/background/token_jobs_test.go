@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	mocks "github.com/vigiloauth/vigilo/internal/mocks/token"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 )
 
 func TestTokenJobs_DeleteExpiredTokens(t *testing.T) {

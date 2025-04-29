@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	cookies "github.com/vigiloauth/vigilo/internal/domain/cookies"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	cookies "github.com/vigiloauth/vigilo/v2/internal/domain/cookies"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 var _ cookies.HTTPCookieService = (*httpCookieService)(nil)

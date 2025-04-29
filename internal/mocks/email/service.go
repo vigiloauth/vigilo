@@ -3,7 +3,7 @@ package mocks
 import (
 	"context"
 
-	domain "github.com/vigiloauth/vigilo/internal/domain/email"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
 )
 
 var _ domain.EmailService = (*MockEmailService)(nil)

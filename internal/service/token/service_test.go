@@ -7,9 +7,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	domain "github.com/vigiloauth/vigilo/internal/domain/token"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mTokenRepo "github.com/vigiloauth/vigilo/internal/mocks/token"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mTokenRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 )
 
 const (

@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	users "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 func TestRateLimiting(t *testing.T) {

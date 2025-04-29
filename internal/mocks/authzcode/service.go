@@ -3,8 +3,8 @@ package mocks
 import (
 	"context"
 
-	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 )
 
 var _ authzCode.AuthorizationCodeService = (*MockAuthorizationCodeService)(nil)

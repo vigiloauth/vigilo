@@ -5,16 +5,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	"github.com/vigiloauth/vigilo/internal/crypto"
-	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
-	email "github.com/vigiloauth/vigilo/internal/domain/email"
-	login "github.com/vigiloauth/vigilo/internal/domain/login"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	users "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	email "github.com/vigiloauth/vigilo/v2/internal/domain/email"
+	login "github.com/vigiloauth/vigilo/v2/internal/domain/login"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 var _ users.UserService = (*userService)(nil)

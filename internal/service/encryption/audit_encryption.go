@@ -3,8 +3,8 @@ package service
 import (
 	"encoding/json"
 
-	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
-	encryption "github.com/vigiloauth/vigilo/internal/domain/encryption"
+	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	encryption "github.com/vigiloauth/vigilo/v2/internal/domain/encryption"
 )
 
 var _ encryption.AuditEncryptor = (*auditEncryptor)(nil)

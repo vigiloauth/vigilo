@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 // ClientHandler handles HTTP requests related to client operations.

@@ -3,14 +3,14 @@ package config
 import (
 	"os"
 
-	audit "github.com/vigiloauth/vigilo/cmd/config/audit"
-	login "github.com/vigiloauth/vigilo/cmd/config/login"
-	password "github.com/vigiloauth/vigilo/cmd/config/password"
-	server "github.com/vigiloauth/vigilo/cmd/config/server"
-	smtp "github.com/vigiloauth/vigilo/cmd/config/smtp"
-	token "github.com/vigiloauth/vigilo/cmd/config/token"
+	audit "github.com/vigiloauth/vigilo/v2/cmd/config/audit"
+	login "github.com/vigiloauth/vigilo/v2/cmd/config/login"
+	password "github.com/vigiloauth/vigilo/v2/cmd/config/password"
+	server "github.com/vigiloauth/vigilo/v2/cmd/config/server"
+	smtp "github.com/vigiloauth/vigilo/v2/cmd/config/smtp"
+	token "github.com/vigiloauth/vigilo/v2/cmd/config/token"
 
-	lib "github.com/vigiloauth/vigilo/idp/config"
+	lib "github.com/vigiloauth/vigilo/v2/idp/config"
 	"gopkg.in/yaml.v3"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 )
 
 var _ token.TokenService = (*MockTokenService)(nil)

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	domain "github.com/vigiloauth/vigilo/internal/domain/cookies"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/cookies"
 )
 
 var _ domain.HTTPCookieService = (*MockHTTPCookieService)(nil)

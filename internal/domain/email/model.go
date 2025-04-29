@@ -3,7 +3,7 @@ package domain
 import (
 	"sync"
 
-	"github.com/vigiloauth/vigilo/internal/crypto"
+	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 )
 
 type EmailRequest struct {

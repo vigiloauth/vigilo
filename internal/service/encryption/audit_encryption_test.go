@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/crypto"
-	domain "github.com/vigiloauth/vigilo/internal/domain/audit"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mocks "github.com/vigiloauth/vigilo/internal/mocks/encryption"
+	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/encryption"
 )
 
 const (

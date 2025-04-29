@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	users "github.com/vigiloauth/vigilo/internal/domain/user"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 // AuthorizationService defines the interface for handling client authorization requests.

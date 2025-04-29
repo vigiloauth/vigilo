@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	domain "github.com/vigiloauth/vigilo/internal/domain/client"
-	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 )
 
 const clientID string = "clientID"

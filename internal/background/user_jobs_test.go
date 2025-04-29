@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	mocks "github.com/vigiloauth/vigilo/internal/mocks/user"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 )
 
 func TestUserJobs_DeleteUnverifiedUsers(t *testing.T) {

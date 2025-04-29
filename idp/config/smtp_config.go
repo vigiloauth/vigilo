@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 
-	"github.com/vigiloauth/vigilo/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
 )
 
 type SMTPConfig struct {

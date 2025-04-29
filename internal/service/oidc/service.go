@@ -5,15 +5,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
-	jwks "github.com/vigiloauth/vigilo/internal/domain/jwks"
-	oidc "github.com/vigiloauth/vigilo/internal/domain/oidc"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
+	jwks "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
+	oidc "github.com/vigiloauth/vigilo/v2/internal/domain/oidc"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 var _ oidc.OIDCService = (*oidcService)(nil)

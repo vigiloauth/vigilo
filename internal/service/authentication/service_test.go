@@ -8,15 +8,15 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	clients "github.com/vigiloauth/vigilo/internal/domain/client"
-	tokens "github.com/vigiloauth/vigilo/internal/domain/token"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	clients "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mClientService "github.com/vigiloauth/vigilo/internal/mocks/client"
-	mTokenService "github.com/vigiloauth/vigilo/internal/mocks/token"
-	mUserService "github.com/vigiloauth/vigilo/internal/mocks/user"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mClientService "github.com/vigiloauth/vigilo/v2/internal/mocks/client"
+	mTokenService "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
+	mUserService "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 )
 
 const (

@@ -1,24 +1,24 @@
 package container
 
 import (
-	"github.com/vigiloauth/vigilo/idp/config"
-	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
-	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
-	domain "github.com/vigiloauth/vigilo/internal/domain/client"
-	login "github.com/vigiloauth/vigilo/internal/domain/login"
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	userConsent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	login "github.com/vigiloauth/vigilo/v2/internal/domain/login"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	userConsent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 
-	auditEventRepo "github.com/vigiloauth/vigilo/internal/repository/audit"
-	authzCodeRepo "github.com/vigiloauth/vigilo/internal/repository/authzcode"
-	clientRepo "github.com/vigiloauth/vigilo/internal/repository/client"
-	loginRepo "github.com/vigiloauth/vigilo/internal/repository/login"
-	sessionRepo "github.com/vigiloauth/vigilo/internal/repository/session"
-	tokenRepo "github.com/vigiloauth/vigilo/internal/repository/token"
-	userRepo "github.com/vigiloauth/vigilo/internal/repository/user"
-	consentRepo "github.com/vigiloauth/vigilo/internal/repository/userconsent"
+	auditEventRepo "github.com/vigiloauth/vigilo/v2/internal/repository/audit"
+	authzCodeRepo "github.com/vigiloauth/vigilo/v2/internal/repository/authzcode"
+	clientRepo "github.com/vigiloauth/vigilo/v2/internal/repository/client"
+	loginRepo "github.com/vigiloauth/vigilo/v2/internal/repository/login"
+	sessionRepo "github.com/vigiloauth/vigilo/v2/internal/repository/session"
+	tokenRepo "github.com/vigiloauth/vigilo/v2/internal/repository/token"
+	userRepo "github.com/vigiloauth/vigilo/v2/internal/repository/user"
+	consentRepo "github.com/vigiloauth/vigilo/v2/internal/repository/userconsent"
 )
 
 type RepositoryRegistry struct {

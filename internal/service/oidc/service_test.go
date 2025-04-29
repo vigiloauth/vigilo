@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	mocks "github.com/vigiloauth/vigilo/internal/mocks/authorization"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/authorization"
 )
 
 func TestOIDCService_GetUserInfo(t *testing.T) {

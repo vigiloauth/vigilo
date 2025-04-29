@@ -6,14 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
-	cookie "github.com/vigiloauth/vigilo/internal/domain/cookies"
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	cookie "github.com/vigiloauth/vigilo/v2/internal/domain/cookies"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 // Ensure SessionService implements the Session interface.

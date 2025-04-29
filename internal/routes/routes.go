@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/vigiloauth/vigilo/internal/constants"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 func (ar *RouterConfig) getAdminRoutes() RouteGroup {

@@ -1,6 +1,6 @@
 package domain
 
-import "github.com/vigiloauth/vigilo/internal/errors"
+import "github.com/vigiloauth/vigilo/v2/internal/errors"
 
 func (c *AuthorizationCodeData) ValidateFields(clientID, redirectURI string) error {
 	if c.Used {

@@ -1,4 +1,4 @@
-module github.com/vigiloauth/vigilo
+module github.com/vigiloauth/vigilo/v2
 
 go 1.23.3
 

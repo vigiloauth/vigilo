@@ -3,7 +3,7 @@ package mocks
 import (
 	"context"
 
-	domain "github.com/vigiloauth/vigilo/internal/domain/userconsent"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 )
 
 var _ domain.UserConsentRepository = (*MockUserConsentRepository)(nil)

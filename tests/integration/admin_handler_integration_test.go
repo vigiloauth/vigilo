@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 func TestAdminHandler_GetAuditEvents(t *testing.T) {

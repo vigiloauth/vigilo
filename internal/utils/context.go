@@ -3,7 +3,7 @@ package utils
 import (
 	"context"
 
-	"github.com/vigiloauth/vigilo/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
 )
 
 // GetRequestID retrieves the request ID from the context.

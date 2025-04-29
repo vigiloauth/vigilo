@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 var (

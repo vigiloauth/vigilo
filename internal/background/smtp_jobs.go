@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	domain "github.com/vigiloauth/vigilo/internal/domain/email"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
 )
 
 type SMTPJobs struct {

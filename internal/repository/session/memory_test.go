@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	"github.com/vigiloauth/vigilo/internal/errors"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 )
 
 const (

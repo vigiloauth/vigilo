@@ -3,7 +3,7 @@ package mocks
 import (
 	"context"
 
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 )
 
 var _ client.ClientService = (*MockClientService)(nil)

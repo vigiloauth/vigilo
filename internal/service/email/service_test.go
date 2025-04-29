@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/idp/config"
-	domain "github.com/vigiloauth/vigilo/internal/domain/email"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mocks "github.com/vigiloauth/vigilo/internal/mocks/email"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/email"
 	"gopkg.in/gomail.v2"
 )
 

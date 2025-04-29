@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 type TokenConfigYAML struct {

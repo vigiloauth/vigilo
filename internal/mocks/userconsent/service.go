@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	user "github.com/vigiloauth/vigilo/internal/domain/userconsent"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 )
 
 var _ user.UserConsentService = (*MockUserConsentService)(nil)

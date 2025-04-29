@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/vigiloauth/vigilo/internal/constants"
-	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 )
 
 // ExtractClientBasicAuth extracts the client ID and client secret from the Authorization

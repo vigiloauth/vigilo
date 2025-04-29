@@ -3,7 +3,7 @@ package mocks
 import (
 	"context"
 
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 var _ user.UserRepository = (*MockUserRepository)(nil)

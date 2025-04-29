@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	domain "github.com/vigiloauth/vigilo/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 type UserJobs struct {

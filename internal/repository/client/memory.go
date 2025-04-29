@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 var (
