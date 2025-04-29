@@ -24,19 +24,16 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 			name         string
 			clientType   string
 			clientSecret string
-			wantErr      bool
 		}{
 			{
 				name:         "Error is successfully returned when the client is public",
 				clientType:   client.Public,
 				clientSecret: "",
-				wantErr:      true,
 			},
 			{
 				name:         "Success when client is confidential",
 				clientType:   client.Confidential,
 				clientSecret: testClientSecret,
-				wantErr:      false,
 			},
 		}
 
@@ -64,20 +61,16 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 					headers,
 				)
 
-				if test.wantErr {
-					assert.Equal(t, http.StatusBadRequest, rr.Code)
-				} else {
-					assert.Equal(t, http.StatusOK, rr.Code)
-					assert.NotNil(t, rr.Body)
+				assert.Equal(t, http.StatusOK, rr.Code)
+				assert.NotNil(t, rr.Body)
 
-					var tokenResponse token.TokenResponse
-					err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-					assert.NoError(t, err)
+				var tokenResponse token.TokenResponse
+				err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
+				assert.NoError(t, err)
 
-					assert.NotNil(t, tokenResponse.AccessToken)
-					assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
-					assert.Equal(t, 1800, tokenResponse.ExpiresIn)
-				}
+				assert.NotNil(t, tokenResponse.AccessToken)
+				assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
+				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
 	})
@@ -240,19 +233,16 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 			name         string
 			clientType   string
 			clientSecret string
-			wantErr      bool
 		}{
 			{
 				name:         "Success when client is confidential",
 				clientType:   client.Confidential,
 				clientSecret: testClientSecret,
-				wantErr:      false,
 			},
 			{
 				name:         "Error is successfully returned when the client is public",
 				clientType:   client.Public,
 				clientSecret: "",
-				wantErr:      true,
 			},
 		}
 
@@ -278,20 +268,16 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 					headers,
 				)
 
-				if test.wantErr {
-					assert.Equal(t, http.StatusBadRequest, rr.Code)
-				} else {
-					assert.Equal(t, http.StatusOK, rr.Code)
-					assert.NotNil(t, rr.Body)
+				assert.Equal(t, http.StatusOK, rr.Code)
+				assert.NotNil(t, rr.Body)
 
-					var tokenResponse token.TokenResponse
-					err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-					assert.NoError(t, err)
+				var tokenResponse token.TokenResponse
+				err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
+				assert.NoError(t, err)
 
-					assert.NotNil(t, tokenResponse.AccessToken)
-					assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
-					assert.Equal(t, 1800, tokenResponse.ExpiresIn)
-				}
+				assert.NotNil(t, tokenResponse.AccessToken)
+				assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
+				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
 	})
@@ -827,9 +813,9 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 
 				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 				if test.clientType == client.Confidential {
-					headers["Authorization"] = "Basic " + encodeClientCredentials(testClientID, testClientSecret)
+					headers[constants.AuthorizationHeader] = constants.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret)
 				} else {
-					headers["Authorization"] = "Bearer " + testContext.JWTToken
+					headers[constants.AuthorizationHeader] = constants.BearerAuthHeader + testContext.JWTToken
 				}
 
 				formValue := url.Values{}

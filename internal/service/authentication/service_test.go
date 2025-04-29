@@ -209,7 +209,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 	t.Run("Error is returned authenticating the user", func(t *testing.T) {
 		mockUserService := &mUserService.MockUserService{
 			GetUserByUsernameFunc: func(ctx context.Context, username string) (*user.User, error) {
-				return nil, nil
+				return nil, errors.New(errors.ErrCodeUserNotFound, "user not found with the given ID")
 			},
 		}
 		mockClientService := &mClientService.MockClientService{

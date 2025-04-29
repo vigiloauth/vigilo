@@ -130,7 +130,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 				rr := testContext.SendHTTPRequest(http.MethodGet, test.endpoint, nil, nil)
 				assert.Equal(t, http.StatusBadRequest, rr.Code)
-				testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing required OAuth parameters")
+				testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing required parameters")
 			})
 		}
 	})

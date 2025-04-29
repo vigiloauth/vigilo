@@ -72,7 +72,7 @@ func TestInMemoryClientStore_DeleteClient(t *testing.T) {
 	assert.NoError(t, err, "expected no error when deleting client")
 
 	existingClient, err := cs.GetClientByID(ctx, clientID)
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, existingClient, "expected client to be nil")
 }
 

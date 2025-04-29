@@ -254,9 +254,7 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 func (s *authorizationService) validateUserScopes(ctx context.Context, userID string, requestedScopes []string) (*user.User, error) {
 	retrievedUser, err := s.userService.GetUserByID(ctx, userID)
 	if err != nil {
-		return nil, errors.NewInternalServerError()
-	} else if retrievedUser == nil {
-		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid token subject")
+		return nil, errors.Wrap(err, errors.ErrCodeUnauthorized, "invalid user credentials")
 	}
 
 	for _, scope := range requestedScopes {
@@ -271,9 +269,7 @@ func (s *authorizationService) validateUserScopes(ctx context.Context, userID st
 func (s *authorizationService) validateClientScopes(ctx context.Context, clientID string, requestedScopes []string) error {
 	retrievedClient, err := s.clientService.GetClientByID(ctx, clientID)
 	if err != nil {
-		return errors.NewInternalServerError()
-	} else if retrievedClient == nil {
-		return errors.New(errors.ErrCodeUnauthorized, "invalid token audience")
+		return errors.Wrap(err, errors.ErrCodeUnauthorized, "invalid client credentials")
 	}
 
 	for _, scope := range requestedScopes {

@@ -154,7 +154,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code, "Expected HTTP status code 401 Unauthorized, got %d", rr.Code)
-		assert.Contains(t, rr.Body.String(), "invalid token subject", "Expected error message for invalid token subject")
+		assert.Contains(t, rr.Body.String(), "invalid user credentials", "Expected error message for invalid token subject")
 	})
 
 	t.Run("Unauthorized error is returned when the token audience is invalid", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code, "Expected HTTP status code 401 Unauthorized, got %d", rr.Code)
-		assert.Contains(t, rr.Body.String(), "invalid token audience", "Expected error message for invalid token audience")
+		assert.Contains(t, rr.Body.String(), "invalid client credentials", "Expected error message for invalid token audience")
 	})
 
 	t.Run("Forbidden error is returned when the user does not have the requested scopes", func(t *testing.T) {

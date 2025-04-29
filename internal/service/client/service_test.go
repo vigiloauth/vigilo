@@ -130,7 +130,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 
 	t.Run("Client Does Not Exist", func(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return nil, nil
+			return nil, errors.New(errors.ErrCodeClientNotFound, "client not found")
 		}
 
 		cs := NewClientService(mockClientStore, nil)
@@ -224,11 +224,11 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 
 	t.Run("Error is returned when 'client_id' is invalid", func(t *testing.T) {
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return nil, nil
+			return nil, errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
 		}
 
 		cs := NewClientService(mockClientStore, nil)
-		expected := errors.New(errors.ErrCodeInvalidClient, "client does not exist with the given ID")
+		expected := errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client: client does not exist with the given ID")
 		response, actual := cs.RegenerateClientSecret(ctx, testClientID)
 
 		assert.Error(t, actual)
@@ -763,7 +763,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 	t.Run("Client does not exist", func(t *testing.T) {
 		mockClientRepo := &mockClient.MockClientRepository{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
-				return nil, nil
+				return nil, errors.New(errors.ErrCodeInvalidClient, "client credentials are either missing or invalid")
 			},
 		}
 
@@ -772,7 +772,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 		err := service.AuthenticateClient(ctx, testClientID, testClientSecret, constants.PasswordGrant, constants.ClientManage)
 
 		assert.Error(t, err)
-		assert.Equal(t, "client credentials are either missing or invalid", err.Error())
+		assert.Equal(t, "failed to retrieve client: client credentials are either missing or invalid", err.Error())
 	})
 
 	t.Run("Client does not have required grant type", func(t *testing.T) {
