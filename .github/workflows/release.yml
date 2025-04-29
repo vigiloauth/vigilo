@@ -86,8 +86,18 @@ jobs:
         run: |
           version=${{ steps.semantic.outputs.new_release_version }}
           echo "Building Docker image for version $version"
-          docker build -f Dockerfile -t vigiloauth/server:$version -t vigiloauth/server:latest .
+          docker build \
+            -f Dockerfile \
+            -t vigiloauth/server:$version \
+            -t vigiloauth/server:latest \
+            --build-arg SMTP_USERNAME=${{ secrets.SMTP_USERNAME }} \
+            --build-arg SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }} \
+            --build-arg SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }} \
+            --build-arg TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }} \
+            --build-arg TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }} \
+            --build-arg TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }} \
+            --build-arg CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }} \
+            .
           echo "Pushing Docker image..."
           docker push vigiloauth/server:$version
           docker push vigiloauth/server:latest
-        working-directory: ${{ github.workspace }}
