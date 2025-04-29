@@ -84,6 +84,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Enable BuildKit
+        run: echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+
       - name: Build and Push Docker Image
         if: steps.semantic.outputs.new_release_version != ''
         uses: docker/build-push-action@v5
