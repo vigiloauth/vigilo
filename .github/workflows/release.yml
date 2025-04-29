@@ -73,7 +73,10 @@ jobs:
           echo "ENV version: ${{ env.NEW_RELEASE_VERSION }}"
           # List Docker images
           docker images
-          
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to Docker Hub
         if: steps.semantic.outputs.new_release_published == 'true'
         uses: docker/login-action@v3
@@ -83,21 +86,19 @@ jobs:
 
       - name: Build and Push Docker Image
         if: steps.semantic.outputs.new_release_version != ''
-        run: |
-          version=${{ steps.semantic.outputs.new_release_version }}
-          echo "Building Docker image for version $version"
-          docker build \
-            -f Dockerfile \
-            -t vigiloauth/server:$version \
-            -t vigiloauth/server:latest \
-            --build-arg SMTP_USERNAME=${{ secrets.SMTP_USERNAME }} \
-            --build-arg SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }} \
-            --build-arg SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }} \
-            --build-arg TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }} \
-            --build-arg TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }} \
-            --build-arg TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }} \
-            --build-arg CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }} \
-            .
-          echo "Pushing Docker image..."
-          docker push vigiloauth/server:$version
-          docker push vigiloauth/server:latest
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            vigiloauth/server:${{ steps.semantic.outputs.new_release_version }}
+            vigiloauth/server:latest
+          build-args: |
+            SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
+            SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }}
+            TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}
+            TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}
+            CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }}
