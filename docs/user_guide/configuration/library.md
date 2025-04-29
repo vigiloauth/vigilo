@@ -12,7 +12,7 @@
     - [3.4 Password Configuration](#34-password-configuration)
     - [3.5 SMTP Configuration](#35-smtp-configuration)
     - [3.6 Audit Log Configuration](#36-audit-log-configuration)
-    - [3.7 Full Example](#36-full-example)
+    - [3.7 Full Example](#37-full-example)
   - [4. When to Use](#4-when-to-use)
   - [5. Next Steps](#5-next-steps)
 
@@ -34,7 +34,7 @@ In your Go application, import the necessary modules to start using **VigiloAuth
 ```go
 package main
 
-import "github.com/vigiloauth/vigilo/identity/server"
+import "github.com/vigiloauth/vigilo/v2/idp/server"
 ```
 
 ---
@@ -48,9 +48,10 @@ package main
 
 import (
     "fmt"
-    "github.com/go-chi/chi/v5"
-    "github.com/vigiloauth/vigilo/identity/server"
     "net/http"
+
+    "github.com/go-chi/chi/v5"
+    "github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 func main() {
@@ -90,7 +91,7 @@ import (
     ...
 
     // Add the configuration file
-    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 func main() {
@@ -122,7 +123,7 @@ import (
     ...
 
     // Add the configuration file
-    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 func main() {
@@ -153,7 +154,7 @@ import (
     ...
 
     // Add the configuration file
-    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 func main() {
@@ -183,7 +184,7 @@ import (
     ...
 
     // Add the configuration file
-    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 func main() {
@@ -215,7 +216,7 @@ import (
     ...
 
     // Add the configuration file
-    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 func main() {
@@ -247,7 +248,7 @@ import (
     ...
 
     // Add the configuration file
-    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 func main() {
@@ -272,10 +273,10 @@ package main
 
 import (
     "fmt"
-    "github.com/go-chi/chi/v5"
-    "github.com/vigiloauth/vigilo/identity/server"
     "net/http"
-    "github.com/vigiloauth/vigilo/identity/config"
+    "github.com/go-chi/chi/v5"
+    "github.com/vigiloauth/vigilo/v2/idp/server"
+    "github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 func main() {

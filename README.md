@@ -4,12 +4,19 @@
 ![Github Repo Starts](https://img.shields.io/github/stars/vigiloauth/vigilo?style=flat)
 
 ## Table of Contents
-- [Introduction](#1-introduction)
-- [Features](#2-features)
-- [Documentation](#3-documentation)
-- [Getting Started](#4-getting-started)
-- [Contributing](#5-contributing)
-- [License](#6-license)
+- [VigiloAuth](#vigiloauth)
+	- [Table of Contents](#table-of-contents)
+	- [1. Introduction](#1-introduction)
+	- [2. Features](#2-features)
+		- [2.1 Currently Implemented](#21-currently-implemented)
+		- [2.2 Planned Features](#22-planned-features)
+	- [3. Documentation](#3-documentation)
+	- [4. Getting Started](#4-getting-started)
+	- [5. Contributing](#5-contributing)
+		- [5.1 How to Contribute](#51-how-to-contribute)
+		- [5.2 Commit Standards](#52-commit-standards)
+		- [5.3 Commit Types](#53-commit-types)
+	- [6. License](#6-license)
 
 ## 1. Introduction
 ⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
@@ -65,15 +72,15 @@ Comprehensive documentation is available in the [User Guide](docs/user_guide/REA
 
 ## 4. Getting Started
 To install the library in your application, simply run:
-`go get -u github.com/vigiloauth/vigilo@<latest available version>`
+`go get -u github.com/vigiloauth/vigilo/v2@<latest available version>`
 ```go
 package main
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/identity/server"
 	"net/http"
+	"github.com/go-chi/chi/v5"
+	"github.com/vigiloauth/vigilo/v2/idp/server"
 )
 
 func main() {

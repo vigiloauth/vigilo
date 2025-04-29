@@ -67,8 +67,8 @@ package main
 import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/identity/server"
-	"github.com/vigiloauth/vigilo/identity/config"
+	"github.com/vigiloauth/vigilo/v2/identity/server"
+	"github.com/vigiloauth/vigilo/v2/identity/config"
 	"net/http"
 )
 
