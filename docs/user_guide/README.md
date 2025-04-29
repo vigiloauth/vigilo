@@ -41,7 +41,7 @@ Whether you're building a web application, API, or microservices architecture, *
 ## 3. Getting Started
 
 ### 3.1 Installation
-VigiloAuth offers will run as a Docker instance in your application. For more information, refer to the installation guide below: 
+VigiloAuth will run as a Docker instance in your application. For more information, refer to the installation guide below: 
 - [Docker Installation Guide](./configuration/docker.md)
 
 Ensure you have the following prerequisites:
