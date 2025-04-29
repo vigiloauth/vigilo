@@ -64,10 +64,9 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - 🛠️ **Dynamic Database Configuration**
 
 ## 3. Documentation
-Comprehensive documentation is available in the [User Guide](docs/user_guide/README.md).
-- [Installation Guide](docs/user_guide/installation.md)
-- [Configuration Guide](docs/user_guide/configuration.md)
-- [Identity API Endpoints](docs/user_guide/endpoints/identity/README.md)
+Comprehensive documentation is available in the [User Guide](./docs/user_guide/README.md).
+- [Configuration Guide](./docs/user_guide/configuration/configuration_guide.md)
+- [Identity API Endpoints](./docs/user_guide/identity/README.md)
 
 ## 4. Contributing
 We welcome contributions to improve VigiloAuth! Follow the steps below to ensure a smooth contribution process.

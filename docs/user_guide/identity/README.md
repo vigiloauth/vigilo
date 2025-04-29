@@ -14,7 +14,6 @@ This documentation provides a comprehensive guide to configuring and utilizing t
 
 
 ## Documentation
-- [Configuration Guide](../../configuration.md)
 - **User Management:**
     - [User Registration](../identity/endpoints/user_handler/user_registration.md)
     - [Basic User Authentication](../identity/endpoints/user_handler/basic_user_authentication.md)
