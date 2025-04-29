@@ -36,7 +36,6 @@ jobs:
           echo "TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}" >> .env
           echo "TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}" >> .env
           echo "CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }}" >> .env
-  
 
       - name: Install semantic-release
         run: npm install -g semantic-release @semantic-release/github
@@ -48,35 +47,20 @@ jobs:
         run: |
           result=$(npx semantic-release)
           echo "$result"
-      
+
           version=$(echo "$result" | grep -oP 'Published release \K[^\s]+')
-      
+
           if [[ -n "$version" ]]; then
             echo "new_release_published=true" >> $GITHUB_OUTPUT
             echo "new_release_version=$version" >> $GITHUB_OUTPUT
           else
             echo "new_release_published=false" >> $GITHUB_OUTPUT
           fi
-      
+
       # This crucial step fetches the newly created tag
       - name: Fetch tags
         if: steps.semantic.outputs.new_release_published == 'true'
         run: git fetch --tags origin
-
-      - name: Install GoReleaser
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          install-only: true
-
-      - name: Run GoReleaser
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          version: latest
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
 
       - name: Debug Docker Build
         run: |
@@ -103,4 +87,3 @@ jobs:
           docker push vigiloauth/server:$version
           docker push vigiloauth/server:latest
         working-directory: ${{ github.workspace }}
-        

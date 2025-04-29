@@ -12,12 +12,11 @@ Welcome to the **VigiloAuth** User Guide! This guide will help you get started w
 	- [3. Getting Started](#3-getting-started)
 		- [3.1 Installation](#31-installation)
 		- [3.2 Configuration](#32-configuration)
-	- [4. Quick Start](#4-quick-start)
-	- [5. Contributing](#5-contributing)
-		- [5.1 How to Contribute](#51-how-to-contribute)
-		- [5.2 Commit Standards](#52-commit-standards)
+	- [4. Contributing](#4-contributing)
+		- [4.1 How to Contribute](#41-how-to-contribute)
+		- [4.2 Commit Standards](#42-commit-standards)
 		- [5.3 Commit Types](#53-commit-types)
-	- [6. License](#6-license)
+	- [5. License](#5-license)
 
 ---
 
@@ -42,8 +41,7 @@ Whether you're building a web application, API, or microservices architecture, *
 ## 3. Getting Started
 
 ### 3.1 Installation
-VigiloAuth offers two ways to run your own authentication server: as a library implementation or as a standalone Docker instance. To decide which version to use, refer to the installation guides below:
-- [Library Installation Guide](./configuration/library.md)
+VigiloAuth offers will run as a Docker instance in your application. For more information, refer to the installation guide below: 
 - [Docker Installation Guide](./configuration/docker.md)
 
 Ensure you have the following prerequisites:
@@ -57,42 +55,10 @@ For a deeper understanding of how our configurations work, refer to the followin
 
 ---
 
-## 4. Quick Start
-
-Here’s a minimal example to get you started with **VigiloAuth**:
-
-```go
-package main
-
-import (
-	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/identity/server"
-	"github.com/vigiloauth/vigilo/identity/config"
-	"net/http"
-)
-
-func main() {
-	appRouter := chi.NewRouter() 
-	
-    // Initialize the VigiloIdentityServer with default configuration
-	vigiloIdentityServer := server.NewVigiloIdentityServer()
-	
-	// Retrieve the Vigilo Identity router.
-	vigiloIdentityRouter := vigiloIdentityServer.Router()
-	
-	// Mount the VigiloIdentity router to your application's router.
-	appRouter.Mount("/identity", vigiloIdentityRouter)
-	
-	fmt.Println("Starting server on :8080")
-	http.ListenAndServe(":8080", appRouter)
-}
-```
-
-## 5. Contributing
+## 4. Contributing
 We welcome contributions to improve VigiloAuth! Follow the steps below to ensure a smooth contribution process.
 
-### 5.1 How to Contribute
+### 4.1 How to Contribute
 1. **Fork the Repository:** Create your own fork of the repository on GitHub.
 2. **Clone Your Fork:** Clone your fork locally.
 3. **Create a Branch:** Create a feature or a bug fix branch from master.
@@ -102,7 +68,7 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 7. **Push Your Changes:** Push your branch to your forked repository.
 8. **Open a Pull Request (PR):** Submit a PR to the main repository with a clear description of your changes.
 
-### 5.2 Commit Standards
+### 4.2 Commit Standards
 We follow the **_Conventional Commit_** standards to ensure clear and meaningful commit messages. Use the format:
 ```azure
 <type>[optional scope]: <description>
@@ -120,7 +86,7 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 - `refactor`: Restructure existing code without changing its external behavior. 
 - `test`: Add or modify tests without affecting functionality. 
 
-## 6. License
+## 5. License
 Copyright 2024 Olivier Pimparé-Charbonneau
 
 Licensed under the Apache License, Version 2.0 (the "License");
