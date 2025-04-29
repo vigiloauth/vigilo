@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 )
 
 type AuthorizationCodeService interface {

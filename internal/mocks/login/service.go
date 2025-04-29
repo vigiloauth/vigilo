@@ -3,8 +3,8 @@ package mocks
 import (
 	"context"
 
-	domain "github.com/vigiloauth/vigilo/internal/domain/login"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/login"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 var _ domain.LoginAttemptService = (*MockLoginAttemptService)(nil)

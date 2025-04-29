@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mLoginRepo "github.com/vigiloauth/vigilo/internal/mocks/login"
-	mUserRepo "github.com/vigiloauth/vigilo/internal/mocks/user"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mLoginRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/login"
+	mUserRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 )
 
 const (

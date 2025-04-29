@@ -8,11 +8,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 func TestConsentHandler_UserConsent(t *testing.T) {

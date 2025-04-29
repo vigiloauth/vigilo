@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	domain "github.com/vigiloauth/vigilo/internal/domain/email"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mocks "github.com/vigiloauth/vigilo/internal/mocks/email"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/email"
 )
 
 func TestSMTPJobs_RunHealthCheck(t *testing.T) {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/http"
 
-	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
-	authzCode "github.com/vigiloauth/vigilo/internal/domain/authzcode"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
+	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 var _ authz.AuthorizationService = (*MockAuthorizationService)(nil)

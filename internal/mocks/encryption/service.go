@@ -1,6 +1,6 @@
 package mocks
 
-import domain "github.com/vigiloauth/vigilo/internal/domain/encryption"
+import domain "github.com/vigiloauth/vigilo/v2/internal/domain/encryption"
 
 var _ domain.EncryptionService = (*MockEncryptionService)(nil)
 

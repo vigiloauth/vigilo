@@ -7,15 +7,15 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	"github.com/vigiloauth/vigilo/internal/crypto"
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	users "github.com/vigiloauth/vigilo/internal/domain/user"
-	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
+	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 // UserHandler handles HTTP requests related to OAuth operations.

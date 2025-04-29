@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/vigiloauth/vigilo/internal/constants"
-	domain "github.com/vigiloauth/vigilo/internal/domain/email"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
 	"gopkg.in/gomail.v2"
 )
 

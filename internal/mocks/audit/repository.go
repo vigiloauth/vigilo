@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	domain "github.com/vigiloauth/vigilo/internal/domain/audit"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 )
 
 var _ domain.AuditRepository = (*MockAuditRepository)(nil)

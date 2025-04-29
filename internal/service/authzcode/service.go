@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/crypto"
-	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 var _ authz.AuthorizationCodeService = (*authorizationCodeService)(nil)

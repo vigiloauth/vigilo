@@ -3,7 +3,7 @@ package mocks
 import (
 	"context"
 
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 )
 
 var _ session.SessionRepository = (*MockSessionRepository)(nil)

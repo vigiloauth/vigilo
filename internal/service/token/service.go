@@ -8,11 +8,11 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/square/go-jose/v3"
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/crypto"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 // Ensure TokenService implements the TokenService interface.

@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/vigiloauth/vigilo/internal/crypto"
-	domain "github.com/vigiloauth/vigilo/internal/domain/encryption"
+	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/encryption"
 )
 
 var _ domain.EncryptionService = (*encryptionService)(nil)

@@ -9,7 +9,7 @@ import (
 	"io"
 
 	"github.com/google/uuid"
-	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 

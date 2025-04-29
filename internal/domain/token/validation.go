@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 )
 
 func (t *TokenRequest) ValidateCodeVerifier() error {

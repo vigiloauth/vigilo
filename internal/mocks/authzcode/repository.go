@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 )
 
 var _ authz.AuthorizationCodeRepository = (*MockAuthorizationCodeRepository)(nil)

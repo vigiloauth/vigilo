@@ -6,16 +6,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	users "github.com/vigiloauth/vigilo/internal/domain/user"
-	consent "github.com/vigiloauth/vigilo/internal/domain/userconsent"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mAuthzCodeService "github.com/vigiloauth/vigilo/internal/mocks/authzcode"
-	mClientService "github.com/vigiloauth/vigilo/internal/mocks/client"
-	mSessionService "github.com/vigiloauth/vigilo/internal/mocks/session"
-	mUserRepo "github.com/vigiloauth/vigilo/internal/mocks/user"
-	mConsentRepo "github.com/vigiloauth/vigilo/internal/mocks/userconsent"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
+	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mAuthzCodeService "github.com/vigiloauth/vigilo/v2/internal/mocks/authzcode"
+	mClientService "github.com/vigiloauth/vigilo/v2/internal/mocks/client"
+	mSessionService "github.com/vigiloauth/vigilo/v2/internal/mocks/session"
+	mUserRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
+	mConsentRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/userconsent"
 )
 
 const (

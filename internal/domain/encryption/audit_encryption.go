@@ -1,6 +1,6 @@
 package domain
 
-import domain "github.com/vigiloauth/vigilo/internal/domain/audit"
+import domain "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 
 type AuditEncryptor interface {
 	// EncryptAuditEvent encrypts the sensitive fields of an AuditEvent in place.

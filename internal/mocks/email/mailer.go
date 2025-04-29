@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	domain "github.com/vigiloauth/vigilo/internal/domain/email"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
 	"gopkg.in/gomail.v2"
 )
 

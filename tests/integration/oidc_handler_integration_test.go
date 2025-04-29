@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	clients "github.com/vigiloauth/vigilo/internal/domain/client"
-	jwk "github.com/vigiloauth/vigilo/internal/domain/jwks"
-	oidc "github.com/vigiloauth/vigilo/internal/domain/oidc"
-	users "github.com/vigiloauth/vigilo/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	clients "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	jwk "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
+	oidc "github.com/vigiloauth/vigilo/v2/internal/domain/oidc"
+	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 func TestOIDCHandler_UserInfo(t *testing.T) {

@@ -1,8 +1,8 @@
 package container
 
 import (
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/handlers"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/handlers"
 )
 
 type HandlerRegistry struct {

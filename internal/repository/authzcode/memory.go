@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
-	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 )
 
 const module = "InMemoryAuthorizationCodeRepository"

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 // RateLimiter implements a token bucket rate limiting algorithm.

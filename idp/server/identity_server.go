@@ -2,9 +2,9 @@ package server
 
 import (
 	"github.com/go-chi/chi/v5"
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/container"
-	"github.com/vigiloauth/vigilo/internal/routes"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/container"
+	"github.com/vigiloauth/vigilo/v2/internal/routes"
 )
 
 // VigiloIdentityServer represents the identity library's functionality.

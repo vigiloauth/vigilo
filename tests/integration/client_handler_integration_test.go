@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	clientRepo "github.com/vigiloauth/vigilo/internal/repository/client"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	clientRepo "github.com/vigiloauth/vigilo/v2/internal/repository/client"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 func TestClientHandler_RegisterClient(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/vigiloauth/vigilo/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 )
 
 // DecodeJSONRequest decodes the JSON request body into the provided generic type T.

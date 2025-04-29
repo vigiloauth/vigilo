@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 // AuthenticationService defines methods for issuing OAuth 2.0 tokens

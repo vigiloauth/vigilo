@@ -10,16 +10,16 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	domain "github.com/vigiloauth/vigilo/internal/domain/token"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mAuditLogger "github.com/vigiloauth/vigilo/internal/mocks/audit"
-	mCookieService "github.com/vigiloauth/vigilo/internal/mocks/cookies"
-	mSessionRepo "github.com/vigiloauth/vigilo/internal/mocks/session"
-	mTokenService "github.com/vigiloauth/vigilo/internal/mocks/token"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mAuditLogger "github.com/vigiloauth/vigilo/v2/internal/mocks/audit"
+	mCookieService "github.com/vigiloauth/vigilo/v2/internal/mocks/cookies"
+	mSessionRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/session"
+	mTokenService "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 )
 
 const (

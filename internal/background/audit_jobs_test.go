@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	mocks "github.com/vigiloauth/vigilo/internal/mocks/audit"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/audit"
 )
 
 func TestAuditJobs_PurgeEvents(t *testing.T) {

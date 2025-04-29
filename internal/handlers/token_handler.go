@@ -6,16 +6,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	auth "github.com/vigiloauth/vigilo/internal/domain/authentication"
-	authz "github.com/vigiloauth/vigilo/internal/domain/authorization"
-	session "github.com/vigiloauth/vigilo/internal/domain/session"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	auth "github.com/vigiloauth/vigilo/v2/internal/domain/authentication"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 type TokenHandler struct {

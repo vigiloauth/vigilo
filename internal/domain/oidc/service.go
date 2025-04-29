@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	jwks "github.com/vigiloauth/vigilo/internal/domain/jwks"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
+	jwks "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 type OIDCService interface {

@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	domain "github.com/vigiloauth/vigilo/internal/domain/user"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 type LoginAttemptService interface {

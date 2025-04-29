@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 // LoginAttemptRepository defines the interface for storing and retrieving login attempts.

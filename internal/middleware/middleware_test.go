@@ -10,10 +10,10 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/idp/config"
-	token "github.com/vigiloauth/vigilo/internal/domain/token"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mocks "github.com/vigiloauth/vigilo/internal/mocks/token"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 )
 
 const email string = "test@example.com"

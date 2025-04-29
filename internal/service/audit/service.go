@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/vigiloauth/vigilo/idp/config"
-	audit "github.com/vigiloauth/vigilo/internal/domain/audit"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	"github.com/vigiloauth/vigilo/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
+	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 var _ audit.AuditLogger = (*auditLogger)(nil)

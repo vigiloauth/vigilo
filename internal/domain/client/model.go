@@ -5,7 +5,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/vigiloauth/vigilo/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
 )
 
 // Client represents an OAuth client with its attributes and authentication details.

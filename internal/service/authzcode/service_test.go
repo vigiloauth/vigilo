@@ -7,15 +7,15 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/internal/constants"
-	"github.com/vigiloauth/vigilo/internal/crypto"
-	authz "github.com/vigiloauth/vigilo/internal/domain/authzcode"
-	client "github.com/vigiloauth/vigilo/internal/domain/client"
-	user "github.com/vigiloauth/vigilo/internal/domain/user"
-	"github.com/vigiloauth/vigilo/internal/errors"
-	mAuthzRepository "github.com/vigiloauth/vigilo/internal/mocks/authzcode"
-	mClientService "github.com/vigiloauth/vigilo/internal/mocks/client"
-	mUserService "github.com/vigiloauth/vigilo/internal/mocks/user"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mAuthzRepository "github.com/vigiloauth/vigilo/v2/internal/mocks/authzcode"
+	mClientService "github.com/vigiloauth/vigilo/v2/internal/mocks/client"
+	mUserService "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 )
 
 const (

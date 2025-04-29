@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vigiloauth/vigilo/internal/web"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 // LoginConfig holds the configuration for login attempt throttling.

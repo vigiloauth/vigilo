@@ -3,7 +3,7 @@ package container
 import (
 	"sync"
 
-	"github.com/vigiloauth/vigilo/idp/config"
+	"github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
 type DIContainer struct {
