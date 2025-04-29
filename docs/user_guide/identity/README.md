@@ -17,7 +17,8 @@ This documentation provides a comprehensive guide to configuring and utilizing t
 - [Configuration Guide](../../configuration.md)
 - **User Management:**
     - [User Registration](../identity/endpoints/user_handler/user_registration.md)
-    - [User Login](../identity/endpoints/identity/endpoints/user_handler/user_login.md)
+    - [Basic User Authentication](../identity/endpoints/user_handler/basic_user_authentication.md)
+    - [OAuth 2.0 User Authentication](../identity/endpoints/user_handler/oauth_user_authentication.md)
     - [User Logout](../identity/endpoints/user_handler/user_logout.md)
     - [Password Reset](../identity/endpoints/user_handler/password_reset.md)
     - [Password Reset Email Request](../identity/endpoints/user_handler/password_reset_request.md)
@@ -39,10 +40,10 @@ This documentation provides a comprehensive guide to configuring and utilizing t
     - [Token Revocation](../identity/endpoints/token_handler/token_revocation.md)
 - **Authorization Code Flow:**
     - [Client Authorization](../identity/endpoints/authz_handler/authorize_client.md)
-    - [User Authentication](../identity/endpoints/oauth_handler/user_authentication.md)
-    - [User Consent](../identity/endpoints/oauth_handler/user_consent.md)
+    - [User Consent](../identity/endpoints/consent_handler/user_consent.md)
     - [Token Exchange](../identity/endpoints/token_handler/token_exchange.md)
-- **Open ID Connect Flows:**
+- **Open ID Connect Endpoints:**
     - [UserInfo Endpoint](../identity/endpoints/oidc_handler/user_info.md)
     - [JWKS Endpoint](../identity/endpoints/oidc_handler/jwks.md)
+    - [Discovery Endpoint](../identity/endpoints/oidc_handler/discovery.md)
 
