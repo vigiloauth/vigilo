@@ -97,10 +97,11 @@ jobs:
           build-args: |
             SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
             SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }}
-            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
-            TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }}
-            TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}
-            TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}
-            CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }}
+          secrets: |
+            "smtp_password=${{ secrets.SMTP_PASSWORD }}"
+            "token_issuer=${{ secrets.TOKEN_ISSUER }}"
+            "token_private_key=${{ secrets.TOKEN_PRIVATE_KEY }}"
+            "token_public_key=${{ secrets.TOKEN_PUBLIC_KEY }}"
+            "crypto_secret_key=${{ secrets.CRYPTO_SECRET_KEY }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max

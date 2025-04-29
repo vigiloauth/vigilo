@@ -121,7 +121,7 @@ func (cfg *SMTPConfig) loadOptions(opts ...SMTPConfigOptions) {
 func defaultSMTPConfig() *SMTPConfig {
 	fromAddress := os.Getenv(constants.SMTPFromAddressENV)
 	username := os.Getenv(constants.SMTPUsernameENV)
-	password := os.Getenv(constants.SMTPPasswordENV)
+	password := getSecretOrEnv(constants.SMTPPasswordPath, constants.SMTPPasswordENV)
 
 	return &SMTPConfig{
 		host:        defaultSMTPHost,

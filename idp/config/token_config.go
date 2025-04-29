@@ -4,7 +4,6 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -171,9 +170,21 @@ func (j *TokenConfig) String() string {
 }
 
 func defaultTokenConfig() *TokenConfig {
-	privateKeyBase64 := os.Getenv(constants.TokenPrivateKeyENV)
-	publicKeyBase64 := os.Getenv(constants.TokenPublicKeyENV)
-	issuer := os.Getenv(constants.TokenIssuerENV)
+	privateKeyBase64 := getSecretOrEnv(constants.TokenPrivateKeyPath, constants.TokenPrivateKeyENV)
+	publicKeyBase64 := getSecretOrEnv(constants.TokenPublicKeyPath, constants.TokenPublicKeyENV)
+	issuer := getSecretOrEnv(constants.TokenIssuerPath, constants.TokenIssuerENV)
+
+	if privateKeyBase64 == "" {
+		panic("Private key not found in secret or environment variable")
+	}
+
+	if publicKeyBase64 == "" {
+		panic("Public key not found in secret or environment variable")
+	}
+
+	if issuer == "" {
+		panic("Token issuer not found in secret or environment variable")
+	}
 
 	privateKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
 	if err != nil {
