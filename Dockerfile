@@ -25,12 +25,6 @@ RUN --mount=type=secret,id=smtp_password \
     --mount=type=secret,id=token_issuer \
     --mount=type=secret,id=token_private_key \
     --mount=type=secret,id=token_public_key \
-    --mount=type=secret,id=crypto_secret_key \
-    mkdir -p /run/secrets && \
-    cat /run/secrets/smtp_password > /run/secrets/smtp_password && \
-    cat /run/secrets/token_issuer > /run/secrets/token_issuer && \
-    cat /run/secrets/token_private_key > /run/secrets/token_private_key && \
-    cat /run/secrets/token_public_key > /run/secrets/token_public_key && \
-    cat /run/secrets/crypto_secret_key > /run/secrets/crypto_secret_key
+    --mount=type=secret,id=crypto_secret_key 
 
 CMD ["./identity-server"]
