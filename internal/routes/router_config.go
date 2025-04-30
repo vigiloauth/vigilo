@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/cors"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	"github.com/vigiloauth/vigilo/v2/internal/container"
@@ -73,15 +72,6 @@ func (rc *RouterConfig) applyGlobalMiddleware() {
 	} else {
 		rc.logger.Warn(rc.module, "", "The Vigilo Identity Provider is running on HTTP. It is recommended to enable HTTPS in production environments")
 	}
-
-	rc.router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", constants.RequestIDHeader},
-		ExposedHeaders:   []string{"Link", constants.RequestIDHeader},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
 }
 
 func (rc *RouterConfig) setupErrorHandlers() {
