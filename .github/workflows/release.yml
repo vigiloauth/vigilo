@@ -27,16 +27,6 @@ jobs:
         with:
           node-version: 'lts/*'
 
-      - name: Create .env file
-        run: |
-          echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env
-          echo "SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }}" >> .env
-          echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
-          echo "TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }}" >> .env
-          echo "TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}" >> .env
-          echo "TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}" >> .env
-          echo "CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }}" >> .env
-
       - name: Install semantic-release
         run: npm install -g semantic-release @semantic-release/github
 
@@ -78,15 +68,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Write secret files
-        run: |
-          echo "${{ secrets.SMTP_USERNAME }}" > smtp_username.txt
-          echo "${{ secrets.SMTP_FROM_ADDRESS }}" > smtp_from_address.txt
-          echo "${{ secrets.SMTP_PASSWORD }}" > smtp_password.txt
-          echo "${{ secrets.TOKEN_ISSUER }}" > token_issuer.txt
-          echo "${{ secrets.TOKEN_PRIVATE_KEY }}" > token_private_key.txt
-          echo "${{ secrets.TOKEN_PUBLIC_KEY }}" > token_public_key.txt
-
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
@@ -96,19 +77,5 @@ jobs:
           tags: |
             vigiloauth/server:${{ steps.semantic.outputs.new_release_version }}
             vigiloauth/server:latest
-          secrets: |
-            "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}"
-            "SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }}"
-            "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}"
-            "TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }}"
-            "TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}"
-            "TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}"
-          secret-files: |
-            "SMTP_USERNAME=./smtp_username.txt"
-            "SMTP_FROM_ADDRESS=./smtp_from_address.txt"
-            "SMTP_PASSWORD=./smtp_password.txt"
-            "TOKEN_ISSUER=./token_issuer.txt"
-            "TOKEN_PRIVATE_KEY=./token_private_key.txt"
-            "TOKEN_PUBLIC_KEY=./token_public_key.txt"
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -5,7 +5,6 @@
   - [Table of Contents](#table-of-contents)
   - [1. Add VigiloAuth to Your Project](#1-add-vigiloauth-to-your-project)
   - [2. Import the Library](#2-import-the-library)
-  - [3. Basic Setup Example](#3-basic-setup-example)
     - [3.1 Configuring The Server](#31-configuring-the-server)
     - [3.2 Token Configuration](#32-token-configuration)
     - [3.3 Login Configuration](#33-login-configuration)
@@ -34,11 +33,22 @@ services:
         ports:
          - "8080:8080"
         volumes:
+         # Mount your YAML configuration file into the container
          - ./<path to your yaml config>:/app/vigilo.yaml
         environment:
-         VIGILO_CONFIG_PATH: /app/vigilo.yaml
-```
+          # Tell the container where to find the YAML config
+          VIGILO_CONFIG_PATH: /app/vigilo.yaml
 
+          # --- REQUIRED SECRETS (Provided via Environment Variables) ---
+          # The following secrets MUST be provided as environment variables.
+          # Do NOT put these sensitive values directly in this docker-compose.yaml file.
+          # Define them in a .env file next to this docker-compose.yaml, or in your shell environment.
+          SMTP_USERNAME: ${SMTP_USERNAME}
+          SMTP_PASSWORD: ${SMTP_PASSWORD}
+          SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
+          TOKEN_PRIVATE_KEY: ${TOKEN_PRIVATE_KEY} # Base64 encoded RSA private key
+          TOKEN_PUBLIC_KEY: ${TOKEN_PUBLIC_KEY} # Base64 encoded RSA public key
+          TOKEN_ISSUER: ${TOKEN_ISSUER}
 ---
 
 ## 3. Basic Setup Example
