@@ -45,48 +45,49 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_TOKEN }}
         run: |
-          result=$(npx semantic-release)
+          result=$(npx semantic-release || echo "No new release")
           echo "$result"
 
-          version=$(echo "$result" | grep -oP 'Published release \K[^\s]+')
+          version=$(echo "$result" | grep -oP 'Published release \K[^\s]+' || echo "")
 
           if [[ -n "$version" ]]; then
             echo "new_release_published=true" >> $GITHUB_OUTPUT
             echo "new_release_version=$version" >> $GITHUB_OUTPUT
           else
             echo "new_release_published=false" >> $GITHUB_OUTPUT
+            # Get latest tag for Docker image when no new release
+            latest_tag=$(git describe --tags --abbrev=0 || echo "latest")
+            echo "new_release_version=$latest_tag" >> $GITHUB_OUTPUT
           fi
 
-      - name: Exit if no new release
-        if: steps.semantic.outputs.new_release_published == 'false'
-        run: echo "No new release published. Exiting gracefully."
-        continue-on-error: true
-
       - name: Fetch tags
-        if: steps.semantic.outputs.new_release_published == 'true'
         run: git fetch --tags origin
 
       - name: Debug Docker Build
-        if: steps.semantic.outputs.new_release_published == 'true'
         run: |
           echo "New release published: ${{ steps.semantic.outputs.new_release_published }}"
-          echo "New version: ${{ steps.semantic.outputs.new_release_version }}"
-          echo "ENV version: ${{ env.NEW_RELEASE_VERSION }}"
-          # List Docker images
+          echo "Version for Docker: ${{ steps.semantic.outputs.new_release_version }}"
           docker images
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: steps.semantic.outputs.new_release_published == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Write secret files
+        run: |
+          echo "${{ secrets.SMTP_USERNAME }}" > smtp_username.txt
+          echo "${{ secrets.SMTP_FROM_ADDRESS }}" > smtp_from_address.txt
+          echo "${{ secrets.SMTP_PASSWORD }}" > smtp_password.txt
+          echo "${{ secrets.TOKEN_ISSUER }}" > token_issuer.txt
+          echo "${{ secrets.TOKEN_PRIVATE_KEY }}" > token_private_key.txt
+          echo "${{ secrets.TOKEN_PUBLIC_KEY }}" > token_public_key.txt
+
       - name: Build and Push Docker Image
-        if: steps.semantic.outputs.new_release_version != ''
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -95,14 +96,19 @@ jobs:
           tags: |
             vigiloauth/server:${{ steps.semantic.outputs.new_release_version }}
             vigiloauth/server:latest
-          build-args: |
-            SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
-            SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }}
           secrets: |
-            "smtp_password=${{ secrets.SMTP_PASSWORD }}"
-            "token_issuer=${{ secrets.TOKEN_ISSUER }}"
-            "token_private_key=${{ secrets.TOKEN_PRIVATE_KEY }}"
-            "token_public_key=${{ secrets.TOKEN_PUBLIC_KEY }}"
-            "crypto_secret_key=${{ secrets.CRYPTO_SECRET_KEY }}"
+            "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}"
+            "SMTP_FROM_ADDRESS=${{ secrets.SMTP_FROM_ADDRESS }}"
+            "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}"
+            "TOKEN_ISSUER=${{ secrets.TOKEN_ISSUER }}"
+            "TOKEN_PRIVATE_KEY=${{ secrets.TOKEN_PRIVATE_KEY }}"
+            "TOKEN_PUBLIC_KEY=${{ secrets.TOKEN_PUBLIC_KEY }}"
+          secret-files: |
+            "SMTP_USERNAME=./smtp_username.txt"
+            "SMTP_FROM_ADDRESS=./smtp_from_address.txt"
+            "SMTP_PASSWORD=./smtp_password.txt"
+            "TOKEN_ISSUER=./token_issuer.txt"
+            "TOKEN_PRIVATE_KEY=./token_private_key.txt"
+            "TOKEN_PUBLIC_KEY=./token_public_key.txt"
           cache-from: type=gha
           cache-to: type=gha,mode=max

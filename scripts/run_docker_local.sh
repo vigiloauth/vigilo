@@ -10,18 +10,21 @@ IMAGE_NAME="vigilo-auth"
 TAG_NAME="local"
 CONTAINER_PORT=8080
 
-# Stop and remove only the specific container if it exists
-echo "Cleaning up any existing test containers..."
-docker rm -f $CONTAINER_NAME:$TAG_NAME 2>/dev/null || true
+# Stop all running containers
+echo "Stopping all running Docker containers..."
+docker stop $(docker ps -q) 2>/dev/null || true
+
+# Remove all containers (not just running ones)
+echo "Removing all Docker containers..."
+docker rm $(docker ps -a -q) 2>/dev/null || true
 
 # Build the Docker image
 echo "Building Docker image..."
+cd ..
 docker build -t $IMAGE_NAME:$TAG_NAME .
 
 # Run the container
-echo "Starting conformance test container..."
+echo "Starting local container..."
 docker run -p $CONTAINER_PORT:$CONTAINER_PORT --name $CONTAINER_NAME \
   --env-file .env \
   $IMAGE_NAME:$TAG_NAME
-
-echo "Container started successfully. Running on port $CONTAINER_PORT"
