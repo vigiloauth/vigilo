@@ -63,6 +63,9 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - 🛠️ **Social Login Integration Hooks**
 - 🛠️ **Dynamic Database Configuration**
 
+### 2.3 Open ID Conformance Tests
+You can find the list of our currently passing conformance tests [here](./oidc_conformance_tests.md).
+
 ## 3. Documentation
 Comprehensive documentation is available in the [User Guide](./docs/user_guide/README.md).
 - [Configuration Guide](./docs/user_guide/configuration/configuration_guide.md)
