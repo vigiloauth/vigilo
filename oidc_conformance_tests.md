@@ -1,19 +1,12 @@
 # OpenID Connect Conformance Tests Checklist
 
 ## Setup
-1. The official conformance suite is available as open source software on GitHub: https://github.com/openid-certification/conformance-suite
-2. It's containerized using Docker, so you'll need Docker and Docker Compose installed on your system.
-3. You can clone the repository and follow the setup instructions to deploy it locally:
-```
-git clone https://github.com/openid-certification/conformance-suite.git
-cd conformance-suite
-```
-4. Configure the test suite by creating necessary configuration files (details are in the repository's documentation).
-5. Start the test suite using Docker Compose:
-```
-docker-compose up
-```
-6. Once running, you can access the web interface (typically at http://localhost:8443) to configure and run specific test plans against your OpenID Provider.
+1. Clone the repo: `git clone git@gitlab.com:openid/conformance-suite.git`
+2. Install maven and docker.
+3. Ensure you are using Java version 11 (any 11.0 version is fine).
+4. Build the Java code using: `mvn clean package`.
+5. Start the docker container using: `docker-compose up`. For development, use `-f docker-compose-dev.yml` or `docker-compose-dev-mac.yml`.
+6. The UI will be available at `http://localhost:8443/`
 
 You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-suite/-/wikis/Developers/Build-&-Run) for more information on how to properly setup the conformance suite.
 
