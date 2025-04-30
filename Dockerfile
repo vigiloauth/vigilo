@@ -16,4 +16,6 @@ COPY cmd/config/application/config.yaml ./config.yaml
 RUN chmod +x ./identity-server
 EXPOSE 8080
 
+ENV VIGILO_SERVER_MODE=docker
+
 CMD ["./identity-server"]
