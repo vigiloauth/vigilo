@@ -2,7 +2,6 @@ package config
 
 import (
 	_ "embed"
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -507,10 +506,7 @@ func defaultServerConfig() *ServerConfig {
 	logger := GetLogger()
 	module := "Server Config"
 
-	// Load environment variables or Docker secrets
-	loadConfig()
-
-	return &ServerConfig{
+	sc := &ServerConfig{
 		port:                      defaultPort,
 		forceHTTPS:                defaultHTTPSRequirement,
 		requestLogging:            defaultRequestLogging,
@@ -527,6 +523,9 @@ func defaultServerConfig() *ServerConfig {
 		logger:                    logger,
 		module:                    module,
 	}
+
+	sc.loadConfig()
+	return sc
 }
 
 func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
@@ -541,15 +540,11 @@ func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
 }
 
 // loadConfig loads configuration from Docker secrets (if available) or .env files
-func loadConfig() {
-	// Check if we're in Docker mode (check for any Docker-specific environment indicator)
+func (sc *ServerConfig) loadConfig() {
 	isDockerMode := os.Getenv("VIGILO_SERVER_MODE") == "docker"
-
-	// Try to read secrets first if in Docker mode
 	if isDockerMode {
 		logger := GetLogger()
 		logger.Info("Server Config", "", "Running in Docker mode, checking for secrets")
-		// Check if secrets exist and if so, we don't need to load .env
 		if secretsExist() {
 			logger.Info("Server Config", "", "Docker secrets found, using them for configuration")
 			return
@@ -557,13 +552,14 @@ func loadConfig() {
 		logger.Info("Server Config", "", "No Docker secrets found, falling back to environment variables")
 	}
 
-	// If not in Docker mode or no secrets found, load from .env file
-	loadEnvFiles()
+	sc.loadEnvFiles()
 }
 
 func secretsExist() bool {
 	secretPaths := []string{
 		constants.SMTPPasswordPath,
+		constants.SMTPFromAddressPath,
+		constants.SMTPUsernamePath,
 		constants.TokenIssuerPath,
 		constants.TokenPrivateKeyPath,
 		constants.TokenPublicKeyPath,
@@ -580,7 +576,7 @@ func secretsExist() bool {
 }
 
 // loadEnvFiles loads configuration from .env files
-func loadEnvFiles() {
+func (sc *ServerConfig) loadEnvFiles() {
 	var (
 		_, b, _, _      = runtime.Caller(0) // Get the directory of this file
 		basePath        = filepath.Dir(b)   // Base path of the current file
@@ -589,10 +585,10 @@ func loadEnvFiles() {
 	)
 
 	if isTestEnvironment() {
-		loadEnvFile(TestEnvFilePath)
+		sc.loadEnvFile(TestEnvFilePath)
 	} else {
-		fmt.Println("Loading environment file:", EnvFilePath)
-		loadEnvFile(EnvFilePath)
+		sc.logger.Info(sc.module, "", "Loading environment file: %s", EnvFilePath)
+		sc.loadEnvFile(EnvFilePath)
 	}
 }
 
@@ -610,10 +606,10 @@ func isTestEnvironment() bool {
 	return false
 }
 
-func loadEnvFile(fileName string) {
+func (sc *ServerConfig) loadEnvFile(fileName string) {
 	err := godotenv.Load(fileName)
 	if err != nil {
-		fmt.Printf("Warning: environment file not loaded: %s\n", fileName)
+		sc.logger.Warn(sc.module, "", "Environment file not loaded: %v", err)
 	}
 }
 

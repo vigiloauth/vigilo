@@ -21,7 +21,6 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/identity-server .
 COPY cmd/config/application/config.yaml ./config.yaml
-COPY .env .env
 RUN chmod +x ./identity-server
 EXPOSE 8080
 
