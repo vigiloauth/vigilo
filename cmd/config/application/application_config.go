@@ -23,6 +23,7 @@ type ApplicationConfig struct {
 	AuditLogConfig audit.AuditLogConfigYAML    `yaml:"audit_config,omitempty"`
 
 	LogLevel *string `yaml:"log_level,omitempty"`
+	Port     *string `yaml:"port"`
 	Logger   *lib.Logger
 	Module   string
 }
@@ -35,6 +36,11 @@ func LoadConfigurations() *ApplicationConfig {
 	}
 
 	appConfig := ac.loadFromYAML(configFile)
+	if appConfig == nil {
+		ac.Logger.Warn(ac.Module, "", "No YAML file present. Using default configurations")
+		return ac
+	}
+
 	loginOptions := appConfig.LoginConfig.ToOptions()
 	loginConfig := lib.NewLoginConfig(loginOptions...)
 
@@ -68,7 +74,8 @@ func LoadConfigurations() *ApplicationConfig {
 func (ac *ApplicationConfig) loadFromYAML(path string) *ApplicationConfig {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		ac.Logger.Fatal(ac.Module, "", "Failed to load yaml configuration: %v", err)
+		ac.Logger.Error(ac.Module, "", "Failed to load yaml configuration: %v. Using default settings ", err)
+		return nil
 	}
 
 	var appConfig ApplicationConfig

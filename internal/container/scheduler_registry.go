@@ -20,7 +20,7 @@ type SchedulerRegistry struct {
 	module    string
 }
 
-func NewSchedulerRegistry(services *ServiceRegistry, logger *config.Logger) *SchedulerRegistry {
+func NewSchedulerRegistry(services *ServiceRegistry, logger *config.Logger, exitCh chan struct{}) *SchedulerRegistry {
 	module := "Scheduler Registry"
 	logger.Info(module, "", "Initializing schedulers")
 
@@ -35,11 +35,11 @@ func NewSchedulerRegistry(services *ServiceRegistry, logger *config.Logger) *Sch
 		scheduler: background.NewScheduler(),
 	}
 
-	sr.initJobs()
+	sr.initJobs(exitCh)
 	return sr
 }
 
-func (sr *SchedulerRegistry) initJobs() {
+func (sr *SchedulerRegistry) initJobs(exitCh chan struct{}) {
 	sr.registerSMTPJobs()
 	sr.registerTokenJobs()
 	sr.registerUserJobs()
@@ -53,11 +53,14 @@ func (sr *SchedulerRegistry) initJobs() {
 		select {
 		case <-sigCh:
 			sr.ctxCancel()
+			sr.logger.Info(sr.module, "", "Received termination signal, shutting down...")
 		case <-sr.ctx.Done():
 		}
 
 		signal.Stop(sigCh)
 		sr.scheduler.Wait()
+		sr.logger.Info(sr.module, "", "All jobs completed. Signaling application exit.")
+		close(exitCh)
 	}()
 }
 
@@ -89,13 +92,13 @@ func (c *SchedulerRegistry) registerAuditLogJobs() {
 	c.scheduler.RegisterJob("Audit Log Deletion", auditLogJobs.PurgeLogs)
 }
 
-func (c *SchedulerRegistry) Shutdown() {
-	c.logger.Info(c.module, "", "Shutting down schedulers and worker pool")
-	if c.ctx != nil {
-		c.ctxCancel()
+func (sr *SchedulerRegistry) Shutdown() {
+	sr.logger.Info(sr.module, "", "Shutting down schedulers and worker pool")
+	if sr.ctx != nil {
+		sr.ctxCancel()
 	}
 
-	if c.scheduler != nil {
-		c.scheduler.Wait()
+	if sr.scheduler != nil {
+		sr.scheduler.Wait()
 	}
 }

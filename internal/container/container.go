@@ -1,7 +1,9 @@
 package container
 
 import (
+	"os"
 	"sync"
+	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 )
@@ -13,6 +15,7 @@ type DIContainer struct {
 	schedulerRegistry    *SchedulerRegistry
 	serverConfigRegistry *ServerConfigRegistry
 
+	exitCh chan struct{}
 	logger *config.Logger
 	module string
 }
@@ -30,7 +33,9 @@ func (di *DIContainer) Init() *DIContainer {
 	di.repoRegistry = NewRepositoryRegistry(di.logger)
 	di.serviceRegistry = NewServiceRegistry(di.repoRegistry, di.logger)
 	di.handlerRegistry = NewHandlerRegistry(di.serviceRegistry, di.logger)
-	di.schedulerRegistry = NewSchedulerRegistry(di.serviceRegistry, di.logger)
+
+	di.exitCh = make(chan struct{})
+	di.schedulerRegistry = NewSchedulerRegistry(di.serviceRegistry, di.logger, di.exitCh)
 	di.serverConfigRegistry = NewServerConfigRegistry(di.logger, di.serviceRegistry)
 	return di
 }
@@ -57,8 +62,21 @@ func (di *DIContainer) ServerConfigRegistry() *ServerConfigRegistry {
 
 func (di *DIContainer) Shutdown() {
 	di.logger.Info(di.module, "", "Shutting down DI Container")
-	di.schedulerRegistry.Shutdown()
-	di.logger.Info(di.module, "", "DI Container shut down successfully")
+
+	done := make(chan struct{})
+	go func() {
+		di.schedulerRegistry.Shutdown()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		di.logger.Info(di.module, "", "DI Container shut down successfully")
+	case <-time.After(30 * time.Second):
+		di.logger.Warn(di.module, "", "Shutdown timeout reached. Forcing application exit.")
+	}
+
+	os.Exit(0)
 }
 
 type LazyInit[T any] struct {

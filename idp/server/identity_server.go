@@ -16,11 +16,11 @@ type VigiloIdentityServer struct {
 
 // NewVigiloIdentityServer creates and initializes a new instance of the IdentityServer.
 func NewVigiloIdentityServer() *VigiloIdentityServer {
-	module := "Vigilo Identity Server"
+	module := "Vigilo Identity Provider"
 	serverConfig := config.GetServerConfig()
 
 	logger := serverConfig.Logger()
-	logger.Info(module, "", "Initializing Vigilo Identity Server")
+	logger.Info(module, "", "Initializing Vigilo Identity Provider")
 
 	container := container.NewDIContainer(logger).Init()
 	appRouter := routes.NewRouterConfig(
@@ -29,7 +29,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 		config.GetServerConfig().EnableRequestLogging(),
 		container.ServerConfigRegistry().Middleware(),
 		container.HandlerRegistry(),
-	)
+	).Init()
 
 	return &VigiloIdentityServer{
 		container:    container,
@@ -44,4 +44,5 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 
 func (s *VigiloIdentityServer) Shutdown() {
 	s.container.Shutdown()
+
 }
