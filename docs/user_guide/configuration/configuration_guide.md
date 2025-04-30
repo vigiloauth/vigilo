@@ -17,8 +17,7 @@
 
 **VigiloAuth** allows you to customize various settings to align with your application's security requirements. Whether it's enforcing certain password policies or token durations, **VigiloAuth** has you covered. Our configurations are used across the library as singletons, making it easy for you to apply your settings
 
-For more details and examples on how to use each configuration based on if you are using our library version or standalone docker instance, refer to the following guides
-- [Library Examples](./library.md)
+For more details and examples on how to the standalone docker instance, refer to the following guide:
 - [Docker Examples](./docker.md)
 
 ---

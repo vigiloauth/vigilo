@@ -37,7 +37,7 @@ func (s *SMTPJobs) RunHealthCheck(ctx context.Context) {
 		case <-ticker.C:
 			s.emailService.TestConnection()
 		case <-ctx.Done():
-			s.logger.Info(s.module, "", "[RunHealthCheck]:Stopping SMTP health check")
+			s.logger.Info(s.module, "", "[RunHealthCheck]: Stopping SMTP health check")
 			return
 		}
 	}

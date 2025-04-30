@@ -44,7 +44,6 @@ func NewRouterConfig(
 		handlerRegistry:      handlerRegistry,
 	}
 
-	r.initialize()
 	return r
 }
 
@@ -52,10 +51,17 @@ func (rc *RouterConfig) Router() chi.Router {
 	return rc.router
 }
 
-func (rc *RouterConfig) initialize() {
+func (rc *RouterConfig) Init() *RouterConfig {
+	rc.logger.Debug(rc.module, "", "Applying global middleware")
 	rc.applyGlobalMiddleware()
+
+	rc.logger.Debug(rc.module, "", "Setting up error handlers")
 	rc.setupErrorHandlers()
+
+	rc.logger.Debug(rc.module, "", "Setting up route groups")
 	rc.setupRouteGroups()
+
+	return rc
 }
 
 func (rc *RouterConfig) applyGlobalMiddleware() {
@@ -75,7 +81,7 @@ func (rc *RouterConfig) applyGlobalMiddleware() {
 	}
 
 	rc.router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*"},
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", constants.RequestIDHeader},
 		ExposedHeaders:   []string{"Link", constants.RequestIDHeader},
@@ -110,7 +116,7 @@ func (rc *RouterConfig) setupRouteGroups() {
 		rc.getOIDCRoutes(),
 		rc.getClientRoutes(),
 		rc.getUserRoutes(),
-		rc.getOAuthRoutes(),
+		rc.getConsentRoutes(),
 		rc.getAuthorizationRoutes(),
 		rc.getTokenRoutes(),
 	}
@@ -122,6 +128,9 @@ func (rc *RouterConfig) setupRouteGroups() {
 
 func (rc *RouterConfig) registerRouteGroup(group RouteGroup) {
 	rc.logger.Info(rc.module, "", "Registering route group: %s", group.Name)
+	if len(group.Routes) == 0 {
+		rc.logger.Warn(rc.module, "", "No routes found for group: %s", group.Name)
+	}
 
 	rc.router.Group(func(r chi.Router) {
 		for _, middleware := range group.Middleware {

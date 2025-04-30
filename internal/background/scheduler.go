@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 )
@@ -41,9 +42,11 @@ func (s *Scheduler) StartJobs(ctx context.Context) {
 		s.wg.Add(1)
 		go func(i int, j JobFunc) {
 			defer s.wg.Done()
-			s.logger.Info(s.module, "", "[StartJobs]: Starting job #%d", i+1)
+			start := time.Now()
+			s.logger.Info(s.module, "", "[StartJobs]: Starting job #%d at %s", i+1, start)
 			j(ctx)
-			s.logger.Info(s.module, "", "[StartJobs]: Job #%d completed", i+1)
+			end := time.Now()
+			s.logger.Info(s.module, "", "[StartJobs]: Job #%d completed at %s (Duration: %s)", i+1, end, end.Sub(start))
 		}(i, job)
 	}
 

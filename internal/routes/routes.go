@@ -9,6 +9,7 @@ import (
 )
 
 func (ar *RouterConfig) getAdminRoutes() RouteGroup {
+	ar.logger.Debug(ar.module, "", "Defining Admin Routes")
 	handler := ar.handlerRegistry.AdminHandler()
 	return RouteGroup{
 		Name: "Admin Routes",
@@ -28,6 +29,7 @@ func (ar *RouterConfig) getAdminRoutes() RouteGroup {
 }
 
 func (ar *RouterConfig) getOIDCRoutes() RouteGroup {
+	ar.logger.Debug(ar.module, "", "Defining OIDC Routes")
 	handler := ar.handlerRegistry.OIDCHandler()
 	return RouteGroup{
 		Name: "Open ID Connect Routes",
@@ -58,6 +60,7 @@ func (ar *RouterConfig) getOIDCRoutes() RouteGroup {
 }
 
 func (ar *RouterConfig) getClientRoutes() RouteGroup {
+	ar.logger.Debug(ar.module, "", "Defining Client Routes")
 	handler := ar.handlerRegistry.ClientHandler()
 	urlParam := fmt.Sprintf("/{%s}", constants.ClientIDReqField)
 
@@ -98,6 +101,7 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 }
 
 func (ar *RouterConfig) getUserRoutes() RouteGroup {
+	ar.logger.Debug(ar.module, "", "Defining User Routes")
 	handler := ar.handlerRegistry.UserHandler()
 	return RouteGroup{
 		Name: "User Routes",
@@ -146,7 +150,8 @@ func (ar *RouterConfig) getUserRoutes() RouteGroup {
 	}
 }
 
-func (ar *RouterConfig) getOAuthRoutes() RouteGroup {
+func (ar *RouterConfig) getConsentRoutes() RouteGroup {
+	ar.logger.Debug(ar.module, "", "Defining User Consent Routes")
 	handler := ar.handlerRegistry.OAuthHandler()
 	return RouteGroup{
 		Name: "OAuth Routes",
@@ -165,6 +170,7 @@ func (ar *RouterConfig) getOAuthRoutes() RouteGroup {
 }
 
 func (ar *RouterConfig) getAuthorizationRoutes() RouteGroup {
+	ar.logger.Debug(ar.module, "", "Defining Authorization Routes")
 	handler := ar.handlerRegistry.AuthorizationHandler()
 	return RouteGroup{
 		Name: "Authorization Handler",
@@ -181,6 +187,7 @@ func (ar *RouterConfig) getAuthorizationRoutes() RouteGroup {
 }
 
 func (ar *RouterConfig) getTokenRoutes() RouteGroup {
+	ar.logger.Debug(ar.module, "", "Defining Token Routes")
 	handler := ar.handlerRegistry.TokenHandler()
 	return RouteGroup{
 		Name: "Token Handler",

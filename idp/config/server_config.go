@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
 )
 
 // ServerConfig holds the configuration for the server.
@@ -506,7 +507,9 @@ func defaultServerConfig() *ServerConfig {
 	logger := GetLogger()
 	module := "Server Config"
 
-	loadEnv()
+	// Load environment variables or Docker secrets
+	loadConfig()
+
 	return &ServerConfig{
 		port:                      defaultPort,
 		forceHTTPS:                defaultHTTPSRequirement,
@@ -537,7 +540,47 @@ func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
 	}
 }
 
-func loadEnv() {
+// loadConfig loads configuration from Docker secrets (if available) or .env files
+func loadConfig() {
+	// Check if we're in Docker mode (check for any Docker-specific environment indicator)
+	isDockerMode := os.Getenv("VIGILO_SERVER_MODE") == "docker"
+
+	// Try to read secrets first if in Docker mode
+	if isDockerMode {
+		logger := GetLogger()
+		logger.Info("Server Config", "", "Running in Docker mode, checking for secrets")
+		// Check if secrets exist and if so, we don't need to load .env
+		if secretsExist() {
+			logger.Info("Server Config", "", "Docker secrets found, using them for configuration")
+			return
+		}
+		logger.Info("Server Config", "", "No Docker secrets found, falling back to environment variables")
+	}
+
+	// If not in Docker mode or no secrets found, load from .env file
+	loadEnvFiles()
+}
+
+func secretsExist() bool {
+	secretPaths := []string{
+		constants.SMTPPasswordPath,
+		constants.TokenIssuerPath,
+		constants.TokenPrivateKeyPath,
+		constants.TokenPublicKeyPath,
+		constants.CryptoSecretKeyPath,
+	}
+
+	for _, path := range secretPaths {
+		if _, err := os.Stat(path); err == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+// loadEnvFiles loads configuration from .env files
+func loadEnvFiles() {
 	var (
 		_, b, _, _      = runtime.Caller(0) // Get the directory of this file
 		basePath        = filepath.Dir(b)   // Base path of the current file
@@ -570,6 +613,23 @@ func isTestEnvironment() bool {
 func loadEnvFile(fileName string) {
 	err := godotenv.Load(fileName)
 	if err != nil {
-		panic("no environment file loaded: " + fileName)
+		fmt.Printf("Warning: environment file not loaded: %s\n", fileName)
 	}
+}
+
+func readSecretFile(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(data)), nil
+}
+
+func getSecretOrEnv(secretPath, envName string) string {
+	secret, err := readSecretFile(secretPath)
+	if err == nil && secret != "" {
+		return secret
+	}
+
+	return os.Getenv(envName)
 }
