@@ -5,6 +5,10 @@
   - [Table of Contents](#table-of-contents)
   - [1. Add VigiloAuth to Your Project](#1-add-vigiloauth-to-your-project)
   - [2. Import the Library](#2-import-the-library)
+  - [2.1 Providing Required Secrets and Configuration](#21-providing-required-secrets-and-configuration)
+      - [2.1.1 Required Environment Variables (Secrets):](#211-required-environment-variables-secrets)
+      - [2.1.2 How to Provide Environment Variables:](#212-how-to-provide-environment-variables)
+  - [3. Basic Setup Example](#3-basic-setup-example)
     - [3.1 Configuring The Server](#31-configuring-the-server)
     - [3.2 Token Configuration](#32-token-configuration)
     - [3.3 Login Configuration](#33-login-configuration)
@@ -49,6 +53,37 @@ services:
           TOKEN_PRIVATE_KEY: ${TOKEN_PRIVATE_KEY} # Base64 encoded RSA private key
           TOKEN_PUBLIC_KEY: ${TOKEN_PUBLIC_KEY} # Base64 encoded RSA public key
           TOKEN_ISSUER: ${TOKEN_ISSUER}
+```
+
+## 2.1 Providing Required Secrets and Configuration
+**VigiloAuth** requires configuration to run correctly. For security, sensitive information (secrets) is not included in the Docker image or the main YAML configuration file. These secrets must be provided to the container at runtime via environment variables.
+
+Other non-sensitive configuration (like ports, timeouts, password policies) can be provided through the YAML configuration file mounted into the container.
+
+#### 2.1.1 Required Environment Variables (Secrets):
+You must provide the following environment variables when running the VigiloAuth container. The application uses these for sensitive operations like sending emails and signing tokens.
+
+- `SMTP_USERNAME`: Username for connecting to the SMTP server.
+- `SMTP_FROM_ADDRESS`: The 'From' email address for outgoing emails.
+- `SMTP_PASSWORD`: Password for the SMTP server.
+- `TOKEN_ISSUER`: The issuer identifier for JWT tokens (e.g., your service URL).
+- `TOKEN_PRIVATE_KEY`: Your RSA private key used for signing tokens, encoded in Base64.
+- `TOKEN_PUBLIC_KEY`: Your RSA public key used for verifying tokens, encoded in Base64.
+
+
+#### 2.1.2 How to Provide Environment Variables:
+When using docker-compose, the simplest and recommended way to provide these secrets without putting them directly in the docker-compose.yaml file is to create a .env file in the same directory as your docker-compose.yaml file. Docker Compose will automatically read variables from this file.
+
+```
+# .env file (place next to your docker-compose.yaml)
+SMTP_USERNAME=your_smtp_user
+SMTP_FROM_ADDRESS=auth@yourdomain.com
+SMTP_PASSWORD=your_smtp_password_here
+TOKEN_ISSUER=[https://auth.yourdomain.com](https://auth.yourdomain.com)
+TOKEN_PRIVATE_KEY=base64_encoded_private_key_string_here
+TOKEN_PUBLIC_KEY=base64_encoded_public_key_string_here
+```
+
 ---
 
 ## 3. Basic Setup Example
