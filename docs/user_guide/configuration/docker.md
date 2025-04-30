@@ -80,6 +80,8 @@ server_config:
   write_timeout: 30
   authorization_code_duration: 30
   enable_request_logging: true 
+  cert_file_path: path/to/file
+  key_file_path: path/to/file
 ```
 
 ---

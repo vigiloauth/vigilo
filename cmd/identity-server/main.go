@@ -20,18 +20,25 @@ func main() {
 		var port string
 		var module string
 		var logger *lib.Logger
+		var forceHTTPs bool
+		var certFile string
+		var keyFile string
 
-		if cfg == nil || cfg.ServerConfig.BaseURL == nil || cfg.Port == nil {
+		if cfg == nil || cfg.ServerConfig.BaseURL == nil || cfg.Port == nil || cfg.ServerConfig.ForceHTTPS != nil || cfg.ServerConfig.CertFilePath != nil || cfg.ServerConfig.KeyFilePath != nil {
 			port = ":8080"
 			logger = lib.GetLogger()
 			logger.SetLevel("DEBUG")
 			module = "Vigilo Identity Provider"
 			baseURL = "/identity"
+			forceHTTPs = false
 		} else {
 			baseURL = *cfg.ServerConfig.BaseURL
 			port = fmt.Sprintf(":%s", *cfg.Port)
 			module = cfg.Module
 			logger = cfg.Logger
+			forceHTTPs = *cfg.ServerConfig.ForceHTTPS
+			keyFile = *cfg.ServerConfig.KeyFilePath
+			certFile = *cfg.ServerConfig.CertFilePath
 		}
 
 		vs := server.NewVigiloIdentityServer()
@@ -42,8 +49,14 @@ func main() {
 		})
 
 		logger.Info(module, "", "Starting the VigiloAuth Identity Provider on %s with base URL: %s", port, baseURL)
-		if err := http.ListenAndServe(port, r); err != nil {
-			logger.Error(module, "", "Failed to start server: %v", err)
+		if forceHTTPs {
+			if err := http.ListenAndServeTLS(port, certFile, keyFile, r); err != nil {
+				logger.Error(module, "", "Failed to start server on HTTPS: %v", err)
+			}
+		} else {
+			if err := http.ListenAndServe(port, r); err != nil {
+				logger.Error(module, "", "Failed to start server: %v", err)
+			}
 		}
 	}
 }
