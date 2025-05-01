@@ -583,5 +583,5 @@ func (cs *clientService) revokeTokenAndReturnError(ctx context.Context, token, e
 
 func (cs *clientService) buildClientConfigurationEndpoint(clientID string) string {
 	URL := config.GetServerConfig().URL()
-	return fmt.Sprintf("%s%s%s", URL, web.ClientEndpoints.ClientConfiguration, clientID)
+	return fmt.Sprintf("%s%s/%s", URL, web.ClientEndpoints.ClientConfiguration, clientID)
 }
