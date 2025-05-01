@@ -24,7 +24,6 @@ func main() {
 		var certFile string = ""
 		var keyFile string = ""
 
-		port = ":8080"
 		logger = lib.GetLogger()
 		logger.SetLevel("DEBUG")
 
