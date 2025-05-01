@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 )
 
@@ -117,9 +119,9 @@ func (cfg *SMTPConfig) loadOptions(opts ...SMTPConfigOptions) {
 }
 
 func defaultSMTPConfig() *SMTPConfig {
-	fromAddress := getSecretOrEnv(constants.SMTPFromAddressPath, constants.SMTPFromAddressENV)
-	username := getSecretOrEnv(constants.SMTPUsernamePath, constants.SMTPUsernameENV)
-	password := getSecretOrEnv(constants.SMTPPasswordPath, constants.SMTPPasswordENV)
+	fromAddress := os.Getenv(constants.SMTPFromAddressENV)
+	username := os.Getenv(constants.SMTPUsernameENV)
+	password := os.Getenv(constants.SMTPPasswordENV)
 
 	return &SMTPConfig{
 		host:        defaultSMTPHost,

@@ -544,10 +544,10 @@ func (cs *clientService) parseURI(uri string) (*url.URL, error) {
 func (cs *clientService) validateRedirectURIScheme(parsedURL *url.URL) error {
 	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" && !strings.HasPrefix(parsedURL.Scheme, "custom") {
 		return errors.New(
-			errors.ErrCodeInvalidRedirectURI,
-			"invalid scheme, must be 'https' or 'http' for localhost or 'custom' for mobile",
+			errors.ErrCodeInvalidRedirectURI, "invalid scheme, must be 'https' or 'http' for localhost or 'custom' for mobile",
 		)
 	}
+
 	return nil
 }
 
@@ -555,6 +555,7 @@ func (cs *clientService) validatePublicClientURIScheme(parsedURL *url.URL) error
 	if parsedURL.Scheme == "http" && parsedURL.Host != "localhost" {
 		return errors.New(errors.ErrCodeInvalidRedirectURI, "'http' scheme is only allowed for 'localhost'")
 	}
+
 	if parsedURL.Scheme == "https" && parsedURL.Host == "localhost" {
 		return errors.New(
 			errors.ErrCodeInvalidRedirectURI,
@@ -569,6 +570,7 @@ func (cs *clientService) validateConfidentialClientURIScheme(parsedURL *url.URL)
 	if strings.Contains(parsedURL.Host, "*") {
 		return errors.New(errors.ErrCodeInvalidRedirectURI, "wildcards are not allowed for confidential clients")
 	}
+
 	return nil
 }
 
@@ -581,5 +583,5 @@ func (cs *clientService) revokeTokenAndReturnError(ctx context.Context, token, e
 
 func (cs *clientService) buildClientConfigurationEndpoint(clientID string) string {
 	URL := config.GetServerConfig().URL()
-	return fmt.Sprintf("%s%s/%s", URL, web.ClientEndpoints.ClientConfiguration, clientID)
+	return fmt.Sprintf("%s%s%s", URL, web.ClientEndpoints.ClientConfiguration, clientID)
 }

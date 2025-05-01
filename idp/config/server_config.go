@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/vigiloauth/vigilo/v2/internal/constants"
 )
 
 // ServerConfig holds the configuration for the server.
@@ -540,11 +539,6 @@ func defaultServerConfig() *ServerConfig {
 		requestLogging:            defaultRequestLogging,
 		readTimeout:               defaultReadTimeout,
 		writeTimeout:              defaultWriteTimeout,
-		tokenConfig:               NewTokenConfig(),
-		loginConfig:               NewLoginConfig(),
-		passwordConfig:            NewPasswordConfig(),
-		smtpConfig:                NewSMTPConfig(),
-		auditLogConfig:            NewAuditLogConfig(),
 		requestsPerMinute:         defaultRequestsPerMinute,
 		sessionCookieName:         defaultSessionCookieName,
 		authorizationCodeDuration: defaultAuthorizationCodeDuration,
@@ -552,7 +546,13 @@ func defaultServerConfig() *ServerConfig {
 		module:                    module,
 	}
 
-	sc.loadConfig()
+	sc.loadEnvFiles()
+	sc.tokenConfig = NewTokenConfig()
+	sc.loginConfig = NewLoginConfig()
+	sc.passwordConfig = NewPasswordConfig()
+	sc.smtpConfig = NewSMTPConfig()
+	sc.auditLogConfig = NewAuditLogConfig()
+
 	return sc
 }
 
@@ -567,42 +567,6 @@ func (cfg *ServerConfig) loadOptions(opts ...ServerConfigOptions) {
 	}
 }
 
-// loadConfig loads configuration from Docker secrets (if available) or .env files
-func (sc *ServerConfig) loadConfig() {
-	isDockerMode := os.Getenv("VIGILO_SERVER_MODE") == "docker"
-	if isDockerMode {
-		logger := GetLogger()
-		logger.Info("Server Config", "", "Running in Docker mode, checking for secrets")
-		if secretsExist() {
-			logger.Info("Server Config", "", "Docker secrets found, using them for configuration")
-			return
-		}
-		logger.Info("Server Config", "", "No Docker secrets found, falling back to environment variables")
-	}
-
-	sc.loadEnvFiles()
-}
-
-func secretsExist() bool {
-	secretPaths := []string{
-		constants.SMTPPasswordPath,
-		constants.SMTPFromAddressPath,
-		constants.SMTPUsernamePath,
-		constants.TokenIssuerPath,
-		constants.TokenPrivateKeyPath,
-		constants.TokenPublicKeyPath,
-		constants.CryptoSecretKeyPath,
-	}
-
-	for _, path := range secretPaths {
-		if _, err := os.Stat(path); err == nil {
-			return true
-		}
-	}
-
-	return false
-}
-
 // loadEnvFiles loads configuration from .env files
 func (sc *ServerConfig) loadEnvFiles() {
 	var (
@@ -613,6 +577,7 @@ func (sc *ServerConfig) loadEnvFiles() {
 	)
 
 	if isTestEnvironment() {
+		sc.logger.Info(sc.module, "", "Loading test environment file")
 		sc.loadEnvFile(TestEnvFilePath)
 	} else {
 		sc.logger.Info(sc.module, "", "Loading environment file: %s", EnvFilePath)
@@ -639,21 +604,4 @@ func (sc *ServerConfig) loadEnvFile(fileName string) {
 	if err != nil {
 		sc.logger.Warn(sc.module, "", "Environment file not loaded: %v", err)
 	}
-}
-
-func readSecretFile(path string) (string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(data)), nil
-}
-
-func getSecretOrEnv(secretPath, envName string) string {
-	secret, err := readSecretFile(secretPath)
-	if err == nil && secret != "" {
-		return secret
-	}
-
-	return os.Getenv(envName)
 }

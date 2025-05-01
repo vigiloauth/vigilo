@@ -2,7 +2,6 @@ package container
 
 import (
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -80,8 +79,6 @@ func (di *DIContainer) Shutdown() {
 	case <-time.After(30 * time.Second):
 		di.logger.Warn(di.module, "", "Shutdown timeout reached. Forcing application exit.")
 	}
-
-	os.Exit(0)
 }
 
 type LazyInit[T any] struct {

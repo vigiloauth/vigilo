@@ -270,7 +270,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
-		expectedError := "'code' response type is required to receive an authorization code"
+		expectedError := "code response type is required to receive an authorization code"
 
 		assert.Error(t, err)
 		assert.Contains(t, expectedError, err.Error())
@@ -302,7 +302,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
-		expectedErr := "Authorization code grant is required for this request"
+		expectedErr := "authorization code grant is required for this request"
 
 		assert.Error(t, err)
 		assert.Contains(t, expectedErr, err.Error())
@@ -338,7 +338,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
-		expectedErr := "'code_challenge' is required for PKCE"
+		expectedErr := "code_challenge is required for PKCE"
 
 		assert.Error(t, err)
 		assert.Contains(t, expectedErr, err.Error())
