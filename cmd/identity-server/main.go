@@ -60,27 +60,25 @@ func main() {
 		}
 
 		vs := server.NewVigiloIdentityServer()
-		httpServer := vs.HTTPServer()
 		r := chi.NewRouter()
+		httpServer := vs.HTTPServer()
 
 		r.Route(baseURL, func(subRouter chi.Router) {
 			subRouter.Mount("/", vs.Router())
 		})
 
+		httpServer.Handler = r
 		logger.Info(module, "", "Starting the VigiloAuth Identity Provider on %s with base URL: %s", port, baseURL)
-
 		if forceHTTPs {
 			if certFile == "" || keyFile == "" {
 				logger.Error(module, "", "HTTPS requested but certificate or key file path is not configured in YAML or loaded correctly. Exiting.")
 				os.Exit(1)
 			}
-			logger.Info(module, "", "Attempting to start server on HTTPS...")
 			if err := httpServer.ListenAndServeTLS(certFile, keyFile); err != nil {
 				logger.Error(module, "", "Failed to start server on HTTPS: %v", err)
 				os.Exit(1)
 			}
 		} else {
-			logger.Info(module, "", "Attempting to start server on HTTP...")
 			if err := httpServer.ListenAndServe(); err != nil {
 				logger.Error(module, "", "Failed to start server: %v", err)
 				os.Exit(1)
