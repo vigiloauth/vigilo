@@ -45,7 +45,7 @@ type ClientRegistrationRequest struct {
 	Secret                  string   `json:"client_secret,omitempty"`
 	RedirectURIS            []string `json:"redirect_uris"`
 	GrantTypes              []string `json:"grant_types"`
-	Scopes                  []string `json:"scopes,omitempty"`
+	Scopes                  []string `json:"scope,omitempty"`
 	ResponseTypes           []string `json:"response_types"`
 	JwksURI                 string   `json:"jwks_uri,omitempty"`
 	LogoURI                 string   `json:"logo_uri,omitempty"`
@@ -60,7 +60,7 @@ type ClientUpdateRequest struct {
 	Name                    string   `json:"client_name,omitempty"`
 	RedirectURIS            []string `json:"redirect_uris,omitempty"`
 	GrantTypes              []string `json:"grant_types,omitempty"`
-	Scopes                  []string `json:"scopes,omitempty"`
+	Scopes                  []string `json:"scope,omitempty"`
 	ResponseTypes           []string `json:"response_types,omitempty"`
 	JwksURI                 string   `json:"jwks_uri,omitempty"`
 	LogoURI                 string   `json:"logo_uri,omitempty"`
@@ -76,7 +76,7 @@ type ClientRegistrationResponse struct {
 	Type                    string    `json:"client_type"`
 	RedirectURIS            []string  `json:"redirect_uris"`
 	GrantTypes              []string  `json:"grant_types"`
-	Scopes                  []string  `json:"scopes"`
+	Scopes                  []string  `json:"scope"`
 	ResponseTypes           []string  `json:"response_types"`
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
@@ -92,7 +92,7 @@ type ClientConfigurationEndpoint struct {
 	Name                    string    `json:"client_name"`
 	RedirectURIS            []string  `json:"redirect_uris"`
 	GrantTypes              []string  `json:"grant_types"`
-	Scopes                  []string  `json:"scopes,omitempty"`
+	Scopes                  []string  `json:"scope,omitempty"`
 	ResponseTypes           []string  `json:"response_types"`
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
