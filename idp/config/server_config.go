@@ -472,7 +472,7 @@ func (sc *ServerConfig) MaxRequestsPerMinute() int {
 }
 
 func (sc *ServerConfig) URL() string {
-	URL := fmt.Sprintf("%s:%s/%s", sc.domain, sc.port, sc.baseURL)
+	URL := fmt.Sprintf("%s:%s%s", sc.domain, sc.port, sc.baseURL)
 	if sc.forceHTTPS {
 		return "https://" + URL
 	}
