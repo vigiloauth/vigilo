@@ -45,11 +45,11 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 				testContext.WithClient(
 					test.clientType,
 					[]string{constants.ClientManage},
-					[]string{constants.ClientCredentials},
+					[]string{constants.ClientCredentialsGrantType},
 				)
 
 				formData := url.Values{}
-				formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+				formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 				formData.Add(constants.ScopeReqField, constants.ClientManage)
 
 				headers := generateHeaderWithCredentials(testClientID, test.clientSecret)
@@ -82,11 +82,11 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage},
-			[]string{constants.ClientCredentials},
+			[]string{constants.ClientCredentialsGrantType},
 		)
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 
 		headers := generateHeaderWithCredentials("non-existing-id", testClientSecret)
@@ -109,7 +109,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		defer testContext.TearDown()
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 
 		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
@@ -134,7 +134,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		}
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 
 		rr := testContext.SendHTTPRequest(
@@ -155,11 +155,11 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage},
-			[]string{constants.ClientCredentials},
+			[]string{constants.ClientCredentialsGrantType},
 		)
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 		headers := generateHeaderWithCredentials(testClientID, "invalid-secret")
 
@@ -181,11 +181,11 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage},
-			[]string{constants.AuthorizationCode}, // unsupported grant type
+			[]string{constants.AuthorizationCodeGrantType}, // unsupported grant type
 		)
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
@@ -207,11 +207,11 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientRead},
-			[]string{constants.ClientCredentials},
+			[]string{constants.ClientCredentialsGrantType},
 		)
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientDelete)
 
 		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
@@ -251,11 +251,11 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{constants.UserManage}, []string{constants.PasswordGrant})
+				testContext.WithClient(test.clientType, []string{constants.UserManage}, []string{constants.PasswordGrantType})
 				testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 				formData := url.Values{}
-				formData.Add(constants.GrantTypeReqField, constants.PasswordGrant)
+				formData.Add(constants.GrantTypeReqField, constants.PasswordGrantType)
 				formData.Add(constants.ScopeReqField, constants.UserManage)
 				formData.Add(constants.UsernameReqField, testUsername)
 				formData.Add(constants.PasswordReqField, testPassword1)
@@ -286,11 +286,11 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
+		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrantType})
 		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.PasswordGrant)
+		formData.Add(constants.GrantTypeReqField, constants.PasswordGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 		formData.Add(constants.UsernameReqField, testUsername)
 		formData.Add(constants.PasswordReqField, testPassword1)
@@ -310,11 +310,11 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
+		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrantType})
 		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.PasswordGrant)
+		formData.Add(constants.GrantTypeReqField, constants.PasswordGrantType)
 		formData.Add(constants.ScopeReqField, constants.UserManage)
 		formData.Add(constants.UsernameReqField, testUsername)
 		formData.Add(constants.PasswordReqField, "invalid-password")
@@ -334,11 +334,11 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrant})
+		testContext.WithClient(client.Confidential, []string{constants.UserManage}, []string{constants.PasswordGrantType})
 		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.PasswordGrant)
+		formData.Add(constants.GrantTypeReqField, constants.PasswordGrantType)
 		formData.Add(constants.ScopeReqField, constants.UserManage)
 		formData.Add(constants.UsernameReqField, testUsername)
 		formData.Add(constants.PasswordReqField, testPassword1)
@@ -365,7 +365,7 @@ func TestTokenHandler_TokenExchange(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		authzCode := testContext.GetAuthzCode()
@@ -374,7 +374,7 @@ func TestTokenHandler_TokenExchange(t *testing.T) {
 		formData.Add(constants.CodeURLValue, authzCode)
 		formData.Add(constants.RedirectURIReqField, testRedirectURI)
 		formData.Add(constants.StateReqField, testContext.State)
-		formData.Add(constants.GrantTypeReqField, constants.AuthorizationCode)
+		formData.Add(constants.GrantTypeReqField, constants.AuthorizationCodeGrantType)
 
 		headers := map[string]string{
 			"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
@@ -394,14 +394,14 @@ func TestTokenHandler_TokenExchange(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		formData := url.Values{}
 		formData.Add(constants.CodeURLValue, "valid-code")
 		formData.Add(constants.RedirectURIReqField, testRedirectURI)
 		formData.Add(constants.StateReqField, "invalid-state")
-		formData.Add(constants.GrantTypeReqField, constants.AuthorizationCode)
+		formData.Add(constants.GrantTypeReqField, constants.AuthorizationCodeGrantType)
 
 		headers := map[string]string{
 			"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
@@ -426,20 +426,6 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			codeVerifier        string
 		}{
 			{
-				name:                "Success when confidential client uses plain method",
-				clientType:          client.Confidential,
-				codeChallengeMethod: client.Plain,
-				codeChallenge:       testContext.PlainCodeChallenge,
-				codeVerifier:        testContext.PlainCodeChallenge,
-			},
-			{
-				name:                "Success when confidential client uses SHA-256 method",
-				clientType:          client.Confidential,
-				codeChallengeMethod: client.S256,
-				codeChallenge:       testContext.SH256CodeChallenge,
-				codeVerifier:        testClientSecret,
-			},
-			{
 				name:                "Success when public client uses plain method",
 				clientType:          client.Public,
 				codeChallengeMethod: client.Plain,
@@ -459,7 +445,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			testContext.WithClient(
 				test.clientType,
 				[]string{constants.ClientManage},
-				[]string{constants.AuthorizationCode, constants.PKCE},
+				[]string{constants.AuthorizationCodeGrantType},
 			)
 
 			testContext.WithUser([]string{constants.ClientManage}, []string{constants.AdminRole})
@@ -476,7 +462,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			formData.Add(constants.CodeURLValue, authorizationCode)
 			formData.Add(constants.RedirectURIReqField, testRedirectURI)
 			formData.Add(constants.StateReqField, testContext.State)
-			formData.Add(constants.GrantTypeReqField, constants.PKCE)
+			formData.Add(constants.GrantTypeReqField, constants.AuthorizationCodeGrantType)
 			formData.Add(constants.CodeVerifierReqField, test.codeVerifier)
 
 			if test.clientType == client.Confidential {
@@ -501,18 +487,13 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			codeVerifier string
 		}{
 			{
-				name:         "Invalid code verifier for confidential client",
-				clientType:   client.Confidential,
-				codeVerifier: invalidCodeVerifier,
-			},
-			{
 				name:         "Invalid code verifier for public client",
 				clientType:   client.Public,
 				codeVerifier: invalidCodeVerifier,
 			},
 			{
 				name:         "Code verifier not provided in the request",
-				clientType:   client.Confidential,
+				clientType:   client.Public,
 				codeVerifier: "",
 			},
 		}
@@ -521,7 +502,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			testContext.WithClient(
 				test.clientType,
 				[]string{constants.ClientManage},
-				[]string{constants.AuthorizationCode, constants.PKCE},
+				[]string{constants.AuthorizationCodeGrantType},
 			)
 
 			testContext.WithUser([]string{constants.ClientManage}, []string{constants.AdminRole})
@@ -538,7 +519,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 			formData.Add(constants.CodeURLValue, authorizationCode)
 			formData.Add(constants.RedirectURIReqField, testRedirectURI)
 			formData.Add(constants.StateReqField, testContext.State)
-			formData.Add(constants.GrantTypeReqField, constants.PKCE)
+			formData.Add(constants.GrantTypeReqField, constants.AuthorizationCodeGrantType)
 			formData.Add(constants.CodeVerifierReqField, test.codeVerifier)
 
 			if test.clientType == client.Confidential {
@@ -576,7 +557,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{constants.ClientManage}, []string{constants.RefreshToken})
+				testContext.WithClient(test.clientType, []string{constants.ClientManage}, []string{constants.RefreshTokenGrantType})
 				if test.clientType == client.Public {
 					testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 				} else {
@@ -584,7 +565,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 				}
 
 				formData := url.Values{}
-				formData.Add(constants.GrantTypeReqField, constants.RefreshToken)
+				formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)
 				formData.Add(constants.ScopeReqField, constants.ClientManage)
 				formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
 
@@ -618,7 +599,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 
 	t.Run("Invalid request error is returned for missing parameters", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshTokenGrantType})
 		testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 
 		formData := url.Values{}
@@ -638,7 +619,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 
 	t.Run("Invalid request error is returned for an unsupported grant type", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
-		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshTokenGrantType})
 		testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 
 		formData := url.Values{}
@@ -662,10 +643,10 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshTokenGrantType})
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.RefreshToken)
+		formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 		formData.Add(constants.RefreshTokenURLValue, "invalid-token")
 		formData.Add(constants.ClientIDReqField, testClientID)
@@ -686,11 +667,11 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshTokenGrantType})
 		testContext.WithExpiredToken()
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.RefreshToken)
+		formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
 		formData.Add(constants.ClientIDReqField, testClientID)
@@ -711,11 +692,11 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.RefreshTokenGrantType})
 		testContext.WithBlacklistedToken(testClientID)
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.RefreshToken)
+		formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
 		formData.Add(constants.ClientIDReqField, testClientID)
@@ -736,11 +717,11 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.AuthorizationCode})
+		testContext.WithClient(client.Public, []string{constants.ClientManage}, []string{constants.AuthorizationCodeGrantType})
 		testContext.WithJWTToken(testClientID, time.Duration(5)*time.Minute)
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.RefreshToken)
+		formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
 		formData.Add(constants.ClientIDReqField, testClientID)
@@ -761,11 +742,11 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Public, []string{constants.ClientRead}, []string{constants.RefreshToken})
+		testContext.WithClient(client.Public, []string{constants.ClientRead}, []string{constants.RefreshTokenGrantType})
 		testContext.WithJWTToken(testClientID, time.Duration(5)*time.Minute)
 
 		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.RefreshToken)
+		formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManage)
 		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
 		formData.Add(constants.ClientIDReqField, testClientID)
@@ -804,7 +785,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.PKCE})
+				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.AuthorizationCodeGrantType})
 				if test.clientType == client.Public {
 					testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 				} else {
@@ -873,7 +854,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.ClientCredentials})
+				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.ClientCredentialsGrantType})
 				if test.clientType == client.Public {
 					testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 				} else {
@@ -899,7 +880,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{constants.TokenIntrospect}, []string{constants.ClientCredentials})
+		testContext.WithClient(client.Confidential, []string{constants.TokenIntrospect}, []string{constants.ClientCredentialsGrantType})
 		testContext.WithExpiredToken()
 
 		formValue := url.Values{}
@@ -930,7 +911,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{constants.TokenIntrospect}, []string{constants.ClientCredentials})
+		testContext.WithClient(client.Confidential, []string{constants.TokenIntrospect}, []string{constants.ClientCredentialsGrantType})
 		testContext.WithBlacklistedToken(testClientID)
 
 		formValue := url.Values{}
@@ -961,7 +942,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{constants.ClientRead}, []string{constants.ClientCredentials})
+		testContext.WithClient(client.Confidential, []string{constants.ClientRead}, []string{constants.ClientCredentialsGrantType})
 		testContext.WithBlacklistedToken(testClientID)
 
 		formValue := url.Values{}
@@ -1004,7 +985,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{constants.TokenRevoke}, []string{constants.PKCE})
+				testContext.WithClient(test.clientType, []string{constants.TokenRevoke}, []string{constants.AuthorizationCodeGrantType})
 				if test.clientType == client.Public {
 					testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 				} else {
@@ -1073,7 +1054,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				testContext := NewVigiloTestContext(t)
 				defer testContext.TearDown()
 
-				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.ClientCredentials})
+				testContext.WithClient(test.clientType, []string{constants.TokenIntrospect}, []string{constants.ClientCredentialsGrantType})
 				if test.clientType == client.Public {
 					testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 				} else {
@@ -1099,7 +1080,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithClient(client.Confidential, []string{constants.ClientRead}, []string{constants.ClientCredentials})
+		testContext.WithClient(client.Confidential, []string{constants.ClientRead}, []string{constants.ClientCredentialsGrantType})
 		testContext.WithBlacklistedToken(testClientID)
 
 		formValue := url.Values{}

@@ -268,7 +268,7 @@ func (c *authorizationCodeService) markCodeAsUsed(ctx context.Context, code stri
 }
 
 func (c *authorizationCodeService) handlePKCE(req *client.ClientAuthorizationRequest, authData *authz.AuthorizationCodeData) error {
-	if req.Client.RequiresPKCE() {
+	if req.Client.RequiresPKCE {
 		code, err := c.generateAuthorizationCodeForPKCE(req)
 		if err != nil {
 			return errors.NewInternalServerError()

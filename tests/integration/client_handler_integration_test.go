@@ -26,31 +26,34 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name:           "Successful Public Client Registration",
-			requestBody:    createClientRegistrationRequest(),
+			name: "Successful Public Client Registration",
+			requestBody: &client.ClientRegistrationRequest{
+				Name:                    testClientName1,
+				RedirectURIS:            []string{testRedirectURI},
+				GrantTypes:              []string{constants.AuthorizationCodeGrantType},
+				Scopes:                  []string{constants.ClientRead, constants.ClientWrite},
+				ResponseTypes:           []string{constants.CodeResponseType, constants.IDTokenResponseType},
+				TokenEndpointAuthMethod: constants.NoTokenAuth,
+				ApplicationType:         constants.NativeApplicationType,
+			},
 			expectedStatus: http.StatusCreated,
 			isPublicClient: true,
 			wantErr:        false,
 		},
 		{
-			name:           "Successful Confidential Client Registration",
-			requestBody:    createClientRegistrationRequest(),
+			name: "Successful Confidential Client Registration",
+			requestBody: &client.ClientRegistrationRequest{
+				Name:                    testClientName1,
+				RedirectURIS:            []string{testRedirectURI},
+				GrantTypes:              []string{constants.AuthorizationCodeGrantType},
+				Scopes:                  []string{constants.ClientRead, constants.ClientWrite},
+				ResponseTypes:           []string{constants.CodeResponseType, constants.IDTokenResponseType},
+				TokenEndpointAuthMethod: constants.ClientSecretBasicTokenAuth,
+				ApplicationType:         constants.WebApplicationType,
+			},
 			expectedStatus: http.StatusCreated,
 			isPublicClient: false,
 			wantErr:        false,
-		},
-		{
-			name: "Error is returned when public client is not using PKCE",
-			requestBody: &client.ClientRegistrationRequest{
-				Name:          testClientName1,
-				RedirectURIS:  []string{testRedirectURI},
-				GrantTypes:    []string{constants.AuthorizationCode},
-				Scopes:        []string{constants.ClientRead, constants.ClientWrite},
-				ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
-			},
-			expectedStatus: http.StatusBadRequest,
-			isPublicClient: true,
-			wantErr:        true,
 		},
 	}
 
@@ -207,7 +210,7 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 	testContext.WithClient(
 		client.Confidential,
 		[]string{constants.ClientManage},
-		[]string{constants.ClientCredentials},
+		[]string{constants.ClientCredentialsGrantType},
 	)
 	testContext.WithClientCredentialsToken()
 
@@ -233,7 +236,7 @@ func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsEr
 	testContext.WithClient(
 		client.Confidential,
 		[]string{constants.ClientManage},
-		[]string{constants.ClientCredentials},
+		[]string{constants.ClientCredentialsGrantType},
 	)
 	testContext.WithClientCredentialsToken()
 
@@ -249,7 +252,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{constants.ClientRead},
-			[]string{constants.ClientCredentials},
+			[]string{constants.ClientCredentialsGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -271,7 +274,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{constants.ClientManage},
-			[]string{constants.ClientCredentials},
+			[]string{constants.ClientCredentialsGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -295,7 +298,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage},
-			[]string{constants.ClientCredentials},
+			[]string{constants.ClientCredentialsGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -313,7 +316,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage},
-			[]string{constants.ClientCredentials},
+			[]string{constants.ClientCredentialsGrantType},
 		)
 		testContext.WithEncryptedJWTToken("invalid-ID", 1*time.Hour)
 		defer testContext.TearDown()
@@ -451,37 +454,6 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 
 		// Attempt to update with invalid redirect URIs
 		request.RedirectURIS = append(request.RedirectURIS, "http://test.com/callback", "https://example.com/*")
-		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
-
-		rr := testContext.SendHTTPRequest(
-			http.MethodPut,
-			endpoint,
-			bytes.NewReader(requestBody),
-			headers,
-		)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("Bad Request - Invalid response types", func(t *testing.T) {
-		request := createClientUpdateRequest()
-		testContext := NewVigiloTestContext(t)
-		testContext.WithClient(
-			client.Confidential,
-			request.GetScopes(),
-			request.GetGrantTypes(),
-		)
-		testContext.WithEncryptedJWTToken(testClientID, 1*time.Hour)
-		defer testContext.TearDown()
-
-		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
-
-		// Attempt to update with invalid response types.
-		// Client Credentials is not allowed with Authorization Code.
-		request.GrantTypes = []string{constants.ClientCredentials}
-		request.ResponseTypes = []string{constants.CodeResponseType}
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
 
@@ -638,7 +610,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{constants.ClientManage, constants.ClientDelete},
-			[]string{constants.AuthorizationCode, constants.PKCE},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -654,7 +626,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{constants.ClientManage, constants.ClientDelete},
-			[]string{constants.AuthorizationCode, constants.PKCE},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken("invalid-id", 1*time.Hour)
 		defer testContext.TearDown()
@@ -670,7 +642,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{constants.ClientManage, constants.ClientDelete},
-			[]string{constants.AuthorizationCode, constants.PKCE},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, -1*time.Hour)
 		defer testContext.TearDown()
@@ -686,7 +658,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{constants.ClientManage, constants.ClientDelete},
-			[]string{constants.AuthorizationCode, constants.PKCE},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -702,7 +674,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{},
-			[]string{constants.AuthorizationCode, constants.PKCE},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
@@ -718,7 +690,7 @@ func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 	return &client.ClientRegistrationRequest{
 		Name:          testClientName1,
 		RedirectURIS:  []string{testRedirectURI},
-		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
@@ -729,7 +701,7 @@ func createClientUpdateRequest() *client.ClientUpdateRequest {
 		ID:            testClientID,
 		Name:          testClientName1,
 		RedirectURIS:  []string{testRedirectURI},
-		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 		Scopes:        []string{constants.ClientRead, constants.ClientWrite, constants.UserManage, constants.ClientManage},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}

@@ -252,7 +252,7 @@ func createTestClient() *client.Client {
 		RedirectURIS:  []string{testRedirectURI},
 		Scopes:        []string{constants.ClientManage, constants.ClientRead, constants.ClientWrite},
 		ResponseTypes: []string{constants.CodeResponseType, constants.TokenResponseType},
-		GrantTypes:    []string{constants.AuthorizationCode},
+		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 	}
 }
 
@@ -274,8 +274,9 @@ func createClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 		RedirectURI: testRedirectURI,
 		Client: &client.Client{
 			Type:          client.Public,
+			RequiresPKCE:  true,
 			ResponseTypes: []string{constants.CodeResponseType},
-			GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+			GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 			Scopes:        []string{testScope},
 			RedirectURIS:  []string{testRedirectURI},
 		},

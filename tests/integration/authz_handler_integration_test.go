@@ -20,7 +20,7 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	testContext.WithClient(
 		client.Confidential,
 		[]string{constants.ClientManage, constants.UserManage},
-		[]string{constants.AuthorizationCode},
+		[]string{constants.AuthorizationCodeGrantType},
 	)
 	testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 	testContext.WithUserSession()
@@ -53,7 +53,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 	testContext.WithClient(
 		client.Confidential,
 		[]string{constants.ClientManage, constants.UserManage},
-		[]string{constants.AuthorizationCode, constants.PKCE},
+		[]string{constants.AuthorizationCodeGrantType},
 	)
 
 	testContext.WithUserSession()
@@ -83,7 +83,7 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 	testContext.WithClient(
 		client.Confidential,
 		[]string{constants.ClientManage, constants.UserManage},
-		[]string{constants.AuthorizationCode, constants.PKCE},
+		[]string{constants.AuthorizationCodeGrantType},
 	)
 
 	testContext.WithUserConsent()
@@ -113,7 +113,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 	testContext.WithClient(
 		client.Confidential,
 		[]string{constants.ClientManage, constants.UserManage},
-		[]string{constants.AuthorizationCode},
+		[]string{constants.AuthorizationCodeGrantType},
 	)
 
 	testContext.WithUserSession()
@@ -147,7 +147,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 	testContext.WithClient(
 		client.Confidential,
 		[]string{constants.ClientManage, constants.UserManage},
-		[]string{constants.AuthorizationCode},
+		[]string{constants.AuthorizationCodeGrantType},
 	)
 
 	testContext.WithUserSession()
@@ -181,16 +181,6 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			clientType          string
 		}{
 			{
-				name:                "Confidential using SHA-256 code challenge method",
-				codeChallengeMethod: client.S256,
-				clientType:          client.Confidential,
-			},
-			{
-				name:                "Confidential using plain code challenge method",
-				codeChallengeMethod: client.Plain,
-				clientType:          client.Confidential,
-			},
-			{
 				name:                "Public client using SHA-256 code challenge method",
 				codeChallengeMethod: client.S256,
 				clientType:          client.Public,
@@ -207,7 +197,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext.WithClient(
 				test.clientType,
 				[]string{constants.ClientManage},
-				[]string{constants.AuthorizationCode, constants.PKCE},
+				[]string{constants.AuthorizationCodeGrantType},
 			)
 
 			testContext.WithUserSession()
@@ -233,30 +223,6 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		}
 	})
 
-	t.Run("Error is returned when public client does not have PKCE grant type", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(
-			client.Public,
-			[]string{constants.ClientManage},
-			[]string{constants.AuthorizationCode},
-		)
-
-		testContext.WithUserSession()
-		testContext.WithUserConsent()
-
-		queryParams := testContext.CreateAuthorizationCodeRequestQueryParams(testContext.SH256CodeChallenge, client.S256)
-		sessionCookie := testContext.GetSessionCookie()
-		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
-		endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
-
-		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
-
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidGrant, "failed to authorize client", "public clients are required to use PKCE")
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
 	t.Run("Error is returned when the code challenge is not provided", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
@@ -264,7 +230,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{constants.ClientManage},
-			[]string{constants.AuthorizationCode, constants.PKCE},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		testContext.WithUserSession()
@@ -277,7 +243,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidRequest, "failed to authorize client", "'code_challenge' is required for PKCE")
+		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidRequest, "failed to authorize client", "code_challenge is required for PKCE")
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
@@ -288,7 +254,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		testContext.WithClient(
 			client.Public,
 			[]string{constants.ClientManage},
-			[]string{constants.AuthorizationCode, constants.PKCE},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		testContext.WithUserSession()
@@ -352,7 +318,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext.WithClient(
 				client.Public,
 				[]string{constants.ClientManage},
-				[]string{constants.AuthorizationCode, constants.PKCE},
+				[]string{constants.AuthorizationCodeGrantType},
 			)
 
 			testContext.WithUserSession()

@@ -41,7 +41,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithUser(test.scopes, []string{constants.UserRole})
-				testContext.WithClient(clients.Confidential, test.scopes, []string{constants.AuthorizationCode})
+				testContext.WithClient(clients.Confidential, test.scopes, []string{constants.AuthorizationCodeGrantType})
 				testContext.WithJWTTokenWithScopes(testUserID, testClientID, test.scopes, time.Duration(5*time.Minute))
 
 				headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
@@ -86,7 +86,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithUser(test.scopes, []string{constants.UserRole})
-				testContext.WithClient(clients.Confidential, test.scopes, []string{constants.AuthorizationCode})
+				testContext.WithClient(clients.Confidential, test.scopes, []string{constants.AuthorizationCodeGrantType})
 				testContext.WithJWTTokenWithScopes(testUserID, testClientID, test.scopes, time.Duration(5*time.Minute))
 				testContext.WithUserSession()
 
@@ -134,7 +134,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		scopes := []string{constants.OIDC, constants.UserProfile, constants.UserOfflineAccess}
 
 		testContext.WithUser(scopes, []string{constants.UserRole})
-		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCode})
+		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCodeGrantType})
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, nil)
 
@@ -147,7 +147,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		defer testContext.TearDown()
 
 		scopes := []string{constants.OIDC, constants.UserProfile, constants.UserOfflineAccess}
-		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCode})
+		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCodeGrantType})
 		testContext.WithJWTTokenWithScopes("invalid-subject", testClientID, scopes, time.Duration(5*time.Minute))
 
 		headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
@@ -178,7 +178,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 
 		scopes := []string{constants.OIDC, constants.UserProfile, constants.UserEmail}
 		testContext.WithUser([]string{}, []string{constants.UserRole})
-		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCode})
+		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCodeGrantType})
 		testContext.WithJWTTokenWithScopes(testUserID, testClientID, []string{constants.OIDC}, time.Duration(5*time.Minute))
 
 		headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}

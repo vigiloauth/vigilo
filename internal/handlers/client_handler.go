@@ -59,19 +59,7 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newClient := &client.Client{
-		Name:          req.Name,
-		Type:          req.Type,
-		RedirectURIS:  req.RedirectURIS,
-		GrantTypes:    req.GrantTypes,
-		ResponseTypes: req.ResponseTypes,
-		Scopes:        req.Scopes,
-	}
-
-	if req.TokenEndpointAuthMethod != "" && req.TokenEndpointAuthMethod != "none" {
-		newClient.TokenEndpointAuthMethod = req.TokenEndpointAuthMethod
-	}
-
+	newClient := client.NewClientFromRegistrationRequest(req)
 	response, err := h.clientService.Register(ctx, newClient)
 	if err != nil {
 		h.logger.Error(h.module, requestID, "Failed to register client: %v", err)

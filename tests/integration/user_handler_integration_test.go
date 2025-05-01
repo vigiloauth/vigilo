@@ -44,7 +44,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		loginRequest := users.UserLoginRequest{
@@ -77,7 +77,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		loginRequest := users.UserLoginRequest{

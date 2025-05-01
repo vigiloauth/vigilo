@@ -13,21 +13,16 @@ const validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX323434231423424234234
 func TestClientRegistrationRequest_Validate(t *testing.T) {
 	t.Run("Successful Validation", func(t *testing.T) {
 		client := createClientRegistrationRequest()
+		client.Scopes = []string{}
 		err := client.Validate()
 		assert.NoError(t, err)
 	})
 
-	t.Run("Invalid Client Type", func(t *testing.T) {
-		client := createClientRegistrationRequest()
-		client.Type = Confidential
-
-		err := client.Validate()
-		assert.Error(t, err)
-	})
-
 	t.Run("Invalid Grant Types", func(t *testing.T) {
 		client := createClientRegistrationRequest()
-		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentials)
+		client.ApplicationType = constants.NativeApplicationType
+		client.TokenEndpointAuthMethod = constants.NoTokenAuth
+		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentialsGrantType)
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -74,23 +69,6 @@ func TestClientRegistrationRequest_Validate(t *testing.T) {
 		err := client.Validate()
 		assert.Error(t, err)
 	})
-
-	t.Run("Empty scopes is replaced with 'client:read'", func(t *testing.T) {
-		client := createClientRegistrationRequest()
-		client.Scopes = []string{}
-
-		err := client.Validate()
-		assert.NoError(t, err)
-		assert.Equal(t, constants.ClientRead, client.Scopes[0])
-	})
-
-	t.Run("Return error when public client is not using PKCE", func(t *testing.T) {
-		client := createClientRegistrationRequest()
-		client.GrantTypes = []string{constants.AuthorizationCode}
-
-		err := client.Validate()
-		assert.Error(t, err)
-	})
 }
 
 func TestClientUpdateRequest_Validate(t *testing.T) {
@@ -102,7 +80,7 @@ func TestClientUpdateRequest_Validate(t *testing.T) {
 
 	t.Run("Invalid Grant Types", func(t *testing.T) {
 		client := createClientUpdateRequest()
-		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentials)
+		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentialsGrantType)
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -263,8 +241,9 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			ResponseType: constants.IDTokenResponseType,
 			Client: &Client{
 				Type:          Public,
-				GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 				ResponseTypes: []string{constants.IDTokenResponseType},
+				RequiresPKCE:  true,
 			},
 			CodeChallenge: validCodeChallenge,
 		}
@@ -282,7 +261,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			Client: &Client{
 				Type:          Confidential,
 				ResponseTypes: []string{constants.CodeResponseType},
-				GrantTypes:    []string{constants.AuthorizationCode},
+				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 			},
 		}
 
@@ -295,7 +274,6 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			Client: &Client{
 				Type:          Public,
 				ResponseTypes: []string{constants.CodeResponseType},
-				GrantTypes:    []string{constants.PKCE},
 			},
 			ResponseType:        constants.CodeResponseType,
 			CodeChallengeMethod: Plain,
@@ -313,7 +291,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			Client: &Client{
 				Type:          Public,
 				ResponseTypes: []string{constants.CodeResponseType},
-				GrantTypes:    []string{constants.AuthorizationCode},
+				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 			},
 			ResponseType:        constants.CodeResponseType,
 			CodeChallenge:       validCodeChallenge,
@@ -321,7 +299,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
-		expectedErr := "public clients are required to use PKCE"
+		expectedErr := "PKCE is required when providing a code challenge"
 
 		assert.Error(t, err)
 		assert.Contains(t, expectedErr, err.Error())
@@ -332,7 +310,8 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			Client: &Client{
 				Type:          Public,
 				ResponseTypes: []string{constants.CodeResponseType},
-				GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
+				RequiresPKCE:  true,
 			},
 			ResponseType: constants.CodeResponseType,
 		}
@@ -349,7 +328,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 			Client: &Client{
 				Type:          Confidential,
 				ResponseTypes: []string{constants.CodeResponseType},
-				GrantTypes:    []string{constants.AuthorizationCode},
+				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 			},
 			ResponseType: constants.CodeResponseType,
 		}
@@ -357,34 +336,19 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		err := ValidateClientAuthorizationRequest(request)
 		assert.NoError(t, err)
 	})
-
-	t.Run("Error is returned when confidential client provides a code challenge but is not using PKCE", func(t *testing.T) {
-		request := &ClientAuthorizationRequest{
-			Client: &Client{
-				Type:          Confidential,
-				ResponseTypes: []string{constants.CodeResponseType},
-				GrantTypes:    []string{constants.AuthorizationCode},
-			},
-			ResponseType:  constants.CodeResponseType,
-			CodeChallenge: validCodeChallenge,
-		}
-
-		err := ValidateClientAuthorizationRequest(request)
-		expectedErr := "PKCE is required when providing a code challenge"
-
-		assert.Error(t, err)
-		assert.Contains(t, expectedErr, err.Error())
-	})
 }
 
 func createClientRegistrationRequest() *ClientRegistrationRequest {
 	return &ClientRegistrationRequest{
-		Name:          "Test Client",
-		Type:          Public,
-		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
-		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
-		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
-		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
+		Name:                    "Test Client",
+		Type:                    Public,
+		RedirectURIS:            []string{"https://www.example-app.com/callback"},
+		GrantTypes:              []string{constants.AuthorizationCodeGrantType},
+		RequiresPKCE:            true,
+		Scopes:                  []string{constants.ClientRead, constants.ClientWrite},
+		ResponseTypes:           []string{constants.CodeResponseType, constants.IDTokenResponseType},
+		ApplicationType:         constants.WebApplicationType,
+		TokenEndpointAuthMethod: constants.ClientSecretBasicTokenAuth,
 	}
 }
 
@@ -393,7 +357,7 @@ func createClientUpdateRequest() *ClientUpdateRequest {
 		Name:          "Test Client",
 		Type:          Public,
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
-		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
@@ -404,7 +368,8 @@ func createClient() *Client {
 		Name:          "Test Client",
 		Type:          Public,
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
-		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
+		RequiresPKCE:  true,
 		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}

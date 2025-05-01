@@ -117,16 +117,16 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch requestedGrantType {
-	case constants.ClientCredentials:
+	case constants.ClientCredentialsGrantType:
 		h.handleClientCredentialsRequest(ctx, w, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
 		return
-	case constants.PasswordGrant:
+	case constants.PasswordGrantType:
 		h.handlePasswordGrantRequest(ctx, w, r, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
 		return
-	case constants.AuthorizationCode, constants.PKCE:
+	case constants.AuthorizationCodeGrantType:
 		h.handleAuthorizationCodeTokenExchange(ctx, w, r, requestID, clientID, clientSecret)
 		return
-	case constants.RefreshToken:
+	case constants.RefreshTokenGrantType:
 		h.handleRefreshTokenRequest(ctx, w, r, requestID, clientID, clientSecret, requestedGrantType, requestedScopes)
 	default:
 		h.logger.Warn(h.module, requestID, "[IssueTokens]: Unsupported grant type")

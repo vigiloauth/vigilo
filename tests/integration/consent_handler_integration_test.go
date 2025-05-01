@@ -24,7 +24,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
@@ -48,7 +48,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
@@ -82,7 +82,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		queryParams := url.Values{}
@@ -125,7 +125,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 				testContext.WithClient(
 					client.Confidential,
 					[]string{constants.ClientManage, constants.UserManage},
-					[]string{constants.AuthorizationCode},
+					[]string{constants.AuthorizationCodeGrantType},
 				)
 
 				rr := testContext.SendHTTPRequest(http.MethodGet, test.endpoint, nil, nil)
@@ -143,7 +143,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
@@ -177,7 +177,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()
@@ -222,7 +222,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage, constants.UserManage},
-			[]string{constants.AuthorizationCode},
+			[]string{constants.AuthorizationCodeGrantType},
 		)
 
 		sessionCookie := testContext.GetSessionCookie()

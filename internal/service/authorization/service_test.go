@@ -106,7 +106,8 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 
 		request := &client.ClientAuthorizationRequest{
 			Client: &client.Client{
-				GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
+				RequiresPKCE:  true,
 				ResponseTypes: []string{constants.IDTokenResponseType},
 			},
 			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
@@ -590,9 +591,10 @@ func getClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 		UserID:              testUserID,
 		Client: &client.Client{
 			Name:          "Test Client",
-			Type:          constants.PKCE,
+			Type:          client.Public,
+			RequiresPKCE:  true,
 			RedirectURIS:  []string{testRedirectURI},
-			GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+			GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 			Scopes:        []string{constants.ClientManage},
 			ResponseTypes: []string{constants.CodeResponseType},
 		},
@@ -612,16 +614,18 @@ func getTestClient() *client.Client {
 	return &client.Client{
 		ID:            testClientID,
 		Secret:        testClientSecret,
+		Type:          client.Confidential,
 		RedirectURIS:  []string{testClientID},
 		Scopes:        []string{constants.ClientManage, constants.UserRead},
-		GrantTypes:    []string{constants.AuthorizationCode, constants.PKCE},
+		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 		ResponseTypes: []string{constants.CodeResponseType},
+		RequiresPKCE:  true,
 	}
 }
 
 func getTestTokenRequest() *token.TokenRequest {
 	return &token.TokenRequest{
-		GrantType:         constants.AuthorizationCode,
+		GrantType:         constants.AuthorizationCodeGrantType,
 		AuthorizationCode: testAuthzCode,
 		RedirectURI:       testRedirectURI,
 		ClientID:          testClientID,

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
 )
 
 // Client represents an OAuth client with its attributes and authentication details.
@@ -17,13 +18,20 @@ type Client struct {
 	TokenEndpointAuthMethod string
 	JwksURI                 string
 	LogoURI                 string
+	ApplicationType         string
+	RegistrationAccessToken string
 	RedirectURIS            []string
 	GrantTypes              []string
 	Scopes                  []string
 	ResponseTypes           []string
+	Contacts                []string
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
+	IDIssuedAt              time.Time
 	SecretExpiration        int
+	RequiresPKCE            bool
+	JWKS                    []*domain.Jwks
+	ConfigurationEndpoint   string
 }
 
 type ClientRequest interface {
@@ -40,16 +48,19 @@ type ClientRequest interface {
 
 // ClientRegistrationRequest represents a request to register a new OAuth client.
 type ClientRegistrationRequest struct {
-	Name                    string   `json:"client_name"`
-	Type                    string   `json:"client_type"`
-	Secret                  string   `json:"client_secret,omitempty"`
-	RedirectURIS            []string `json:"redirect_uris"`
-	GrantTypes              []string `json:"grant_types"`
-	Scopes                  []string `json:"scope,omitempty"`
-	ResponseTypes           []string `json:"response_types"`
-	JwksURI                 string   `json:"jwks_uri,omitempty"`
-	LogoURI                 string   `json:"logo_uri,omitempty"`
-	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method,omitempty"`
+	Name                    string         `json:"client_name"`
+	ApplicationType         string         `json:"application_type,omitempty"`
+	RedirectURIS            []string       `json:"redirect_uris"`
+	Scopes                  []string       `json:"scope,omitempty"`
+	GrantTypes              []string       `json:"grant_types"`
+	ResponseTypes           []string       `json:"response_types"`
+	Contacts                []string       `json:"contacts,omitempty"`
+	JwksURI                 string         `json:"jwks_uri,omitempty"`
+	LogoURI                 string         `json:"logo_uri,omitempty"`
+	TokenEndpointAuthMethod string         `json:"token_endpoint_auth_method,omitempty"`
+	JWKS                    []*domain.Jwks `json:"jwks,omitempty"`
+	RequiresPKCE            bool
+	Type                    string
 }
 
 // ClientUpdateRequest represents a request to update an existing OAuth client.
@@ -58,10 +69,12 @@ type ClientUpdateRequest struct {
 	Type                    string
 	Secret                  string   `json:"client_secret,omitempty"`
 	Name                    string   `json:"client_name,omitempty"`
+	ApplicationType         string   `json:"application_type,omitempty"`
 	RedirectURIS            []string `json:"redirect_uris,omitempty"`
 	GrantTypes              []string `json:"grant_types,omitempty"`
 	Scopes                  []string `json:"scope,omitempty"`
 	ResponseTypes           []string `json:"response_types,omitempty"`
+	Contacts                []string `json:"contacts,omitempty"`
 	JwksURI                 string   `json:"jwks_uri,omitempty"`
 	LogoURI                 string   `json:"logo_uri,omitempty"`
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method,omitempty"`
@@ -71,13 +84,15 @@ type ClientUpdateRequest struct {
 type ClientRegistrationResponse struct {
 	ID                      string    `json:"client_id"`
 	Name                    string    `json:"client_name"`
+	Type                    string    `json:"client_type"`
 	Secret                  string    `json:"client_secret,omitempty"`
 	SecretExpiration        int       `json:"client_secret_expires_at,omitempty"`
-	Type                    string    `json:"client_type"`
+	ApplicationType         string    `json:"application_type,omitempty"`
 	RedirectURIS            []string  `json:"redirect_uris"`
 	GrantTypes              []string  `json:"grant_types"`
 	Scopes                  []string  `json:"scope"`
 	ResponseTypes           []string  `json:"response_types"`
+	Contacts                []string  `json:"contacts,omitempty"`
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
 	JwksURI                 string    `json:"jwks_uri,omitempty"`
@@ -128,13 +143,79 @@ type ClientInformationResponse struct {
 	RegistrationAccessToken string `json:"registration_access_token"`
 }
 
+func NewClientFromRegistrationRequest(req *ClientRegistrationRequest) *Client {
+	client := &Client{
+		Name:          req.Name,
+		Type:          req.Type,
+		RedirectURIS:  req.RedirectURIS,
+		GrantTypes:    req.GrantTypes,
+		ResponseTypes: req.ResponseTypes,
+	}
+
+	if req.ApplicationType != "" {
+		client.ApplicationType = req.ApplicationType
+	}
+	if len(req.Scopes) != 0 {
+		client.Scopes = req.Scopes
+	}
+	if len(req.Contacts) != 0 {
+		client.Contacts = req.Contacts
+	}
+	if req.JwksURI != "" {
+		client.JwksURI = req.JwksURI
+	}
+	if req.LogoURI != "" {
+		client.LogoURI = req.LogoURI
+	}
+	if req.TokenEndpointAuthMethod != "" {
+		client.TokenEndpointAuthMethod = req.TokenEndpointAuthMethod
+	}
+	if len(req.JWKS) != 0 {
+		client.JWKS = req.JWKS
+	}
+
+	return client
+}
+
+func NewClientRegistrationResponseFromClient(client *Client) *ClientRegistrationResponse {
+	response := &ClientRegistrationResponse{
+		ID:                      client.ID,
+		Name:                    client.Name,
+		Type:                    client.Type,
+		RedirectURIS:            client.RedirectURIS,
+		GrantTypes:              client.RedirectURIS,
+		Scopes:                  client.Scopes,
+		ResponseTypes:           client.RedirectURIS,
+		CreatedAt:               client.CreatedAt,
+		UpdatedAt:               client.UpdatedAt,
+		RegistrationAccessToken: client.RegistrationAccessToken,
+		IDIssuedAt:              client.IDIssuedAt,
+		ConfigurationEndpoint:   client.ConfigurationEndpoint,
+	}
+
+	if client.Secret != "" {
+		response.Secret = client.Secret
+		response.SecretExpiration = client.SecretExpiration
+	}
+	if client.ApplicationType != "" {
+		response.ApplicationType = client.ApplicationType
+	}
+	if len(client.Contacts) != 0 {
+		response.Contacts = client.Contacts
+	}
+	if client.JwksURI != "" {
+		response.JwksURI = client.JwksURI
+	}
+	if client.TokenEndpointAuthMethod != "" {
+		response.TokenEndpointAuthMethod = client.TokenEndpointAuthMethod
+	}
+
+	return response
+}
+
 // HasGrantType checks to see if the client has the required grant type.
 func (c *Client) HasGrantType(requiredGrantType string) bool {
 	return slices.Contains(c.GrantTypes, requiredGrantType)
-}
-
-func (c *Client) RequiresPKCE() bool {
-	return slices.Contains(c.GrantTypes, constants.PKCE)
 }
 
 // HasRedirectURI checks to see if the client has the required redirectURI.

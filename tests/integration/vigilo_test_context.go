@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -171,6 +172,12 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 
 	if clientType == client.Confidential {
 		c.Secret = testClientSecret
+		c.ApplicationType = constants.WebApplicationType
+		c.TokenEndpointAuthMethod = constants.ClientSecretBasicTokenAuth
+	} else if slices.Contains(grantTypes, constants.AuthorizationCodeGrantType) {
+		c.RequiresPKCE = true
+		c.ApplicationType = constants.NativeApplicationType
+		c.TokenEndpointAuthMethod = constants.NoTokenAuth
 	}
 
 	clientRepo.GetInMemoryClientRepository().SaveClient(context.Background(), c)
@@ -269,13 +276,13 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 		tc.WithClient(
 			client.Confidential,
 			[]string{constants.ClientManage},
-			[]string{constants.ClientCredentials},
+			[]string{constants.ClientCredentialsGrantType},
 		)
 	}
 
 	auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
 	formData := url.Values{}
-	formData.Add(constants.GrantTypeReqField, constants.ClientCredentials)
+	formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 	formData.Add(constants.ScopeReqField, constants.ClientManage)
 
 	headers := map[string]string{

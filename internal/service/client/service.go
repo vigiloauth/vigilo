@@ -85,12 +85,6 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 		newClient.SecretExpiration = 0
 	}
 
-	newClient.CreatedAt, newClient.UpdatedAt = time.Now(), time.Now()
-	if err := cs.clientRepo.SaveClient(ctx, newClient); err != nil {
-		cs.logger.Error(cs.module, requestID, "[Register]: Failed to save client: %v", err)
-		return nil, errors.Wrap(err, "", "failed to create new client")
-	}
-
 	accessToken, err := cs.tokenService.GenerateToken(
 		ctx, newClient.ID,
 		strings.Join(newClient.Scopes, " "),
@@ -102,37 +96,19 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 		return nil, errors.Wrap(err, "", "failed to generate the registration access token")
 	}
 
-	response := &client.ClientRegistrationResponse{
-		ID:                      newClient.ID,
-		Name:                    newClient.Name,
-		Type:                    newClient.Type,
-		RedirectURIS:            newClient.RedirectURIS,
-		GrantTypes:              newClient.GrantTypes,
-		Scopes:                  newClient.Scopes,
-		ResponseTypes:           newClient.ResponseTypes,
-		CreatedAt:               newClient.CreatedAt,
-		UpdatedAt:               newClient.UpdatedAt,
-		TokenEndpointAuthMethod: newClient.TokenEndpointAuthMethod,
-		RegistrationAccessToken: accessToken,
-		ConfigurationEndpoint:   cs.buildClientConfigurationEndpoint(newClient.ID),
-		IDIssuedAt:              time.Now(),
-	}
-
+	newClient.CreatedAt, newClient.UpdatedAt, newClient.IDIssuedAt = time.Now(), time.Now(), time.Now()
+	newClient.ConfigurationEndpoint = cs.buildClientConfigurationEndpoint(newClient.ID)
+	newClient.RegistrationAccessToken = accessToken
 	if newClient.IsConfidential() {
-		response.Secret = plainSecret
-		response.RegistrationAccessToken, err = cs.tokenService.EncryptToken(ctx, accessToken)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if newClient.JwksURI != "" {
-		response.JwksURI = newClient.JwksURI
-	}
-	if newClient.LogoURI != "" {
-		response.LogoURI = newClient.LogoURI
+		newClient.RegistrationAccessToken, _ = cs.tokenService.EncryptToken(ctx, accessToken)
 	}
 
-	return response, nil
+	if err := cs.clientRepo.SaveClient(ctx, newClient); err != nil {
+		cs.logger.Error(cs.module, requestID, "[Register]: Failed to save client: %v", err)
+		return nil, errors.Wrap(err, "", "failed to create new client")
+	}
+
+	return client.NewClientRegistrationResponseFromClient(newClient), nil
 }
 
 // RegenerateClientSecret regenerates a client secret.
@@ -163,7 +139,7 @@ func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID st
 		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
 	}
 
-	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, constants.ClientCredentials, constants.ClientManage); err != nil {
+	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, constants.ClientCredentialsGrantType, constants.ClientManage); err != nil {
 		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to validate client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
