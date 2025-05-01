@@ -25,7 +25,6 @@ func main() {
 		var keyFile string = ""
 
 		logger = lib.GetLogger()
-		logger.SetLevel("DEBUG")
 
 		if cfg != nil && cfg.ServerConfig != nil {
 			if cfg.Port != nil {
