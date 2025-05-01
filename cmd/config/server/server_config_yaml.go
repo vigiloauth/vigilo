@@ -13,6 +13,7 @@ type ServerConfigYAML struct {
 	SessionCookieName    *string `yaml:"session_cookie_name,omitempty"`
 	BaseURL              *string `yaml:"base_url,omitempty"`
 	ForceHTTPS           *bool   `yaml:"force_https,omitempty"`
+	Domain               *string `yaml:"domain,omitempty"`
 	EnableRequestLogging *bool   `yaml:"enable_request_logging,omitempty"`
 
 	ReadTimeout       *int64 `yaml:"read_timeout,omitempty"`
@@ -55,6 +56,9 @@ func (sc *ServerConfigYAML) ToOptions() []config.ServerConfigOptions {
 	if sc.AuthzCodeDuration != nil {
 		duration := time.Duration(*sc.AuthzCodeDuration) * time.Minute
 		options = append(options, config.WithAuthorizationCodeDuration(duration))
+	}
+	if sc.Domain != nil {
+		options = append(options, config.WithDomain(*sc.Domain))
 	}
 
 	return options

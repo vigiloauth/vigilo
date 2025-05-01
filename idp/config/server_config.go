@@ -2,6 +2,7 @@ package config
 
 import (
 	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,6 +21,7 @@ type ServerConfig struct {
 	keyFilePath       string // Path to the SSL key file.
 	baseURL           string // Base URL of the server.
 	sessionCookieName string // Name of the session cookie.
+	domain            string
 
 	forceHTTPS        bool   // Whether to force HTTPS connections.
 	port              string // Port number the server listens on.
@@ -49,8 +51,9 @@ var (
 )
 
 const (
-	defaultPort             string = "8443" // Default port number.
+	defaultPort             string = "8080" // Default port number.
 	defaultHTTPSRequirement bool   = false  // Default HTTPS requirement.
+	defaultDomain           string = "localhost"
 
 	defaultReadTimeout               time.Duration = 15 * time.Second // Default read timeout.
 	defaultWriteTimeout              time.Duration = 15 * time.Second // Default write timeout.
@@ -345,6 +348,21 @@ func WithRequestLogging(enable bool) ServerConfigOptions {
 	}
 }
 
+// WithDomain configures the servers domain.
+//
+// Parameters:
+//
+//	domain string: The domain.
+//
+// Returns:
+//
+//	ServerConfigOptions: A function that configures the server configuration.
+func WithDomain(domain string) ServerConfigOptions {
+	return func(sc *ServerConfig) {
+		sc.domain = domain
+	}
+}
+
 // Port returns the servers port from.
 //
 // Returns:
@@ -453,6 +471,15 @@ func (sc *ServerConfig) MaxRequestsPerMinute() int {
 	return sc.requestsPerMinute
 }
 
+func (sc *ServerConfig) URL() string {
+	URL := fmt.Sprintf("%s:%s/%s", sc.domain, sc.port, sc.baseURL)
+	if sc.forceHTTPS {
+		return "https://" + URL
+	}
+
+	return "http://" + URL
+}
+
 func (sc *ServerConfig) EnableRequestLogging() bool {
 	return sc.requestLogging
 }
@@ -508,6 +535,7 @@ func defaultServerConfig() *ServerConfig {
 
 	sc := &ServerConfig{
 		port:                      defaultPort,
+		domain:                    defaultDomain,
 		forceHTTPS:                defaultHTTPSRequirement,
 		requestLogging:            defaultRequestLogging,
 		readTimeout:               defaultReadTimeout,

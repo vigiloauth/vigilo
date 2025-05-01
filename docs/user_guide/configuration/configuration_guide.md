@@ -30,11 +30,12 @@ The `VigiloIdentityServer` can be configured using various options to suit your 
 |-----------------------------------|---------------------------------------------------------|-----------------------------|
 | **SSL Cert File Path**            | Path to the SSL Certificate when using HTTPS.           | N/A                         |
 | **Key File Path**                 | Path to the SSL Key file when using HTTPS.              | N/A                         |
-| **Base URL**                      | Base URL that the endpoints will be available on.       | N/A                         |
+| **Base URL**                      | Base URL that the endpoints will be available on.       | `/identity`                 |
+| **Domain**                        | Server's domain.                                        | `localhost`                 |
 | **Session Cookie Name**           | The name of the session cookie.                         | `vigilo-auth-session-cookie`|
 | **Force HTTPS**                   | Whether to force HTTPS connections.                     | `false`                     |
 | **Enable Request Logging**        | Whether to enable request logging or not.               | `true`                      |
-| **Port**                          | The port number the server listens to.                  | `8443`                      |
+| **Port**                          | The port number the server listens to.                  | `8080`                      |
 | **Requests Per Minute**           | The maximum requests allowed per minute.                | `100`                       |
 | **Read Timeout**                  | Read timeout duration for HTTP requests in seconds.     | `15 seconds`                |
 | **Write Timeout**                 | Write timeout duration for HTTP requests in seconds.    | `15 seconds`                |

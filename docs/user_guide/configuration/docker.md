@@ -97,6 +97,7 @@ server_config:
   port: 8080
   session_cookie_name: test-session-cookie
   base_url: /identity
+  domain: auth.example.com
   force_https: true
   read_timeout: 30 # in seconds
   write_timeout: 30 # in seconds

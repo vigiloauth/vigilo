@@ -114,8 +114,8 @@ func (h *OIDCHandler) GetOpenIDConfiguration(w http.ResponseWriter, r *http.Requ
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[GetOpenIDConfiguration]: Processing request")
 
-	baseURL := config.GetServerConfig().BaseURL()
-	discoveryJSON := oidc.NewDiscoveryJSON(baseURL)
+	URL := config.GetServerConfig().URL()
+	discoveryJSON := oidc.NewDiscoveryJSON(URL)
 
 	web.WriteJSON(w, http.StatusOK, discoveryJSON)
 }

@@ -14,7 +14,7 @@ import (
 func main() {
 	isDockerENV := os.Getenv("VIGILO_SERVER_MODE") == "docker"
 	if isDockerENV {
-		cfg := config.LoadConfigurations() // This loads config from YAML/Env Vars
+		cfg := config.LoadConfigurations()
 
 		var baseURL string = "/identity"
 		var port string = ":8080"
@@ -32,11 +32,9 @@ func main() {
 			if cfg.Port != nil {
 				port = fmt.Sprintf(":%s", *cfg.Port)
 			}
-
 			if cfg.ServerConfig.BaseURL != nil {
 				baseURL = *cfg.ServerConfig.BaseURL
 			}
-
 			if cfg.ServerConfig.ForceHTTPS != nil {
 				forceHTTPs = *cfg.ServerConfig.ForceHTTPS
 			}
