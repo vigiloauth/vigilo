@@ -29,16 +29,17 @@ For information on how to use `client_configuration_endpoint` and `registration_
 ## Request Body
 | Field                | Type          | Required | Description                                                                 |
 | :--------------------| :-------------| :--------| :--------------------------------------------------------------------------|
-| `client_name`          | `string`        | Yes      | The name of the client application being registered.                       |
-| `redirect_uris`        | `[]string`   | Yes      | A list of URIs to which the authorization server will redirect the user after successful authorization. Public clients must use HTTPS. |
-| `client_type`          | `string`        | Yes      | The type of client. Must be either `public` or `confidential`.             |
+| `client_name`          | `string`    | Yes      | The name of the client application being registered.                       |
+| `redirect_uris`        | `[]string`  | Yes      | A list of URIs to which the authorization server will redirect the user after successful authorization. Public clients must use HTTPS. |
 | `grant_types`          | `[]string`  | Yes      | The grant types associated with the client. Supported values: `authorization_code`, `client_credentials`, `password`, `refresh_token`, `implicit`, `device_code`, `pkce`. |
-| `scope`               | `[]string`  | No       | The scopes associated with the client. Supported values: `clients:read`, `clients:write`, `clients:delete`, `clients:manage`.  |
 | `response_types`       | `[]string`  | Yes      | The response types associated with the client. Supported values: `code`, `token`, `id_token`. |
+| `scope`               | `[]string`   | No       | The scopes associated with the client. Supported values: `clients:read`, `clients:write`, `clients:delete`, `clients:manage`.  |
 | `token_auth_endpoint`  | `string`    | No       | The token authentication endpoint for the client credentials flow. Required for `client_credentials` grant type. |
 | `jwks_uri`             | `string`    | No       | URL pointing to the client's JSON Web Key Set (JWKS), used for signed requests or tokens |
 | `logo_uri`             | `string`    | No       | URL pointing to the client's logo, which can be displayed in user-facing interfaces or administrative dashboards. |
-
+| `application_type`     | `string`    | No       | Either `web` or `native`. |
+| `jwks`                 | `[]string`  | No       | Set of public cryptographic keys. |
+| `contacts`             | `[]string`  | No       | A list of contacts. |
 ---
 
 ## Example Request
@@ -53,10 +54,23 @@ Accept: application/json
     "https://example.com/callback",
     "https://example.com/redirect"
   ],
-  "client_type": "confidential",
   "grant_types": ["authorization_code", "client_credentials"],
   "scope": ["clients:read", "clients:write"],
-  "response_types": ["code", "token"]
+  "response_types": ["code", "token"],
+  "token_endpoint_auth_method": "client_secret_basic",
+  "application_type": "web",
+  "contacts": ["john.doe@mail.com"],
+  "jwks": {
+    "keys": [
+      {
+        "kty": "RSA",
+        "e": "AQAB",
+        "use": "sig",
+        "alg": "RS256",
+        "n": "ssoIvYc-21F8OYtwmzGFJsZonLq-P5DKzaLMflbn0X2x1giwt..."
+      }
+    ]
+  }
 }
 ```
 **Note:** If no scopes are provided during client registration, VigiloAuth Server defaults to the most restrictive scope (`client:read`).
@@ -77,8 +91,10 @@ Accept: application/json
         "https://example.com/callback",
         "https://example.com/redirect"
     ],
-    "grant_types": ["authorization_code", "pkce"],
+    "grant_types": ["authorization_code"],
     "response_types": ["code", "id_token"],
+    "application_type": "native",
+    "token_endpoint_auth_method": "none",
     "created_at": "2025-03-18T17:55:40.843541-07:00",
     "updated_at": "2025-03-18T17:55:40.843541-07:00",
     "registration_access_token": "eyJhbGciOiJIUzI1NiIsInR5...",
@@ -100,10 +116,6 @@ Accept: application/json
     "error_code": "validation_error",
     "message": "One or more validation errors occurred.",
     "errors": [
-        {
-            "error_code": "invalid_client",
-            "message": "The client type must be either 'public' or 'confidential'."
-        },
         {
             "error_code": "empty_field",
             "message": "The 'redirect_uris' field is empty."
@@ -145,16 +157,5 @@ Accept: application/json
             "message": "The 'id_token' response type is only allowed with 'authorization_code', 'device_code', or 'implicit' grant types."
         }
     ]
-}
-```
-
-### 4. Public Client Registering Without PKCE
-#### HTTP Status Code: `400 Bad Request`
-#### Response Body:
-```json
-{
-    "error": "invalid_request",
-    "error_description": "failed to register client",
-    "error_details": "public clients are required to use PKCE"
 }
 ```
