@@ -53,6 +53,7 @@ func (sr *ServerConfigRegistry) initMiddleware() {
 }
 
 func (sr *ServerConfigRegistry) initTLS() {
+	sr.logger.Debug(sr.module, "", "Initializing TLS")
 	sr.tlsConfig = &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		CipherSuites: []uint16{

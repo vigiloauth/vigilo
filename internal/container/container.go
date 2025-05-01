@@ -1,6 +1,7 @@
 package container
 
 import (
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -58,6 +59,10 @@ func (di *DIContainer) SchedulerRegistry() *SchedulerRegistry {
 
 func (di *DIContainer) ServerConfigRegistry() *ServerConfigRegistry {
 	return di.serverConfigRegistry
+}
+
+func (di *DIContainer) HTTPServer() *http.Server {
+	return di.ServerConfigRegistry().httpServer
 }
 
 func (di *DIContainer) Shutdown() {

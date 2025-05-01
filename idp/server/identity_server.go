@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/container"
@@ -40,6 +42,10 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 
 func (s *VigiloIdentityServer) Router() chi.Router {
 	return s.routerConfig.Router()
+}
+
+func (s *VigiloIdentityServer) HTTPServer() *http.Server {
+	return s.container.HTTPServer()
 }
 
 func (s *VigiloIdentityServer) Shutdown() {

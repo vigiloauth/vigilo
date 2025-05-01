@@ -15,7 +15,7 @@ import (
 )
 
 type ApplicationConfig struct {
-	ServerConfig   server.ServerConfigYAML     `yaml:"server_config"`
+	ServerConfig   *server.ServerConfigYAML    `yaml:"server_config"`
 	TokenConfig    token.TokenConfigYAML       `yaml:"token_config,omitempty"`
 	PasswordConfig password.PasswordConfigYAML `yaml:"password_config,omitempty"`
 	LoginConfig    login.LoginConfigYAML       `yaml:"login_config,omitempty"`
