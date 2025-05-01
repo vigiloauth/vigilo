@@ -39,6 +39,11 @@ services:
         volumes:
          # Mount your YAML configuration file into the container
          - ./<path to your yaml config>:/app/vigilo.yaml
+
+         # Mount your cert and key files into the container.
+         # Note: Only use when HTTPS is enabled.
+         - ./<path to cert file>:/app/server.cert
+         - ./<path to key file>:/app/server.key
         environment:
           # Tell the container where to find the YAML config
           VIGILO_CONFIG_PATH: /app/vigilo.yaml
@@ -120,14 +125,15 @@ log_level: debug
 server_config:
   port: 8080
   session_cookie_name: test-session-cookie
-  base_url: localhost:8080/identity
+  base_url: /identity
+  domain: auth.example.com
   force_https: true
   read_timeout: 30
   write_timeout: 30
   authorization_code_duration: 30
-  enable_request_logging: true 
-  cert_file_path: path/to/file
-  key_file_path: path/to/file
+  enable_request_logging: true
+  cert_file_path: /app/path/to/cert
+  key_file_path: /app/path/to/key
 ```
 
 ---
