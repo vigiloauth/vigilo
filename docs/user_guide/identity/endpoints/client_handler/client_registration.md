@@ -55,7 +55,7 @@ Accept: application/json
     "https://example.com/redirect"
   ],
   "grant_types": ["authorization_code", "client_credentials"],
-  "scope": ["clients:read", "clients:write"],
+  "scope": ["oidc"],
   "response_types": ["code", "token"],
   "token_endpoint_auth_method": "client_secret_basic",
   "application_type": "web",
@@ -73,7 +73,7 @@ Accept: application/json
   }
 }
 ```
-**Note:** If no scopes are provided during client registration, VigiloAuth Server defaults to the most restrictive scope (`client:read`).
+**Note:** If no scopes are provided during client registration, VigiloAuth Server defaults to the `oidc` scope.
 
 ---
 

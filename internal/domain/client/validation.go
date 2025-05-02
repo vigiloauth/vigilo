@@ -366,8 +366,8 @@ func validateURIS(req ClientRequest, errorCollection *errors.ErrorCollection) {
 // validateScopes ensures all provided scopes are valid.
 func validateScopes(req ClientRequest, errorCollection *errors.ErrorCollection) {
 	if len(req.GetScopes()) == 0 {
-		req.SetScopes([]string{constants.ClientRead})
-		logger.Info(module, "", "Default scope 'client:read' applied")
+		req.SetScopes([]string{constants.OIDC})
+		logger.Info(module, "", "Default scope 'oidc' applied")
 		return
 	}
 
@@ -377,6 +377,13 @@ func validateScopes(req ClientRequest, errorCollection *errors.ErrorCollection) 
 			errorCollection.Add(err)
 			logger.Warn(module, "Unsupported scope: %s", scope)
 		}
+	}
+
+	if !contains(req.GetScopes(), constants.OIDC) {
+		requestedScopes := req.GetScopes()
+		newScopes := append(requestedScopes, constants.OIDC)
+		req.SetScopes(newScopes)
+		logger.Info(module, "", "Adding default 'oidc' scope to client")
 	}
 }
 
