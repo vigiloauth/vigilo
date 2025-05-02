@@ -66,12 +66,10 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 
 	return RouteGroup{
 		Name: "Client Routes",
-		Middleware: []func(http.Handler) http.Handler{
-			ar.middleware.RequiresContentType(constants.ContentTypeJSON),
-		},
 		Routes: []Route{
 			// Basic client registration
 			NewRoute().
+				SetMiddleware(ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
 				SetMethod(http.MethodPost).
 				SetPattern(web.ClientEndpoints.Register).
 				SetHandler(handler.RegisterClient).
@@ -90,7 +88,7 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 			// Sensitive operations with strict rate limiting
 			NewRoute().
 				SetMethod(http.MethodPost).
-				SetMiddleware(ar.middleware.AuthMiddleware()).
+				SetMiddleware(ar.middleware.AuthMiddleware(), ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
 				SetPattern(web.ClientEndpoints.RegenerateSecret + urlParam).
 				SetHandler(handler.RegenerateSecret).
 				SetDescription("Regenerate client secret").
