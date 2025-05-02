@@ -97,7 +97,7 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 	}
 
 	newClient.CreatedAt, newClient.UpdatedAt, newClient.IDIssuedAt = time.Now(), time.Now(), time.Now()
-	newClient.ConfigurationEndpoint = cs.buildClientConfigurationEndpoint(newClient.ID)
+	newClient.RegistrationClientURI = cs.buildClientConfigurationEndpoint(newClient.ID)
 	newClient.RegistrationAccessToken = accessToken
 	if newClient.IsConfidential() {
 		newClient.RegistrationAccessToken, _ = cs.tokenService.EncryptToken(ctx, accessToken)

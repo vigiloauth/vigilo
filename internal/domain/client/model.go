@@ -31,7 +31,7 @@ type Client struct {
 	SecretExpiration        int
 	RequiresPKCE            bool
 	JWKS                    *domain.Jwks
-	ConfigurationEndpoint   string
+	RegistrationClientURI   string
 }
 
 type ClientRequest interface {
@@ -190,7 +190,7 @@ func NewClientRegistrationResponseFromClient(client *Client) *ClientRegistration
 		UpdatedAt:               client.UpdatedAt,
 		RegistrationAccessToken: client.RegistrationAccessToken,
 		IDIssuedAt:              client.IDIssuedAt,
-		RegistrationClientURI:   client.ConfigurationEndpoint,
+		RegistrationClientURI:   client.RegistrationClientURI,
 	}
 
 	if client.Secret != "" {
