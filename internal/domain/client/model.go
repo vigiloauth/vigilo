@@ -30,7 +30,7 @@ type Client struct {
 	IDIssuedAt              time.Time
 	SecretExpiration        int
 	RequiresPKCE            bool
-	JWKS                    []*domain.Jwks
+	JWKS                    *domain.Jwks
 	ConfigurationEndpoint   string
 }
 
@@ -170,7 +170,7 @@ func NewClientFromRegistrationRequest(req *ClientRegistrationRequest) *Client {
 	if req.TokenEndpointAuthMethod != "" {
 		client.TokenEndpointAuthMethod = req.TokenEndpointAuthMethod
 	}
-	if len(req.JWKS) != 0 {
+	if req.JWKS != nil {
 		client.JWKS = req.JWKS
 	}
 
