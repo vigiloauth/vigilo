@@ -181,7 +181,7 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 	user.Password = encryptedPassword
 
 	mockUserRepo := &mUserRepo.MockUserRepository{
-		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+		GetUserByUsernameFunc: func(ctx context.Context, username string) (*users.User, error) {
 			return user, nil
 		},
 		UpdateUserFunc: func(ctx context.Context, user *users.User) error {
@@ -216,7 +216,7 @@ func TestUserService_AuthenticateUserInvalidPassword(t *testing.T) {
 	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, testUserAgent)
 
 	mockUserRepo := &mUserRepo.MockUserRepository{
-		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+		GetUserByUsernameFunc: func(ctx context.Context, username string) (*users.User, error) {
 			return nil, nil
 		},
 	}
@@ -245,7 +245,7 @@ func TestUserService_AuthenticateUser_UserNotFound(t *testing.T) {
 	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, testUserAgent)
 
 	mockUserRepo := &mUserRepo.MockUserRepository{
-		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+		GetUserByUsernameFunc: func(ctx context.Context, username string) (*users.User, error) {
 			return nil, nil
 		},
 	}
@@ -281,7 +281,7 @@ func TestUserService_ArtificialDelayDuringUserAuthentication(t *testing.T) {
 	user.Password = encryptedPassword
 
 	mockUserRepo := &mUserRepo.MockUserRepository{
-		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+		GetUserByUsernameFunc: func(ctx context.Context, username string) (*users.User, error) {
 			return user, nil
 		},
 		UpdateUserFunc: func(ctx context.Context, user *users.User) error {
@@ -323,7 +323,7 @@ func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
 	user.AccountLocked = true
 
 	mockUserRepo := &mUserRepo.MockUserRepository{
-		GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+		GetUserByUsernameFunc: func(ctx context.Context, username string) (*users.User, error) {
 			return user, nil
 		},
 		UpdateUserFunc: func(ctx context.Context, user *users.User) error {
@@ -350,7 +350,7 @@ func TestUserService_AccountLockingDuringUserAuthentication(t *testing.T) {
 		assert.NotNil(t, err)
 	}
 
-	retrievedUser, err := mockUserRepo.GetUserByIDFunc(ctx, testEmail)
+	retrievedUser, err := mockUserRepo.GetUserByUsername(ctx, testUsername)
 	assert.NoError(t, err)
 	assert.True(t, retrievedUser.AccountLocked, "expected account to be locked")
 
@@ -467,7 +467,6 @@ func configurePasswordPolicy() {
 
 func createTestUserLoginRequest() *users.UserLoginRequest {
 	return &users.UserLoginRequest{
-		ID:       testUserID,
 		Username: testUsername,
 		Password: testPassword1,
 	}

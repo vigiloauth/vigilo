@@ -90,7 +90,6 @@ type UserRegistrationResponse struct {
 
 // UserLoginRequest represents the login request payload.
 type UserLoginRequest struct {
-	ID       string `json:"user_id"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -253,15 +252,13 @@ func NewUserAddress(streetAddress, locality, region, postalCode, country string)
 // NewUserLoginRequest creates a new UserLoginRequest instance.
 //
 // Parameters:
-//   - id string: The user's id.
 //   - username string: The username for the login request.
 //   - password string: The password for the login request.
 //
 // Returns:
 //   - *UserLoginRequest: A new UserLoginRequest instance.
-func NewUserLoginRequest(id, username, password string) *UserLoginRequest {
+func NewUserLoginRequest(username, password string) *UserLoginRequest {
 	return &UserLoginRequest{
-		ID:       id,
 		Username: username,
 		Password: password,
 	}

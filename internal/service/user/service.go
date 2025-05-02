@@ -75,8 +75,7 @@ func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.
 	}
 
 	accessToken, err := u.tokenService.GenerateToken(
-		ctx,
-		user.Email,
+		ctx, user.Email,
 		strings.Join(user.Scopes, " "),
 		strings.Join(user.Roles, " "),
 		u.tokenConfig.ExpirationTime(),
@@ -153,7 +152,6 @@ func (u *userService) HandleOAuthLogin(ctx context.Context, request *users.UserL
 func (u *userService) AuthenticateUserWithRequest(ctx context.Context, request *users.UserLoginRequest) (*users.UserLoginResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 	user := &users.User{
-		ID:       request.ID,
 		Username: request.Username,
 		Password: request.Password,
 	}
@@ -365,18 +363,17 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	defer u.applyArtificialDelay(startTime)
 	requestID := utils.GetRequestID(ctx)
 
-	retrievedUser, err := u.userRepo.GetUserByID(ctx, loginUser.ID)
+	retrievedUser, err := u.userRepo.GetUserByUsername(ctx, loginUser.Username)
 	if err != nil {
-		u.logger.Error(u.module, requestID, "An error occurred retrieving the user by ID: %v", err)
-		u.logLoginEvent(ctx, false, err, loginAttempt.UserID)
+		u.logger.Error(u.module, requestID, "An error occurred retrieving the user: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
 	} else if retrievedUser == nil {
 		err := errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
-		u.logLoginEvent(ctx, false, err, loginAttempt.UserID)
-		u.logger.Error(u.module, requestID, "Failed to retrieve user by ID=[%s]: %v", utils.TruncateSensitive(loginUser.ID), err)
+		u.logger.Error(u.module, requestID, "Failed to retrieve user: %v", err)
 		return nil, err
 	}
 
+	loginAttempt.UserID = retrievedUser.ID
 	if retrievedUser.AccountLocked {
 		err := errors.New(errors.ErrCodeAccountLocked, "account is locked due to too many failed login attempts -- please reset your password")
 		u.logLoginEvent(ctx, false, err, retrievedUser.ID)

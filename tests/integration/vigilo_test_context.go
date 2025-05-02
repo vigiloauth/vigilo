@@ -343,7 +343,6 @@ func (tc *VigiloTestContext) ClearSession() {
 
 func (tc *VigiloTestContext) WithOAuthLogin() {
 	loginRequest := users.UserLoginRequest{
-		ID:       testUserID,
 		Username: testUsername,
 		Password: testPassword1,
 	}
@@ -390,7 +389,7 @@ func (tc *VigiloTestContext) WithUserSession() {
 		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 	}
 
-	loginRequest := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
+	loginRequest := users.NewUserLoginRequest(testUsername, testPassword1)
 	body, err := json.Marshal(loginRequest)
 	assert.NoError(tc.T, err)
 

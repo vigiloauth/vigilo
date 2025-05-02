@@ -85,9 +85,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 // logs in the user, and returns a JWT token if successful or a generic error
 // message for failed attempts.
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
+	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[Login]: Processing request")
 
@@ -121,9 +119,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 // It expects the same login credentials as the regular Login endpoint,
 // but processes the OAuth context parameters and redirects accordingly
 func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
+	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Processing request")
 

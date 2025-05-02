@@ -48,7 +48,6 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		)
 
 		loginRequest := users.UserLoginRequest{
-			ID:       testUserID,
 			Username: testUsername,
 			Password: testPassword1,
 		}
@@ -81,7 +80,6 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		)
 
 		loginRequest := users.UserLoginRequest{
-			ID:       testUserID,
 			Username: testUsername,
 			Password: testPassword1,
 		}
@@ -130,7 +128,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		defer testContext.TearDown()
 
 		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
-		requestBody := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
+		requestBody := users.NewUserLoginRequest(testUsername, testPassword1)
 		body, err := json.Marshal(requestBody)
 		assert.NoError(t, err)
 
@@ -151,7 +149,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
 
 		// Login to get token
-		loginRequest := users.NewUserLoginRequest(testUserID, testEmail, testPassword1)
+		loginRequest := users.NewUserLoginRequest(testUsername, testPassword1)
 		body, err := json.Marshal(loginRequest)
 		assert.NoError(t, err)
 

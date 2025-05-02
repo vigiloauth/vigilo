@@ -32,7 +32,6 @@ This endpoint handles user authentication for the OAuth authorization code flow.
 ## Request Body Parameters
 | Field       | Type      | Required  | Description                    |
 | :-----------| :---------| :-------- | :----------------------------- |
-| `user_id`   | `string`  | Yes       | The user's ID.                 |
 | `email`     | `string`  | Yes       | The user's email address.      |
 | `password`  | `string`  | Yes       | The password for the account.  |
 
@@ -58,7 +57,6 @@ client_id=abc123
 ```
 ```json
 {
-    "user_id": "abc123",
     "email": "john.doe@mail.com",
     "password": "password"
 }
