@@ -123,7 +123,7 @@ func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		requestID := utils.GetRequestID(ctx)
-		m.logger.Debug(m.module, "[RedirectToHTTPS]: Processing request method=[%s] url=[%s]", r.Method, r.URL.Path)
+		m.logger.Debug(m.module, requestID, "[RedirectToHTTPS]: Processing request method=[%s] url=[%s]", r.Method, r.URL.Path)
 
 		if r.TLS == nil {
 			m.logger.Debug(m.module, requestID, "[RedirectToHTTPS]: Redirecting request to HTTPS")
