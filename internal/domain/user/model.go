@@ -55,7 +55,7 @@ type UserRegistrationRequest struct {
 	PhoneNumber string      `json:"phone_number,omitempty"`
 	Password    string      `json:"password"`
 	Address     UserAddress `json:"address"`
-	Scopes      []string    `json:"scopes,omitempty"`
+	Scopes      []string    `json:"scope,omitempty"`
 	Roles       []string    `json:"roles,omitempty"`
 }
 

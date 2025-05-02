@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/mail"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -33,6 +34,11 @@ func (req *UserRegistrationRequest) Validate() error {
 				errorCollection.Add(err)
 			}
 		}
+		if !slices.Contains(req.Scopes, constants.OIDC) {
+			req.Scopes = append(req.Scopes, constants.OIDC)
+		}
+	} else {
+		req.Scopes = append(req.Scopes, constants.OIDC)
 	}
 
 	validateEmail(req.Email, errorCollection)
