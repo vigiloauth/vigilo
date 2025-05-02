@@ -75,7 +75,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 				}
 
 				service := NewAuthenticationService(mockTokenService, mockClientService, nil)
-				response, err := service.IssueClientCredentialsToken(ctx, testClientID, test.clientSecret, constants.ClientCredentialsGrantType, constants.ClientManage)
+				response, err := service.IssueClientCredentialsToken(ctx, testClientID, test.clientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
 
 				assert.NoError(t, err)
 				assert.NotNil(t, response)
@@ -99,7 +99,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, mockClientService, nil)
-		response, err := service.IssueClientCredentialsToken(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManage)
+		response, err := service.IssueClientCredentialsToken(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -113,7 +113,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(nil, mockClientService, nil)
-		response, err := service.IssueClientCredentialsToken(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManage)
+		response, err := service.IssueClientCredentialsToken(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -133,7 +133,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 				return &user.User{
 					ID:       testUserID,
 					Username: testUsername,
-					Scopes:   []string{constants.UserManage},
+					Scopes:   []string{constants.UserManageScope},
 				}, nil
 			},
 			HandleOAuthLoginFunc: func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
@@ -155,7 +155,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, mockClientService, mockUserService)
-		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManage, loginAttempt)
+		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManageScope, loginAttempt)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -167,7 +167,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 				return &user.User{
 					ID:       testUserID,
 					Username: testUsername,
-					Scopes:   []string{constants.UserManage},
+					Scopes:   []string{constants.UserManageScope},
 				}, nil
 			},
 			HandleOAuthLoginFunc: func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
@@ -186,7 +186,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, mockClientService, mockUserService)
-		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManage, loginAttempt)
+		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManageScope, loginAttempt)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -200,7 +200,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(nil, mockClientService, nil)
-		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManage, loginAttempt)
+		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManageScope, loginAttempt)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -219,7 +219,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(nil, mockClientService, mockUserService)
-		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManage, loginAttempt)
+		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManageScope, loginAttempt)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -231,7 +231,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 				return &user.User{
 					ID:       testUserID,
 					Username: testUsername,
-					Scopes:   []string{constants.UserRead, constants.UserDelete},
+					Scopes:   []string{constants.UserReadScope, constants.UserDeleteScope},
 				}, nil
 			},
 		}
@@ -242,7 +242,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(nil, mockClientService, mockUserService)
-		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManage, loginAttempt)
+		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManageScope, loginAttempt)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -304,7 +304,7 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 				}
 
 				service := NewAuthenticationService(mockTokenService, mockClientService, nil)
-				result, err := service.RefreshAccessToken(ctx, testClientID, test.clientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManage)
+				result, err := service.RefreshAccessToken(ctx, testClientID, test.clientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManageScope)
 
 				assert.NoError(t, err)
 				assert.NotNil(t, result)
@@ -320,7 +320,7 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(nil, mockClientService, nil)
-		result, err := service.RefreshAccessToken(ctx, testClientID, testClientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManage)
+		result, err := service.RefreshAccessToken(ctx, testClientID, testClientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManageScope)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -338,7 +338,7 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, mockClientService, nil)
-		result, err := service.RefreshAccessToken(ctx, testClientID, testClientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManage)
+		result, err := service.RefreshAccessToken(ctx, testClientID, testClientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManageScope)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -355,7 +355,7 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, mockClientService, nil)
-		result, err := service.RefreshAccessToken(ctx, testClientID, testClientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManage)
+		result, err := service.RefreshAccessToken(ctx, testClientID, testClientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManageScope)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -556,7 +556,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 				}
 
 				service := NewAuthenticationService(test.mockTokenService, test.mockClientService, nil)
-				err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospect)
+				err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospectScope)
 				assert.NoError(t, err)
 			})
 		}
@@ -568,7 +568,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		req.Header.Set(constants.AuthorizationHeader, constants.BasicAuthHeader+testClientID)
 
 		service := NewAuthenticationService(nil, nil, nil)
-		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospect)
+		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospectScope)
 
 		assert.Error(t, err)
 	})
@@ -623,7 +623,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 				}
 
 				service := NewAuthenticationService(test.mockTokenService, test.mockClientService, nil)
-				err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospect)
+				err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospectScope)
 
 				assert.Error(t, err)
 			})
@@ -635,7 +635,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		assert.NoError(t, err)
 
 		service := NewAuthenticationService(nil, nil, nil)
-		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospect)
+		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospectScope)
 
 		assert.Error(t, err)
 	})
@@ -652,7 +652,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, nil, nil)
-		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospect)
+		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospectScope)
 
 		assert.Error(t, err)
 	})
@@ -672,7 +672,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		}
 
 		service := NewAuthenticationService(mockTokenService, nil, nil)
-		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospect)
+		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospectScope)
 
 		assert.Error(t, err)
 	})

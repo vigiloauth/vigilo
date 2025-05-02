@@ -108,7 +108,7 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 		return nil, errors.Wrap(err, "", "failed to create new client")
 	}
 
-	cs.logger.Debug(cs.module, requestID, "[RegisterClient]: Successfully registered client: %v", newClient)
+	cs.logger.Debug(cs.module, requestID, "[RegisterClient]: Successfully registered client: %v", newClient.String())
 	return client.NewClientRegistrationResponseFromClient(newClient), nil
 }
 
@@ -140,7 +140,7 @@ func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID st
 		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
 	}
 
-	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, constants.ClientCredentialsGrantType, constants.ClientManage); err != nil {
+	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, constants.ClientCredentialsGrantType, constants.ClientManageScope); err != nil {
 		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to validate client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}

@@ -229,11 +229,11 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 	userID := claims.StandardClaims.Subject
 	requestedScopes := strings.Split(claims.Scopes, " ")
 
-	if len(requestedScopes) == 0 || !slices.Contains(requestedScopes, constants.OIDC) {
+	if len(requestedScopes) == 0 || !slices.Contains(requestedScopes, constants.OpenIDScope) {
 		return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
 	}
 
-	if !s.sessionService.IsUserSessionPresent(r, userID) && !slices.Contains(requestedScopes, constants.UserOfflineAccess) {
+	if !s.sessionService.IsUserSessionPresent(r, userID) && !slices.Contains(requestedScopes, constants.UserOfflineAccessScope) {
 		return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
 	}
 

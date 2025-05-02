@@ -31,7 +31,7 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 				Name:                    testClientName1,
 				RedirectURIS:            []string{testRedirectURI},
 				GrantTypes:              []string{constants.AuthorizationCodeGrantType},
-				Scopes:                  []string{constants.ClientRead, constants.ClientWrite},
+				Scopes:                  []string{constants.ClientReadScope, constants.ClientWriteScope},
 				ResponseTypes:           []string{constants.CodeResponseType, constants.IDTokenResponseType},
 				TokenEndpointAuthMethod: constants.NoTokenAuth,
 				ApplicationType:         constants.NativeApplicationType,
@@ -46,7 +46,7 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 				Name:                    testClientName1,
 				RedirectURIS:            []string{testRedirectURI},
 				GrantTypes:              []string{constants.AuthorizationCodeGrantType},
-				Scopes:                  []string{constants.ClientRead, constants.ClientWrite},
+				Scopes:                  []string{constants.ClientReadScope, constants.ClientWriteScope},
 				ResponseTypes:           []string{constants.CodeResponseType, constants.IDTokenResponseType},
 				TokenEndpointAuthMethod: constants.ClientSecretBasicTokenAuth,
 				ApplicationType:         constants.WebApplicationType,
@@ -209,7 +209,7 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{constants.ClientManage},
+		[]string{constants.ClientManageScope},
 		[]string{constants.ClientCredentialsGrantType},
 	)
 	testContext.WithClientCredentialsToken()
@@ -235,7 +235,7 @@ func TestClientHandler_RegenerateClientSecret_MissingClientIDInRequest_ReturnsEr
 	defer testContext.TearDown()
 	testContext.WithClient(
 		client.Confidential,
-		[]string{constants.ClientManage},
+		[]string{constants.ClientManageScope},
 		[]string{constants.ClientCredentialsGrantType},
 	)
 	testContext.WithClientCredentialsToken()
@@ -251,7 +251,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{constants.ClientRead},
+			[]string{constants.ClientReadScope},
 			[]string{constants.ClientCredentialsGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
@@ -273,7 +273,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{constants.ClientManage},
+			[]string{constants.ClientManageScope},
 			[]string{constants.ClientCredentialsGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
@@ -297,7 +297,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage},
+			[]string{constants.ClientManageScope},
 			[]string{constants.ClientCredentialsGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
@@ -315,7 +315,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage},
+			[]string{constants.ClientManageScope},
 			[]string{constants.ClientCredentialsGrantType},
 		)
 		testContext.WithEncryptedJWTToken("invalid-ID", 1*time.Hour)
@@ -582,7 +582,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{constants.ClientManage, constants.ClientDelete},
+			[]string{constants.ClientManageScope, constants.ClientDeleteScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
@@ -598,7 +598,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{constants.ClientManage, constants.ClientDelete},
+			[]string{constants.ClientManageScope, constants.ClientDeleteScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken("invalid-id", 1*time.Hour)
@@ -614,7 +614,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{constants.ClientManage, constants.ClientDelete},
+			[]string{constants.ClientManageScope, constants.ClientDeleteScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, -1*time.Hour)
@@ -630,7 +630,7 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		testContext.WithClient(
 			client.Public,
-			[]string{constants.ClientManage, constants.ClientDelete},
+			[]string{constants.ClientManageScope, constants.ClientDeleteScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
@@ -648,7 +648,7 @@ func createClientRegistrationRequest() *client.ClientRegistrationRequest {
 		Name:          testClientName1,
 		RedirectURIS:  []string{testRedirectURI},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
-		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
+		Scopes:        []string{constants.ClientReadScope, constants.ClientWriteScope},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }
@@ -659,7 +659,7 @@ func createClientUpdateRequest() *client.ClientUpdateRequest {
 		Name:          testClientName1,
 		RedirectURIS:  []string{testRedirectURI},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
-		Scopes:        []string{constants.ClientRead, constants.ClientWrite, constants.UserManage, constants.ClientManage},
+		Scopes:        []string{constants.ClientReadScope, constants.ClientWriteScope, constants.UserManageScope, constants.ClientManageScope},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }

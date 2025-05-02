@@ -186,7 +186,7 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 // WithJWTToken creates and adds a user JWT token to the system.
 func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *VigiloTestContext {
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
@@ -206,7 +206,7 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 func (tc *VigiloTestContext) WithEncryptedJWTToken(id string, duration time.Duration) *VigiloTestContext {
 	ctx := context.Background()
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
@@ -227,7 +227,7 @@ func (tc *VigiloTestContext) WithEncryptedJWTToken(id string, duration time.Dura
 
 func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, scopes []string, duration time.Duration) *VigiloTestContext {
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
@@ -275,7 +275,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 	if tc.OAuthClient == nil {
 		tc.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage},
+			[]string{constants.ClientManageScope},
 			[]string{constants.ClientCredentialsGrantType},
 		)
 	}
@@ -283,7 +283,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 	auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
 	formData := url.Values{}
 	formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
-	formData.Add(constants.ScopeReqField, constants.ClientManage)
+	formData.Add(constants.ScopeReqField, constants.ClientManageScope)
 
 	headers := map[string]string{
 		"Content-Type":  "application/x-www-form-urlencoded",
@@ -309,7 +309,7 @@ func (tc *VigiloTestContext) WithExpiredToken() *VigiloTestContext {
 // WithPasswordResetToken generates a password reset token.
 func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (string, *VigiloTestContext) {
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
@@ -386,7 +386,7 @@ func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Re
 
 func (tc *VigiloTestContext) WithUserSession() {
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 	}
 
 	loginRequest := users.NewUserLoginRequest(testUsername, testPassword1)
@@ -450,7 +450,7 @@ func (tc *VigiloTestContext) CreateAuthorizationCodeRequestQueryParams(codeChall
 	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 	queryParams.Add(constants.ClientIDReqField, testClientID)
 	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-	queryParams.Add(constants.ScopeReqField, constants.ClientManage)
+	queryParams.Add(constants.ScopeReqField, constants.ClientManageScope)
 	queryParams.Add(constants.StateReqField, tc.State)
 	queryParams.Add(constants.ConsentApprovedURLValue, "true")
 
@@ -534,7 +534,7 @@ func (tc *VigiloTestContext) GetUserRegistrationRequest() *users.UserRegistratio
 		Gender:      testGender,
 		PhoneNumber: testPhoneNumber,
 		Password:    testPassword1,
-		Scopes:      []string{constants.UserManage},
+		Scopes:      []string{constants.UserManageScope},
 		Roles:       []string{constants.AdminRole},
 		Address: users.UserAddress{
 			StreetAddress: testStreetAddress,

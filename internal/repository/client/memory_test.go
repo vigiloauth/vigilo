@@ -114,7 +114,7 @@ func createTestClient() *domain.Client {
 		Type:         domain.Confidential,
 		RedirectURIS: []string{"http://localhost:8080/callback"},
 		GrantTypes:   []string{constants.AuthorizationCodeGrantType, constants.RefreshTokenGrantType},
-		Scopes:       []string{constants.ClientRead, constants.ClientWrite},
+		Scopes:       []string{constants.ClientReadScope, constants.ClientWriteScope},
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

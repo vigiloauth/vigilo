@@ -23,23 +23,23 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 		}{
 			{
 				name:   "Test with all requested scopes",
-				scopes: fmt.Sprintf("%s %s %s %s %s %s", constants.OIDC, constants.UserProfile, constants.UserEmail, constants.UserPhone, constants.UserAddress, constants.UserOfflineAccess),
+				scopes: fmt.Sprintf("%s %s %s %s %s %s", constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope, constants.UserOfflineAccessScope),
 			},
 			{
 				name:   "Test with profile scope only",
-				scopes: fmt.Sprintf("%s %s", constants.OIDC, constants.UserProfile),
+				scopes: fmt.Sprintf("%s %s", constants.OpenIDScope, constants.UserProfileScope),
 			},
 			{
 				name:   "Test with email scope only",
-				scopes: fmt.Sprintf("%s %s", constants.OIDC, constants.UserEmail),
+				scopes: fmt.Sprintf("%s %s", constants.OpenIDScope, constants.UserEmailScope),
 			},
 			{
 				name:   "Test with phone scope only",
-				scopes: fmt.Sprintf("%s %s", constants.OIDC, constants.UserPhone),
+				scopes: fmt.Sprintf("%s %s", constants.OpenIDScope, constants.UserPhoneScope),
 			},
 			{
 				name:   "Test with address scope only",
-				scopes: fmt.Sprintf("%s %s", constants.OIDC, constants.UserAddress),
+				scopes: fmt.Sprintf("%s %s", constants.OpenIDScope, constants.UserAddressScope),
 			},
 		}
 

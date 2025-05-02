@@ -356,7 +356,7 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 
 func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
 		claims := &token.TokenClaims{
 			Scopes: scopes,
 			StandardClaims: &jwt.StandardClaims{
@@ -393,7 +393,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 
 	t.Run("Success when 'offline_access' scope is present", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s %s", constants.OIDC, constants.UserOfflineAccess, constants.UserEmail, constants.UserAddress)
+		scopes := fmt.Sprintf("%s %s %s %s", constants.OpenIDScope, constants.UserOfflineAccessScope, constants.UserEmailScope, constants.UserAddressScope)
 		claims := &token.TokenClaims{
 			Scopes: scopes,
 			StandardClaims: &jwt.StandardClaims{
@@ -431,7 +431,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 
 	t.Run("Error is returned when the claims do not have sufficient scopes", func(t *testing.T) {
 		claims := &token.TokenClaims{
-			Scopes: constants.ClientDelete,
+			Scopes: constants.ClientDeleteScope,
 			StandardClaims: &jwt.StandardClaims{
 				Subject:  testUserID,
 				Audience: testClientID,
@@ -452,7 +452,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the user scopes do not match the request scopes", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
 		claims := &token.TokenClaims{
 			Scopes: scopes,
 			StandardClaims: &jwt.StandardClaims{
@@ -464,7 +464,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 		userService := &mUser.MockUserService{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
 				return &users.User{
-					Scopes: []string{constants.UserPhone},
+					Scopes: []string{constants.UserPhoneScope},
 				}, nil
 			},
 		}
@@ -487,7 +487,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the user does not exist by ID", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
 		claims := &token.TokenClaims{
 			Scopes: scopes,
 			StandardClaims: &jwt.StandardClaims{
@@ -515,7 +515,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the client does not exist by ID", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
 		claims := &token.TokenClaims{
 			Scopes: scopes,
 			StandardClaims: &jwt.StandardClaims{
@@ -544,7 +544,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 
 	t.Run("Error is return when user session is not present", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OIDC, constants.UserEmail, constants.UserAddress)
+		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
 		claims := &token.TokenClaims{
 			Scopes: scopes,
 			StandardClaims: &jwt.StandardClaims{
@@ -556,7 +556,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 		userService := &mUser.MockUserService{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
 				return &users.User{
-					Scopes: []string{constants.UserPhone},
+					Scopes: []string{constants.UserPhoneScope},
 				}, nil
 			},
 		}
@@ -584,7 +584,7 @@ func getClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 		ClientID:            testClientID,
 		ResponseType:        constants.CodeResponseType,
 		RedirectURI:         testRedirectURI,
-		Scope:               constants.ClientManage,
+		Scope:               constants.ClientManageScope,
 		State:               "testState",
 		CodeChallenge:       "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
 		CodeChallengeMethod: client.S256,
@@ -595,7 +595,7 @@ func getClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 			RequiresPKCE:  true,
 			RedirectURIS:  []string{testRedirectURI},
 			GrantTypes:    []string{constants.AuthorizationCodeGrantType},
-			Scopes:        []string{constants.ClientManage},
+			Scopes:        []string{constants.ClientManageScope},
 			ResponseTypes: []string{constants.CodeResponseType},
 		},
 	}
@@ -616,7 +616,7 @@ func getTestClient() *client.Client {
 		Secret:        testClientSecret,
 		Type:          client.Confidential,
 		RedirectURIS:  []string{testClientID},
-		Scopes:        []string{constants.ClientManage, constants.UserRead},
+		Scopes:        []string{constants.ClientManageScope, constants.UserReadScope},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 		ResponseTypes: []string{constants.CodeResponseType},
 		RequiresPKCE:  true,

@@ -48,7 +48,7 @@ func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[IntrospectToken]: Processing request")
 
-	if err := h.authService.AuthenticateClientRequest(ctx, r, constants.TokenIntrospect); err != nil {
+	if err := h.authService.AuthenticateClientRequest(ctx, r, constants.TokenIntrospectScope); err != nil {
 		web.WriteError(w, errors.NewClientAuthenticationError(err))
 		return
 	}
@@ -72,7 +72,7 @@ func (h *TokenHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[RevokeToken]: Processing request")
 
-	if err := h.authService.AuthenticateClientRequest(ctx, r, constants.TokenRevoke); err != nil {
+	if err := h.authService.AuthenticateClientRequest(ctx, r, constants.TokenRevokeScope); err != nil {
 		web.WriteError(w, errors.NewClientAuthenticationError(err))
 		return
 	}

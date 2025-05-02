@@ -40,10 +40,10 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.ClientManageScope, constants.UserManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -75,7 +75,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.ClientManageScope, constants.UserManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -105,7 +105,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 func TestUserHandler_RegisterUser_DuplicateEmail(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	defer testContext.TearDown()
-	testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+	testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 
 	requestBody := users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1)
 	requestBody.Birthdate = testBirthdate
@@ -127,7 +127,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 		requestBody := users.NewUserLoginRequest(testUsername, testPassword1)
 		body, err := json.Marshal(requestBody)
 		assert.NoError(t, err)
@@ -146,7 +146,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 
 		// Login to get token
 		loginRequest := users.NewUserLoginRequest(testUsername, testPassword1)
@@ -180,7 +180,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 		testContext.WithExpiredToken()
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.UserEndpoints.Logout, nil, nil)
@@ -213,7 +213,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 		endpoint := web.UserEndpoints.Verify + "?token="
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
 

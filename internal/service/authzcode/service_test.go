@@ -250,7 +250,7 @@ func createTestClient() *client.Client {
 		Secret:        testClientSecret,
 		Type:          client.Confidential,
 		RedirectURIS:  []string{testRedirectURI},
-		Scopes:        []string{constants.ClientManage, constants.ClientRead, constants.ClientWrite},
+		Scopes:        []string{constants.ClientManageScope, constants.ClientReadScope, constants.ClientWriteScope},
 		ResponseTypes: []string{constants.CodeResponseType, constants.TokenResponseType},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 	}

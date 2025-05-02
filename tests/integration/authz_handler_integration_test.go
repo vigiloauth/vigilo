@@ -19,10 +19,10 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.ClientManageScope, constants.UserManageScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
-	testContext.WithUser([]string{constants.UserManage}, []string{constants.AdminRole})
+	testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
 
@@ -52,7 +52,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.ClientManageScope, constants.UserManageScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
 
@@ -82,7 +82,7 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.ClientManageScope, constants.UserManageScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
 
@@ -112,7 +112,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.ClientManageScope, constants.UserManageScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
 
@@ -146,7 +146,7 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent
 
 	testContext.WithClient(
 		client.Confidential,
-		[]string{constants.ClientManage, constants.UserManage},
+		[]string{constants.ClientManageScope, constants.UserManageScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
 
@@ -196,7 +196,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext := NewVigiloTestContext(t)
 			testContext.WithClient(
 				test.clientType,
-				[]string{constants.ClientManage},
+				[]string{constants.ClientManageScope},
 				[]string{constants.AuthorizationCodeGrantType},
 			)
 
@@ -206,7 +206,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			queryParams := url.Values{}
 			queryParams.Add(constants.ClientIDReqField, testClientID)
 			queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-			queryParams.Add(constants.ScopeReqField, constants.ClientManage)
+			queryParams.Add(constants.ScopeReqField, constants.ClientManageScope)
 			queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 			queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 			queryParams.Add(constants.CodeChallengeReqField, testContext.SH256CodeChallenge)
@@ -229,7 +229,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 		testContext.WithClient(
 			client.Public,
-			[]string{constants.ClientManage},
+			[]string{constants.ClientManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -253,7 +253,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 		testContext.WithClient(
 			client.Public,
-			[]string{constants.ClientManage},
+			[]string{constants.ClientManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -263,7 +263,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		queryParams := url.Values{}
 		queryParams.Add(constants.ClientIDReqField, testClientID)
 		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-		queryParams.Add(constants.ScopeReqField, constants.ClientManage)
+		queryParams.Add(constants.ScopeReqField, constants.ClientManageScope)
 		queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 		queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 		queryParams.Add(constants.CodeChallengeReqField, testContext.SH256CodeChallenge)
@@ -317,7 +317,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext := NewVigiloTestContext(t)
 			testContext.WithClient(
 				client.Public,
-				[]string{constants.ClientManage},
+				[]string{constants.ClientManageScope},
 				[]string{constants.AuthorizationCodeGrantType},
 			)
 

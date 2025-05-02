@@ -345,7 +345,7 @@ func createClientRegistrationRequest() *ClientRegistrationRequest {
 		RedirectURIS:            []string{"https://www.example-app.com/callback"},
 		GrantTypes:              []string{constants.AuthorizationCodeGrantType},
 		RequiresPKCE:            true,
-		Scopes:                  []string{constants.ClientRead, constants.ClientWrite},
+		Scopes:                  []string{constants.ClientReadScope, constants.ClientWriteScope},
 		ResponseTypes:           []string{constants.CodeResponseType, constants.IDTokenResponseType},
 		ApplicationType:         constants.WebApplicationType,
 		TokenEndpointAuthMethod: constants.ClientSecretBasicTokenAuth,
@@ -358,7 +358,7 @@ func createClientUpdateRequest() *ClientUpdateRequest {
 		Type:          Public,
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
-		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
+		Scopes:        []string{constants.ClientReadScope, constants.ClientWriteScope},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }
@@ -370,7 +370,7 @@ func createClient() *Client {
 		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 		RequiresPKCE:  true,
-		Scopes:        []string{constants.ClientRead, constants.ClientWrite},
+		Scopes:        []string{constants.ClientReadScope, constants.ClientWriteScope},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }

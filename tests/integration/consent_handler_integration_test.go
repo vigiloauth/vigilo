@@ -23,7 +23,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.ClientManageScope, constants.UserManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -47,7 +47,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.ClientManageScope, constants.UserManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -64,7 +64,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		userConsentRequest := &consent.UserConsentRequest{
 			Approved: true,
-			Scopes:   []string{constants.ClientManage, constants.UserManage},
+			Scopes:   []string{constants.ClientManageScope, constants.UserManageScope},
 		}
 
 		requestBody, err := json.Marshal(userConsentRequest)
@@ -81,7 +81,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.ClientManageScope, constants.UserManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -124,7 +124,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 				testContext.WithUserSession()
 				testContext.WithClient(
 					client.Confidential,
-					[]string{constants.ClientManage, constants.UserManage},
+					[]string{constants.ClientManageScope, constants.UserManageScope},
 					[]string{constants.AuthorizationCodeGrantType},
 				)
 
@@ -142,7 +142,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.ClientManageScope, constants.UserManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -158,7 +158,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		userConsentRequest := &consent.UserConsentRequest{
 			Approved: true,
-			Scopes:   []string{constants.ClientManage, constants.UserRead},
+			Scopes:   []string{constants.ClientManageScope, constants.UserReadScope},
 		}
 
 		requestBody, err := json.Marshal(userConsentRequest)
@@ -176,7 +176,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage},
+			[]string{constants.ClientManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -204,7 +204,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		postEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 		userConsentRequest := &consent.UserConsentRequest{
 			Approved: true,
-			Scopes:   []string{constants.ClientManage, constants.UserManage},
+			Scopes:   []string{constants.ClientManageScope, constants.UserManageScope},
 		}
 
 		requestBody, err := json.Marshal(userConsentRequest)
@@ -221,7 +221,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		testContext.WithUserSession()
 		testContext.WithClient(
 			client.Confidential,
-			[]string{constants.ClientManage, constants.UserManage},
+			[]string{constants.ClientManageScope, constants.UserManageScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 

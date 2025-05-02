@@ -25,12 +25,12 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		}{
 			{
 				name:            "Success with all scopes",
-				scopes:          []string{constants.OIDC, constants.UserProfile, constants.UserEmail, constants.UserPhone, constants.UserAddress},
+				scopes:          []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope},
 				wantUserSession: true,
 			},
 			{
 				name:            "Success with offline access scope",
-				scopes:          []string{constants.OIDC, constants.UserProfile, constants.UserEmail, constants.UserPhone, constants.UserAddress, constants.UserOfflineAccess},
+				scopes:          []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope, constants.UserOfflineAccessScope},
 				wantUserSession: false,
 			},
 		}
@@ -64,19 +64,19 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		}{
 			{
 				name:   "Success with profile scope only",
-				scopes: []string{constants.OIDC, constants.UserProfile},
+				scopes: []string{constants.OpenIDScope, constants.UserProfileScope},
 			},
 			{
 				name:   "Success with email scope only",
-				scopes: []string{constants.OIDC, constants.UserEmail},
+				scopes: []string{constants.OpenIDScope, constants.UserEmailScope},
 			},
 			{
 				name:   "Success with phone scope only",
-				scopes: []string{constants.OIDC, constants.UserPhone},
+				scopes: []string{constants.OpenIDScope, constants.UserPhoneScope},
 			},
 			{
 				name:   "Success with address scope only",
-				scopes: []string{constants.OIDC, constants.UserAddress},
+				scopes: []string{constants.OpenIDScope, constants.UserAddressScope},
 			},
 		}
 
@@ -106,7 +106,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 				assert.Equal(t, testUserID, userInfo.Sub, "Expected user ID to match the test user ID")
 
 				switch test.scopes[1] {
-				case constants.UserProfile:
+				case constants.UserProfileScope:
 					assert.NotEmpty(t, userInfo.Name, "Expected user name to be not empty")
 					assert.NotEmpty(t, userInfo.Username, "Expected user username to be not empty")
 					assert.NotEmpty(t, userInfo.FirstName, "Expected user first name to be not empty")
@@ -114,13 +114,13 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 					assert.NotEmpty(t, userInfo.MiddleName, "Expected user middle name to be not empty")
 					assert.NotEmpty(t, userInfo.Birthdate, "Expected user birthdate to be not empty")
 					assert.NotEmpty(t, userInfo.UpdatedAt, "Expected user updated at to be not empty")
-				case constants.UserEmail:
+				case constants.UserEmailScope:
 					assert.NotEmpty(t, userInfo.Email, "Expected user email to be not empty")
 					assert.NotNil(t, userInfo.EmailVerified, "Expected user email verified to be not nil")
-				case constants.UserPhone:
+				case constants.UserPhoneScope:
 					assert.NotEmpty(t, userInfo.PhoneNumber, "Expected user phone number to be not empty")
 					assert.NotNil(t, userInfo.PhoneNumberVerified, "Expected user phone number verified to be not nil")
-				case constants.UserAddress:
+				case constants.UserAddressScope:
 					assert.NotEmpty(t, userInfo.Address, "Expected user address to be not empty")
 				}
 			})
@@ -131,7 +131,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		scopes := []string{constants.OIDC, constants.UserProfile, constants.UserOfflineAccess}
+		scopes := []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserOfflineAccessScope}
 
 		testContext.WithUser(scopes, []string{constants.UserRole})
 		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCodeGrantType})
@@ -146,7 +146,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		scopes := []string{constants.OIDC, constants.UserProfile, constants.UserOfflineAccess}
+		scopes := []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserOfflineAccessScope}
 		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCodeGrantType})
 		testContext.WithJWTTokenWithScopes("invalid-subject", testClientID, scopes, time.Duration(5*time.Minute))
 
@@ -161,7 +161,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		scopes := []string{constants.OIDC, constants.UserProfile, constants.UserOfflineAccess}
+		scopes := []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserOfflineAccessScope}
 		testContext.WithUser(scopes, []string{constants.UserRole})
 		testContext.WithJWTTokenWithScopes(testUserID, "invalid-audience", scopes, time.Duration(5*time.Minute))
 
@@ -176,10 +176,10 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		scopes := []string{constants.OIDC, constants.UserProfile, constants.UserEmail}
+		scopes := []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope}
 		testContext.WithUser([]string{}, []string{constants.UserRole})
 		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCodeGrantType})
-		testContext.WithJWTTokenWithScopes(testUserID, testClientID, []string{constants.OIDC}, time.Duration(5*time.Minute))
+		testContext.WithJWTTokenWithScopes(testUserID, testClientID, []string{constants.OpenIDScope}, time.Duration(5*time.Minute))
 
 		headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)

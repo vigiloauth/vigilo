@@ -92,7 +92,7 @@ func (o *oidcService) populateUserInfoFromScopes(
 ) {
 	for _, scope := range requestedScopes {
 		switch scope {
-		case constants.UserProfile:
+		case constants.UserProfileScope:
 			userInfoResponse.Name = retrievedUser.FullName
 			userInfoResponse.Username = retrievedUser.Username
 			userInfoResponse.Birthdate = retrievedUser.Birthdate
@@ -100,13 +100,13 @@ func (o *oidcService) populateUserInfoFromScopes(
 			userInfoResponse.MiddleName = retrievedUser.MiddleName
 			userInfoResponse.FamilyName = retrievedUser.FamilyName
 			userInfoResponse.UpdatedAt = retrievedUser.UpdatedAt.UTC()
-		case constants.UserEmail:
+		case constants.UserEmailScope:
 			userInfoResponse.Email = retrievedUser.Email
 			userInfoResponse.EmailVerified = retrievedUser.EmailVerified
-		case constants.UserPhone:
+		case constants.UserPhoneScope:
 			userInfoResponse.PhoneNumber = retrievedUser.PhoneNumber
 			userInfoResponse.PhoneNumberVerified = retrievedUser.PhoneNumberVerified
-		case constants.UserAddress:
+		case constants.UserAddressScope:
 			userInfoResponse.Address = retrievedUser.Address
 		}
 	}

@@ -448,7 +448,7 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 func createNewUser() *users.User {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
 	user.Address = users.NewUserAddress("123 Main", "Springfield", "IL", "012345", "USA")
-	user.Scopes = []string{constants.UserRead}
+	user.Scopes = []string{constants.UserReadScope}
 	user.Roles = []string{constants.AdminRole}
 	return user
 }

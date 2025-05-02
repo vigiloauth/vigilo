@@ -1,8 +1,10 @@
 package domain
 
 import (
+	"fmt"
 	"net/url"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -398,4 +400,60 @@ const (
 var ValidCodeChallengeMethods = map[string]bool{
 	Plain: true,
 	S256:  true,
+}
+
+func (c *Client) String() string {
+	secretStatus := "omitted"
+	if c.Secret == "" {
+		secretStatus = "none (not issued or known)"
+	}
+
+	regTokenStatus := "omitted"
+	if c.RegistrationAccessToken == "" {
+		regTokenStatus = "none"
+	}
+
+	redirectURIs := strings.Join(c.RedirectURIS, ", ")
+	grantTypes := strings.Join(c.GrantTypes, ", ")
+	scopes := strings.Join(c.Scopes, ", ")
+	responseTypes := strings.Join(c.ResponseTypes, ", ")
+	contacts := strings.Join(c.Contacts, ", ")
+
+	jwksInfo := "none"
+	if c.JWKS != nil && len(c.JWKS.Keys) > 0 {
+		jwksInfo = fmt.Sprintf("present (%d keys)", len(c.JWKS.Keys))
+	} else if c.JWKS != nil {
+		jwksInfo = "present (0 keys)"
+	}
+
+	createdAtFormatted := c.CreatedAt.Format(time.RFC3339)
+	updatedAtFormatted := c.UpdatedAt.Format(time.RFC3339)
+	idIssuedAtFormatted := c.IDIssuedAt.Format(time.RFC3339)
+
+	return fmt.Sprintf("Client{ID: %s, Name: %s, Type: %s, AppType: %s, AuthMethod: %s, Secret: %s, RegToken: %s, RequiresPKCE: %t, "+
+		"RedirectURIs: [%s], GrantTypes: [%s], Scopes: [%s], ResponseTypes: [%s], Contacts: [%s], "+
+		"JwksURI: %s, LogoURI: %s, JWKS: %s, RegistrationClientURI: %s, "+
+		"CreatedAt: %s, UpdatedAt: %s, IDIssuedAt: %s, SecretExpiration: %d}",
+		c.ID,
+		c.Name,
+		c.Type,
+		c.ApplicationType,
+		c.TokenEndpointAuthMethod,
+		secretStatus,
+		regTokenStatus,
+		c.RequiresPKCE,
+		redirectURIs,
+		grantTypes,
+		scopes,
+		responseTypes,
+		contacts,
+		c.JwksURI,
+		c.LogoURI,
+		jwksInfo,
+		c.RegistrationClientURI,
+		createdAtFormatted,
+		updatedAtFormatted,
+		idIssuedAtFormatted,
+		c.SecretExpiration,
+	)
 }
