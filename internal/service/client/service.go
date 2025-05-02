@@ -259,7 +259,7 @@ func (cs *clientService) ValidateAndRetrieveClient(ctx context.Context, clientID
 		return nil, errors.NewMissingParametersError()
 	}
 
-	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, constants.ClientRead)
+	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndRetrieveClient]: Failed to validate client or registration access token: %v", err)
 		return nil, err
@@ -303,7 +303,7 @@ func (cs *clientService) ValidateAndUpdateClient(ctx context.Context, clientID, 
 		return nil, errors.New(errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
 	}
 
-	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, constants.ClientManage)
+	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: Failed to validate client or registration access token: %v", err)
 		return nil, err
@@ -357,7 +357,7 @@ func (cs *clientService) ValidateAndDeleteClient(ctx context.Context, clientID, 
 		return err
 	}
 
-	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken, constants.ClientDelete)
+	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to validate client or registration access token: %v", err)
 		return err
@@ -421,7 +421,7 @@ func (cs *clientService) validateClientAuthorization(existingClient *client.Clie
 	return nil
 }
 
-func (cs *clientService) validateClientAndToken(ctx context.Context, clientID, registrationAccessToken, scope string) (*client.Client, error) {
+func (cs *clientService) validateClientAndToken(ctx context.Context, clientID, registrationAccessToken string) (*client.Client, error) {
 	retrievedClient, err := cs.GetClientByID(ctx, clientID)
 	if retrievedClient == nil {
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
@@ -437,8 +437,6 @@ func (cs *clientService) validateClientAndToken(ctx context.Context, clientID, r
 	if err != nil {
 		cs.logger.Error(cs.module, "", "An error occurred retrieving the client by ID: %v", err)
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInternalServerError, "an internal error occurred")
-	} else if !retrievedClient.HasScope(scope) && !retrievedClient.HasScope(constants.ClientManage) {
-		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInsufficientScope, "client does not have the required scopes for this request")
 	}
 
 	tokenClaim, err := cs.tokenService.ParseAndValidateToken(ctx, registrationAccessToken)

@@ -190,14 +190,3 @@ The `id_token` response type is not allowed with the following grant types:
     "error_details": "the provided client secret is invalid or does not match the registered credentials"
 }
 ```
-
-### 8. Insufficient Scopes
-#### HTTP Status Code: `403 Forbidden`
-#### Response Body
-```json
-{
-    "error": "insufficient_scope",
-    "error_description": "failed to validate and update client",
-    "error_details": "client does not have the required scopes for this request"
-}
-```

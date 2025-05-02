@@ -85,14 +85,3 @@ Pragma: no-cache
     "error_details": "the token is expired"
 }
 ```
-
-### 4. Insufficient Scopes
-#### HTTP Status Code: `403 Forbidden`
-#### Response Body
-```json
-{
-    "error": "insufficient_scope",
-    "error_description": "failed to validate and update client",
-    "error_details": "client does not have the required scopes for this request"
-}
-```

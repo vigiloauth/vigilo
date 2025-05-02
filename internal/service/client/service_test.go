@@ -495,23 +495,6 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		assert.NotEqual(t, "", response.RegistrationClientURI, "registration client URI should not be empty")
 	})
 
-	t.Run("Error is returned when client does not have the required scopes", func(t *testing.T) {
-		testClient := createTestClient()
-		testClient.Scopes = []string{}
-		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return testClient, nil
-		}
-		mockTokenService.DeleteTokenFunc = func(ctx context.Context, token string) error { return nil }
-
-		service := NewClientService(mockClientRepo, mockTokenService)
-		request := createClientUpdateRequest()
-		request.Scopes = []string{}
-		response, err := service.ValidateAndUpdateClient(ctx, testClientID, testToken, request)
-
-		assert.Error(t, err, "error is expected")
-		assert.Nil(t, response, "client information response should be nil")
-	})
-
 	t.Run("Error is returned when the client ID does not match the access token ID", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
@@ -595,8 +578,6 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, clientInformation)
 	})
-
-	t.Run("Error - Registration access token is expired", func(t *testing.T) {})
 }
 
 func TestClientService_ValidateAndDeleteClient(t *testing.T) {

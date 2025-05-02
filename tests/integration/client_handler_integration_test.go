@@ -575,33 +575,6 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
-
-	t.Run("Forbidden - Insufficient scopes", func(t *testing.T) {
-		request := createClientUpdateRequest()
-		testContext := NewVigiloTestContext(t)
-		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientRead},
-			request.GetGrantTypes(),
-		)
-		testContext.WithEncryptedJWTToken(testClientID, 1*time.Hour)
-		defer testContext.TearDown()
-
-		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
-
-		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
-
-		rr := testContext.SendHTTPRequest(
-			http.MethodPut,
-			endpoint,
-			bytes.NewReader(requestBody),
-			headers,
-		)
-
-		assert.Equal(t, http.StatusForbidden, rr.Code)
-	})
 }
 
 func TestClientHandler_DeleteClient(t *testing.T) {
@@ -667,22 +640,6 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	})
-
-	t.Run("Forbidden - Insufficient Scopes", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		testContext.WithClient(
-			client.Public,
-			[]string{},
-			[]string{constants.AuthorizationCodeGrantType},
-		)
-		testContext.WithJWTToken(testClientID, 1*time.Hour)
-		defer testContext.TearDown()
-
-		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
-
-		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
 
