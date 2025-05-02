@@ -48,17 +48,17 @@ type ClientRequest interface {
 
 // ClientRegistrationRequest represents a request to register a new OAuth client.
 type ClientRegistrationRequest struct {
-	Name                    string         `json:"client_name"`
-	ApplicationType         string         `json:"application_type,omitempty"`
-	RedirectURIS            []string       `json:"redirect_uris"`
-	Scopes                  []string       `json:"scope,omitempty"`
-	GrantTypes              []string       `json:"grant_types"`
-	ResponseTypes           []string       `json:"response_types"`
-	Contacts                []string       `json:"contacts,omitempty"`
-	JwksURI                 string         `json:"jwks_uri,omitempty"`
-	LogoURI                 string         `json:"logo_uri,omitempty"`
-	TokenEndpointAuthMethod string         `json:"token_endpoint_auth_method,omitempty"`
-	JWKS                    []*domain.Jwks `json:"jwks,omitempty"`
+	Name                    string       `json:"client_name"`
+	ApplicationType         string       `json:"application_type,omitempty"`
+	RedirectURIS            []string     `json:"redirect_uris"`
+	Scopes                  []string     `json:"scope,omitempty"`
+	GrantTypes              []string     `json:"grant_types"`
+	ResponseTypes           []string     `json:"response_types"`
+	Contacts                []string     `json:"contacts,omitempty"`
+	JwksURI                 string       `json:"jwks_uri,omitempty"`
+	LogoURI                 string       `json:"logo_uri,omitempty"`
+	TokenEndpointAuthMethod string       `json:"token_endpoint_auth_method,omitempty"`
+	JWKS                    *domain.Jwks `json:"jwks,omitempty"`
 	RequiresPKCE            bool
 	Type                    string
 }
