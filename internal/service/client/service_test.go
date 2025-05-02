@@ -43,7 +43,7 @@ func TestClientService_Register(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
-		assert.NotEqual(t, "", response.ConfigurationEndpoint)
+		assert.NotEqual(t, "", response.RegistrationClientURI)
 	})
 
 	t.Run("Error When Generating Client ID", func(t *testing.T) {

@@ -99,7 +99,7 @@ type ClientRegistrationResponse struct {
 	LogoURI                 string    `json:"logo_uri,omitempty"`
 	TokenEndpointAuthMethod string    `json:"token_endpoint_auth_method,omitempty"`
 	RegistrationAccessToken string    `json:"registration_access_token"`
-	ConfigurationEndpoint   string    `json:"client_configuration_endpoint"`
+	RegistrationClientURI   string    `json:"registration_client_uri"`
 	IDIssuedAt              time.Time `json:"client_id_issued_at"`
 }
 
@@ -190,7 +190,7 @@ func NewClientRegistrationResponseFromClient(client *Client) *ClientRegistration
 		UpdatedAt:               client.UpdatedAt,
 		RegistrationAccessToken: client.RegistrationAccessToken,
 		IDIssuedAt:              client.IDIssuedAt,
-		ConfigurationEndpoint:   client.ConfigurationEndpoint,
+		RegistrationClientURI:   client.ConfigurationEndpoint,
 	}
 
 	if client.Secret != "" {
