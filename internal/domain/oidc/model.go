@@ -13,7 +13,7 @@ type DiscoveryJSON struct {
 	Issuer                string `json:"issuer"`                 // The URL of the OpenID Provider (OP).
 	AuthorizationEndpoint string `json:"authorization_endpoint"` // The endpoint for authorization requests.
 	TokenEndpoint         string `json:"token_endpoint"`         // The endpoint for token requests.
-	UserInfoEndpoint      string `json:"user_info_endpoint"`     // The endpoint for retrieving user information.
+	UserInfoEndpoint      string `json:"userinfo_endpoint"`      // The endpoint for retrieving user information.
 	JwksURI               string `json:"jwks_uri"`               // The URL for the JSON Web Key Set (JWKS).
 	RegistrationEndpoint  string `json:"registration_endpoint"`  // The endpoint for client registration.
 
