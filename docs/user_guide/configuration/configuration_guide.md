@@ -40,6 +40,7 @@ The `VigiloIdentityServer` can be configured using various options to suit your 
 | **Read Timeout**                  | Read timeout duration for HTTP requests in seconds.     | `15 seconds`                |
 | **Write Timeout**                 | Write timeout duration for HTTP requests in seconds.    | `15 seconds`                |
 | **Authorization Code Duration**   | The duration of the authorization code in minutes.      | `10 minutes`                |
+| **Request Logging**               | Whether to enable request logging for http requests.    | `true`                      |
 
 
 ---
