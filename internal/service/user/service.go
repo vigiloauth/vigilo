@@ -477,6 +477,7 @@ func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 	}
 
 	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
 	if user.HasRole(constants.AdminRole) {
 		user.ID = constants.AdminRoleIDPrefix + crypto.GenerateUUID()
 	} else {
