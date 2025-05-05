@@ -186,7 +186,7 @@ func NewUserFromRegistrationRequest(req *UserRegistrationRequest) *User {
 		Birthdate:         req.Birthdate,
 		Email:             req.Email,
 		PhoneNumber:       req.PhoneNumber,
-		Zoneinfo:          "UTC",
+		Zoneinfo:          time.UTC.String(),
 		Scopes:            req.Scopes,
 		Roles:             req.Roles,
 		Locale:            req.Address.Locality,
