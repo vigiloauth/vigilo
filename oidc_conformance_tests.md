@@ -24,3 +24,5 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
     - ✅ `oidcc-scope-address`
     - ✅ `oidcc-scope-phone`
     - ✅ `oidcc-scope-all`
+    - ✅ `oidcc-ensure-other-scope-order-succeeds`
+    - ❌ `oidcc-display-page`

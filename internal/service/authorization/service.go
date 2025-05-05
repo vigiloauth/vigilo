@@ -309,7 +309,6 @@ func (s *authorizationService) validateClient(ctx context.Context, code *authzCo
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client")
 	}
 
-	s.logger.Debug(s.module, requestID, "Token Request Secret=[%s] || Client Secret=[%s]", tokenRequest.ClientSecret, client.Secret)
 	if client.IsConfidential() && !client.SecretsMatch(tokenRequest.ClientSecret) {
 		s.logger.Error(s.module, requestID, "Failed to validate client: client secret from token request does not match with a registered client")
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client credentials")
