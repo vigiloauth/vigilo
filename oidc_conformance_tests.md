@@ -16,7 +16,7 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
     - ✅ `oidcc-response-type-missing`
     - ✅ `oidcc-idtoken-signature`
     - ✅ `oidcc-idtoken-unsigned` (skipped, VigiloAuth does not support `none` as a token signing algorithm)
-    - 🛠️ `oidcc-userinfo-get`
+    - ❌ `oidcc-userinfo-get`
     - ✅ `oidcc-userinfo-post-header`
     - ✅ `oidcc-ensure-request-without-nonce-succeeds-for-code-flow`
-    - 🛠️ `oidcc-scope-profile`
+    - ❌ `oidcc-scope-profile`
