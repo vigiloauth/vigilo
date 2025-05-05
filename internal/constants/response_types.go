@@ -6,6 +6,7 @@ const (
 	CodeResponseType    string = "code"     // Authorization Code response type
 	TokenResponseType   string = "token"    // Implicit Flow token response type
 	IDTokenResponseType string = "id_token" // ID Token response type for OpenID Connect
+	HybridResponseType  string = "token id_token"
 )
 
 // SupportedResponseTypes is a map of response types supported by the application.
@@ -14,4 +15,5 @@ var SupportedResponseTypes = map[string]bool{
 	CodeResponseType:    true,
 	TokenResponseType:   true,
 	IDTokenResponseType: true,
+	HybridResponseType:  true,
 }
