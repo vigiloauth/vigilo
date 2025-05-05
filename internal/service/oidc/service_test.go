@@ -87,16 +87,16 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 
 func getUser(scopes string) *user.User {
 	return &user.User{
-		ID:          "12345",
-		Username:    "john.doe",
-		FullName:    "John Mary Doe",
-		FirstName:   "John",
-		MiddleName:  "Mary",
-		FamilyName:  "Doe",
-		Email:       "john.doe@mail.com",
-		PhoneNumber: "+1234567890",
-		Birthdate:   "1990-01-01",
-		Gender:      "male",
+		ID:                "12345",
+		PreferredUsername: "john.doe",
+		Name:              "John Mary Doe",
+		GivenName:         "John",
+		MiddleName:        "Mary",
+		FamilyName:        "Doe",
+		Email:             "john.doe@mail.com",
+		PhoneNumber:       "+1234567890",
+		Birthdate:         "1990-01-01",
+		Gender:            "male",
 		Address: &user.UserAddress{
 			Formatted:     "123 Main St, Anytown, Anystate, 12345, Countryland",
 			StreetAddress: "123 Main St",

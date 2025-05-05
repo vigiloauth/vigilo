@@ -95,7 +95,7 @@ func (u *InMemoryUserRepository) GetUserByUsername(ctx context.Context, username
 	defer u.mu.RUnlock()
 
 	for _, user := range u.users {
-		if user.Username == username {
+		if user.PreferredUsername == username {
 			logger.Debug(module, requestID, "[GetUserByUsername]: User found with the given username=[%s]", username)
 			return user, nil
 		}

@@ -135,8 +135,8 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 				switch test.scopes[1] {
 				case constants.UserProfileScope:
 					assert.NotEmpty(t, userInfo.Name, "Expected user name to be not empty")
-					assert.NotEmpty(t, userInfo.Username, "Expected user username to be not empty")
-					assert.NotEmpty(t, userInfo.FirstName, "Expected user first name to be not empty")
+					assert.NotEmpty(t, userInfo.PreferredUsername, "Expected user username to be not empty")
+					assert.NotEmpty(t, userInfo.GivenName, "Expected user first name to be not empty")
 					assert.NotEmpty(t, userInfo.FamilyName, "Expected user family name to be not empty")
 					assert.NotEmpty(t, userInfo.MiddleName, "Expected user middle name to be not empty")
 					assert.NotEmpty(t, userInfo.Birthdate, "Expected user birthdate to be not empty")

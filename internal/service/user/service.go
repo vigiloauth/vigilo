@@ -152,8 +152,8 @@ func (u *userService) HandleOAuthLogin(ctx context.Context, request *users.UserL
 func (u *userService) AuthenticateUserWithRequest(ctx context.Context, request *users.UserLoginRequest) (*users.UserLoginResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 	user := &users.User{
-		Username: request.Username,
-		Password: request.Password,
+		PreferredUsername: request.Username,
+		Password:          request.Password,
 	}
 
 	loginAttempt := &users.UserLoginAttempt{
@@ -363,7 +363,7 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	defer u.applyArtificialDelay(startTime)
 	requestID := utils.GetRequestID(ctx)
 
-	retrievedUser, err := u.userRepo.GetUserByUsername(ctx, loginUser.Username)
+	retrievedUser, err := u.userRepo.GetUserByUsername(ctx, loginUser.PreferredUsername)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "An error occurred retrieving the user: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")

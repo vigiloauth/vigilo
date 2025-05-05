@@ -110,9 +110,9 @@ func (tc *VigiloTestContext) WithLiveHTTPServer() *VigiloTestContext {
 func (tc *VigiloTestContext) WithUser(scopes, roles []string) *VigiloTestContext {
 	user := &users.User{
 		ID:                  testUserID,
-		Username:            testUsername,
-		FullName:            testFirstName + " " + testMiddleName + " " + testFamilyName,
-		FirstName:           testFirstName,
+		PreferredUsername:   testUsername,
+		Name:                testFirstName + " " + testMiddleName + " " + testFamilyName,
+		GivenName:           testFirstName,
 		MiddleName:          testMiddleName,
 		FamilyName:          testFamilyName,
 		Email:               testEmail,

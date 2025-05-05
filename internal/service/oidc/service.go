@@ -91,12 +91,19 @@ func (o *oidcService) populateUserInfoFromScopes(
 	for _, scope := range requestedScopes {
 		switch scope {
 		case constants.UserProfileScope:
-			userInfoResponse.Name = retrievedUser.FullName
-			userInfoResponse.Username = retrievedUser.Username
-			userInfoResponse.Birthdate = retrievedUser.Birthdate
-			userInfoResponse.FirstName = retrievedUser.FirstName
-			userInfoResponse.MiddleName = retrievedUser.MiddleName
+			userInfoResponse.Name = retrievedUser.Name
 			userInfoResponse.FamilyName = retrievedUser.FamilyName
+			userInfoResponse.GivenName = retrievedUser.GivenName
+			userInfoResponse.MiddleName = retrievedUser.MiddleName
+			userInfoResponse.Nickname = retrievedUser.Nickname
+			userInfoResponse.PreferredUsername = retrievedUser.PreferredUsername
+			userInfoResponse.Profile = retrievedUser.Profile
+			userInfoResponse.Picture = retrievedUser.Picture
+			userInfoResponse.Website = retrievedUser.Website
+			userInfoResponse.Gender = retrievedUser.Gender
+			userInfoResponse.Birthdate = retrievedUser.Birthdate
+			userInfoResponse.Zoneinfo = retrievedUser.Zoneinfo
+			userInfoResponse.Locale = retrievedUser.Locale
 			userInfoResponse.UpdatedAt = retrievedUser.UpdatedAt.UTC().Unix()
 		case constants.UserEmailScope:
 			userInfoResponse.Email = retrievedUser.Email

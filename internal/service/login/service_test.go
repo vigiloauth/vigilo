@@ -89,12 +89,12 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 	ctx := context.Background()
 	t.Run("Failed login attempt is successfully stored", func(t *testing.T) {
 		loginUser := &user.User{
-			ID:              testUserID,
-			Username:        testUsername,
-			Password:        testPassword,
-			Email:           testEmail,
-			LastFailedLogin: time.Time{},
-			AccountLocked:   false,
+			ID:                testUserID,
+			PreferredUsername: testUsername,
+			Password:          testPassword,
+			Email:             testEmail,
+			LastFailedLogin:   time.Time{},
+			AccountLocked:     false,
 		}
 
 		attemptSaved := false
@@ -133,12 +133,12 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 
 	t.Run("Account is locked after several failed login attempts", func(t *testing.T) {
 		loginUser := &user.User{
-			ID:              testUserID,
-			Username:        testUsername,
-			Password:        testPassword,
-			Email:           testEmail,
-			LastFailedLogin: time.Time{},
-			AccountLocked:   false,
+			ID:                testUserID,
+			PreferredUsername: testUsername,
+			Password:          testPassword,
+			Email:             testEmail,
+			LastFailedLogin:   time.Time{},
+			AccountLocked:     false,
 		}
 
 		maxAttempts := 5
@@ -181,12 +181,12 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 
 	t.Run("Error is returned when a database error occurs", func(t *testing.T) {
 		loginUser := &user.User{
-			ID:              testUserID,
-			Username:        testUsername,
-			Password:        testPassword,
-			Email:           testEmail,
-			LastFailedLogin: time.Time{},
-			AccountLocked:   false,
+			ID:                testUserID,
+			PreferredUsername: testUsername,
+			Password:          testPassword,
+			Email:             testEmail,
+			LastFailedLogin:   time.Time{},
+			AccountLocked:     false,
 		}
 
 		mockLoginRepo := &mLoginRepo.MockLoginAttemptRepository{
