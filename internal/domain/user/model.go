@@ -53,11 +53,15 @@ type UserAddress struct {
 // UserRegistrationRequest represents the registration request payload.
 type UserRegistrationRequest struct {
 	Username    string      `json:"username"`
+	Nickname    string      `json:"nickname,omitempty"`
 	FirstName   string      `json:"first_name"`
 	MiddleName  string      `json:"middle_name,omitempty"`
 	FamilyName  string      `json:"family_name"`
 	Birthdate   string      `json:"birthdate"`
 	Email       string      `json:"email"`
+	Profile     string      `json:"profile,omitempty"` // URL to the user's profile page
+	Picture     string      `json:"picture,omitempty"` // URL to the user's picture/avatar
+	Website     string      `json:"website,omitempty"` // URL to the user's personal website
 	Gender      string      `json:"gender"`
 	PhoneNumber string      `json:"phone_number,omitempty"`
 	Password    string      `json:"password"`
@@ -190,6 +194,10 @@ func NewUserFromRegistrationRequest(req *UserRegistrationRequest) *User {
 		Scopes:            req.Scopes,
 		Roles:             req.Roles,
 		Locale:            req.Address.Locality,
+		Website:           req.Website,
+		Profile:           req.Profile,
+		Picture:           req.Picture,
+		Nickname:          req.Nickname,
 		Address: NewUserAddress(
 			req.Address.StreetAddress,
 			req.Address.Locality,
