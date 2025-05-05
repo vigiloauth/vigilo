@@ -11,29 +11,34 @@ import (
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
 )
 
-// Client represents an OAuth client with its attributes and authentication details.
+// Client represents an OAuth 2.0 client application.
+// It stores the client's metadata and configuration.
 type Client struct {
-	Name                    string
-	ID                      string
-	Secret                  string
-	Type                    string
-	TokenEndpointAuthMethod string
-	JwksURI                 string
-	LogoURI                 string
-	ApplicationType         string
-	RegistrationAccessToken string
-	RedirectURIS            []string
-	GrantTypes              []string
-	Scopes                  []string
-	ResponseTypes           []string
-	Contacts                []string
-	CreatedAt               time.Time
-	UpdatedAt               time.Time
-	IDIssuedAt              time.Time
-	SecretExpiration        int
-	RequiresPKCE            bool
-	JWKS                    *domain.Jwks
-	RegistrationClientURI   string
+	Name                    string       // The human-readable name of the client application.
+	ID                      string       // The unique identifier assigned to the client.
+	Secret                  string       // The client secret used for confidential client authentication.
+	Type                    string       // The type of the client: "confidential" or "public".
+	TokenEndpointAuthMethod string       // The authentication method used by the client at the token endpoint (e.g., "client_secret_basic", "client_secret_post", "private_key_jwt").
+	JwksURI                 string       // The URL of the client's JSON Web Key Set (JWKS) document for verifying signatures.
+	LogoURI                 string       // The URL of the client's logo.
+	ApplicationType         string       // The type of the application (e.g., "web", "native").
+	RegistrationAccessToken string       // The access token used to read and update the client's registration information.
+	RedirectURIS            []string     // A list of allowed redirect URIs for the client.
+	GrantTypes              []string     // A list of OAuth 2.0 grant types the client is authorized to use.
+	Scopes                  []string     // A list of authorization scopes the client can request.
+	ResponseTypes           []string     // A list of OAuth 2.0 response types the client is authorized to use.
+	Contacts                []string     // A list of contact persons for the client.
+	CreatedAt               time.Time    // The timestamp when the client was created.
+	UpdatedAt               time.Time    // The timestamp when the client was last updated.
+	IDIssuedAt              time.Time    // The timestamp when the client ID was issued.
+	SecretExpiration        int          // The expiration time of the client secret in seconds (0 for no expiration).
+	RequiresPKCE            bool         // Indicates if the client requires Proof Key for Code Exchange (PKCE) for the authorization code grant.
+	JWKS                    *domain.Jwks // The client's JSON Web Key Set (JWKS) for verifying signatures, embedded directly.
+	RegistrationClientURI   string       // The URL of the client's registration endpoint.
+
+	// CanRequestScopes indicates if the client is restricted to its registered scopes during authorization.
+	// If false, the client can request any valid scope.
+	CanRequestScopes bool
 }
 
 type ClientRequest interface {
@@ -158,9 +163,15 @@ func NewClientFromRegistrationRequest(req *ClientRegistrationRequest) *Client {
 	if req.ApplicationType != "" {
 		client.ApplicationType = req.ApplicationType
 	}
+
 	if len(req.Scopes) != 0 {
 		client.Scopes = req.Scopes
+		client.CanRequestScopes = false
+	} else {
+		client.Scopes = []string{}
+		client.CanRequestScopes = true
 	}
+
 	if len(req.Contacts) != 0 {
 		client.Contacts = req.Contacts
 	}

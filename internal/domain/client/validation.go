@@ -366,8 +366,6 @@ func validateURIS(req ClientRequest, errorCollection *errors.ErrorCollection) {
 // validateScopes ensures all provided scopes are valid.
 func validateScopes(req ClientRequest, errorCollection *errors.ErrorCollection) {
 	if len(req.GetScopes()) == 0 {
-		req.SetScopes([]string{constants.OpenIDScope})
-		logger.Info(module, "", "Default scope 'oidc' applied")
 		return
 	}
 

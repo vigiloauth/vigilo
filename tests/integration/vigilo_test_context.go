@@ -164,10 +164,15 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 		Name:          testClientName1,
 		ID:            testClientID,
 		Type:          clientType,
-		Scopes:        scopes,
 		GrantTypes:    grantTypes,
 		ResponseTypes: []string{constants.CodeResponseType},
 		RedirectURIS:  []string{testRedirectURI},
+	}
+
+	if len(scopes) == 0 {
+		c.CanRequestScopes = true
+	} else {
+		c.Scopes = scopes
 	}
 
 	if clientType == client.Confidential {

@@ -232,11 +232,14 @@ func (c authorizationCodeService) validateClientParameters(ctx context.Context, 
 		return errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 
-	scopes := strings.Split(scopesString, " ")
-	for _, scope := range scopes {
-		if !client.HasScope(scope) {
-			c.logger.Error(c.module, "Failed to validate client: client is missing required scope=[%s]", scope)
-			return errors.New(errors.ErrCodeInsufficientScope, "client is missing required scopes")
+	// Client registered with scopes so they must be used for this request.
+	if !client.CanRequestScopes {
+		scopes := strings.Split(scopesString, " ")
+		for _, scope := range scopes {
+			if !client.HasScope(scope) {
+				c.logger.Error(c.module, "Failed to validate client: client is missing required scope=[%s]", scope)
+				return errors.New(errors.ErrCodeInsufficientScope, "client is missing required scopes")
+			}
 		}
 	}
 
