@@ -13,6 +13,7 @@ type AuthorizationCodeData struct {
 	Used                bool
 	CodeChallenge       string
 	CodeChallengeMethod string
+	Nonce               string
 }
 
 const (

@@ -72,7 +72,7 @@ type UserInfoResponse struct {
 	EmailVerified       bool         `json:"email_verified,omitempty"`
 	PhoneNumber         string       `json:"phone_number,omitempty"`
 	PhoneNumberVerified bool         `json:"phone_number_verified,omitempty"`
-	UpdatedAt           time.Time    `json:"updated_at,omitempty"`
+	UpdatedAt           int64        `json:"updated_at,omitempty"`
 	Address             *UserAddress `json:"address,omitempty"`
 }
 

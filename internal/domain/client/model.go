@@ -132,6 +132,7 @@ type ClientAuthorizationRequest struct {
 	RedirectURI         string `schema:"redirect_uri"`
 	Scope               string `schema:"scope,omitempty"`
 	State               string `schema:"state,omitempty"`
+	Nonce               string `schema:"nonce,omitempty"`
 	CodeChallenge       string `schema:"code_challenge,omitempty"`
 	CodeChallengeMethod string `schema:"code_challenge_method,omitempty"`
 	UserID              string
@@ -366,6 +367,7 @@ func NewClientAuthorizationRequest(query url.Values, userID string) *ClientAutho
 		ResponseType:        query.Get(constants.ResponseTypeReqField),
 		CodeChallenge:       query.Get(constants.CodeChallengeReqField),
 		CodeChallengeMethod: query.Get(constants.CodeChallengeMethodReqField),
+		Nonce:               query.Get(constants.NonceReqField),
 		UserID:              userID,
 	}
 }

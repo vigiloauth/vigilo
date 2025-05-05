@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -47,7 +46,7 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 			t.Run(test.name, func(t *testing.T) {
 				expectedUser := getUser(test.scopes)
 				authzService := &mocks.MockAuthorizationService{
-					AuthorizeUserInfoRequestFunc: func(ctx context.Context, accessTokenClaims *token.TokenClaims, r *http.Request) (*user.User, error) {
+					AuthorizeUserInfoRequestFunc: func(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.User, error) {
 						return expectedUser, nil
 					},
 				}
@@ -57,7 +56,7 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 					Scopes: test.scopes,
 				}
 
-				userInfoResponse, err := service.GetUserInfo(context.Background(), accessTokenClaims, &http.Request{})
+				userInfoResponse, err := service.GetUserInfo(context.Background(), accessTokenClaims)
 
 				assert.NoError(t, err, "Expected no error when retrieving user info")
 				assert.NotNil(t, userInfoResponse, "Expected user info response to be non-nil")
@@ -71,7 +70,7 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 
 	t.Run("Error is returned when the scopes are invalid", func(t *testing.T) {
 		authzService := &mocks.MockAuthorizationService{
-			AuthorizeUserInfoRequestFunc: func(ctx context.Context, accessTokenClaims *token.TokenClaims, r *http.Request) (*user.User, error) {
+			AuthorizeUserInfoRequestFunc: func(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.User, error) {
 				return nil, fmt.Errorf("invalid scopes")
 			},
 		}
@@ -79,7 +78,7 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 		service := NewOIDCService(authzService)
 		accessTokenClaims := &token.TokenClaims{}
 
-		userInfoResponse, err := service.GetUserInfo(context.Background(), accessTokenClaims, &http.Request{})
+		userInfoResponse, err := service.GetUserInfo(context.Background(), accessTokenClaims)
 
 		assert.Error(t, err, "Expected an error when retrieving user info with invalid scopes")
 		assert.Nil(t, userInfoResponse, "Expected user info response to be nil when an error occurs")

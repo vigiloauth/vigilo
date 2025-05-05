@@ -80,6 +80,7 @@ func (c *authorizationCodeService) GenerateAuthorizationCode(ctx context.Context
 		Scope:       req.Scope,
 		CreatedAt:   time.Now(),
 		Used:        false,
+		Nonce:       req.Nonce,
 	}
 
 	if err := c.handlePKCE(req, authData); err != nil {

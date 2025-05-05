@@ -39,16 +39,6 @@ type SessionService interface {
 	//	- string: The user ID.
 	GetUserIDFromSession(r *http.Request) string
 
-	// IsUserSessionPresent checks if the user has an active session
-	//
-	// Parameters:
-	//   - r *http.Request: The HTTP request.
-	//   - userID string: The ID of the user to check.
-	//
-	// Returns:
-	//   - bool: True if the user has an active session, false otherwise.
-	IsUserSessionPresent(r *http.Request, userID string) bool
-
 	// UpdateSession updates the current session.
 	//
 	// Parameters:

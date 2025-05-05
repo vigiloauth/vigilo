@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
@@ -193,20 +194,6 @@ func (h *TokenHandler) handleAuthorizationCodeTokenExchange(ctx context.Context,
 		tokenRequest.ClientSecret = clientSecret
 	}
 
-	sessionData, err := h.sessionService.GetSessionData(r)
-	if err != nil {
-		h.logger.Error(h.module, requestID, "Failed to retrieve session data: %v", err)
-		web.WriteError(w, errors.NewInvalidSessionError())
-		return
-	}
-
-	if sessionData.State != tokenRequest.State {
-		err := errors.New(errors.ErrCodeInvalidRequest, "state mismatch between session and request")
-		h.logger.Error(h.module, requestID, "State mismatch between session and request")
-		web.WriteError(w, err)
-		return
-	}
-
 	authzCodeData, err := h.authorizationService.AuthorizeTokenExchange(ctx, tokenRequest)
 	if err != nil {
 		h.logger.Error(h.module, requestID, "Authorization failed for token exchange: %v", err)
@@ -219,13 +206,6 @@ func (h *TokenHandler) handleAuthorizationCodeTokenExchange(ctx context.Context,
 	if err != nil {
 		h.logger.Error(h.module, requestID, "Failed to generate access and refresh tokens: %v", err)
 		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access & refresh tokens")
-		web.WriteError(w, wrappedErr)
-		return
-	}
-
-	if err := h.sessionService.ClearStateFromSession(ctx, sessionData); err != nil {
-		h.logger.Error(h.module, requestID, "Failed to clear state from the current session: %v", err)
-		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to clear state from session")
 		web.WriteError(w, wrappedErr)
 		return
 	}
@@ -259,6 +239,10 @@ func (h *TokenHandler) extractClientCredentials(r *http.Request) (string, string
 		if clientID == "" {
 			return "", "", errors.New(errors.ErrCodeInvalidClient, "missing client identification")
 		}
+	}
+
+	if decodedSecret, err := url.QueryUnescape(clientSecret); err == nil {
+		clientSecret = decodedSecret
 	}
 
 	return clientID, clientSecret, nil

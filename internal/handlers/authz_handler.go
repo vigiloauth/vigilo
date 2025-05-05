@@ -60,17 +60,30 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request")
 
+	if errorURL := web.ValidateClientAuthorizationParameters(query); errorURL != "" {
+		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Invalid parameters in the request: %s", utils.SanitizeURL(errorURL))
+		http.Redirect(w, r, errorURL, http.StatusFound)
+		return
+	}
+
 	req := client.NewClientAuthorizationRequest(query, h.sessionService.GetUserIDFromSession(r))
 	if req.UserID == "" {
 		loginURL := h.buildLoginURL(req.ClientID, req.RedirectURI, req.Scope, req.State, requestID)
-		h.logger.Warn(h.module, requestID, "[AuthorizeClient]: User is not authenticated. Returning a 'login required error'")
-		web.WriteError(w, errors.NewLoginRequiredError(loginURL))
+		h.logger.Warn(h.module, requestID, "[AuthorizeClient]: User is not authenticated. Redirecting them to the login page")
+		http.Redirect(w, r, loginURL, http.StatusFound)
 		return
 	}
 
 	isUserConsentApproved := query.Get(constants.ConsentApprovedURLValue) == "true"
 	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req, isUserConsentApproved)
 	if err != nil {
+		if vaErr, ok := err.(*errors.VigiloAuthError); ok && vaErr.ErrorCode == errors.ErrCodeConsentRequired {
+			consentURL := vaErr.ConsentURL
+			h.logger.Info(h.module, requestID, "[AuthorizeClient]: Consent required. Redirecting to consent URL: %s", utils.SanitizeURL(consentURL))
+			http.Redirect(w, r, consentURL, http.StatusFound)
+			return
+		}
+
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")
 		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Failed to authorize client: %v", err)
 		web.WriteError(w, wrappedErr)

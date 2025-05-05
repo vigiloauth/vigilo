@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"net/http"
 
 	jwks "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
@@ -18,7 +17,6 @@ type OIDCService interface {
 	//  - accessTokenClaims *TokenClaims: A pointer to TokenClaims that were parsed and validated
 	//     from the access token. These typically include standard OIDC claims such as
 	//     'sub' (subject identifier), 'scope', 'exp' (expiration), etc.
-	//   - r *http.Request: The HTTP request containing the cookies.
 	//
 	// Returns:
 	//   - *UserInfoResponse: A pointer to a UserInfoResponse struct containing the requested user
@@ -26,7 +24,7 @@ type OIDCService interface {
 	//     authorized scopes.
 	//   - error: An error if the user cannot be found, the scopes are insufficient, or any
 	//     other issue occurs during retrieval.
-	GetUserInfo(ctx context.Context, accessTokenClaims *token.TokenClaims, r *http.Request) (*user.UserInfoResponse, error)
+	GetUserInfo(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.UserInfoResponse, error)
 
 	// GetJwks retrieves the JSON Web Key Set (JWKS) used for verifying signatures
 	// of tokens issued by the OpenID Connect provider.

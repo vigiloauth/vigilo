@@ -36,7 +36,7 @@ type DiscoveryJSON struct {
 //   - *DiscoveryJSON: A populated DiscoveryJSON instance.
 func NewDiscoveryJSON(baseURL string) *DiscoveryJSON {
 	return &DiscoveryJSON{
-		Issuer:                        baseURL,
+		Issuer:                        baseURL + "/oauth2",
 		AuthorizationEndpoint:         baseURL + web.OAuthEndpoints.Authorize,
 		TokenEndpoint:                 baseURL + web.OAuthEndpoints.Token,
 		UserInfoEndpoint:              baseURL + web.OIDCEndpoints.UserInfo,

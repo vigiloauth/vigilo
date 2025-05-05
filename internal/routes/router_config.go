@@ -67,17 +67,17 @@ func (rc *RouterConfig) Init() *RouterConfig {
 func (rc *RouterConfig) applyGlobalMiddleware() {
 	rc.router.Use(rc.middleware.WithContextValues)
 	rc.router.Use(rc.middleware.RateLimit)
-	rc.router.Use(rc.middleware.RequestLogger)
-
-	if rc.enableRequestLogging {
-		rc.router.Use(rc.middleware.RequestLogger)
-	}
 
 	if rc.forceHTTPS {
 		rc.logger.Info(rc.module, "", "The Vigilo Identity Provider is running on HTTPS")
 		rc.router.Use(rc.middleware.RedirectToHTTPS)
 	} else {
 		rc.logger.Warn(rc.module, "", "The Vigilo Identity Provider is running on HTTP. It is recommended to enable HTTPS in production environments")
+	}
+
+	if rc.enableRequestLogging {
+		rc.logger.Warn(rc.module, "", "Request logging is enabled. It is recommended to disable this in production environments.")
+		rc.router.Use(rc.middleware.RequestLogger)
 	}
 
 	rc.router.Use(cors.Handler(cors.Options{

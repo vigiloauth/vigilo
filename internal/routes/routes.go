@@ -19,7 +19,7 @@ func (ar *RouterConfig) getAdminRoutes() RouteGroup {
 		},
 		Routes: []Route{
 			NewRoute().
-				SetMethod(http.MethodGet).
+				SetMethods(http.MethodGet).
 				SetPattern(web.AdminEndpoints.GetAuditEvents).
 				SetHandler(handler.GetAuditEvents).
 				SetDescription("Get audit events").
@@ -36,7 +36,7 @@ func (ar *RouterConfig) getOIDCRoutes() RouteGroup {
 		Routes: []Route{
 			NewRoute().
 				SetMiddleware(ar.middleware.AuthMiddleware()).
-				SetMethod(http.MethodGet).
+				SetMethods(http.MethodGet, http.MethodPost).
 				SetPattern(web.OIDCEndpoints.UserInfo).
 				SetHandler(handler.GetUserInfo).
 				SetDescription("Get user info").
@@ -44,13 +44,13 @@ func (ar *RouterConfig) getOIDCRoutes() RouteGroup {
 
 			// Public Routes (no auth required)
 			NewRoute().
-				SetMethod(http.MethodGet).
+				SetMethods(http.MethodGet).
 				SetPattern(web.OIDCEndpoints.JWKS).
 				SetHandler(handler.GetJWKS).
 				SetDescription("Get JSON web key sets").
 				Build(),
 			NewRoute().
-				SetMethod(http.MethodGet).
+				SetMethods(http.MethodGet).
 				SetPattern(web.OIDCEndpoints.Discovery).
 				SetHandler(handler.GetOpenIDConfiguration).
 				SetDescription("Get OIDC configuration").
@@ -70,7 +70,7 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 			// Basic client registration
 			NewRoute().
 				SetMiddleware(ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetPattern(web.ClientEndpoints.Register).
 				SetHandler(handler.RegisterClient).
 				SetDescription("Register new client").
@@ -87,7 +87,7 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 
 			// Sensitive operations with strict rate limiting
 			NewRoute().
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetMiddleware(ar.middleware.AuthMiddleware(), ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
 				SetPattern(web.ClientEndpoints.RegenerateSecret + urlParam).
 				SetHandler(handler.RegenerateSecret).
@@ -106,7 +106,7 @@ func (ar *RouterConfig) getUserRoutes() RouteGroup {
 		Routes: []Route{
 			NewRoute().
 				SetMiddleware(ar.middleware.AuthMiddleware()).
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetPattern(web.UserEndpoints.Logout).
 				SetHandler(handler.Logout).
 				SetDescription("User logout").
@@ -114,32 +114,32 @@ func (ar *RouterConfig) getUserRoutes() RouteGroup {
 
 			// Public Routes (no auth required)
 			NewRoute().
-				SetMethod(http.MethodGet).
+				SetMethods(http.MethodGet).
 				SetPattern(web.UserEndpoints.Verify).
 				SetHandler(handler.VerifyAccount).
 				SetDescription("User account verification").
 				Build(),
 			NewRoute().
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetPattern(web.UserEndpoints.Registration).
 				SetHandler(handler.Register).
 				SetDescription("User registration").
 				Build(),
 			NewRoute().
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetPattern(web.UserEndpoints.Login).
 				SetHandler(handler.Login).
 				SetDescription("Basic user authentication").
 				Build(),
 			NewRoute().
-				SetMethod(http.MethodPatch).
+				SetMethods(http.MethodPatch).
 				SetPattern(web.UserEndpoints.ResetPassword).
 				SetHandler(handler.ResetPassword).
 				SetDescription("User password reset").
 				Build(),
 
 			NewRoute().
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetPattern(web.OAuthEndpoints.Login).
 				SetHandler(handler.OAuthLogin).
 				SetDescription("OAuth user authentication").
@@ -175,7 +175,7 @@ func (ar *RouterConfig) getAuthorizationRoutes() RouteGroup {
 		Routes: []Route{
 			NewRoute().
 				SetMiddleware(ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
-				SetMethod(http.MethodGet).
+				SetMethods(http.MethodGet).
 				SetPattern(web.OAuthEndpoints.Authorize).
 				SetHandler(handler.AuthorizeClient).
 				SetDescription("Client authorization").
@@ -190,23 +190,23 @@ func (ar *RouterConfig) getTokenRoutes() RouteGroup {
 	return RouteGroup{
 		Name: "Token Handler",
 		Middleware: []func(http.Handler) http.Handler{
-			ar.middleware.RequiresContentType(constants.ContentTypeForm),
+			ar.middleware.RequiresContentType(constants.ContentTypeFormURLEncoded),
 		},
 		Routes: []Route{
 			NewRoute().
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetPattern(web.OAuthEndpoints.Token).
 				SetHandler(handler.IssueTokens).
 				SetDescription("Token issuance").
 				Build(),
 			NewRoute().
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetPattern(web.OAuthEndpoints.IntrospectToken).
 				SetHandler(handler.IntrospectToken).
 				SetDescription("Token introspection").
 				Build(),
 			NewRoute().
-				SetMethod(http.MethodPost).
+				SetMethods(http.MethodPost).
 				SetPattern(web.OAuthEndpoints.RevokeToken).
 				SetHandler(handler.RevokeToken).
 				SetDescription("Token revocation").

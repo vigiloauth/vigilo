@@ -108,7 +108,7 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 		return nil, errors.Wrap(err, "", "failed to create new client")
 	}
 
-	cs.logger.Debug(cs.module, requestID, "[RegisterClient]: Successfully registered client: %v", newClient.String())
+	cs.logger.Debug(cs.module, requestID, "[RegisterClient]: Successfully registered client: %s", newClient.String())
 	return client.NewClientRegistrationResponseFromClient(newClient), nil
 }
 
