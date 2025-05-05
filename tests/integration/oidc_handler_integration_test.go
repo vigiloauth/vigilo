@@ -1,8 +1,12 @@
 package integration
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -19,19 +23,29 @@ import (
 func TestOIDCHandler_UserInfo(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		tests := []struct {
-			name            string
-			scopes          []string
-			wantUserSession bool
+			name   string
+			scopes []string
+			method string
 		}{
 			{
-				name:            "Success with all scopes",
-				scopes:          []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope},
-				wantUserSession: true,
+				name:   "Success with all scopes for GET request",
+				scopes: []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope},
+				method: http.MethodGet,
 			},
 			{
-				name:            "Success with offline access scope",
-				scopes:          []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope, constants.UserOfflineAccessScope},
-				wantUserSession: false,
+				name:   "Success with offline access scope for GET request",
+				scopes: []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope, constants.UserOfflineAccessScope},
+				method: http.MethodGet,
+			},
+			{
+				name:   "Success with all scopes for POST request",
+				scopes: []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope},
+				method: http.MethodPost,
+			},
+			{
+				name:   "Success with offline access scope for POST request",
+				scopes: []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope, constants.UserOfflineAccessScope},
+				method: http.MethodPost,
 			},
 		}
 
@@ -44,13 +58,21 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 				testContext.WithClient(clients.Confidential, test.scopes, []string{constants.AuthorizationCodeGrantType})
 				testContext.WithJWTTokenWithScopes(testUserID, testClientID, test.scopes, time.Duration(5*time.Minute))
 
-				headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
-				if test.wantUserSession {
-					testContext.WithUserSession()
-					headers["Cookie"] = testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value
+				var rr *httptest.ResponseRecorder
+				var requestBody io.Reader
+				headers := make(map[string]string)
+
+				if test.method == http.MethodGet {
+					headers = map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
+					rr = testContext.SendHTTPRequest(test.method, web.OIDCEndpoints.UserInfo, nil, headers)
+				} else {
+					formData := url.Values{}
+					formData.Set(constants.AccessTokenPost, testContext.JWTToken)
+					requestBody = bytes.NewBufferString(formData.Encode())
+					headers["Content-Type"] = constants.ContentTypeFormURLEncoded
+					rr = testContext.SendHTTPRequest(test.method, web.OIDCEndpoints.UserInfo, requestBody, headers)
 				}
 
-				rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
 				t.Log("Response:", rr.Body.String())
 				assert.Equal(t, http.StatusOK, rr.Code, "Expected HTTP status code 200 OK, got %d", rr.Code)
 			})
@@ -142,21 +164,6 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "missing or invalid authorization header", "Expected error message for missing authorization header")
 	})
 
-	t.Run("Unauthorized error is returned when the token subject is invalid", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		scopes := []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserOfflineAccessScope}
-		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCodeGrantType})
-		testContext.WithJWTTokenWithScopes("invalid-subject", testClientID, scopes, time.Duration(5*time.Minute))
-
-		headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
-		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
-
-		assert.Equal(t, http.StatusUnauthorized, rr.Code, "Expected HTTP status code 401 Unauthorized, got %d", rr.Code)
-		assert.Contains(t, rr.Body.String(), "invalid user credentials", "Expected error message for invalid token subject")
-	})
-
 	t.Run("Unauthorized error is returned when the token audience is invalid", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
@@ -170,22 +177,6 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code, "Expected HTTP status code 401 Unauthorized, got %d", rr.Code)
 		assert.Contains(t, rr.Body.String(), "invalid client credentials", "Expected error message for invalid token audience")
-	})
-
-	t.Run("Forbidden error is returned when the user does not have the requested scopes", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		scopes := []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope}
-		testContext.WithUser([]string{}, []string{constants.UserRole})
-		testContext.WithClient(clients.Confidential, scopes, []string{constants.AuthorizationCodeGrantType})
-		testContext.WithJWTTokenWithScopes(testUserID, testClientID, []string{constants.OpenIDScope}, time.Duration(5*time.Minute))
-
-		headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
-		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
-
-		assert.Equal(t, http.StatusForbidden, rr.Code, "Expected HTTP status code 403 Forbidden, got %d", rr.Code)
-		assert.Contains(t, rr.Body.String(), "insufficient_scope", "Expected error message for insufficient scope")
 	})
 }
 

@@ -183,7 +183,6 @@ func (sr *ServiceRegistry) initAuthorizationService() {
 				sr.TokenService(),
 				sr.ClientService(),
 				sr.UserService(),
-				sr.SessionService(),
 			)
 		},
 	}

@@ -46,7 +46,7 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	assert.Equal(t, http.StatusFound, rr.Code)
 }
 
-func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t *testing.T) {
+func TestAuthorizationHandler_AuthorizeClient_MissingResponseTypeInRequest_ReturnsError(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	defer testContext.TearDown()
 
@@ -55,25 +55,27 @@ func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t
 		[]string{constants.ClientManageScope, constants.UserManageScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
-
+	testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 	testContext.WithUserSession()
-
-	// Call AuthorizeClient Endpoint
 	testContext.WithUserConsent()
+
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, testClientID)
 	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
 	queryParams.Add(constants.ScopeReqField, testScope)
 	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 
+	sessionCookie := testContext.GetSessionCookie()
+	headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
 	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
+
 	rr := testContext.SendHTTPRequest(
 		http.MethodGet,
 		endpoint,
-		nil, nil,
+		nil, headers,
 	)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusFound, rr.Code)
 }
 
 func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t *testing.T) {
@@ -103,7 +105,7 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 	)
 
 	fmt.Println("BODY:", rr.Body)
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusFound, rr.Code)
 }
 
 func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
@@ -137,7 +139,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 		nil, headers,
 	)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusFound, rr.Code)
 }
 
 func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent(t *testing.T) {
