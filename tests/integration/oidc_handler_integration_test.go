@@ -47,6 +47,11 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 				scopes: []string{constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope, constants.UserOfflineAccessScope},
 				method: http.MethodPost,
 			},
+			{
+				name:   "Success when client registers without scopes",
+				scopes: []string{constants.OpenIDScope},
+				method: http.MethodGet,
+			},
 		}
 
 		for _, test := range tests {

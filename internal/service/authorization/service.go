@@ -285,9 +285,11 @@ func (s *authorizationService) validateClientScopes(ctx context.Context, clientI
 		return errors.Wrap(err, errors.ErrCodeUnauthorized, "invalid client credentials")
 	}
 
-	for _, scope := range requestedScopes {
-		if !retrievedClient.HasScope(scope) {
-			return errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
+	if !retrievedClient.CanRequestScopes {
+		for _, scope := range requestedScopes {
+			if !retrievedClient.HasScope(scope) {
+				return errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
+			}
 		}
 	}
 

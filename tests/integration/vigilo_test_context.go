@@ -235,6 +235,10 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
 	}
 
+	if len(scopes) == 0 {
+		scopes = append(scopes, constants.OpenIDScope)
+	}
+
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
 	accessToken, refreshToken, err := tokenService.GenerateTokensWithAudience(
 		context.Background(), subject, audience, strings.Join(scopes, " "),
