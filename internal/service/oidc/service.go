@@ -107,10 +107,10 @@ func (o *oidcService) populateUserInfoFromScopes(
 			userInfoResponse.UpdatedAt = retrievedUser.UpdatedAt.UTC().Unix()
 		case constants.UserEmailScope:
 			userInfoResponse.Email = retrievedUser.Email
-			userInfoResponse.EmailVerified = retrievedUser.EmailVerified
+			userInfoResponse.EmailVerified = &retrievedUser.EmailVerified
 		case constants.UserPhoneScope:
 			userInfoResponse.PhoneNumber = retrievedUser.PhoneNumber
-			userInfoResponse.PhoneNumberVerified = retrievedUser.PhoneNumberVerified
+			userInfoResponse.PhoneNumberVerified = &retrievedUser.PhoneNumberVerified
 		case constants.UserAddressScope:
 			userInfoResponse.Address = retrievedUser.Address
 		}

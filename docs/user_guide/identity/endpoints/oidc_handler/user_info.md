@@ -103,6 +103,10 @@ The response body is a JSON object containing claims about the End-User. The spe
     "email_verified": true,
     "phone_number": "+14255551212",
     "phone_number_verified": true,
+    "nickname": "Johnny",
+    "profile": "https://example.com/users/john.doe",
+    "picture": "https://example.com/users/john.doe/avatar.jpg",
+    "website": "https://john-doe.blog",
     "updated_at": "1714075783",
     "address": {
         "formatted": "123 Main St\nSpringfield, IL 62704\nUSA",

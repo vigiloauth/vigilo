@@ -87,9 +87,9 @@ type UserInfoResponse struct {
 	Zoneinfo            string       `json:"zoneinfo,omitempty"`
 	Locale              string       `json:"locale,omitempty"`
 	Email               string       `json:"email,omitempty"`
-	EmailVerified       bool         `json:"email_verified,omitempty"`
+	EmailVerified       *bool        `json:"email_verified,omitempty"`
 	PhoneNumber         string       `json:"phone_number,omitempty"`
-	PhoneNumberVerified bool         `json:"phone_number_verified,omitempty"`
+	PhoneNumberVerified *bool        `json:"phone_number_verified,omitempty"`
 	UpdatedAt           int64        `json:"updated_at,omitempty"`
 	Address             *UserAddress `json:"address,omitempty"`
 }

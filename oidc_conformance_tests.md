@@ -19,4 +19,8 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
     - ❌ `oidcc-userinfo-get`
     - ✅ `oidcc-userinfo-post-header`
     - ✅ `oidcc-ensure-request-without-nonce-succeeds-for-code-flow`
-    - ❌ `oidcc-scope-profile`
+    - ✅ `oidcc-scope-profile`
+    - ✅ `oidcc-scope-email`
+    - ✅ `oidcc-scope-address`
+    - ✅ `oidcc-scope-phone`
+    - ✅ `oidcc-scope-all`
