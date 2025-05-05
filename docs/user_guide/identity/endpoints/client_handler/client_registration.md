@@ -40,6 +40,7 @@ For information on how to use `client_configuration_endpoint` and `registration_
 | `application_type`     | `string`    | No       | Either `web` or `native`. |
 | `jwks`                 | `[]string`  | No       | Set of public cryptographic keys. |
 | `contacts`             | `[]string`  | No       | A list of contacts. |
+
 ---
 
 ## Example Request
@@ -73,7 +74,7 @@ Accept: application/json
   }
 }
 ```
-**Note:** If no scopes are provided during client registration, VigiloAuth Server defaults to the `oidc` scope.
+**Note:** If the client registers with scopes, they are REQUIRED to use those scopes in subsequent requests.
 
 ---
 
