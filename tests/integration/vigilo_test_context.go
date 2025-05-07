@@ -366,7 +366,7 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	queryParams.Add(constants.ClientIDReqField, testClientID)
 	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
 	// queryParams.Add(constants.State, state)
-	endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
+	endpoint := web.OAuthEndpoints.Authenticate + "?" + queryParams.Encode()
 
 	rr := tc.SendHTTPRequest(
 		http.MethodPost,

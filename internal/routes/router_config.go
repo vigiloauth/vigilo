@@ -37,7 +37,7 @@ func NewRouterConfig(
 	r := &RouterConfig{
 		router:               router,
 		logger:               logger,
-		module:               "Vigilo Identity Provider",
+		module:               "Router Config",
 		forceHTTPS:           forceHTTPS,
 		enableRequestLogging: enableRequestLogging,
 		middleware:           middleware,
@@ -52,13 +52,13 @@ func (rc *RouterConfig) Router() chi.Router {
 }
 
 func (rc *RouterConfig) Init() *RouterConfig {
-	rc.logger.Debug(rc.module, "", "Applying global middleware")
+	rc.logger.Debug(rc.module, "", "Registering global middleware...")
 	rc.applyGlobalMiddleware()
 
-	rc.logger.Debug(rc.module, "", "Setting up error handlers")
+	rc.logger.Debug(rc.module, "", "Registering error handlers...")
 	rc.setupErrorHandlers()
 
-	rc.logger.Debug(rc.module, "", "Setting up route groups")
+	rc.logger.Debug(rc.module, "", "Registering route groups...")
 	rc.setupRouteGroups()
 
 	return rc
@@ -100,7 +100,7 @@ func (rc *RouterConfig) setupErrorHandlers() {
 		web.WriteError(w, errors.New(errors.ErrCodeResourceNotFound, "resource not found"))
 	})
 
-	rc.router.NotFound(func(w http.ResponseWriter, r *http.Request) {
+	rc.router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		requestID := ""
 		if r.Context().Value(constants.ContextKeyRequestID) != nil {
 			requestID = r.Context().Value(constants.ContextKeyRequestID).(string)

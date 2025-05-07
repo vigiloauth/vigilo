@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+
 	"fmt"
 	"net/http"
 	"net/url"
@@ -121,8 +122,8 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
-	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Processing request")
 
+	h.logger.Info(h.module, requestID, "[OAuthLogin]: Processing %s request", r.Method)
 	query := r.URL.Query()
 	clientID := query.Get(constants.ClientIDReqField)
 	redirectURI := query.Get(constants.RedirectURIReqField)
@@ -146,7 +147,8 @@ func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.OAuthRedirectURL = h.buildOAuthRedirectURL(query, clientID, redirectURI)
-	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Successfully processed request")
+	h.logger.Debug(h.module, requestID, "[OAuthLogin]: Redirect URL: %s", response.OAuthRedirectURL)
+	h.logger.Info(h.module, requestID, "[OAuthLogin]: Successfully processed request")
 	web.WriteJSON(w, http.StatusOK, response)
 }
 

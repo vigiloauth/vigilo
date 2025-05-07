@@ -13,5 +13,4 @@ type SessionData struct {
 	RedirectURI        string    // Redirect URI from OAuth 2.0 client application.
 	ExpirationTime     time.Time // The timestamp when the session expires.
 	AuthenticationTime time.Time // The timestamp of when the user was last authenticated
-
 }

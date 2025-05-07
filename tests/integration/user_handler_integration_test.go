@@ -58,7 +58,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		queryParams := url.Values{}
 		queryParams.Add(constants.ClientIDReqField, testClientID)
 		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-		endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
+		endpoint := web.OAuthEndpoints.Authenticate + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
@@ -90,7 +90,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		queryParams := url.Values{}
 		queryParams.Add(constants.ClientIDReqField, testClientID)
 		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-		endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
+		endpoint := web.OAuthEndpoints.Authenticate + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,

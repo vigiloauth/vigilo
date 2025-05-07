@@ -110,7 +110,5 @@ func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state
 		queryParams.Add(constants.DisplayReqField, constants.DisplayPage)
 	}
 
-	endpoint := config.GetServerConfig().BaseURL() + web.OAuthEndpoints.Login
-	h.logger.Debug(h.module, requestID, "LoginURL=[%s] successfully generated", utils.SanitizeURL(endpoint))
-	return endpoint + "?" + queryParams.Encode()
+	return "/authenticate?" + queryParams.Encode()
 }

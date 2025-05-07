@@ -8,14 +8,14 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
-func (ar *RouterConfig) getAdminRoutes() RouteGroup {
-	ar.logger.Debug(ar.module, "", "Defining Admin Routes")
-	handler := ar.handlerRegistry.AdminHandler()
+func (rc *RouterConfig) getAdminRoutes() RouteGroup {
+	rc.logger.Debug(rc.module, "", "Defining Admin Routes")
+	handler := rc.handlerRegistry.AdminHandler()
 	return RouteGroup{
 		Name: "Admin Routes",
 		Middleware: []func(http.Handler) http.Handler{
-			ar.middleware.AuthMiddleware(),
-			ar.middleware.WithRole(constants.AdminRole),
+			rc.middleware.AuthMiddleware(),
+			rc.middleware.WithRole(constants.AdminRole),
 		},
 		Routes: []Route{
 			NewRoute().
@@ -28,14 +28,14 @@ func (ar *RouterConfig) getAdminRoutes() RouteGroup {
 	}
 }
 
-func (ar *RouterConfig) getOIDCRoutes() RouteGroup {
-	ar.logger.Debug(ar.module, "", "Defining OIDC Routes")
-	handler := ar.handlerRegistry.OIDCHandler()
+func (rc *RouterConfig) getOIDCRoutes() RouteGroup {
+	rc.logger.Debug(rc.module, "", "Defining OIDC Routes")
+	handler := rc.handlerRegistry.OIDCHandler()
 	return RouteGroup{
 		Name: "Open ID Connect Routes",
 		Routes: []Route{
 			NewRoute().
-				SetMiddleware(ar.middleware.AuthMiddleware()).
+				SetMiddleware(rc.middleware.AuthMiddleware()).
 				SetMethods(http.MethodGet, http.MethodPost).
 				SetPattern(web.OIDCEndpoints.UserInfo).
 				SetHandler(handler.GetUserInfo).
@@ -59,9 +59,9 @@ func (ar *RouterConfig) getOIDCRoutes() RouteGroup {
 	}
 }
 
-func (ar *RouterConfig) getClientRoutes() RouteGroup {
-	ar.logger.Debug(ar.module, "", "Defining Client Routes")
-	handler := ar.handlerRegistry.ClientHandler()
+func (rc *RouterConfig) getClientRoutes() RouteGroup {
+	rc.logger.Debug(rc.module, "", "Defining Client Routes")
+	handler := rc.handlerRegistry.ClientHandler()
 	urlParam := fmt.Sprintf("/{%s}", constants.ClientIDReqField)
 
 	return RouteGroup{
@@ -69,7 +69,7 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 		Routes: []Route{
 			// Basic client registration
 			NewRoute().
-				SetMiddleware(ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
+				SetMiddleware(rc.middleware.RequiresContentType(constants.ContentTypeJSON)).
 				SetMethods(http.MethodPost).
 				SetPattern(web.ClientEndpoints.Register).
 				SetHandler(handler.RegisterClient).
@@ -78,7 +78,7 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 
 			// Client configuration management
 			NewRoute().
-				SetMiddleware(ar.middleware.AuthMiddleware()).
+				SetMiddleware(rc.middleware.AuthMiddleware()).
 				SetMethods(http.MethodGet, http.MethodPut, http.MethodDelete).
 				SetPattern(web.ClientEndpoints.ClientConfiguration + urlParam).
 				SetHandler(handler.ManageClientConfiguration).
@@ -88,24 +88,24 @@ func (ar *RouterConfig) getClientRoutes() RouteGroup {
 			// Sensitive operations with strict rate limiting
 			NewRoute().
 				SetMethods(http.MethodPost).
-				SetMiddleware(ar.middleware.AuthMiddleware(), ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
+				SetMiddleware(rc.middleware.AuthMiddleware(), rc.middleware.RequiresContentType(constants.ContentTypeJSON)).
 				SetPattern(web.ClientEndpoints.RegenerateSecret + urlParam).
 				SetHandler(handler.RegenerateSecret).
 				SetDescription("Regenerate client secret").
-				SetMiddleware(ar.middleware.StrictRateLimit).
+				SetMiddleware(rc.middleware.StrictRateLimit).
 				Build(),
 		},
 	}
 }
 
-func (ar *RouterConfig) getUserRoutes() RouteGroup {
-	ar.logger.Debug(ar.module, "", "Defining User Routes")
-	handler := ar.handlerRegistry.UserHandler()
+func (rc *RouterConfig) getUserRoutes() RouteGroup {
+	rc.logger.Debug(rc.module, "", "Defining User Routes")
+	handler := rc.handlerRegistry.UserHandler()
 	return RouteGroup{
 		Name: "User Routes",
 		Routes: []Route{
 			NewRoute().
-				SetMiddleware(ar.middleware.AuthMiddleware()).
+				SetMiddleware(rc.middleware.AuthMiddleware()).
 				SetMethods(http.MethodPost).
 				SetPattern(web.UserEndpoints.Logout).
 				SetHandler(handler.Logout).
@@ -140,7 +140,7 @@ func (ar *RouterConfig) getUserRoutes() RouteGroup {
 
 			NewRoute().
 				SetMethods(http.MethodPost).
-				SetPattern(web.OAuthEndpoints.Login).
+				SetPattern(web.OAuthEndpoints.Authenticate).
 				SetHandler(handler.OAuthLogin).
 				SetDescription("OAuth user authentication").
 				Build(),
@@ -148,13 +148,13 @@ func (ar *RouterConfig) getUserRoutes() RouteGroup {
 	}
 }
 
-func (ar *RouterConfig) getConsentRoutes() RouteGroup {
-	ar.logger.Debug(ar.module, "", "Defining User Consent Routes")
-	handler := ar.handlerRegistry.OAuthHandler()
+func (rc *RouterConfig) getConsentRoutes() RouteGroup {
+	rc.logger.Debug(rc.module, "", "Defining User Consent Routes")
+	handler := rc.handlerRegistry.OAuthHandler()
 	return RouteGroup{
 		Name: "OAuth Routes",
 		Middleware: []func(http.Handler) http.Handler{
-			ar.middleware.RequiresContentType(constants.ContentTypeJSON),
+			rc.middleware.RequiresContentType(constants.ContentTypeJSON),
 		},
 		Routes: []Route{
 			NewRoute().
@@ -167,14 +167,14 @@ func (ar *RouterConfig) getConsentRoutes() RouteGroup {
 	}
 }
 
-func (ar *RouterConfig) getAuthorizationRoutes() RouteGroup {
-	ar.logger.Debug(ar.module, "", "Defining Authorization Routes")
-	handler := ar.handlerRegistry.AuthorizationHandler()
+func (rc *RouterConfig) getAuthorizationRoutes() RouteGroup {
+	rc.logger.Debug(rc.module, "", "Defining Authorization Routes")
+	handler := rc.handlerRegistry.AuthorizationHandler()
 	return RouteGroup{
 		Name: "Authorization Handler",
 		Routes: []Route{
 			NewRoute().
-				SetMiddleware(ar.middleware.RequiresContentType(constants.ContentTypeJSON)).
+				SetMiddleware(rc.middleware.RequiresContentType(constants.ContentTypeJSON)).
 				SetMethods(http.MethodGet).
 				SetPattern(web.OAuthEndpoints.Authorize).
 				SetHandler(handler.AuthorizeClient).
@@ -184,13 +184,13 @@ func (ar *RouterConfig) getAuthorizationRoutes() RouteGroup {
 	}
 }
 
-func (ar *RouterConfig) getTokenRoutes() RouteGroup {
-	ar.logger.Debug(ar.module, "", "Defining Token Routes")
-	handler := ar.handlerRegistry.TokenHandler()
+func (rc *RouterConfig) getTokenRoutes() RouteGroup {
+	rc.logger.Debug(rc.module, "", "Defining Token Routes")
+	handler := rc.handlerRegistry.TokenHandler()
 	return RouteGroup{
 		Name: "Token Handler",
 		Middleware: []func(http.Handler) http.Handler{
-			ar.middleware.RequiresContentType(constants.ContentTypeFormURLEncoded),
+			rc.middleware.RequiresContentType(constants.ContentTypeFormURLEncoded),
 		},
 		Routes: []Route{
 			NewRoute().

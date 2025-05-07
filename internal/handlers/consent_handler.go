@@ -79,7 +79,7 @@ func (h *ConsentHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 		baseURL := config.GetServerConfig().BaseURL()
 		oauthLoginURL := fmt.Sprintf("%s%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
 			baseURL,
-			web.OAuthEndpoints.Login,
+			web.OAuthEndpoints.Authenticate,
 			url.QueryEscape(clientID),
 			url.QueryEscape(redirectURI),
 			url.QueryEscape(scope),
