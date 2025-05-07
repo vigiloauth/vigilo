@@ -51,6 +51,7 @@ DIGIT = %x30-39
 | `code_challenge`     | `string`      | No       | The PKCE code challenge. Required if the client is using PKCE.             |
 | `code_challenge_method` | `string`   | No       | The method used to generate the code challenge. Supported values are `plain` and `S256`. Defaults to `plain`. |
 | `nonce` | `string` | No | String value used to associate a Client session with an ID token, and to mitigate replay attacks. Required if `id_token` is returned directly from the Authorization Endpoint (not applicable for pure `response_type=code`). |
+| `display`| `string` | No | String value to determine the type of login page will be displayed if the user is not authenticated. Valid displays are `page`, `popup`, `touch`, and `wap`. |
 
 ---
 

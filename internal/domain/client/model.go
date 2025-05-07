@@ -140,6 +140,7 @@ type ClientAuthorizationRequest struct {
 	Nonce               string `schema:"nonce,omitempty"`
 	CodeChallenge       string `schema:"code_challenge,omitempty"`
 	CodeChallengeMethod string `schema:"code_challenge_method,omitempty"`
+	Display             string `schema:"display,omitempty"`
 	UserID              string
 	Client              *Client
 }
@@ -379,6 +380,7 @@ func NewClientAuthorizationRequest(query url.Values, userID string) *ClientAutho
 		CodeChallenge:       query.Get(constants.CodeChallengeReqField),
 		CodeChallengeMethod: query.Get(constants.CodeChallengeMethodReqField),
 		Nonce:               query.Get(constants.NonceReqField),
+		Display:             query.Get(constants.DisplayReqField),
 		UserID:              userID,
 	}
 }

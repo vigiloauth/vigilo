@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -68,7 +67,7 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 
 	req := client.NewClientAuthorizationRequest(query, h.sessionService.GetUserIDFromSession(r))
 	if req.UserID == "" {
-		loginURL := h.buildLoginURL(req.ClientID, req.RedirectURI, req.Scope, req.State, requestID)
+		loginURL := h.buildLoginURL(req.ClientID, req.RedirectURI, req.Scope, req.State, req.Display, requestID)
 		h.logger.Warn(h.module, requestID, "[AuthorizeClient]: User is not authenticated. Redirecting them to the login page")
 		http.Redirect(w, r, loginURL, http.StatusFound)
 		return
@@ -94,21 +93,24 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state, requestID string) string {
-	baseURL := config.GetServerConfig().BaseURL()
-	loginURL := fmt.Sprintf("%s%s?client_id=%s&redirect_uri=%s&scope=%s",
-		baseURL,
-		web.OAuthEndpoints.Login,
-		url.QueryEscape(clientID),
-		url.QueryEscape(redirectURI),
-		url.QueryEscape(scope),
-	)
+func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state, display, requestID string) string {
+	queryParams := url.Values{}
+	queryParams.Add(constants.ClientIDReqField, clientID)
+	queryParams.Add(constants.RedirectURIReqField, redirectURI)
+	queryParams.Add(constants.ScopeReqField, scope)
 
 	if state != "" {
 		h.logger.Debug(h.module, requestID, "Adding state to login URL")
-		loginURL = fmt.Sprintf("%s&state=%s", loginURL, url.QueryEscape(state))
+		queryParams.Add(constants.StateReqField, state)
 	}
 
-	h.logger.Debug(h.module, requestID, "LoginURL=[%s] successfully generated", utils.SanitizeURL(loginURL))
-	return loginURL
+	if display != "" && constants.ValidAuthenticationDisplays[display] {
+		queryParams.Add(constants.DisplayReqField, display)
+	} else {
+		queryParams.Add(constants.DisplayReqField, constants.DisplayPage)
+	}
+
+	endpoint := config.GetServerConfig().BaseURL() + web.OAuthEndpoints.Login
+	h.logger.Debug(h.module, requestID, "LoginURL=[%s] successfully generated", utils.SanitizeURL(endpoint))
+	return endpoint + "?" + queryParams.Encode()
 }

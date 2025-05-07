@@ -42,4 +42,5 @@ const (
 	TokenReqField               string = "token"                 // Field for the token
 	UsernameReqField            string = "username"              // Field for the username (used in password grant)
 	PasswordReqField            string = "password"              // Field for the password (used in password grant)
+	DisplayReqField             string = "display"               // Field for the display query
 )

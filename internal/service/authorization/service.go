@@ -322,7 +322,7 @@ func (s *authorizationService) validateClient(ctx context.Context, code *authzCo
 	return nil
 }
 
-func (s *authorizationService) buildConsentURL(clientID, redirectURI, scope, state string) string {
+func (s *authorizationService) buildConsentURL(clientID, redirectURI, scope, state, display string) string {
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, clientID)
 	queryParams.Add(constants.RedirectURIReqField, redirectURI)
@@ -331,6 +331,10 @@ func (s *authorizationService) buildConsentURL(clientID, redirectURI, scope, sta
 	if state != "" {
 		s.logger.Debug(s.module, "", "State is present in the request. Adding it to the consent URL.")
 		queryParams.Add(constants.StateReqField, state)
+	}
+
+	if display != "" && constants.ValidAuthenticationDisplays[display] {
+		queryParams.Add(constants.DisplayReqField, display)
 	}
 
 	return web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
@@ -397,7 +401,7 @@ func (s *authorizationService) handleUserConsent(ctx context.Context, request *c
 
 	if consentRequired {
 		if !consentApproved {
-			consentURL := s.buildConsentURL(request.ClientID, request.RedirectURI, request.Scope, request.State)
+			consentURL := s.buildConsentURL(request.ClientID, request.RedirectURI, request.Scope, request.State, request.Display)
 			s.logger.Info(s.module, "", "Consent required, redirecting to consent URL=[%s]", utils.SanitizeURL(consentURL))
 			return errors.NewConsentRequiredError(consentURL)
 		}
