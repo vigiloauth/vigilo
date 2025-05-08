@@ -67,18 +67,17 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 
 	req := client.NewClientAuthorizationRequest(query, h.sessionService.GetUserIDFromSession(r))
 	if req.UserID == "" {
-		loginURL := h.buildLoginURL(req.ClientID, req.RedirectURI, req.Scope, req.State, req.Display, requestID)
+		loginURL := h.buildLoginURL(req)
 		h.logger.Warn(h.module, requestID, "[AuthorizeClient]: User is not authenticated. Redirecting them to the login page")
 		http.Redirect(w, r, loginURL, http.StatusFound)
 		return
 	}
 
-	isUserConsentApproved := query.Get(constants.ConsentApprovedURLValue) == "true"
-	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req, isUserConsentApproved)
+	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req, req.ConsentApproved)
 	if err != nil {
 		if vaErr, ok := err.(*errors.VigiloAuthError); ok && vaErr.ErrorCode == errors.ErrCodeConsentRequired {
 			consentURL := vaErr.ConsentURL
-			h.logger.Info(h.module, requestID, "[AuthorizeClient]: Consent required. Redirecting to consent URL: %s", utils.SanitizeURL(consentURL))
+			h.logger.Info(h.module, requestID, "[AuthorizeClient]: Consent required. Redirecting to consent URL")
 			http.Redirect(w, r, consentURL, http.StatusFound)
 			return
 		}
@@ -93,19 +92,22 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state, display, requestID string) string {
+func (h *AuthorizationHandler) buildLoginURL(req *client.ClientAuthorizationRequest) string {
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientIDReqField, clientID)
-	queryParams.Add(constants.RedirectURIReqField, redirectURI)
-	queryParams.Add(constants.ScopeReqField, scope)
+	queryParams.Add(constants.ClientIDReqField, req.ClientID)
+	queryParams.Add(constants.RedirectURIReqField, req.RedirectURI)
+	queryParams.Add(constants.ScopeReqField, req.Scope)
+	queryParams.Add(constants.ResponseTypeReqField, req.ResponseType)
 
-	if state != "" {
-		h.logger.Debug(h.module, requestID, "Adding state to login URL")
-		queryParams.Add(constants.StateReqField, state)
+	if req.State != "" {
+		queryParams.Add(constants.StateReqField, req.State)
+	}
+	if req.Nonce != "" {
+		queryParams.Add(constants.NonceReqField, req.Nonce)
 	}
 
-	if display != "" && constants.ValidAuthenticationDisplays[display] {
-		queryParams.Add(constants.DisplayReqField, display)
+	if req.Display != "" && constants.ValidAuthenticationDisplays[req.Display] {
+		queryParams.Add(constants.DisplayReqField, req.Display)
 	} else {
 		queryParams.Add(constants.DisplayReqField, constants.DisplayPage)
 	}

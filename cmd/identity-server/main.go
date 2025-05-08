@@ -63,60 +63,11 @@ func main() {
 		vs := server.NewVigiloIdentityServer()
 		r := chi.NewRouter()
 
-		setupSPA(r)
+		setupSpaRouting(r)
 		setupServer(logger, vs, port, baseURL, certFile, keyFile, module, forceHTTPs, r)
 
 		select {}
 	}
-}
-
-func setupSPA(r *chi.Mux) {
-	buildPath := os.Getenv(constants.ReactBuildPathENV)
-
-	fs := http.FileServer(http.Dir(buildPath))
-	r.HandleFunc("/static/*", func(w http.ResponseWriter, r *http.Request) {
-		filePath := strings.TrimPrefix(r.URL.Path, "/static/")
-		fullPath := filepath.Join(buildPath, "static", filePath)
-
-		_, err := os.Stat(fullPath)
-		if os.IsNotExist(err) {
-			web.WriteError(w, errors.New(errors.ErrCodeInternalServerError, "file not found"))
-			return
-		}
-
-		ext := filepath.Ext(fullPath)
-		switch ext {
-		case ".js":
-			w.Header().Set("Content-Type", "application/javascript")
-		case ".css":
-			w.Header().Set("Content-Type", "text/css")
-		case ".json":
-			w.Header().Set("Content-Type", "application/json")
-		case ".png":
-			w.Header().Set("Content-Type", "image/png")
-		case ".jpg", ".jpeg":
-			w.Header().Set("Content-Type", "image/jpeg")
-		case ".svg":
-			w.Header().Set("Content-Type", "image/svg+xml")
-		}
-
-		http.ServeFile(w, r, fullPath)
-	})
-
-	r.Get("/authenticate", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(buildPath, "index.html"))
-	})
-
-	r.Get("/authenticate/*", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/authenticate/static/") {
-			path := strings.TrimPrefix(r.URL.Path, "/authenticate/")
-			r.URL.Path = "/" + path
-			fs.ServeHTTP(w, r)
-			return
-		}
-
-		http.ServeFile(w, r, filepath.Join(buildPath, "index.html"))
-	})
 }
 
 func setupServer(logger *lib.Logger, vs *server.VigiloIdentityServer, port, baseURL, certFile, keyFile, module string, forceHTTPs bool, r *chi.Mux) {
@@ -141,5 +92,69 @@ func setupServer(logger *lib.Logger, vs *server.VigiloIdentityServer, port, base
 			logger.Error(module, "", "Failed to start server: %v", err)
 			os.Exit(1)
 		}
+	}
+}
+
+func setupSpaRouting(r *chi.Mux) {
+	buildPath := os.Getenv(constants.ReactBuildPathENV)
+	fs := http.FileServer(http.Dir(buildPath))
+
+	r.HandleFunc("/static/*", func(w http.ResponseWriter, r *http.Request) {
+		filePath := strings.TrimPrefix(r.URL.Path, "/static/")
+		fullPath := filepath.Join(buildPath, "static", filePath)
+
+		_, err := os.Stat(fullPath)
+		if os.IsNotExist(err) {
+			web.WriteError(w, errors.New(errors.ErrCodeInternalServerError, "file not found"))
+			return
+		}
+
+		setContentTypeHeader(w, fullPath)
+		http.ServeFile(w, r, fullPath)
+	})
+
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(buildPath, "index.html"))
+	})
+
+	r.Get("/authenticate", serveIndexHTML(buildPath))
+	r.Get("/consent", serveIndexHTML(buildPath))
+
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		for _, prefix := range []string{"/authenticate/", "/consent/"} {
+			if strings.HasPrefix(path, prefix+"static/") {
+				staticPath := strings.TrimPrefix(path, prefix)
+				r.URL.Path = "/" + staticPath
+				fs.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		http.ServeFile(w, r, filepath.Join(buildPath, "index.html"))
+	})
+}
+
+func serveIndexHTML(buildPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(buildPath, "index.html"))
+	}
+}
+
+func setContentTypeHeader(w http.ResponseWriter, fullPath string) {
+	ext := filepath.Ext(fullPath)
+	switch ext {
+	case ".js":
+		w.Header().Set("Content-Type", "application/javascript")
+	case ".css":
+		w.Header().Set("Content-Type", "text/css")
+	case ".json":
+		w.Header().Set("Content-Type", "application/json")
+	case ".png":
+		w.Header().Set("Content-Type", "image/png")
+	case ".jpg", ".jpeg":
+		w.Header().Set("Content-Type", "image/jpeg")
+	case ".svg":
+		w.Header().Set("Content-Type", "image/svg+xml")
 	}
 }

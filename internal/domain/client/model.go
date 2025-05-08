@@ -142,6 +142,7 @@ type ClientAuthorizationRequest struct {
 	CodeChallengeMethod string `schema:"code_challenge_method,omitempty"`
 	Display             string `schema:"display,omitempty"`
 	UserID              string
+	ConsentApproved     bool
 	Client              *Client
 }
 
@@ -382,6 +383,7 @@ func NewClientAuthorizationRequest(query url.Values, userID string) *ClientAutho
 		Nonce:               query.Get(constants.NonceReqField),
 		Display:             query.Get(constants.DisplayReqField),
 		UserID:              userID,
+		ConsentApproved:     query.Get(constants.ConsentApprovedURLValue) == "true",
 	}
 }
 

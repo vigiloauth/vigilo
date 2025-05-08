@@ -20,13 +20,46 @@ const (
 	UserDeleteScope string = "users:delete" // Delete a user account.
 	UserManageScope string = "users:manage" // Full control over users ('read', 'write', and 'delete').
 
-	// OpenIDScope Scopes
-	OpenIDScope            string = "openid"         // OpenID Connect scope for basic OIDC functionality.
-	UserProfileScope       string = "profile"        // Access to user profile (`name`, `middle_name`, `family_name`, `birthdate`, and `updated_at`).
-	UserEmailScope         string = "email"          // Access to the user's email address (`email` and `email_verified`).
-	UserPhoneScope         string = "phone"          // Access to the user's phone number (`phone_number` and `phone_number_verified`).
-	UserAddressScope       string = "address"        // Access to the user's address.
-	UserOfflineAccessScope string = "offline_access" // Access to the user's information while they are offline.
+	// OpenID Connect scope for basic OIDC functionality.
+	OpenIDScope string = "openid"
+
+	// Access to the user's profile information which includes:
+	//	- name
+	//	- family name
+	//	- given name
+	//	- middle name
+	//	- preferred username
+	//	- profile
+	//	- picture
+	//	- website
+	//	- gender
+	//	- birthdate
+	//	- time zone information
+	//	- locale
+	//	- update at
+	UserProfileScope string = "profile"
+
+	// Access to the user's email information which includes:
+	//	- email address
+	//	- email verified
+	UserEmailScope string = "email"
+
+	// Access to the user's phone information which includes:
+	//	- phone number
+	//	- phone number verified
+	UserPhoneScope string = "phone"
+
+	// Access to the user's address which includes:
+	//	- formatted
+	//	- street address
+	//	- locality
+	//	- region
+	//	- postal code
+	//	- country
+	UserAddressScope string = "address"
+
+	// Access to the user's information while they are offline.
+	UserOfflineAccessScope string = "offline_access"
 )
 
 // SupportedScopes is a map of scopes supported by the application.

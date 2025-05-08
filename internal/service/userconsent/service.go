@@ -325,9 +325,6 @@ func (c *userConsentService) processApprovedConsent(
 }
 
 func (c *userConsentService) buildSuccessResponse(redirectURI, code, state string) *consent.UserConsentResponse {
-	c.logger.Debug(c.module, "", "Building success response with redirectURI=%s, code=%s, state=%s",
-		utils.SanitizeURL(redirectURI), utils.TruncateSensitive(code), utils.TruncateSensitive(state))
-
 	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, url.QueryEscape(code))
 	if state != "" {
 		redirectURL = fmt.Sprintf("%s&state=%s", redirectURL, url.QueryEscape(state))

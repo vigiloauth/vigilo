@@ -1,5 +1,19 @@
 {
     "cSpell.words": [
         "GORELEASER"
-    ]
+    ],
+    "editor.codeActionsOnSave": { 
+        "source.fixAll.eslint": "always"
+    },
+    "go.formatTool": "goimports",
+    "[go]": {
+        "editor.defaultFormatter": "golang.go"
+    },
+    "editor.formatOnSave": true, 
+    "files.autoSave": "onFocusChange",
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+    "editor.formatOnType": false, 
+    "editor.formatOnPaste": true, 
+    "editor.formatOnSaveMode": "file", 
+    "vs-code-prettier-eslint.prettierLast": false
 }

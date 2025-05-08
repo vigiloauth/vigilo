@@ -16,7 +16,6 @@ import (
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
-	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 // Compile-time interface implementation check
@@ -85,15 +84,7 @@ func NewAuthorizationService(
 //   - Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
 func (s *authorizationService) AuthorizeClient(ctx context.Context, request *client.ClientAuthorizationRequest, consentApproved bool) (string, error) {
 	requestID := utils.GetRequestID(ctx)
-	s.logger.Info(s.module, requestID, "[AuthorizeClient] Start authorization process. ClientID: %s, RedirectURI: %s, Scope: %s, ResponseType: %s, State: %s, Nonce: %s, UserID: %s, ConsentApprovedParam: %t",
-		utils.TruncateSensitive(request.ClientID),
-		utils.SanitizeURL(request.RedirectURI),
-		request.Scope, request.ResponseType,
-		utils.TruncateSensitive(request.State),
-		utils.TruncateSensitive(request.Nonce),
-		utils.TruncateSensitive(request.UserID),
-		consentApproved,
-	)
+	s.logger.Info(s.module, requestID, "[AuthorizeClient] Starting authorization process.")
 
 	retrievedClient, err := s.clientService.GetClientByID(ctx, request.ClientID)
 	if err != nil {
@@ -102,8 +93,6 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 	}
 
 	request.Client = retrievedClient
-	s.logger.Debug(s.module, requestID, "[AuthorizeClient] Successfully retrieved client: %s", retrievedClient.String())
-
 	if err := request.Validate(); err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Failed to validate request: %v", err)
 		return "", err
@@ -123,11 +112,7 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 	s.logger.Debug(s.module, requestID, "[AuthorizeClient] Authorization code generated successfully: %s", utils.TruncateSensitive(code))
 
 	redirectURL := s.buildRedirectURL(request.RedirectURI, code, request.State)
-	s.logger.Info(s.module, requestID, "[AuthorizeClient]: Client=[%s] successfully authorized, redirectURL=[%s]",
-		utils.TruncateSensitive(request.ClientID), redirectURL,
-	)
-
-	s.logger.Info(s.module, requestID, "[AuthorizeClient] Authorization process complete. Final redirect URL: %s", utils.SanitizeURL(redirectURL))
+	s.logger.Info(s.module, requestID, "[AuthorizeClient]: Client successfully authorized")
 	return redirectURL, nil
 }
 
@@ -322,22 +307,27 @@ func (s *authorizationService) validateClient(ctx context.Context, code *authzCo
 	return nil
 }
 
-func (s *authorizationService) buildConsentURL(clientID, redirectURI, scope, state, display string) string {
+func (s *authorizationService) buildConsentURL(req *client.ClientAuthorizationRequest) string {
 	queryParams := url.Values{}
-	queryParams.Add(constants.ClientIDReqField, clientID)
-	queryParams.Add(constants.RedirectURIReqField, redirectURI)
-	queryParams.Add(constants.ScopeReqField, scope)
+	queryParams.Add(constants.ClientIDReqField, req.ClientID)
+	queryParams.Add(constants.RedirectURIReqField, req.RedirectURI)
+	queryParams.Add(constants.ScopeReqField, req.Scope)
+	queryParams.Add(constants.ResponseTypeReqField, req.ResponseType)
 
-	if state != "" {
-		s.logger.Debug(s.module, "", "State is present in the request. Adding it to the consent URL.")
-		queryParams.Add(constants.StateReqField, state)
+	if req.State != "" {
+		queryParams.Add(constants.StateReqField, req.State)
+	}
+	if req.Nonce != "" {
+		queryParams.Add(constants.NonceReqField, req.Nonce)
 	}
 
-	if display != "" && constants.ValidAuthenticationDisplays[display] {
-		queryParams.Add(constants.DisplayReqField, display)
+	if req.Display != "" && constants.ValidAuthenticationDisplays[req.Display] {
+		queryParams.Add(constants.DisplayReqField, req.Display)
+	} else {
+		queryParams.Add(constants.DisplayReqField, constants.DisplayPage)
 	}
 
-	return web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
+	return "/consent?" + queryParams.Encode()
 }
 
 func (s *authorizationService) buildRedirectURL(redirectURI, code, state string) string {
@@ -393,15 +383,15 @@ func (s *authorizationService) revokeAuthorizationCode(ctx context.Context, code
 }
 
 func (s *authorizationService) handleUserConsent(ctx context.Context, request *client.ClientAuthorizationRequest, consentApproved bool) error {
-	consentRequired, err := s.userConsentService.CheckUserConsent(ctx, request.UserID, request.ClientID, request.Scope)
+	userGaveConsent, err := s.userConsentService.CheckUserConsent(ctx, request.UserID, request.ClientID, request.Scope)
 	if err != nil {
 		s.logger.Error(s.module, "", "Failed to check user consent, user=[%s]: %v", utils.TruncateSensitive(request.UserID), err)
 		return errors.NewAccessDeniedError()
 	}
 
-	if consentRequired {
+	if !userGaveConsent {
 		if !consentApproved {
-			consentURL := s.buildConsentURL(request.ClientID, request.RedirectURI, request.Scope, request.State, request.Display)
+			consentURL := s.buildConsentURL(request)
 			s.logger.Info(s.module, "", "Consent required, redirecting to consent URL=[%s]", utils.SanitizeURL(consentURL))
 			return errors.NewConsentRequiredError(consentURL)
 		}

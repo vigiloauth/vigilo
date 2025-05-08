@@ -22,6 +22,10 @@ type UserConsentResponse struct {
 }
 
 type UserConsentRequest struct {
-	Approved bool     `json:"approved"`
-	Scopes   []string `json:"scopes,omitempty"`
+	Approved     bool     `json:"approved"`
+	Scopes       []string `json:"scopes,omitempty"`
+	ResponseType string
+	State        string
+	Nonce        string
+	Display      string
 }
