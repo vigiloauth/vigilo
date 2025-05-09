@@ -167,47 +167,6 @@ func (s *sessionService) GetUserIDFromSession(r *http.Request) string {
 	return claims.Subject
 }
 
-// IsUserSessionPresent checks if the user has an active session
-//
-// Parameters:
-//   - r *http.Request: The HTTP request.
-//   - userID string: The ID of the user to check.
-//
-// Returns:
-//   - bool: True if the user has an active session, false otherwise.
-func (s *sessionService) IsUserSessionPresent(r *http.Request, userID string) bool {
-	ctx := r.Context()
-	requestID := utils.GetRequestID(ctx)
-
-	sessionID, err := s.httpCookieService.GetSessionToken(r)
-	if err != nil {
-		s.logger.Debug(s.module, requestID, "[IsUserSessionPresent]: No session token found in cookie for user=[%s]", utils.TruncateSensitive(userID))
-		return false
-	}
-
-	sessionData, err := s.sessionRepo.GetSessionByID(ctx, sessionID)
-	if err != nil {
-		s.logger.Debug(s.module, requestID, "[IsUserSessionPresent]: Failed to retrieve session data for session=[%s]: %v",
-			utils.TruncateSensitive(sessionID), err)
-		return false
-	}
-
-	if sessionData.UserID != userID {
-		s.logger.Debug(s.module, requestID, "[IsUserSessionPresent]: Session=[%s] does not belong to user=[%s]",
-			utils.TruncateSensitive(sessionID), utils.TruncateSensitive(userID))
-		return false
-	}
-
-	if time.Now().After(sessionData.ExpirationTime) {
-		s.logger.Debug(s.module, requestID, "[IsUserSessionPresent]: Session=[%s] for user=[%s] has expired",
-			utils.TruncateSensitive(sessionID), utils.TruncateSensitive(userID))
-		return false
-	}
-
-	s.logger.Debug(s.module, requestID, "[IsUserSessionPresent]: Active session found for user=[%s]", utils.TruncateSensitive(userID))
-	return true
-}
-
 // UpdateSession updates the current session.
 //
 // Parameters:

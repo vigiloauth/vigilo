@@ -26,6 +26,7 @@ type MockTokenService struct {
 	EncryptTokenFunc                   func(ctx context.Context, signedToken string) (string, error)
 	DecryptTokenFunc                   func(ctx context.Context, encryptedToken string) (string, error)
 	ParseAndValidateTokenFunc          func(ctx context.Context, tokenStr string) (*token.TokenClaims, error)
+	GenerateIDTokenFunc                func(ctx context.Context, userID, clientID, scopes, nonce string) (string, error)
 }
 
 func (m *MockTokenService) GenerateToken(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
@@ -90,4 +91,8 @@ func (m *MockTokenService) DecryptToken(ctx context.Context, encryptedToken stri
 
 func (m *MockTokenService) ParseAndValidateToken(ctx context.Context, tokenStr string) (*token.TokenClaims, error) {
 	return m.ParseAndValidateTokenFunc(ctx, tokenStr)
+}
+
+func (m *MockTokenService) GenerateIDToken(ctx context.Context, userID, clientID, scopes, nonce string) (string, error) {
+	return m.GenerateIDTokenFunc(ctx, userID, clientID, scopes, nonce)
 }

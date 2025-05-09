@@ -10,6 +10,7 @@
 	- [2. Features](#2-features)
 		- [2.1 Currently Implemented](#21-currently-implemented)
 		- [2.2 Planned Features](#22-planned-features)
+		- [2.3 Open ID Conformance Tests](#23-open-id-conformance-tests)
 	- [3. Documentation](#3-documentation)
 	- [4. Contributing](#4-contributing)
 		- [4.1 How to Contribute](#41-how-to-contribute)
@@ -62,6 +63,7 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - 🛠️ **Back Channel Authentication Flow**
 - 🛠️ **Social Login Integration Hooks**
 - 🛠️ **Dynamic Database Configuration**
+- 🛠️ **UI for User Authentication**
 
 ### 2.3 Open ID Conformance Tests
 You can find the list of our currently passing conformance tests [here](./oidc_conformance_tests.md).

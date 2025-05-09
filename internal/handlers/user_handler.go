@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"fmt"
+
 	"net/http"
 	"net/url"
 	"time"
@@ -121,7 +121,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
-	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Processing request")
+	h.logger.Info(h.module, requestID, "[OAuthLogin]: Processing request")
 
 	query := r.URL.Query()
 	clientID := query.Get(constants.ClientIDReqField)
@@ -146,7 +146,6 @@ func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.OAuthRedirectURL = h.buildOAuthRedirectURL(query, clientID, redirectURI)
-	h.logger.Info(h.module, requestID, "[HandleOAuthLogin]: Successfully processed request")
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -225,17 +224,25 @@ func (h *UserHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) buildOAuthRedirectURL(query url.Values, clientID, redirectURI string) string {
-	redirectURL := fmt.Sprintf("%s?client_id=%s&redirect_uri=%s", web.OAuthEndpoints.Authorize, clientID, redirectURI)
+	queryParams := url.Values{}
+	queryParams.Add(constants.ClientIDReqField, clientID)
+	queryParams.Add(constants.RedirectURIReqField, redirectURI)
 
-	state := query.Get(constants.StateReqField)
-	if state != "" {
-		redirectURL = fmt.Sprintf("%s&state=%s", redirectURL, url.QueryEscape(state))
+	if state := query.Get(constants.StateReqField); state != "" {
+		queryParams.Add(constants.StateReqField, state)
+	}
+	if scope := query.Get(constants.ScopeReqField); scope != "" {
+		queryParams.Add(constants.ScopeReqField, scope)
+	}
+	if responseType := query.Get(constants.ResponseTypeReqField); responseType != "" {
+		queryParams.Add(constants.ResponseTypeReqField, responseType)
+	}
+	if nonce := query.Get(constants.NonceReqField); nonce != "" {
+		queryParams.Add(constants.NonceReqField, nonce)
+	}
+	if approved := query.Get(constants.ConsentApprovedURLValue); approved != "" {
+		queryParams.Add(constants.ConsentApprovedURLValue, approved)
 	}
 
-	scope := query.Get(constants.ScopeReqField)
-	if scope != "" {
-		redirectURL = fmt.Sprintf("%s&scope=%s", redirectURL, url.QueryEscape(scope))
-	}
-
-	return redirectURL
+	return "/identity" + web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
 }

@@ -2,17 +2,22 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	config "github.com/vigiloauth/vigilo/v2/cmd/config/application"
 	lib "github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/idp/server"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 func main() {
-	isDockerENV := os.Getenv("VIGILO_SERVER_MODE") == "docker"
+	isDockerENV := os.Getenv(constants.VigiloServerModeENV) == "docker"
 	if isDockerENV {
 		cfg := config.LoadConfigurations()
 
@@ -57,30 +62,99 @@ func main() {
 
 		vs := server.NewVigiloIdentityServer()
 		r := chi.NewRouter()
-		httpServer := vs.HTTPServer()
 
-		r.Route(baseURL, func(subRouter chi.Router) {
-			subRouter.Mount("/", vs.Router())
-		})
+		setupSpaRouting(r)
+		setupServer(logger, vs, port, baseURL, certFile, keyFile, module, forceHTTPs, r)
 
-		httpServer.Handler = r
-		logger.Info(module, "", "Starting the VigiloAuth Identity Provider on %s with base URL: %s", port, baseURL)
-		if forceHTTPs {
-			if certFile == "" || keyFile == "" {
-				logger.Error(module, "", "HTTPS requested but certificate or key file path is not configured in YAML or loaded correctly. Exiting.")
-				os.Exit(1)
-			}
-			if err := httpServer.ListenAndServeTLS(certFile, keyFile); err != nil {
-				logger.Error(module, "", "Failed to start server on HTTPS: %v", err)
-				os.Exit(1)
-			}
-		} else {
-			if err := httpServer.ListenAndServe(); err != nil {
-				logger.Error(module, "", "Failed to start server: %v", err)
-				os.Exit(1)
+		select {}
+	}
+}
+
+func setupServer(logger *lib.Logger, vs *server.VigiloIdentityServer, port, baseURL, certFile, keyFile, module string, forceHTTPs bool, r *chi.Mux) {
+	httpServer := vs.HTTPServer()
+	r.Route(baseURL, func(subRouter chi.Router) {
+		subRouter.Mount("/", vs.Router())
+	})
+
+	httpServer.Handler = r
+	logger.Info(module, "", "Starting the VigiloAuth Identity Provider on %s with base URL: %s", port, baseURL)
+	if forceHTTPs {
+		if certFile == "" || keyFile == "" {
+			logger.Error(module, "", "HTTPS requested but certificate or key file path is not configured in YAML or loaded correctly. Exiting.")
+			os.Exit(1)
+		}
+		if err := httpServer.ListenAndServeTLS(certFile, keyFile); err != nil {
+			logger.Error(module, "", "Failed to start server on HTTPS: %v", err)
+			os.Exit(1)
+		}
+	} else {
+		if err := httpServer.ListenAndServe(); err != nil {
+			logger.Error(module, "", "Failed to start server: %v", err)
+			os.Exit(1)
+		}
+	}
+}
+
+func setupSpaRouting(r *chi.Mux) {
+	buildPath := os.Getenv(constants.ReactBuildPathENV)
+	fs := http.FileServer(http.Dir(buildPath))
+
+	r.HandleFunc("/static/*", func(w http.ResponseWriter, r *http.Request) {
+		filePath := strings.TrimPrefix(r.URL.Path, "/static/")
+		fullPath := filepath.Join(buildPath, "static", filePath)
+
+		_, err := os.Stat(fullPath)
+		if os.IsNotExist(err) {
+			web.WriteError(w, errors.New(errors.ErrCodeInternalServerError, "file not found"))
+			return
+		}
+
+		setContentTypeHeader(w, fullPath)
+		http.ServeFile(w, r, fullPath)
+	})
+
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(buildPath, "index.html"))
+	})
+
+	r.Get("/authenticate", serveIndexHTML(buildPath))
+	r.Get("/consent", serveIndexHTML(buildPath))
+
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		for _, prefix := range []string{"/authenticate/", "/consent/"} {
+			if strings.HasPrefix(path, prefix+"static/") {
+				staticPath := strings.TrimPrefix(path, prefix)
+				r.URL.Path = "/" + staticPath
+				fs.ServeHTTP(w, r)
+				return
 			}
 		}
 
-		select {}
+		http.ServeFile(w, r, filepath.Join(buildPath, "index.html"))
+	})
+}
+
+func serveIndexHTML(buildPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(buildPath, "index.html"))
+	}
+}
+
+func setContentTypeHeader(w http.ResponseWriter, fullPath string) {
+	ext := filepath.Ext(fullPath)
+	switch ext {
+	case ".js":
+		w.Header().Set("Content-Type", "application/javascript")
+	case ".css":
+		w.Header().Set("Content-Type", "text/css")
+	case ".json":
+		w.Header().Set("Content-Type", "application/json")
+	case ".png":
+		w.Header().Set("Content-Type", "image/png")
+	case ".jpg", ".jpeg":
+		w.Header().Set("Content-Type", "image/jpeg")
+	case ".svg":
+		w.Header().Set("Content-Type", "image/svg+xml")
 	}
 }

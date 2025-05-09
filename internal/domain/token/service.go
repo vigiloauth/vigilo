@@ -36,6 +36,24 @@ type TokenService interface {
 	//	- error: An error if an error occurs while generating the tokens.
 	GenerateTokensWithAudience(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error)
 
+	// GenerateIDToken creates an ID token for the specified user and client.
+	//
+	// The ID token is a JWT that contains claims about the authentication of the user.
+	// It includes information such as the user ID, client ID, scopes, and nonce for
+	// replay protection. The token is generated and then stored in the token store.
+	//
+	// Parameters:
+	//   - ctx context.Context: Context for the request, containing the request ID for logging.
+	//   - userID string: The unique identifier of the user.
+	//   - clientID string: The client application identifier requesting the token.
+	//   - scopes string: Space-separated list of requested scopes.
+	//   - nonce string: A random string used to prevent replay attacks.
+	//
+	// Returns:
+	//   - string: The signed ID token as a JWT string.
+	//   - error: An error if token generation fails.
+	GenerateIDToken(ctx context.Context, userID, clientID, scopes, nonce string) (string, error)
+
 	// ParseToken parses and validates a JWT token string.
 	//
 	// Parameters:
@@ -46,6 +64,22 @@ type TokenService interface {
 	//	- error: An error if token parsing or validation fails.
 	ParseToken(tokenString string) (*TokenClaims, error)
 
+	// ParseAndValidateToken parses and validates a JWT token string, handling both encrypted and non-encrypted tokens.
+	//
+	// This function first attempts to parse the token directly. If parsing succeeds, the token is considered
+	// valid and non-encrypted. If parsing fails, the function attempts to decrypt the token first and then
+	// parse the decrypted token.
+	//
+	// Parameters:
+	//   - ctx ctx.Context: Context for the request, containing the request ID for logging.
+	//   - tokenString string: The JWT token string to parse and validate.
+	//
+	// Returns:
+	//   - *token.TokenClaims: The parsed token claims if successful.
+	//   - error: An error if token parsing, decryption, or validation fails.
+	//
+	// The function first tries to parse the token directly using ts.ParseToken. If this fails, it assumes
+	// the token is encrypted and attempts to decrypt it using ts.DecryptToken before parsing it again.
 	ParseAndValidateToken(ctx context.Context, tokenString string) (*TokenClaims, error)
 
 	// IsTokenBlacklisted checks if a token is blacklisted.

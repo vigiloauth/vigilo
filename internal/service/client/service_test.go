@@ -655,23 +655,6 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 		assert.Equal(t, "the registration access token subject does not match with the client ID in the request", err.Error())
 	})
 
-	t.Run("Error - Insufficient scopes", func(t *testing.T) {
-		testClient := createTestClient()
-		testClient.Scopes = []string{}
-		testClient.ID = testClientID
-
-		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return testClient, nil
-		}
-		mockTokenService.DeleteTokenFunc = func(ctx context.Context, token string) error { return nil }
-
-		service := NewClientService(mockClientRepo, mockTokenService)
-		err := service.ValidateAndDeleteClient(ctx, testClientID, testToken)
-
-		assert.Error(t, err)
-		assert.Equal(t, "client does not have the required scopes for this request", err.Error())
-	})
-
 	t.Run("Error - Registration access token is expired", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.Scopes = append(testClient.Scopes, constants.ClientDeleteScope)

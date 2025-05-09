@@ -75,28 +75,6 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
-	t.Run("No user session present returns LoginRequiredError", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
-			[]string{constants.AuthorizationCodeGrantType},
-		)
-
-		queryParams := url.Values{}
-		queryParams.Add(constants.ClientIDReqField, testClientID)
-		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-		queryParams.Add(constants.ScopeReqField, testScope)
-
-		endpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
-		rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, nil)
-
-		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeLoginRequired, "authentication required to continue the authorization flow")
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	})
-
 	t.Run("Missing required OAuth parameters returns error", func(t *testing.T) {
 		tests := []struct {
 			name     string
@@ -133,40 +111,6 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 				testContext.AssertErrorResponseDescription(rr, errors.ErrCodeBadRequest, "missing required parameters")
 			})
 		}
-	})
-
-	t.Run("Post Request - state mismatch", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithUserSession()
-		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
-			[]string{constants.AuthorizationCodeGrantType},
-		)
-
-		sessionCookie := testContext.GetSessionCookie()
-		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
-
-		queryParams := url.Values{}
-		queryParams.Add(constants.ClientIDReqField, testClientID)
-		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-		queryParams.Add(constants.ScopeReqField, testScope)
-		queryParams.Add(constants.StateReqField, "invalid-state")
-		endpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
-
-		userConsentRequest := &consent.UserConsentRequest{
-			Approved: true,
-			Scopes:   []string{constants.ClientManageScope, constants.UserReadScope},
-		}
-
-		requestBody, err := json.Marshal(userConsentRequest)
-		assert.NoError(t, err)
-
-		rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, bytes.NewReader(requestBody), headers)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Post Request - Client missing required scopes", func(t *testing.T) {

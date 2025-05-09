@@ -50,6 +50,8 @@ DIGIT = %x30-39
 | `response_type`      | `string`      | Yes      | The client's response type.                                                |
 | `code_challenge`     | `string`      | No       | The PKCE code challenge. Required if the client is using PKCE.             |
 | `code_challenge_method` | `string`   | No       | The method used to generate the code challenge. Supported values are `plain` and `S256`. Defaults to `plain`. |
+| `nonce` | `string` | No | String value used to associate a Client session with an ID token, and to mitigate replay attacks. Required if `id_token` is returned directly from the Authorization Endpoint (not applicable for pure `response_type=code`). |
+| `display`| `string` | No | String value to determine the type of login page will be displayed if the user is not authenticated. Valid displays are `page`, `popup`, `touch`, and `wap`. |
 
 ---
 
@@ -111,155 +113,27 @@ code_challenge_method=S256
 ### Success Response
 #### HTTP Status Code: `302 Found`
 - Redirects to the client's `redirect_uri` with an authorization code.
+- Includes the authorization `code` as a request parameter.
 - Includes the optional `state` parameter if provided in the original request.
+
+```http
+HTTP/1.1 302 Found
+Location: https://client.example.com/callback?code=SplxlOBeZQQNuYZt&state=af0ifjsldkj
+```
 
 ---
 
 ## Error Responses
+Errors occurring at the Authorization Endpoint are returned to the client by redirecting the user agent back to the client's registered `redirect_uri`. The error details are included as query parameters in the redirect URL.
 
-### 1. No Active User Session
-#### HTTP Status Code: `401 Unauthorized`
-#### Response Body:
-```json
-{
-    "error": "login_required",
-    "error_description": "Authentication is required to continue the authorization flow.",
-    "login_url": "https://localhost:<port>/oauth/login"
-}
-```
+#### HTTP Status Code: `302 Found`
+- Redirects the user agent to the client's `redirect_uri`.
+- Includes the `error` parameter as a query parameter.
+- Includes the `error_description` parameter as a query parameter.
+- Includes the original `state` parameters as a query parameter if it was provided in the original request.
 
-### 2. User Consent Not Approved
-#### HTTP Status Code: `401 Unauthorized`
-#### Response Body:
-```json
-{
-    "error": "consent_required",
-    "error_description": "User consent is required for the requested scope.",
-    "consent_url": "https://localhost:<port>/oauth/consent?client_id=<client_id>&redirect_uri=<redirect_uri>&scope=<scopes>"
-}
-```
-
-### 3. Resource Owner Denies Consent
-#### HTTP Status Code: `403 Forbidden`
-#### Response Body:
-```json
-{
-    "error": "access_denied",
-    "error_description": "The resource owner denied the request."
-}
-```
-
-### 4. Missing Required OAuth Parameters
-#### HTTP Status Code: `400 Bad Request`
-#### Response Body:
-```json
-{
-    "error": "bad_request",
-    "error_description": "Missing one or more required parameters."
-}
-```
-
-### 5. Invalid User ID
-#### HTTP Status Code: `401 Unauthorized`
-#### Response Body:
-```json
-{
-    "error": "unauthorized",
-    "error_description": "The provided user ID is invalid."
-}
-```
-
-### 6. Invalid Client ID
-#### HTTP Status Code: `404 Forbidden`
-#### Response Body:
-```json
-{
-    "error": "unauthorized_client",
-    "error_description": "The provided client ID is invalid."
-}
-```
-
-### 7. Missing Required Scopes
-#### HTTP Status Code: `403 Forbidden`
-#### Response Body:
-```json
-{
-    "error": "insufficient_scope",
-    "error_description": "The client is missing required scopes."
-}
-```
-
-### 8. Non Confidential Client
-#### HTTP Status Code: `403 Forbidden`
-#### Response Body:
-```json
-{
-    "error": "unauthorized_client",
-    "error_description": "The client must be confidential to process the request."
-}
-```
-
-### 9. Invalid Redirect URI
-#### HTTP Status Code: `403 Forbidden`
-#### Response Body:
-```json
-{
-    "error": "invalid_redirect_uri",
-    "error_description": "The provided redirect URI is invalid or does not match the one registered with the client."
-}
-```
-
-### 10. Public Client Missing PKCE Grant Type
-#### HTTP Status Code: `400 Bad Request`
-#### Response Body:
-```json
-{
-    "error": "invalid_grant",
-    "error_description": "failed to authorize client",
-    "error_details": "public clients are required to use PKCE"
-}
-```
-
-### 11. Missing Code Challenge
-#### HTTP Status Code: `400 Bad Request`
-#### Response Body:
-```json
-{
-    "error": "invalid_request",
-    "error_description": "failed to authorize client",
-    "error_details": "'code_challenge' is required for PKCE"
-}
-```
-
-### 12. Unsupported Code Challenge Method
-#### HTTP Status Code: `400 Bad Request`
-#### Response Body:
-```json
-{
-    "error": "invalid_request",
-    "error_description": "failed to authorize client",
-    "error_details": "invalid code challenge method: <method_name>. Valid methods are 'plain' and 'SHA-256'"
-}
-```
-
-### 13. Invalid Code Challenge Length
-#### HTTP Status Code: `400 Bad Request`
-#### Response Body:
-```json
-{
-    "error": "invalid_request",
-    "error_description": "failed to authorize client",
-    "error_details": "invalid code challenge length (length): must be between 43 and 128 characters"
-}
-```
-
-### 14. Code Challenge Contains Invalid Characters
-#### HTTP Status Code: `400 Bad Request`
-#### Response Body:
-```json
-{
-    "error": "invalid_request",
-    "error_description": "failed to authorize client",
-    "error_details": "invalid characters: only A-Z, a-z, 0-9, '-', and '_' are allowed (Base64 URL encoding)"
-}
-```
+| Error Code (`error`)     | Description (`error_description`)               | Notes                            |
+|:-------------------------|:------------------------------------------------|:---------------------------------|
+| `invalid_request`        | The request is missing a required parameter, includes an invalid parameter value, includes a parameter more than once, or is otherwise malformed. | This includes missing `client_id`, `redirect_uri`, `response_type` or `scope` (if `openid` is missing and no other scopes are request), or invalid values for these parameters. |
+| `unauthorized_client` | The client is not authorized to request an authorization code using this method. | E.g., Client ID is unknown, client is not registered for this grant type, or a public client is not using PKCE when required. |
+| `access_denied` | The resource owner or authorization server denied the request. | This typically occurs when the user denies consent. |

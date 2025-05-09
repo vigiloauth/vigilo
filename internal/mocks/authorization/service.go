@@ -2,7 +2,6 @@ package mocks
 
 import (
 	"context"
-	"net/http"
 
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
@@ -17,7 +16,7 @@ type MockAuthorizationService struct {
 	AuthorizeClientFunc          func(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest, consentApproved bool) (string, error)
 	AuthorizeTokenExchangeFunc   func(ctx context.Context, tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error)
 	GenerateTokensFunc           func(ctx context.Context, authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error)
-	AuthorizeUserInfoRequestFunc func(ctx context.Context, accessTokenClaims *token.TokenClaims, r *http.Request) (*user.User, error)
+	AuthorizeUserInfoRequestFunc func(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.User, error)
 }
 
 func (m *MockAuthorizationService) AuthorizeClient(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest, consentApproved bool) (string, error) {
@@ -32,6 +31,6 @@ func (m *MockAuthorizationService) GenerateTokens(ctx context.Context, authCodeD
 	return m.GenerateTokensFunc(ctx, authCodeData)
 }
 
-func (m *MockAuthorizationService) AuthorizeUserInfoRequest(ctx context.Context, accessTokenClaims *token.TokenClaims, r *http.Request) (*user.User, error) {
-	return m.AuthorizeUserInfoRequestFunc(ctx, accessTokenClaims, r)
+func (m *MockAuthorizationService) AuthorizeUserInfoRequest(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.User, error) {
+	return m.AuthorizeUserInfoRequestFunc(ctx, accessTokenClaims)
 }

@@ -110,9 +110,9 @@ func (tc *VigiloTestContext) WithLiveHTTPServer() *VigiloTestContext {
 func (tc *VigiloTestContext) WithUser(scopes, roles []string) *VigiloTestContext {
 	user := &users.User{
 		ID:                  testUserID,
-		Username:            testUsername,
-		FullName:            testFirstName + " " + testMiddleName + " " + testFamilyName,
-		FirstName:           testFirstName,
+		PreferredUsername:   testUsername,
+		Name:                testFirstName + " " + testMiddleName + " " + testFamilyName,
+		GivenName:           testFirstName,
 		MiddleName:          testMiddleName,
 		FamilyName:          testFamilyName,
 		Email:               testEmail,
@@ -164,10 +164,15 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 		Name:          testClientName1,
 		ID:            testClientID,
 		Type:          clientType,
-		Scopes:        scopes,
 		GrantTypes:    grantTypes,
 		ResponseTypes: []string{constants.CodeResponseType},
 		RedirectURIS:  []string{testRedirectURI},
+	}
+
+	if len(scopes) == 0 {
+		c.CanRequestScopes = true
+	} else {
+		c.Scopes = scopes
 	}
 
 	if clientType == client.Confidential {
@@ -228,6 +233,10 @@ func (tc *VigiloTestContext) WithEncryptedJWTToken(id string, duration time.Dura
 func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, scopes []string, duration time.Duration) *VigiloTestContext {
 	if tc.User == nil {
 		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+	}
+
+	if len(scopes) == 0 {
+		scopes = append(scopes, constants.OpenIDScope)
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
@@ -357,7 +366,7 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	queryParams.Add(constants.ClientIDReqField, testClientID)
 	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
 	// queryParams.Add(constants.State, state)
-	endpoint := web.OAuthEndpoints.Login + "?" + queryParams.Encode()
+	endpoint := web.OAuthEndpoints.Authenticate + "?" + queryParams.Encode()
 
 	rr := tc.SendHTTPRequest(
 		http.MethodPost,

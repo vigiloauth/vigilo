@@ -159,6 +159,10 @@ func (j *TokenConfig) Issuer() string {
 	return j.issuer
 }
 
+func (t *TokenConfig) SetIssuer(issuer string) {
+	t.issuer = issuer
+}
+
 func (j *TokenConfig) String() string {
 	return fmt.Sprintf(
 		"\tExpirationTime: %s\n"+
@@ -173,7 +177,6 @@ func (j *TokenConfig) String() string {
 func defaultTokenConfig() *TokenConfig {
 	privateKeyBase64 := os.Getenv(constants.TokenPrivateKeyENV)
 	publicKeyBase64 := os.Getenv(constants.TokenPublicKeyENV)
-	issuer := os.Getenv(constants.TokenIssuerENV)
 
 	if privateKeyBase64 == "" {
 		panic("Private key not found in environment variable")
@@ -181,10 +184,6 @@ func defaultTokenConfig() *TokenConfig {
 
 	if publicKeyBase64 == "" {
 		panic("Public key not found in environment variable")
-	}
-
-	if issuer == "" {
-		panic("Token issuer not found in environment variable")
 	}
 
 	privateKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
@@ -211,7 +210,6 @@ func defaultTokenConfig() *TokenConfig {
 		privateKey:           privateKeyParsed,
 		publicKey:            publicKeyParsed,
 		keyID:                crypto.GenerateJWKKeyID(publicKeyBase64),
-		issuer:               issuer,
 		expirationTime:       defaultExpirationTime,
 		accessTokenDuration:  defaultAccessTokenDuration,
 		refreshTokenDuration: defaultRefreshTokenDuration,

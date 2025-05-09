@@ -131,9 +131,9 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 		mockUserService := &mUserService.MockUserService{
 			GetUserByUsernameFunc: func(ctx context.Context, username string) (*user.User, error) {
 				return &user.User{
-					ID:       testUserID,
-					Username: testUsername,
-					Scopes:   []string{constants.UserManageScope},
+					ID:                testUserID,
+					PreferredUsername: testUsername,
+					Scopes:            []string{constants.UserManageScope},
 				}, nil
 			},
 			HandleOAuthLoginFunc: func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
@@ -165,9 +165,9 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 		mockUserService := &mUserService.MockUserService{
 			GetUserByUsernameFunc: func(ctx context.Context, username string) (*user.User, error) {
 				return &user.User{
-					ID:       testUserID,
-					Username: testUsername,
-					Scopes:   []string{constants.UserManageScope},
+					ID:                testUserID,
+					PreferredUsername: testUsername,
+					Scopes:            []string{constants.UserManageScope},
 				}, nil
 			},
 			HandleOAuthLoginFunc: func(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
@@ -229,9 +229,9 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 		mockUserService := &mUserService.MockUserService{
 			GetUserByUsernameFunc: func(ctx context.Context, username string) (*user.User, error) {
 				return &user.User{
-					ID:       testUserID,
-					Username: testUsername,
-					Scopes:   []string{constants.UserReadScope, constants.UserDeleteScope},
+					ID:                testUserID,
+					PreferredUsername: testUsername,
+					Scopes:            []string{constants.UserReadScope, constants.UserDeleteScope},
 				}, nil
 			},
 		}

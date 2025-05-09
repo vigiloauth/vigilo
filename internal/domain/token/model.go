@@ -19,6 +19,7 @@ type TokenData struct {
 type TokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	TokenType    string `json:"token_type"`
+	IDToken      string `json:"id_token"`
 	ExpiresIn    int    `json:"expires_in"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	Scope        string `json:"scope,omitempty"`
@@ -42,11 +43,13 @@ type TokenRequest struct {
 	ClientSecret      string `json:"client_secret"`
 	State             string `json:"state"`
 	CodeVerifier      string `json:"code_verifier,omitempty"`
+	Nonce             string `json:"nonce,omitempty"`
 }
 
 type TokenClaims struct {
 	Scopes string `json:"scopes,omitempty"`
 	Roles  string `json:"roles,omitempty"`
+	Nonce  string `json:"nonce,omitempty"`
 	*jwt.StandardClaims
 }
 

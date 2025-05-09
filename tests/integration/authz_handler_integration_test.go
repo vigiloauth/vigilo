@@ -14,6 +14,57 @@ import (
 )
 
 func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
+	tests := []struct {
+		name   string
+		scopes []string
+	}{
+		{
+			name:   "Success when client registered with scopes",
+			scopes: []string{constants.ClientManageScope, constants.UserManageScope},
+		},
+		{
+			name:   "Success when client didn't register with scopes",
+			scopes: []string{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			testContext := NewVigiloTestContext(t)
+			defer testContext.TearDown()
+
+			testContext.WithClient(
+				client.Confidential, test.scopes,
+				[]string{constants.AuthorizationCodeGrantType},
+			)
+
+			testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+			testContext.WithUserSession()
+			testContext.WithUserConsent()
+
+			queryParams := url.Values{}
+			queryParams.Add(constants.ClientIDReqField, testClientID)
+			queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
+			queryParams.Add(constants.ScopeReqField, testScope)
+			queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
+			queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
+
+			sessionCookie := testContext.GetSessionCookie()
+			headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
+			endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
+
+			rr := testContext.SendHTTPRequest(
+				http.MethodGet,
+				endpoint,
+				nil, headers,
+			)
+
+			assert.Equal(t, http.StatusFound, rr.Code)
+		})
+	}
+}
+
+func TestAuthorizationHandler_AuthorizeClient_MissingResponseTypeInRequest_ReturnsError(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	defer testContext.TearDown()
 
@@ -30,7 +81,6 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	queryParams.Add(constants.ClientIDReqField, testClientID)
 	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
 	queryParams.Add(constants.ScopeReqField, testScope)
-	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 
 	sessionCookie := testContext.GetSessionCookie()
@@ -44,36 +94,6 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	)
 
 	assert.Equal(t, http.StatusFound, rr.Code)
-}
-
-func TestAuthorizationHandler_AuthorizeClient_ErrorRetrievingUserIDFromSession(t *testing.T) {
-	testContext := NewVigiloTestContext(t)
-	defer testContext.TearDown()
-
-	testContext.WithClient(
-		client.Confidential,
-		[]string{constants.ClientManageScope, constants.UserManageScope},
-		[]string{constants.AuthorizationCodeGrantType},
-	)
-
-	testContext.WithUserSession()
-
-	// Call AuthorizeClient Endpoint
-	testContext.WithUserConsent()
-	queryParams := url.Values{}
-	queryParams.Add(constants.ClientIDReqField, testClientID)
-	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-	queryParams.Add(constants.ScopeReqField, testScope)
-	queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
-
-	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
-	rr := testContext.SendHTTPRequest(
-		http.MethodGet,
-		endpoint,
-		nil, nil,
-	)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
 func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t *testing.T) {
@@ -103,7 +123,7 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 	)
 
 	fmt.Println("BODY:", rr.Body)
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	assert.Equal(t, http.StatusFound, rr.Code)
 }
 
 func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
@@ -137,40 +157,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 		nil, headers,
 	)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
-func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent(t *testing.T) {
-	testContext := NewVigiloTestContext(t)
-	defer testContext.TearDown()
-
-	testContext.WithClient(
-		client.Confidential,
-		[]string{constants.ClientManageScope, constants.UserManageScope},
-		[]string{constants.AuthorizationCodeGrantType},
-	)
-
-	testContext.WithUserSession()
-
-	// Call AuthorizeClient Endpoint
-	queryParams := url.Values{}
-	queryParams.Add(constants.ClientIDReqField, testClientID)
-	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-	queryParams.Add(constants.ScopeReqField, testScope)
-	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
-	queryParams.Add(constants.ConsentApprovedURLValue, testConsentApproved)
-
-	sessionCookie := testContext.GetSessionCookie()
-	headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
-	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
-
-	rr := testContext.SendHTTPRequest(
-		http.MethodGet,
-		endpoint,
-		nil, headers,
-	)
-
-	assert.Equal(t, http.StatusForbidden, rr.Code)
+	assert.Equal(t, http.StatusFound, rr.Code)
 }
 
 func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {

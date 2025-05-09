@@ -9,7 +9,6 @@ type RouteGroup struct {
 }
 
 type Route struct {
-	Method      string
 	Methods     []string
 	Pattern     string
 	Handler     http.HandlerFunc
@@ -27,11 +26,6 @@ func NewRoute() *RouteBuilder {
 			Middleware: make([]func(http.Handler) http.Handler, 0),
 		},
 	}
-}
-
-func (rb *RouteBuilder) SetMethod(method string) *RouteBuilder {
-	rb.route.Method = method
-	return rb
 }
 
 func (rb *RouteBuilder) SetMethods(methods ...string) *RouteBuilder {
@@ -66,9 +60,6 @@ func (rb *RouteBuilder) Build() Route {
 func (r Route) getHTTPMethods() []string {
 	if len(r.Methods) > 0 {
 		return r.Methods
-	}
-	if r.Method != "" {
-		return []string{r.Method}
 	}
 
 	return []string{http.MethodGet} // Default to GET if no method is provided

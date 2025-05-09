@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
@@ -41,18 +40,17 @@ func NewOIDCService(authorizationService authz.AuthorizationService) oidc.OIDCSe
 //   - accessTokenClaims *TokenClaims: A pointer to TokenClaims that were parsed and validated
 //     from the access token. These typically include standard OIDC claims such as
 //     'sub' (subject identifier), 'scope', 'exp' (expiration), etc.
-//   - r *http.Request: The HTTP request containing the cookies.
-
+//
 // Returns:
 //   - *UserInfoResponse: A pointer to a UserInfoResponse struct containing the requested user
 //     information (e.g., name, email, profile picture), filtered according to the
 //     authorized scopes.
 //   - error: An error if the user cannot be found, the scopes are insufficient, or any
 //     other issue occurs during retrieval.
-func (o *oidcService) GetUserInfo(ctx context.Context, accessTokenClaims *token.TokenClaims, r *http.Request) (*user.UserInfoResponse, error) {
+func (o *oidcService) GetUserInfo(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.UserInfoResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	retrievedUser, err := o.authorizationService.AuthorizeUserInfoRequest(ctx, accessTokenClaims, r)
+	retrievedUser, err := o.authorizationService.AuthorizeUserInfoRequest(ctx, accessTokenClaims)
 	if err != nil {
 		o.logger.Error(o.module, requestID, "[GetUserInfo]: Failed to authorize user info request: %v", err)
 		wrappedErr := errors.Wrap(err, "", "failed to authorize request")
@@ -93,19 +91,26 @@ func (o *oidcService) populateUserInfoFromScopes(
 	for _, scope := range requestedScopes {
 		switch scope {
 		case constants.UserProfileScope:
-			userInfoResponse.Name = retrievedUser.FullName
-			userInfoResponse.Username = retrievedUser.Username
-			userInfoResponse.Birthdate = retrievedUser.Birthdate
-			userInfoResponse.FirstName = retrievedUser.FirstName
-			userInfoResponse.MiddleName = retrievedUser.MiddleName
+			userInfoResponse.Name = retrievedUser.Name
 			userInfoResponse.FamilyName = retrievedUser.FamilyName
-			userInfoResponse.UpdatedAt = retrievedUser.UpdatedAt.UTC()
+			userInfoResponse.GivenName = retrievedUser.GivenName
+			userInfoResponse.MiddleName = retrievedUser.MiddleName
+			userInfoResponse.Nickname = retrievedUser.Nickname
+			userInfoResponse.PreferredUsername = retrievedUser.PreferredUsername
+			userInfoResponse.Profile = retrievedUser.Profile
+			userInfoResponse.Picture = retrievedUser.Picture
+			userInfoResponse.Website = retrievedUser.Website
+			userInfoResponse.Gender = retrievedUser.Gender
+			userInfoResponse.Birthdate = retrievedUser.Birthdate
+			userInfoResponse.Zoneinfo = retrievedUser.Zoneinfo
+			userInfoResponse.Locale = retrievedUser.Locale
+			userInfoResponse.UpdatedAt = retrievedUser.UpdatedAt.UTC().Unix()
 		case constants.UserEmailScope:
 			userInfoResponse.Email = retrievedUser.Email
-			userInfoResponse.EmailVerified = retrievedUser.EmailVerified
+			userInfoResponse.EmailVerified = &retrievedUser.EmailVerified
 		case constants.UserPhoneScope:
 			userInfoResponse.PhoneNumber = retrievedUser.PhoneNumber
-			userInfoResponse.PhoneNumberVerified = retrievedUser.PhoneNumberVerified
+			userInfoResponse.PhoneNumberVerified = &retrievedUser.PhoneNumberVerified
 		case constants.UserAddressScope:
 			userInfoResponse.Address = retrievedUser.Address
 		}

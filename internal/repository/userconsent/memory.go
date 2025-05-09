@@ -71,7 +71,7 @@ func (c *InMemoryUserConsentRepository) HasConsent(ctx context.Context, userID, 
 	key := createConsentKey(userID, clientID)
 	record, exists := c.data[key]
 	if !exists {
-		logger.Debug(module, requestID, "[HasConsent]: Record does not exist with given consent key=[%s]", key)
+		logger.Debug(module, requestID, "[HasConsent]: Record does not exist with given consent key=[%s]", utils.TruncateSensitive(key))
 		return false, nil
 	}
 

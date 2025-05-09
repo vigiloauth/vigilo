@@ -1,11 +1,8 @@
 package handlers
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -53,24 +50,35 @@ func NewAuthorizationHandler(
 // If authorization is successful, it redirects the user to the redirect URI with the authorization code.
 // If an error occurs, it writes an appropriate error response.
 func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
+	ctx := r.Context()
+	requestID := utils.GetRequestID(ctx)
 
 	query := r.URL.Query()
-	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request")
 
-	req := client.NewClientAuthorizationRequest(query, h.sessionService.GetUserIDFromSession(r))
-	if req.UserID == "" {
-		loginURL := h.buildLoginURL(req.ClientID, req.RedirectURI, req.Scope, req.State, requestID)
-		h.logger.Warn(h.module, requestID, "[AuthorizeClient]: User is not authenticated. Returning a 'login required error'")
-		web.WriteError(w, errors.NewLoginRequiredError(loginURL))
+	if errorURL := web.ValidateClientAuthorizationParameters(query); errorURL != "" {
+		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Invalid parameters in the request: %s", utils.SanitizeURL(errorURL))
+		http.Redirect(w, r, errorURL, http.StatusFound)
 		return
 	}
 
-	isUserConsentApproved := query.Get(constants.ConsentApprovedURLValue) == "true"
-	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req, isUserConsentApproved)
+	req := client.NewClientAuthorizationRequest(query, h.sessionService.GetUserIDFromSession(r))
+	if req.UserID == "" {
+		loginURL := h.buildLoginURL(req)
+		h.logger.Warn(h.module, requestID, "[AuthorizeClient]: User is not authenticated. Redirecting them to the login page")
+		http.Redirect(w, r, loginURL, http.StatusFound)
+		return
+	}
+
+	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req, req.ConsentApproved)
 	if err != nil {
+		if vaErr, ok := err.(*errors.VigiloAuthError); ok && vaErr.ErrorCode == errors.ErrCodeConsentRequired {
+			consentURL := vaErr.ConsentURL
+			h.logger.Info(h.module, requestID, "[AuthorizeClient]: Consent required. Redirecting to consent URL")
+			http.Redirect(w, r, consentURL, http.StatusFound)
+			return
+		}
+
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")
 		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Failed to authorize client: %v", err)
 		web.WriteError(w, wrappedErr)
@@ -81,21 +89,25 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
-func (h *AuthorizationHandler) buildLoginURL(clientID, redirectURI, scope, state, requestID string) string {
-	baseURL := config.GetServerConfig().BaseURL()
-	loginURL := fmt.Sprintf("%s%s?client_id=%s&redirect_uri=%s&scope=%s",
-		baseURL,
-		web.OAuthEndpoints.Login,
-		url.QueryEscape(clientID),
-		url.QueryEscape(redirectURI),
-		url.QueryEscape(scope),
-	)
+func (h *AuthorizationHandler) buildLoginURL(req *client.ClientAuthorizationRequest) string {
+	queryParams := url.Values{}
+	queryParams.Add(constants.ClientIDReqField, req.ClientID)
+	queryParams.Add(constants.RedirectURIReqField, req.RedirectURI)
+	queryParams.Add(constants.ScopeReqField, req.Scope)
+	queryParams.Add(constants.ResponseTypeReqField, req.ResponseType)
 
-	if state != "" {
-		h.logger.Debug(h.module, requestID, "Adding state to login URL")
-		loginURL = fmt.Sprintf("%s&state=%s", loginURL, url.QueryEscape(state))
+	if req.State != "" {
+		queryParams.Add(constants.StateReqField, req.State)
+	}
+	if req.Nonce != "" {
+		queryParams.Add(constants.NonceReqField, req.Nonce)
 	}
 
-	h.logger.Debug(h.module, requestID, "LoginURL=[%s] successfully generated", utils.SanitizeURL(loginURL))
-	return loginURL
+	if req.Display != "" && constants.ValidAuthenticationDisplays[req.Display] {
+		queryParams.Add(constants.DisplayReqField, req.Display)
+	} else {
+		queryParams.Add(constants.DisplayReqField, constants.DisplayPage)
+	}
+
+	return "/authenticate?" + queryParams.Encode()
 }

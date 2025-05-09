@@ -2,7 +2,6 @@ package domain
 
 import (
 	"context"
-	"net/http"
 
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
@@ -70,5 +69,5 @@ type AuthorizationService interface {
 	// Returns:
 	//	- *User: The retrieved user if authorization succeeds, otherwise nil.
 	//	- error: An error if authorization fails, otherwise nil.
-	AuthorizeUserInfoRequest(ctx context.Context, claims *token.TokenClaims, r *http.Request) (*users.User, error)
+	AuthorizeUserInfoRequest(ctx context.Context, claims *token.TokenClaims) (*users.User, error)
 }

@@ -8,17 +8,24 @@ import (
 
 // User represents a user in the system.
 type User struct {
-	ID          string
-	Username    string
-	FullName    string
-	FirstName   string
-	MiddleName  string
-	FamilyName  string
-	Email       string
-	PhoneNumber string
-	Password    string
-	Birthdate   string
-	Gender      string
+	ID                string
+	PreferredUsername string
+	Name              string
+	GivenName         string
+	MiddleName        string
+	FamilyName        string
+	Nickname          string
+	Profile           string // URL to user’s profile
+	Picture           string // URL to user’s picture
+	Website           string // Personal website URL
+	Email             string
+	PhoneNumber       string
+	Password          string
+
+	Gender    string
+	Birthdate string
+	Zoneinfo  string // e.g., "America/New_York"
+	Locale    string // e.g., "en-US"
 
 	Address *UserAddress
 
@@ -46,11 +53,15 @@ type UserAddress struct {
 // UserRegistrationRequest represents the registration request payload.
 type UserRegistrationRequest struct {
 	Username    string      `json:"username"`
+	Nickname    string      `json:"nickname,omitempty"`
 	FirstName   string      `json:"first_name"`
 	MiddleName  string      `json:"middle_name,omitempty"`
 	FamilyName  string      `json:"family_name"`
 	Birthdate   string      `json:"birthdate"`
 	Email       string      `json:"email"`
+	Profile     string      `json:"profile,omitempty"` // URL to the user's profile page
+	Picture     string      `json:"picture,omitempty"` // URL to the user's picture/avatar
+	Website     string      `json:"website,omitempty"` // URL to the user's personal website
 	Gender      string      `json:"gender"`
 	PhoneNumber string      `json:"phone_number,omitempty"`
 	Password    string      `json:"password"`
@@ -62,17 +73,24 @@ type UserRegistrationRequest struct {
 // UserInfoResponse represents the payload for the user info request.
 type UserInfoResponse struct {
 	Sub                 string       `json:"sub"`
-	Username            string       `json:"username,omitempty"`
 	Name                string       `json:"name,omitempty"`
-	FirstName           string       `json:"first_name,omitempty"`
-	MiddleName          string       `json:"middle_name,omitempty"`
+	GivenName           string       `json:"given_name,omitempty"`
 	FamilyName          string       `json:"family_name,omitempty"`
+	MiddleName          string       `json:"middle_name,omitempty"`
+	Nickname            string       `json:"nickname,omitempty"`
+	PreferredUsername   string       `json:"preferred_username,omitempty"`
+	Profile             string       `json:"profile,omitempty"`
+	Picture             string       `json:"picture,omitempty"`
+	Website             string       `json:"website,omitempty"`
+	Gender              string       `json:"gender,omitempty"`
 	Birthdate           string       `json:"birthdate,omitempty"`
+	Zoneinfo            string       `json:"zoneinfo,omitempty"`
+	Locale              string       `json:"locale,omitempty"`
 	Email               string       `json:"email,omitempty"`
-	EmailVerified       bool         `json:"email_verified,omitempty"`
+	EmailVerified       *bool        `json:"email_verified,omitempty"`
 	PhoneNumber         string       `json:"phone_number,omitempty"`
-	PhoneNumberVerified bool         `json:"phone_number_verified,omitempty"`
-	UpdatedAt           time.Time    `json:"updated_at,omitempty"`
+	PhoneNumberVerified *bool        `json:"phone_number_verified,omitempty"`
+	UpdatedAt           int64        `json:"updated_at,omitempty"`
 	Address             *UserAddress `json:"address,omitempty"`
 }
 
@@ -143,12 +161,12 @@ type UserLoginAttempt struct {
 //   - *User: A new User instance.
 func NewUser(username, email, password string) *User {
 	return &User{
-		Username:        username,
-		Email:           email,
-		Password:        password,
-		LastFailedLogin: time.Time{},
-		AccountLocked:   false,
-		EmailVerified:   false,
+		PreferredUsername: username,
+		Email:             email,
+		Password:          password,
+		LastFailedLogin:   time.Time{},
+		AccountLocked:     false,
+		EmailVerified:     false,
 	}
 }
 
@@ -160,20 +178,26 @@ func NewUser(username, email, password string) *User {
 // Returns:
 //   - *User: A new user instance.
 func NewUserFromRegistrationRequest(req *UserRegistrationRequest) *User {
-	fullName := fmt.Sprintf("%s %s %s", req.FirstName, req.MiddleName, req.FamilyName)
+	name := fmt.Sprintf("%s %s %s", req.FirstName, req.MiddleName, req.FamilyName)
 	return &User{
-		Username:    req.Username,
-		Password:    req.Password,
-		FullName:    fullName,
-		FirstName:   req.FirstName,
-		MiddleName:  req.MiddleName,
-		FamilyName:  req.FamilyName,
-		Gender:      req.Gender,
-		Birthdate:   req.Birthdate,
-		Email:       req.Email,
-		PhoneNumber: req.PhoneNumber,
-		Scopes:      req.Scopes,
-		Roles:       req.Roles,
+		PreferredUsername: req.Username,
+		Password:          req.Password,
+		Name:              name,
+		GivenName:         req.FirstName,
+		MiddleName:        req.MiddleName,
+		FamilyName:        req.FamilyName,
+		Gender:            req.Gender,
+		Birthdate:         req.Birthdate,
+		Email:             req.Email,
+		PhoneNumber:       req.PhoneNumber,
+		Zoneinfo:          time.UTC.String(),
+		Scopes:            req.Scopes,
+		Roles:             req.Roles,
+		Locale:            req.Address.Locality,
+		Website:           req.Website,
+		Profile:           req.Profile,
+		Picture:           req.Picture,
+		Nickname:          req.Nickname,
 		Address: NewUserAddress(
 			req.Address.StreetAddress,
 			req.Address.Locality,
@@ -215,8 +239,8 @@ func NewUserRegistrationRequest(username, email, password string) *UserRegistrat
 //   - *UserRegistrationResponse: A new UserRegistrationResponse instance.
 func NewUserRegistrationResponse(user *User, jwtToken string) *UserRegistrationResponse {
 	return &UserRegistrationResponse{
-		Username:    user.Username,
-		Name:        user.FullName,
+		Username:    user.PreferredUsername,
+		Name:        user.Name,
 		Gender:      user.Gender,
 		Birthdate:   user.Birthdate,
 		Email:       user.Email,
@@ -275,7 +299,7 @@ func NewUserLoginRequest(username, password string) *UserLoginRequest {
 func NewUserLoginResponse(user *User, jwtToken string) *UserLoginResponse {
 	return &UserLoginResponse{
 		UserID:          user.ID,
-		Username:        user.Username,
+		Username:        user.PreferredUsername,
 		Email:           user.Email,
 		Scopes:          user.Scopes,
 		Roles:           user.Roles,

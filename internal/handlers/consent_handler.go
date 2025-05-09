@@ -2,14 +2,12 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
@@ -66,6 +64,10 @@ func (h *ConsentHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	clientID := query.Get(constants.ClientIDReqField)
 	redirectURI := query.Get(constants.RedirectURIReqField)
 	scope := query.Get(constants.ScopeReqField)
+	responseType := query.Get(constants.ResponseTypeReqField)
+	state := query.Get(constants.StateReqField)
+	nonce := query.Get(constants.NonceReqField)
+	display := query.Get(constants.DisplayReqField)
 
 	if clientID == "" || redirectURI == "" || scope == "" {
 		web.WriteError(w, errors.New(errors.ErrCodeBadRequest, "missing required parameters"))
@@ -75,16 +77,8 @@ func (h *ConsentHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	// Check if the user is logged in
 	userID := h.sessionService.GetUserIDFromSession(r)
 	if userID == "" {
-		state := crypto.GenerateUUID()
-		baseURL := config.GetServerConfig().BaseURL()
-		oauthLoginURL := fmt.Sprintf("%s%s?client_id=%s&redirect_uri=%s&scope=%s&state=%s",
-			baseURL,
-			web.OAuthEndpoints.Login,
-			url.QueryEscape(clientID),
-			url.QueryEscape(redirectURI),
-			url.QueryEscape(scope),
-			url.QueryEscape(state))
-		web.WriteError(w, errors.NewLoginRequiredError(oauthLoginURL))
+		oauthLoginURL := h.buildLoginURL(clientID, redirectURI, scope, responseType, state, nonce, display)
+		http.Redirect(w, r, oauthLoginURL, http.StatusFound)
 		return
 	}
 
@@ -92,7 +86,7 @@ func (h *ConsentHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		h.handleGetConsent(w, r, userID, clientID, redirectURI, scope)
 	case http.MethodPost:
-		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope)
+		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope, responseType, state, nonce, display)
 	default:
 		web.WriteError(w, errors.NewMethodNotAllowedError(r.Method))
 	}
@@ -111,13 +105,18 @@ func (h *ConsentHandler) handleGetConsent(w http.ResponseWriter, r *http.Request
 }
 
 // handlePostConsent handles POST requests for user consent
-func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
+func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope, responseType, state, nonce, display string) {
 	consentRequest, err := web.DecodeJSONRequest[consent.UserConsentRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
 		web.WriteError(w, err)
 		return
 	}
+
+	consentRequest.ResponseType = responseType
+	consentRequest.State = state
+	consentRequest.Nonce = nonce
+	consentRequest.Display = display
 
 	response, err := h.consentService.ProcessUserConsent(userID, clientID, redirectURI, scope, consentRequest, r)
 	if err != nil {
@@ -127,4 +126,27 @@ func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter, r *http.Reques
 	}
 
 	web.WriteJSON(w, http.StatusOK, response)
+}
+
+func (h *ConsentHandler) buildLoginURL(clientID, redirectURI, scope, responseType, state, nonce, display string) string {
+	queryParams := url.Values{}
+	queryParams.Add(constants.ClientIDReqField, clientID)
+	queryParams.Add(constants.RedirectURIReqField, redirectURI)
+	queryParams.Add(constants.ScopeReqField, scope)
+	queryParams.Add(constants.ResponseTypeReqField, responseType)
+
+	if state != "" {
+		queryParams.Add(constants.StateReqField, state)
+	}
+	if nonce != "" {
+		queryParams.Add(constants.NonceReqField, nonce)
+	}
+
+	if display != "" && constants.ValidAuthenticationDisplays[display] {
+		queryParams.Add(constants.DisplayReqField, display)
+	} else {
+		queryParams.Add(constants.DisplayReqField, constants.DisplayPage)
+	}
+
+	return "/authenticate?" + queryParams.Encode()
 }

@@ -67,7 +67,7 @@ func (h *OIDCHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userInfoResponse, err := h.oidcService.GetUserInfo(ctx, tokenClaims, r)
+	userInfoResponse, err := h.oidcService.GetUserInfo(ctx, tokenClaims)
 	if err != nil {
 		h.logger.Error(h.module, requestID, "[UserInfo]: An error occurred processing the request: %v", err)
 		wrappedErr := errors.Wrap(err, "", "failed to retrieve the requested user info")

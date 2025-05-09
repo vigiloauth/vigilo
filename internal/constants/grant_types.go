@@ -8,7 +8,7 @@ const (
 	ClientCredentialsGrantType string = "client_credentials"                           // Client Credentials Grant
 	DeviceCodeGrantType        string = "urn:ietf:params:oauth:grant-type:device_code" // Device Code Grant
 	RefreshTokenGrantType      string = "refresh_token"                                // Refresh Token Grant
-	ImplicitGrantType          string = "implicit_flow"                                // Implicit Flow (deprecated in OAuth 2.1)
+	ImplicitGrantType          string = "implicit"                                     // Implicit Flow (deprecated in OAuth 2.1)
 	PasswordGrantType          string = "password"                                     // Resource Owner Password Credentials Grant (deprecated)
 )
 
