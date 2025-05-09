@@ -103,8 +103,6 @@ export default function ConsentForm() {
   const handleApprove = async () => {
     try {
       setLoading(true);
-      console.log("scopes: ", scopes);
-      console.log("nonce: ", nonce);
       const data = await postConsent({
         clientID,
         redirectURI,
@@ -132,9 +130,34 @@ export default function ConsentForm() {
     }
   };
 
-  const handleDeny = () => {
-    // Redirect to the redirect URI with denial params
-    // window.location.href = redirectUri + '?approved=false';
+  const handleDeny = async () => {
+    try {
+      setLoading(true);
+      const data = await postConsent({
+        clientID,
+        redirectURI,
+        scope,
+        responseType,
+        state,
+        nonce,
+        display,
+        approved: false,
+        scopes,
+      });
+
+      if (data.redirect_uri) {
+        message.success(
+          "Your consent has been recorded. You are being redirected",
+        );
+        setTimeout(() => {
+          window.location.href = data.redirect_uri;
+        }, 1000);
+      }
+    } catch (err) {
+      message.error("Something went wrong. Please try again later");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderScopeList = () => {
@@ -148,7 +171,7 @@ export default function ConsentForm() {
           backgroundColor: "white",
         }}
       >
-        {requestedScopes.map((scope) => {
+        {scopes.map((scope) => {
           const { title, description, icon, required } = scopeDetails[scope];
           return (
             <Panel
@@ -182,7 +205,6 @@ export default function ConsentForm() {
 
   return (
     <div
-      className="consent-container"
       style={{
         minHeight: "100vh",
         backgroundColor: "#f5f5f5",

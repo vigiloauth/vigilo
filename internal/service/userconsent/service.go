@@ -286,6 +286,7 @@ func (c *userConsentService) processApprovedConsent(
 		Scope:        approvedScopes,
 		RedirectURI:  redirectURI,
 		ResponseType: constants.CodeResponseType,
+		Nonce:        consentRequest.Nonce,
 	}
 
 	client, err := c.clientService.GetClientByID(ctx, clientID)
@@ -307,18 +308,23 @@ func (c *userConsentService) processApprovedConsent(
 	}
 
 	c.logger.Debug(c.module, requestID, "Building success response for approved consent")
-	return c.buildSuccessResponse(redirectURI, code, consentRequest.State), nil
+	return c.buildSuccessResponse(redirectURI, code, consentRequest.State, consentRequest.Nonce), nil
 }
 
-func (c *userConsentService) buildSuccessResponse(redirectURI, code, state string) *consent.UserConsentResponse {
-	redirectURL := fmt.Sprintf("%s?code=%s", redirectURI, url.QueryEscape(code))
+func (c *userConsentService) buildSuccessResponse(redirectURI, code, state, nonce string) *consent.UserConsentResponse {
+	queryParams := url.Values{}
+	queryParams.Add(constants.CodeURLValue, code)
+
 	if state != "" {
-		redirectURL = fmt.Sprintf("%s&state=%s", redirectURL, url.QueryEscape(state))
+		queryParams.Add(constants.StateReqField, state)
+	}
+	if nonce != "" {
+		queryParams.Add(constants.NonceReqField, nonce)
 	}
 
 	response := &consent.UserConsentResponse{
 		Success:     true,
-		RedirectURI: redirectURL,
+		RedirectURI: redirectURI + "?" + queryParams.Encode(),
 	}
 
 	return response

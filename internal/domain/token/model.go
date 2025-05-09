@@ -43,6 +43,7 @@ type TokenRequest struct {
 	ClientSecret      string `json:"client_secret"`
 	State             string `json:"state"`
 	CodeVerifier      string `json:"code_verifier,omitempty"`
+	Nonce             string `json:"nonce,omitempty"`
 }
 
 type TokenClaims struct {

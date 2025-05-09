@@ -92,9 +92,6 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 
-	s.logger.Debug(s.module, requestID, "[AuthorizeClient]: Nonce: %s", request.Nonce)
-	s.logger.Debug(s.module, requestID, "[AuthorizeClient]: Scopes: %s", request.Scope)
-	s.logger.Debug(s.module, requestID, "[AuthorizeClient]: Approved: %t", request.ConsentApproved)
 	request.Client = retrievedClient
 	if err := request.Validate(); err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Failed to validate request: %v", err)
@@ -114,7 +111,7 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 	}
 	s.logger.Debug(s.module, requestID, "[AuthorizeClient] Authorization code generated successfully: %s", utils.TruncateSensitive(code))
 
-	redirectURL := s.buildRedirectURL(request.RedirectURI, code, request.State)
+	redirectURL := s.buildRedirectURL(request.RedirectURI, code, request.State, request.Nonce)
 	s.logger.Info(s.module, requestID, "[AuthorizeClient]: Client successfully authorized")
 	return redirectURL, nil
 }
@@ -181,7 +178,7 @@ func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData 
 		utils.TruncateSensitive(refreshToken),
 	)
 
-	s.logger.Debug(s.module, requestID, "[GenerateTokens] Attempting to generate ID token")
+	s.logger.Debug(s.module, requestID, "[GenerateTokens] Attempting to generate ID token: Nonce: %s", authCodeData.Nonce)
 	idToken, err := s.tokenService.GenerateIDToken(ctx, authCodeData.UserID, authCodeData.ClientID, "", authCodeData.Nonce)
 
 	if err != nil {
@@ -333,13 +330,15 @@ func (s *authorizationService) buildConsentURL(req *client.ClientAuthorizationRe
 	return "/consent?" + queryParams.Encode()
 }
 
-func (s *authorizationService) buildRedirectURL(redirectURI, code, state string) string {
+func (s *authorizationService) buildRedirectURL(redirectURI, code, state, nonce string) string {
 	queryParams := url.Values{}
 	queryParams.Add(constants.CodeURLValue, code)
 
 	if state != "" {
-		s.logger.Debug(s.module, "", "State is present in the request. Adding it to the redirect URL.")
 		queryParams.Add(constants.StateReqField, state)
+	}
+	if nonce != "" {
+		queryParams.Add(constants.NonceReqField, nonce)
 	}
 
 	return redirectURI + "?" + queryParams.Encode()
@@ -353,6 +352,7 @@ func (s *authorizationService) validateAuthorizationCode(ctx context.Context, to
 		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
 
+	s.logger.Debug(s.module, utils.GetRequestID(ctx), "[ValidateAuthorizationCode]: Nonce: %s", authzCodeData.Nonce)
 	s.logger.Debug(s.module, utils.GetRequestID(ctx), "Successfully validated the authorization code")
 	return authzCodeData, nil
 }
@@ -399,11 +399,7 @@ func (s *authorizationService) handleUserConsent(ctx context.Context, request *c
 			s.logger.Info(s.module, requestID, "Consent required, redirecting to consent URL=[%s]", utils.SanitizeURL(consentURL))
 			return errors.NewConsentRequiredError(consentURL)
 		}
-	} else if consentApproved {
-		s.logger.Error(s.module, requestID, "Consent not required but was approved, user=[%s]", utils.TruncateSensitive(request.UserID))
-		return errors.NewAccessDeniedError()
 	}
-
 	return nil
 }
 

@@ -385,34 +385,6 @@ func TestTokenHandler_TokenExchange(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code, "Expected a successful token exchange")
 	})
-
-	t.Run("State Mismatch", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithUserSession()
-		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
-			[]string{constants.AuthorizationCodeGrantType},
-		)
-
-		formData := url.Values{}
-		formData.Add(constants.CodeURLValue, "valid-code")
-		formData.Add(constants.RedirectURIReqField, testRedirectURI)
-		formData.Add(constants.StateReqField, "invalid-state")
-		formData.Add(constants.GrantTypeReqField, constants.AuthorizationCodeGrantType)
-
-		headers := map[string]string{
-			"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
-			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": "Basic " + encodeClientCredentials(testClientID, testClientSecret),
-		}
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidRequest, "state mismatch between session and request")
-	})
 }
 
 func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {

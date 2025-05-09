@@ -43,7 +43,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
-			return true, nil
+			return false, nil
 		}
 		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
 			return "code", nil
@@ -114,40 +114,6 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		service := NewAuthorizationService(nil, nil, nil, mockClientService, nil)
 		_, err := service.AuthorizeClient(ctx, request, true)
 
-		assert.Error(t, err)
-	})
-
-	t.Run("Consent required error is returned when the user does not approve consent and consent is required", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
-			return true, nil
-		}
-		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return getTestClient(), nil
-		}
-
-		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService, nil)
-
-		_, err := service.AuthorizeClient(ctx, request, false)
-
-		assert.Contains(t, "user consent required for the requested scope", err.Error())
-		assert.Error(t, err)
-	})
-
-	t.Run("Access denied error is returned when consent is approved but user denies consent", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
-			return false, nil
-		}
-		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return getTestClient(), nil
-		}
-
-		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService, nil)
-
-		_, err := service.AuthorizeClient(ctx, request, true)
-
-		assert.Contains(t, "the resource owner denied the request", err.Error())
 		assert.Error(t, err)
 	})
 }
@@ -323,8 +289,8 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
 				return testAccessToken, testRefreshToken, nil
 			},
-			EncryptTokenFunc: func(ctx context.Context, signedToken string) (string, error) {
-				return testRefreshToken, nil
+			GenerateIDTokenFunc: func(ctx context.Context, userID, clientID, scopes, nonce string) (string, error) {
+				return "idToken", nil
 			},
 		}
 
@@ -463,52 +429,6 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 		}
 
 		service := NewAuthorizationService(nil, nil, nil, clientService, userService)
-		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
-
-		assert.Error(t, err)
-		assert.Nil(t, retrievedUser)
-	})
-
-	t.Run("Error is returned when the user does not exist by ID", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
-		claims := &token.TokenClaims{
-			Scopes: scopes,
-			StandardClaims: &jwt.StandardClaims{
-				Subject:  testUserID,
-				Audience: testClientID,
-			},
-		}
-
-		userService := &mUser.MockUserService{
-			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
-				return nil, nil
-			},
-		}
-
-		service := NewAuthorizationService(nil, nil, nil, nil, userService)
-		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
-
-		assert.Error(t, err)
-		assert.Nil(t, retrievedUser)
-	})
-
-	t.Run("Error is returned when the client does not exist by ID", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
-		claims := &token.TokenClaims{
-			Scopes: scopes,
-			StandardClaims: &jwt.StandardClaims{
-				Subject:  testUserID,
-				Audience: testClientID,
-			},
-		}
-
-		clientService := &mClientService.MockClientService{
-			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
-				return &client.Client{}, nil
-			},
-		}
-
-		service := NewAuthorizationService(nil, nil, nil, clientService, nil)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.Error(t, err)

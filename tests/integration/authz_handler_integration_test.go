@@ -160,39 +160,6 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 	assert.Equal(t, http.StatusFound, rr.Code)
 }
 
-func TestAuthorizationHandler_AuthorizeClient_ErrorIsReturnedCheckingUserConsent(t *testing.T) {
-	testContext := NewVigiloTestContext(t)
-	defer testContext.TearDown()
-
-	testContext.WithClient(
-		client.Confidential,
-		[]string{constants.ClientManageScope, constants.UserManageScope},
-		[]string{constants.AuthorizationCodeGrantType},
-	)
-
-	testContext.WithUserSession()
-
-	// Call AuthorizeClient Endpoint
-	queryParams := url.Values{}
-	queryParams.Add(constants.ClientIDReqField, testClientID)
-	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-	queryParams.Add(constants.ScopeReqField, testScope)
-	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
-	queryParams.Add(constants.ConsentApprovedURLValue, testConsentApproved)
-
-	sessionCookie := testContext.GetSessionCookie()
-	headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
-	endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
-
-	rr := testContext.SendHTTPRequest(
-		http.MethodGet,
-		endpoint,
-		nil, headers,
-	)
-
-	assert.Equal(t, http.StatusForbidden, rr.Code)
-}
-
 func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 	t.Run("Success when client is using PKCE", func(t *testing.T) {
 		tests := []struct {

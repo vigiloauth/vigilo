@@ -1,10 +1,8 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -52,11 +50,10 @@ func NewAuthorizationHandler(
 // If authorization is successful, it redirects the user to the redirect URI with the authorization code.
 // If an error occurs, it writes an appropriate error response.
 func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
+	ctx := r.Context()
+	requestID := utils.GetRequestID(ctx)
 
 	query := r.URL.Query()
-	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request")
 
 	if errorURL := web.ValidateClientAuthorizationParameters(query); errorURL != "" {
