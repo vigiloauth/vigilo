@@ -92,6 +92,9 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 
+	s.logger.Debug(s.module, requestID, "[AuthorizeClient]: Nonce: %s", request.Nonce)
+	s.logger.Debug(s.module, requestID, "[AuthorizeClient]: Scopes: %s", request.Scope)
+	s.logger.Debug(s.module, requestID, "[AuthorizeClient]: Approved: %t", request.ConsentApproved)
 	request.Client = retrievedClient
 	if err := request.Validate(); err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Failed to validate request: %v", err)
@@ -383,20 +386,21 @@ func (s *authorizationService) revokeAuthorizationCode(ctx context.Context, code
 }
 
 func (s *authorizationService) handleUserConsent(ctx context.Context, request *client.ClientAuthorizationRequest, consentApproved bool) error {
+	requestID := utils.GetRequestID(ctx)
 	userGaveConsent, err := s.userConsentService.CheckUserConsent(ctx, request.UserID, request.ClientID, request.Scope)
 	if err != nil {
-		s.logger.Error(s.module, "", "Failed to check user consent, user=[%s]: %v", utils.TruncateSensitive(request.UserID), err)
+		s.logger.Error(s.module, requestID, "Failed to check user consent, user=[%s]: %v", utils.TruncateSensitive(request.UserID), err)
 		return errors.NewAccessDeniedError()
 	}
 
 	if !userGaveConsent {
 		if !consentApproved {
 			consentURL := s.buildConsentURL(request)
-			s.logger.Info(s.module, "", "Consent required, redirecting to consent URL=[%s]", utils.SanitizeURL(consentURL))
+			s.logger.Info(s.module, requestID, "Consent required, redirecting to consent URL=[%s]", utils.SanitizeURL(consentURL))
 			return errors.NewConsentRequiredError(consentURL)
 		}
 	} else if consentApproved {
-		s.logger.Error(s.module, "", "Consent not required but was approved, user=[%s]", utils.TruncateSensitive(request.UserID))
+		s.logger.Error(s.module, requestID, "Consent not required but was approved, user=[%s]", utils.TruncateSensitive(request.UserID))
 		return errors.NewAccessDeniedError()
 	}
 

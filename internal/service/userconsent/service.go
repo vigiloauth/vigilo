@@ -224,19 +224,12 @@ func (c *userConsentService) ProcessUserConsent(
 		return nil, wrappedErr
 	}
 
-	sessionData, err := c.sessionService.ValidateSessionState(r)
-	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to validate session state")
-		c.logger.Error(c.module, requestID, "[ProcessUserConsent]: Failed to process user consent: %v", err)
-		return nil, wrappedErr
-	}
-
 	if !consentRequest.Approved {
 		c.logger.Warn(c.module, requestID, "[ProcessUserConsent]: Creating error response for denied consent")
-		return c.handleDeniedConsent(sessionData.State, redirectURI), nil
+		return c.handleDeniedConsent(consentRequest.State, redirectURI), nil
 	}
 
-	return c.processApprovedConsent(r.Context(), userID, clientID, redirectURI, scope, consentRequest, sessionData)
+	return c.processApprovedConsent(r.Context(), userID, clientID, redirectURI, scope, consentRequest)
 }
 
 func (c *userConsentService) handleDeniedConsent(state, redirectURI string) *consent.UserConsentResponse {
@@ -277,7 +270,6 @@ func (c *userConsentService) processApprovedConsent(
 	redirectURI string,
 	scope string,
 	consentRequest *consent.UserConsentRequest,
-	sessionData *session.SessionData,
 ) (*consent.UserConsentResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 
@@ -314,14 +306,8 @@ func (c *userConsentService) processApprovedConsent(
 		return nil, wrappedErr
 	}
 
-	if err := c.sessionService.ClearStateFromSession(ctx, sessionData); err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to clear state from session")
-		c.logger.Error(c.module, requestID, "Failed to clear state from session: %v", err)
-		return nil, wrappedErr
-	}
-
 	c.logger.Debug(c.module, requestID, "Building success response for approved consent")
-	return c.buildSuccessResponse(redirectURI, code, sessionData.State), nil
+	return c.buildSuccessResponse(redirectURI, code, consentRequest.State), nil
 }
 
 func (c *userConsentService) buildSuccessResponse(redirectURI, code, state string) *consent.UserConsentResponse {

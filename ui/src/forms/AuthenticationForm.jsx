@@ -21,6 +21,7 @@ import Container from "../components/Container";
 import FormInput from "../components/FormInput";
 import { authenticateUser } from "../api/userApi";
 import "../styles/AuthenticationForm.scss";
+import URL_PARAMS from "../constants/urlParams";
 
 const { Title, Text, Link } = Typography;
 
@@ -30,13 +31,13 @@ export default function AuthenticationForm() {
   const [loading, setLoading] = useState(false);
 
   const urlParams = new URLSearchParams(window.location.search);
-  const clientId = urlParams.get("client_id");
-  const redirectUri = urlParams.get("redirect_uri");
-  const state = urlParams.get("state") || "";
-  const scope = urlParams.get("scope") || "";
-  const responseType = urlParams.get("response_type") || "";
-  const nonce = urlParams.get("nonce") || "";
-  const display = urlParams.get("display") || "";
+  const clientId = urlParams.get(URL_PARAMS.CLIENT_ID);
+  const redirectUri = urlParams.get(URL_PARAMS.REDIRECT_URI);
+  const state = urlParams.get(URL_PARAMS.STATE) || "";
+  const scope = urlParams.get(URL_PARAMS.SCOPE) || "";
+  const responseType = urlParams.get(URL_PARAMS.RESPONSE_TYPE) || "";
+  const nonce = urlParams.get(URL_PARAMS.NONCE) || "";
+  const display = urlParams.get(URL_PARAMS.DISPLAY) || "";
 
   const onFinish = async () => {
     setLoading(true);
@@ -53,12 +54,12 @@ export default function AuthenticationForm() {
         display,
       });
 
-      console.log(data);
+      console.log(data.oauth_redirect_url);
       if (data.oauth_redirect_url) {
         message.success("Login successful. You are being redirected");
         setTimeout(() => {
           window.location.replace(data.oauth_redirect_url);
-        }, 2000);
+        }, 1000);
       }
     } catch (err) {
       message.error(err.message);

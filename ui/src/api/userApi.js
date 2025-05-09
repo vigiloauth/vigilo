@@ -1,29 +1,29 @@
-import URL from "../constants/urlParams";
+import URL_PARAMS from "../constants/urlParams";
 import ENDPOINT from "../constants/endpoints";
 
-export async function authenticateUser(
+export async function authenticateUser({
   username,
   password,
-  clientID,
-  redirectURI,
+  clientId,
+  redirectUri,
   state,
   scope,
   responseType,
   nonce,
   display,
-) {
+}) {
   const urlParams = new URLSearchParams();
-  urlParams.set(URL.CLIENT_ID, clientID);
-  urlParams.set(URL.REDIRECT_URI, redirectURI);
+  urlParams.set(URL_PARAMS.CLIENT_ID, clientId);
+  urlParams.set(URL_PARAMS.REDIRECT_URI, redirectUri);
 
-  if (state.length !== 0) urlParams.set(URL.STATE, state);
-  if (scope.length !== 0) urlParams.set(URL.SCOPE, scope);
-  if (responseType.length !== 0) urlParams.set(URL.RESPONSE_TYPE, responseType);
-  if (nonce.length !== 0) urlParams.set(URL.NONCE, nonce);
-  if (display.length !== 0) urlParams.set(URL.DISPLAY, display);
+  if (state !== "") urlParams.set(URL_PARAMS.STATE, state);
+  if (scope !== "") urlParams.set(URL_PARAMS.SCOPE, scope);
+  if (responseType !== "")
+    urlParams.set(URL_PARAMS.RESPONSE_TYPE, responseType);
+  if (nonce !== "") urlParams.set(URL_PARAMS.NONCE, nonce);
+  if (display !== "") urlParams.set(URL_PARAMS.DISPLAY, display);
 
   const endpoint = `${ENDPOINT.USER_AUTH}?${urlParams.toString()}`;
-
   try {
     const response = await fetch(endpoint, {
       method: "POST",
@@ -36,11 +36,8 @@ export async function authenticateUser(
     });
 
     const data = await response.json();
-    console.log("data:", data);
-
     if (!response.ok) {
       let errorMessage = "Something went wrong";
-
       switch (response.status) {
         case (401, 400):
           errorMessage =
@@ -85,7 +82,7 @@ export async function authenticateUser(
   }
 }
 
-export async function postConsent(
+export async function postConsent({
   clientID,
   redirectURI,
   scope,
@@ -94,19 +91,21 @@ export async function postConsent(
   nonce,
   display,
   approved,
-  approvedScopes,
-) {
+  scopes,
+}) {
   const urlParams = new URLSearchParams();
-  urlParams.set(URL.CLIENT_ID, clientID);
-  urlParams.set(URL.REDIRECT_URI, redirectURI);
+  urlParams.set(URL_PARAMS.CLIENT_ID, clientID);
+  urlParams.set(URL_PARAMS.REDIRECT_URI, redirectURI);
 
-  if (state.length !== 0) urlParams.set(URL.STATE, state);
-  if (scope.length !== 0) urlParams.set(URL.SCOPE, scope);
-  if (responseType.length !== 0) urlParams.set(URL.RESPONSE_TYPE, responseType);
-  if (nonce.length !== 0) urlParams.set(URL.NONCE, nonce);
-  if (display.length !== 0) urlParams.set(URL.DISPLAY, display);
+  if (state !== "") urlParams.set(URL_PARAMS.STATE, state);
+  if (scope !== "") urlParams.set(URL_PARAMS.SCOPE, scope);
+  if (responseType !== "")
+    urlParams.set(URL_PARAMS.RESPONSE_TYPE, responseType);
+  if (nonce !== "") urlParams.set(URL_PARAMS.NONCE, nonce);
+  if (display !== "") urlParams.set(URL_PARAMS.DISPLAY, display);
 
   const endpoint = `${ENDPOINT.USER_CONSENT}?${urlParams.toString()}`;
+  console.log(endpoint);
   try {
     const response = await fetch(endpoint, {
       method: "POST",
@@ -114,7 +113,7 @@ export async function postConsent(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ approved, approvedScopes }),
+      body: JSON.stringify({ approved, scopes }),
       credentials: "include",
     });
 
@@ -125,7 +124,6 @@ export async function postConsent(
           errorMessage = "Invalid credentials";
           break;
       }
-
       throw new Error(errorMessage);
     }
 

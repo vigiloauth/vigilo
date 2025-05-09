@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Typography,
@@ -21,6 +21,7 @@ import {
 } from "@ant-design/icons";
 import "../styles/ConsentForm.scss";
 import { postConsent } from "../api/userApi";
+import URL_PARAMS from "../constants/urlParams";
 
 const { Panel } = Collapse;
 const { Title, Text, Paragraph } = Typography;
@@ -66,30 +67,24 @@ const scopeDetails = {
 
 export default function ConsentForm() {
   const [isMobile, setIsMobile] = useState(false);
-  const [consented, setConsented] = useState({});
   const [loading, setLoading] = useState(false);
   const [clientName, setClientName] = useState("[App]");
-  const [requestedScopes, setRequestedScopes] = useState([]);
+  const [scopes, setScopes] = useState([]);
 
   const urlParams = new URLSearchParams(window.location.search);
-  const clientID = urlParams.get("client_id");
-  const redirectURI = urlParams.get("redirect_uri");
-  const state = urlParams.get("state") || "";
-  const scope = urlParams.get("scope") || "openid profile email phone address";
-  const responseType = urlParams.get("response_type") || "";
-  const nonce = urlParams.get("nonce") || "";
-  const display = urlParams.get("display") || "";
+  const clientID = urlParams.get(URL_PARAMS.CLIENT_ID);
+  const redirectURI = urlParams.get(URL_PARAMS.REDIRECT_URI);
+  const state = urlParams.get(URL_PARAMS.STATE) || "";
+  const scope = urlParams.get(URL_PARAMS.SCOPE) || "";
+  const responseType = urlParams.get(URL_PARAMS.RESPONSE_TYPE) || "";
+  const nonce = urlParams.get(URL_PARAMS.NONCE) || "";
+  const display = urlParams.get(URL_PARAMS.DISPLAY) || "";
 
   useEffect(() => {
-    const initialConsent = {};
     if (scope) {
-      setRequestedScopes(scope.split(" "));
+      setScopes(scope.split(" "));
     }
-    requestedScopes.forEach((scope) => {
-      initialConsent[scope] = scopeDetails[scope]?.required || false;
-    });
-    setConsented(initialConsent);
-  }, [requestedScopes]);
+  }, [scopes]);
 
   // Check if screen size is mobile
   useEffect(() => {
@@ -108,8 +103,8 @@ export default function ConsentForm() {
   const handleApprove = async () => {
     try {
       setLoading(true);
-
-      console.log("Approved scopes:", requestedScopes);
+      console.log("scopes: ", scopes);
+      console.log("nonce: ", nonce);
       const data = await postConsent({
         clientID,
         redirectURI,
@@ -118,15 +113,17 @@ export default function ConsentForm() {
         state,
         nonce,
         display,
-        consented,
-        requestedScopes,
+        approved: true,
+        scopes,
       });
 
       if (data.redirect_uri) {
-        message.success("You are being redirected");
+        message.success(
+          "Your consent has been recorded. You are being redirected",
+        );
         setTimeout(() => {
           window.location.href = data.redirect_uri;
-        }, 2000);
+        }, 1000);
       }
     } catch (err) {
       message.error("Something went wrong. Please try again later");
@@ -145,7 +142,7 @@ export default function ConsentForm() {
       <Collapse
         accordion
         bordered={false}
-        expandIconPosition="right"
+        expandIconPosition="end"
         style={{
           marginBottom: "15px",
           backgroundColor: "white",

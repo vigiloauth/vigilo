@@ -12,6 +12,9 @@ export default defineConfig([
       reportUnusedDisableDirectives: true,
       noInlineConfig: false,
     },
+    rules: {
+      camelcase: ["error", { properties: "always" }],
+    },
   },
   {
     files: ["**/*.{js,mjs,cjs,jsx}"],

@@ -1,4 +1,4 @@
-const URL = {
+const URL_PARAMS = {
   CLIENT_ID: "client_id",
   REDIRECT_URI: "redirect_uri",
   STATE: "state",
@@ -8,4 +8,4 @@ const URL = {
   DISPLAY: "display",
 };
 
-export default URL;
+export default URL_PARAMS;
