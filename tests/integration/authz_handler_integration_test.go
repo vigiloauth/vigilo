@@ -39,8 +39,8 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 			)
 
 			testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
-			testContext.WithUserSession()
 			testContext.WithUserConsent()
+			testContext.WithUserSession()
 
 			queryParams := url.Values{}
 			queryParams.Add(constants.ClientIDReqField, testClientID)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
@@ -29,34 +28,107 @@ const (
 	testSessionID string = "test_id"
 )
 
-func TestSessionService_CreateSession(t *testing.T) {
-	config.NewServerConfig(config.WithForceHTTPS())
-	mockTokenService := &mTokenService.MockTokenService{
-		GenerateTokenFunc: func(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
-			return testToken, nil
+func TestSessionService_GetOrCreateSession(t *testing.T) {
+	tests := []struct {
+		name          string
+		wantErr       bool
+		tokenService  *mTokenService.MockTokenService
+		cookieService *mCookieService.MockHTTPCookieService
+		sessionRepo   *mSessionRepo.MockSessionRepository
+	}{
+		{
+			name:    "Success when retrieving existing session",
+			wantErr: false,
+			cookieService: &mCookieService.MockHTTPCookieService{
+				GetSessionTokenFunc: func(r *http.Request) (string, error) {
+					return testToken, nil
+				},
+			},
+			tokenService: &mTokenService.MockTokenService{
+				DecryptTokenFunc: func(ctx context.Context, encryptedToken string) (string, error) {
+					return testToken, nil
+				},
+			},
+			sessionRepo: &mSessionRepo.MockSessionRepository{
+				GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*session.SessionData, error) {
+					return getTestSessionData(), nil
+				},
+			},
 		},
-	}
-	mockSessionRepo := &mSessionRepo.MockSessionRepository{
-		SaveSessionFunc: func(ctx context.Context, sessionData *session.SessionData) error {
-			return nil
+		{
+			name:    "Error retrieving session token should create a new session",
+			wantErr: false,
+			cookieService: &mCookieService.MockHTTPCookieService{
+				GetSessionTokenFunc: func(r *http.Request) (string, error) {
+					return "", errors.New(errors.ErrCodeMissingHeader, "session token not found")
+				},
+				SetSessionCookieFunc: func(ctx context.Context, w http.ResponseWriter, token string, expirationTime time.Duration) {},
+			},
+			sessionRepo: &mSessionRepo.MockSessionRepository{
+				SaveSessionFunc: func(ctx context.Context, sessionData *session.SessionData) error {
+					return nil
+				},
+			},
+			tokenService: &mTokenService.MockTokenService{
+				EncryptTokenFunc: func(ctx context.Context, signedToken string) (string, error) {
+					return testToken, nil
+				},
+			},
 		},
-	}
-	mockCookieService := &mCookieService.MockHTTPCookieService{
-		SetSessionCookieFunc: func(ctx context.Context, w http.ResponseWriter, token string, expirationTime time.Duration) {},
-	}
-	mockAuditLogger := &mAuditLogger.MockAuditLogger{
-		StoreEventFunc: func(ctx context.Context, eventType audit.EventType, success bool, action audit.ActionType, method audit.MethodType, err error) {
+		{
+			name:    "Error decrypting token should not create new session",
+			wantErr: true,
+			cookieService: &mCookieService.MockHTTPCookieService{
+				GetSessionTokenFunc: func(r *http.Request) (string, error) {
+					return testToken, nil
+				},
+			},
+			tokenService: &mTokenService.MockTokenService{
+				DecryptTokenFunc: func(ctx context.Context, encryptedToken string) (string, error) {
+					return "", errors.New(errors.ErrCodeTokenDecryption, "failed to decrypt token")
+				},
+			},
+			sessionRepo: nil,
+		},
+		{
+			name:    "DB error should return an error",
+			wantErr: true,
+			cookieService: &mCookieService.MockHTTPCookieService{
+				GetSessionTokenFunc: func(r *http.Request) (string, error) {
+					return testToken, nil
+				},
+			},
+			tokenService: &mTokenService.MockTokenService{
+				DecryptTokenFunc: func(ctx context.Context, encryptedToken string) (string, error) {
+					return testToken, nil
+				},
+			},
+			sessionRepo: &mSessionRepo.MockSessionRepository{
+				GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*session.SessionData, error) {
+					return nil, errors.NewInternalServerError()
+				},
+			},
 		},
 	}
 
-	sessionService := NewSessionService(mockTokenService, mockSessionRepo, mockCookieService, mockAuditLogger)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			w := httptest.NewRecorder()
+			ctx := context.WithValue(req.Context(), constants.ContextKeyRequestID, "test_request_id")
 
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodPost, "/", nil)
+			service := NewSessionService(test.tokenService, test.sessionRepo, test.cookieService, nil)
+			session, err := service.GetOrCreateSession(ctx, w, req, getTestSessionData())
 
-	jwtConfig := config.NewTokenConfig()
-	err := sessionService.CreateSession(w, r, testID, jwtConfig.ExpirationTime())
-	assert.NoError(t, err)
+			if test.wantErr {
+				assert.Error(t, err, "Expected an error but got none")
+				assert.Nil(t, session, "Expected the session to be nil but got: %v", session)
+			} else {
+				assert.NoError(t, err, "Expected no error but got: %v", err)
+				assert.NotNil(t, session, "Expected the session to not be nil")
+			}
+		})
+	}
 }
 
 func TestSessionService_InvalidateSession(t *testing.T) {
@@ -288,114 +360,12 @@ func TestSessionService_GetSessionData(t *testing.T) {
 	})
 }
 
-func TestSessionService_ClearStateFromSession(t *testing.T) {
-	ctx := context.Background()
-	t.Run("Success", func(t *testing.T) {
-		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			UpdateSessionByIDFunc: func(ctx context.Context, sessionID string, sessionData *session.SessionData) error {
-				return nil
-			},
-		}
-
-		session := getTestSessionData()
-		session.State = "testState"
-		service := NewSessionService(nil, mockSessionRepo, nil, nil)
-
-		err := service.ClearStateFromSession(ctx, session)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Error is returned when updating the session", func(t *testing.T) {
-		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			UpdateSessionByIDFunc: func(ctx context.Context, sessionID string, sessionData *session.SessionData) error {
-				return errors.NewInternalServerError()
-			},
-		}
-
-		session := getTestSessionData()
-		session.State = "testState"
-		service := NewSessionService(nil, mockSessionRepo, nil, nil)
-
-		err := service.ClearStateFromSession(ctx, session)
-		assert.Error(t, err)
-	})
-}
-
-func TestSessionService_ValidateSessionState(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		mockCookieService := &mCookieService.MockHTTPCookieService{
-			GetSessionTokenFunc: func(r *http.Request) (string, error) {
-				return testSessionID, nil
-			},
-		}
-		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*session.SessionData, error) {
-				return getTestSessionData(), nil
-			},
-		}
-
-		req := &http.Request{
-			URL: &url.URL{
-				RawQuery: "state=testState",
-			},
-		}
-
-		session := NewSessionService(nil, mockSessionRepo, mockCookieService, nil)
-		result, err := session.ValidateSessionState(req)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-	})
-
-	t.Run("Error is returning retrieving session data", func(t *testing.T) {
-		mockCookieService := &mCookieService.MockHTTPCookieService{
-			GetSessionTokenFunc: func(r *http.Request) (string, error) {
-				return testSessionID, nil
-			},
-		}
-		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*session.SessionData, error) {
-				return nil, errors.NewInternalServerError()
-			},
-		}
-
-		req := httptest.NewRequest("GET", "/test&state=testState", nil)
-
-		session := NewSessionService(nil, mockSessionRepo, mockCookieService, nil)
-		result, err := session.ValidateSessionState(req)
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
-	})
-
-	t.Run("Error is returned when there is a state mismatch", func(t *testing.T) {
-		mockCookieService := &mCookieService.MockHTTPCookieService{
-			GetSessionTokenFunc: func(r *http.Request) (string, error) {
-				return testSessionID, nil
-			},
-		}
-		mockSessionRepo := &mSessionRepo.MockSessionRepository{
-			GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*session.SessionData, error) {
-				return getTestSessionData(), nil
-			},
-		}
-
-		req := httptest.NewRequest("GET", "/test&state=testState", nil)
-
-		session := NewSessionService(nil, mockSessionRepo, mockCookieService, nil)
-		result, err := session.ValidateSessionState(req)
-
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		assert.Equal(t, "state parameter does not match with session state", err.Error())
-	})
-}
-
 func getTestSessionData() *session.SessionData {
 	return &session.SessionData{
 		ID:             testSessionID,
 		UserID:         testID,
+		ClientID:       "client-ID",
 		ExpirationTime: time.Now().Add(1 * time.Minute),
-		State:          "testState",
+		ClientName:     "client-name",
 	}
 }

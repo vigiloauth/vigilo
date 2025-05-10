@@ -30,4 +30,16 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
     - 🛠️ `oidcc-display-popup`
     - 🛠️ `oidcc-prompt-login`
     
-  
+To Do:
+- fetch client name from session in the UI
+- refactor consent form
+- update Consent scss
+- update routes with display:
+    - authentication
+    - consent
+- create new routes for new popup display:
+    - authentication
+    - consent
+- create new pages:
+    - authenticationPopup
+    - consentPopup

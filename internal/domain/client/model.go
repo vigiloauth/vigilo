@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"slices"
 	"strings"
@@ -144,6 +145,8 @@ type ClientAuthorizationRequest struct {
 	UserID              string
 	ConsentApproved     bool
 	Client              *Client
+	HTTPWriter          http.ResponseWriter
+	HTTPRequest         *http.Request
 }
 
 type ClientInformationResponse struct {
@@ -371,7 +374,7 @@ func NewClientInformationResponse(clientID, clientSecret, registrationClientURI,
 	return clientInfo
 }
 
-func NewClientAuthorizationRequest(query url.Values, userID string) *ClientAuthorizationRequest {
+func NewClientAuthorizationRequest(query url.Values) *ClientAuthorizationRequest {
 	return &ClientAuthorizationRequest{
 		ClientID:            query.Get(constants.ClientIDReqField),
 		RedirectURI:         query.Get(constants.RedirectURIReqField),
@@ -382,7 +385,6 @@ func NewClientAuthorizationRequest(query url.Values, userID string) *ClientAutho
 		CodeChallengeMethod: query.Get(constants.CodeChallengeMethodReqField),
 		Nonce:               query.Get(constants.NonceReqField),
 		Display:             query.Get(constants.DisplayReqField),
-		UserID:              userID,
 		ConsentApproved:     query.Get(constants.ConsentApprovedURLValue) == "true",
 	}
 }

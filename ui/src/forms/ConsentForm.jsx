@@ -86,7 +86,6 @@ export default function ConsentForm() {
     }
   }, [scopes]);
 
-  // Check if screen size is mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);

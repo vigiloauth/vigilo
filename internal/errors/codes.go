@@ -33,11 +33,13 @@ const (
 	ErrCodeInsufficientRole   string = "insufficient_role"
 
 	// Token errors
-	ErrCodeTokenNotFound string = "token_not_found"
-	ErrCodeExpiredToken  string = "token_expired"
-	ErrCodeTokenCreation string = "token_creation"
-	ErrCodeInvalidToken  string = "invalid_token"
-	ErrCodeTokenParsing  string = "token_parsing"
+	ErrCodeTokenNotFound   string = "token_not_found"
+	ErrCodeExpiredToken    string = "token_expired"
+	ErrCodeTokenCreation   string = "token_creation"
+	ErrCodeInvalidToken    string = "invalid_token"
+	ErrCodeTokenParsing    string = "token_parsing"
+	ErrCodeTokenEncryption string = "token_encrypt_failed"
+	ErrCodeTokenDecryption string = "token_decrypt_failed"
 
 	// Email errors
 	ErrCodeConnectionFailed    string = "connection_failed"
@@ -61,9 +63,12 @@ const (
 	ErrCodeDuplicateSession string = "duplicate_session"
 	ErrCodeSessionNotFound  string = "session_not_found"
 	ErrCodeInvalidSession   string = "invalid_session"
+	ErrCodeSessionExpired   string = "expired_session"
 
 	// Middleware Errors
-	ErrCodeRequestLimitExceeded = "request_limit_exceeded"
+	ErrCodeRequestLimitExceeded string = "request_limit_exceeded"
+	ErrCodeSessionCreation      string = "session_create_failed"
+	ErrCodeSessionSave          string = "session_save_failed"
 
 	// System errors
 	ErrCodeInternalServerError string = "server_error"
@@ -114,6 +119,7 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidSession:           http.StatusUnauthorized,
 	ErrCodeInvalidAuthorizationCode: http.StatusUnauthorized,
 	ErrCodeExpiredAuthorizationCode: http.StatusUnauthorized,
+	ErrCodeSessionExpired:           http.StatusUnauthorized,
 
 	// 404 Not Found
 	ErrCodeUserNotFound:              http.StatusNotFound,
@@ -149,6 +155,10 @@ var statusCodeMap = map[string]int{
 	ErrCodeInternalServerError: http.StatusInternalServerError,
 	ErrCodeTokenCreation:       http.StatusInternalServerError,
 	ErrCodeEmailDeliveryFailed: http.StatusInternalServerError,
+	ErrCodeSessionCreation:     http.StatusInternalServerError,
+	ErrCodeSessionSave:         http.StatusInternalServerError,
+	ErrCodeTokenEncryption:     http.StatusInternalServerError,
+	ErrCodeTokenDecryption:     http.StatusInternalServerError,
 
 	// 502 Bad Gateway
 	ErrCodeConnectionFailed: http.StatusBadGateway,

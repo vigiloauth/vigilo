@@ -72,8 +72,9 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, r, user.ID, h.tokenConfig.ExpirationTime()); err != nil {
-		web.WriteError(w, err)
+	sessionData := &session.SessionData{UserID: user.ID}
+	if _, err := h.sessionService.GetOrCreateSession(ctx, w, r, sessionData); err != nil {
+		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}
 
@@ -107,7 +108,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, r, response.UserID, h.tokenConfig.ExpirationTime()); err != nil {
+	sessionData := &session.SessionData{
+		UserID:             response.UserID,
+		AuthenticationTime: time.Now(),
+	}
+
+	if _, err := h.sessionService.GetOrCreateSession(ctx, w, r, sessionData); err != nil {
 		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}
@@ -140,7 +146,12 @@ func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, r, response.UserID, h.tokenConfig.ExpirationTime()); err != nil {
+	sessionData := &session.SessionData{
+		UserID:             response.UserID,
+		AuthenticationTime: time.Now(),
+	}
+
+	if _, err := h.sessionService.GetOrCreateSession(ctx, w, r, sessionData); err != nil {
 		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}

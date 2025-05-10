@@ -268,10 +268,6 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 	})
 
 	t.Run("Consent denied by user", func(t *testing.T) {
-		mockSessionService.ValidateSessionStateFunc = func(r *http.Request) (*session.SessionData, error) {
-			return &session.SessionData{State: testState}, nil
-		}
-
 		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, nil, mockAuthzCodeService)
 		req := &http.Request{}
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, testScope, &consent.UserConsentRequest{Approved: false}, req)
@@ -282,9 +278,6 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 	})
 
 	t.Run("Error is returned when saving user consent fails", func(t *testing.T) {
-		mockSessionService.ValidateSessionStateFunc = func(r *http.Request) (*session.SessionData, error) {
-			return &session.SessionData{State: testState}, nil
-		}
 		mockConsentRepo.SaveConsentFunc = func(ctx context.Context, userID, clientID, scope string) error {
 			return errors.NewInternalServerError()
 		}
@@ -298,9 +291,6 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 	})
 
 	t.Run("Error is returned when generating authorization code fails", func(t *testing.T) {
-		mockSessionService.ValidateSessionStateFunc = func(r *http.Request) (*session.SessionData, error) {
-			return &session.SessionData{State: testState}, nil
-		}
 		mockConsentRepo.SaveConsentFunc = func(ctx context.Context, userID, clientID, scope string) error {
 			return nil
 		}
@@ -321,17 +311,11 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 	})
 
 	t.Run("Success when consent is approved", func(t *testing.T) {
-		mockSessionService.ValidateSessionStateFunc = func(r *http.Request) (*session.SessionData, error) {
-			return &session.SessionData{State: testState}, nil
-		}
 		mockConsentRepo.SaveConsentFunc = func(ctx context.Context, userID, clientID, scope string) error {
 			return nil
 		}
 		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
 			return "auth_code", nil
-		}
-		mockSessionService.ClearStateFromSessionFunc = func(ctx context.Context, sessionData *session.SessionData) error {
-			return nil
 		}
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
