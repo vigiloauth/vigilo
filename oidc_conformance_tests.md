@@ -30,16 +30,21 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
     - 🛠️ `oidcc-display-popup`
     - 🛠️ `oidcc-prompt-login`
     
-To Do:
-- fetch client name from session in the UI
-- refactor consent form
-- update Consent scss
-- update routes with display:
-    - authentication
-    - consent
-- create new routes for new popup display:
-    - authentication
-    - consent
-- create new pages:
-    - authenticationPopup
-    - consentPopup
+### To Do:
+#### Server: 
+- Issue a second, non-sensitive JWT with limited data during the client authorization process.
+- Store the JWT in local storage.
+
+#### UI
+- Retrieve the client name from the local storage for `ConsentForm.jsx`
+- Refactor `ConsentForm.jsx`
+- Update `Consent.scss`
+- Update routes:
+    - Authentication Form: `/authenticate?display=page`
+    - Consent Form: `/consent?display=page`
+- Create new pages:
+    - `AuthenticationPopup.jsx`
+    - `ConsentPopup.jsx`
+- Create new routes for the popup display type:
+    - Authentication Popup: `/authenticate?display=popup`
+    - Consent Popup: `/consent?display=popup`
