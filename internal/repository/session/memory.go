@@ -109,11 +109,23 @@ func (s *InMemorySessionRepository) UpdateSessionByID(ctx context.Context, sessi
 	defer s.mu.Unlock()
 
 	requestID := utils.GetRequestID(ctx)
-	if _, ok := s.data[sessionID]; !ok {
+	existingSession, ok := s.data[sessionID]
+	if !ok {
 		logger.Debug(module, requestID, "[UpdateSessionByID]: No session exists with the given ID=%s", sessionID)
 		return errors.New(errors.ErrCodeSessionNotFound, "session does not exist with the provided ID")
 	}
 
+	if sessionData.UserID != "" {
+		existingSession.UserID = sessionData.UserID
+	}
+	if sessionData.State != "" {
+		existingSession.State = sessionData.State
+	}
+	if sessionData.ClientID != "" {
+		existingSession.ClientID = sessionData.ClientID
+	}
+
+	s.data[sessionID] = sessionData
 	return nil
 }
 
