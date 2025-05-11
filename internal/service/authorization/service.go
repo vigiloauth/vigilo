@@ -96,23 +96,14 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 
-	initialSessionData := &session.SessionData{
-		ClientID:    retrievedClient.ID,
-		ClientName:  retrievedClient.Name,
-		RedirectURI: request.RedirectURI,
-	}
-
-	sessionData, err := s.sessionService.GetOrCreateSession(ctx, request.HTTPWriter, request.HTTPRequest, initialSessionData)
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Failed to get or create session: %v", err)
-		return "", err
-	} else if sessionData.UserID == "" {
+	userID := s.sessionService.GetUserIDFromSession(request.HTTPRequest)
+	if userID == "" {
 		loginURL := s.buildLoginURL(request)
 		s.logger.Error(s.module, requestID, "[AuthorizeClient]: User is not authenticated, redirecting to login page")
 		return loginURL, nil
 	}
 
-	request.UserID = sessionData.UserID
+	request.UserID = userID
 	request.Client = retrievedClient
 	if err := request.Validate(); err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Failed to validate request: %v", err)
