@@ -82,7 +82,7 @@ export async function authenticateUser({
   }
 }
 
-export async function postConsent({
+export async function handleUserConsent({
   clientID,
   redirectURI,
   scope,
@@ -92,6 +92,7 @@ export async function postConsent({
   display,
   approved,
   scopes,
+  method = "POST",
 }) {
   const urlParams = new URLSearchParams();
   urlParams.set(URL_PARAMS.CLIENT_ID, clientID);
@@ -107,16 +108,20 @@ export async function postConsent({
   const endpoint = `${ENDPOINT.USER_CONSENT}?${urlParams.toString()}`;
   console.log(endpoint);
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
+    const fetchOptions = {
+      method,
       headers: {
-        "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ approved, scopes }),
       credentials: "include",
-    });
+    };
 
+    if (method === "POST") {
+      fetchOptions.headers["Content-Type"] = "application/json";
+      fetchOptions.body = JSON.stringify({ approved, scopes });
+    }
+
+    const response = await fetch(endpoint, fetchOptions);
     if (!response.ok) {
       let errorMessage = "Something went wrong";
       switch (response.statue) {
