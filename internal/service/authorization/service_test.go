@@ -55,9 +55,8 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return getTestClient(), nil
 		}
-		mockSessionService.GetOrCreateSessionFunc = func(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) (*session.SessionData, error) {
-			sessionData.UserID = "user_id"
-			return sessionData, nil
+		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+			return nil
 		}
 
 		request := getClientAuthorizationRequest()
@@ -78,9 +77,8 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return getTestClient(), nil
 		}
-		mockSessionService.GetOrCreateSessionFunc = func(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) (*session.SessionData, error) {
-			sessionData.UserID = "user_id"
-			return sessionData, nil
+		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+			return nil
 		}
 
 		request := getClientAuthorizationRequest()
@@ -98,9 +96,8 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
 			return false, errors.NewAccessDeniedError()
 		}
-		mockSessionService.GetOrCreateSessionFunc = func(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) (*session.SessionData, error) {
-			sessionData.UserID = "user_id"
-			return sessionData, nil
+		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+			return nil
 		}
 
 		request := getClientAuthorizationRequest()
@@ -117,9 +114,8 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return getTestClient(), nil
 		}
-		mockSessionService.GetOrCreateSessionFunc = func(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) (*session.SessionData, error) {
-			sessionData.UserID = "user_id"
-			return sessionData, nil
+		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+			return nil
 		}
 
 		request := &client.ClientAuthorizationRequest{

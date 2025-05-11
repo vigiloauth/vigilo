@@ -19,11 +19,14 @@ import (
 )
 
 const (
-	testUserID      string = "user_id"
-	testClientID    string = "client_id"
-	testScope       string = "user:read"
-	testRedirectURI string = "https://test.com/callback"
-	testState       string = "test_state"
+	testUserID       string = "user_id"
+	testClientID     string = "client_id"
+	testScope        string = "user:read"
+	testRedirectURI  string = "https://test.com/callback"
+	testState        string = "test_state"
+	testResponseType string = "code"
+	testNonce        string = "nonce"
+	testDisplay      string = "page"
 )
 
 func TestUserConsentService_CheckUserConsent(t *testing.T) {
@@ -179,7 +182,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 
 		service := NewUserConsentService(nil, nil, mockSessionService, mockClientService, nil)
 		req := &http.Request{}
-		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testScope, req)
+		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, testScope, testResponseType, testNonce, testDisplay, req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -189,7 +192,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 	t.Run("Error is returned when the request is not valid", func(t *testing.T) {
 		service := NewUserConsentService(nil, nil, nil, nil, nil)
 		req := &http.Request{}
-		response, err := service.GetConsentDetails("", testClientID, testRedirectURI, testScope, req)
+		response, err := service.GetConsentDetails("", testClientID, testRedirectURI, testState, testScope, testResponseType, testNonce, testDisplay, req)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -209,7 +212,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 
 		service := NewUserConsentService(nil, nil, mockSessionService, mockClientService, nil)
 		req := &http.Request{}
-		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testScope, req)
+		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, testScope, testResponseType, testNonce, testDisplay, req)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -232,7 +235,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 
 		service := NewUserConsentService(nil, nil, mockSessionService, mockClientService, nil)
 		req := &http.Request{}
-		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testScope, req)
+		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, testScope, testResponseType, testNonce, testDisplay, req)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
@@ -246,7 +249,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 		}
 		service := NewUserConsentService(nil, nil, nil, mockClientService, nil)
 		req := &http.Request{}
-		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testScope, req)
+		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, testScope, testResponseType, testNonce, testDisplay, req)
 
 		assert.Error(t, err)
 		assert.Nil(t, response)
