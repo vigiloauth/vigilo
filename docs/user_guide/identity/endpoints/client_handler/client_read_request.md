@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-GET /oauth2/client/register/{client_id}
+GET /oauth2/clients/register/{client_id}
 ```
 ---
 

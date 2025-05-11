@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-DELETE /oauth2/client/register/{client_id}
+DELETE /oauth2/clients/register/{client_id}
 ```
 
 --- 

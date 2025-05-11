@@ -29,14 +29,9 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
     - ✅ `oidcc-display-page`
     - 🛠️ `oidcc-display-popup`
     - 🛠️ `oidcc-prompt-login`
-    
-### To Do:
-#### Server: 
-- Issue a second, non-sensitive JWT with limited data during the client authorization process.
-- Store the JWT in local storage.
 
+### To Do:
 #### UI
-- Retrieve the client name from the local storage for `ConsentForm.jsx`
 - Refactor `ConsentForm.jsx`
 - Update `Consent.scss`
 - Update routes:

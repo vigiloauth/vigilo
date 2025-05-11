@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /oauth/token/introspect
+POST /oauth2/tokens/introspect
 
 ```
 
