@@ -8,7 +8,6 @@ import (
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	cookie "github.com/vigiloauth/vigilo/v2/internal/domain/cookies"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
@@ -57,50 +56,40 @@ func NewSessionService(
 	}
 }
 
-// GetOrCreateSession attempts to retrieve an existing session or creates one if it doesn't exist.
+// CreateSession creates a new session token and sets it in an HttpOnly cookie.
 //
 // Parameters:
-//   - ctx context.Context: Context for managing timeouts and request IDs.
 //   - w http.ResponseWriter: The HTTP response writer.
 //   - r *http.Request: The HTTP request.
-//   - sessionData *SessionData: The session data.
+//   - userID string: The user's ID address.
+//   - sessionExpiration time.Duration: The session expiration time.
 //
 // Returns:
-//   - *SessionData: The retrieved or created session data.
-//   - error: An error if retrieval or creation fails.
-func (s *sessionService) GetOrCreateSession(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) (*session.SessionData, error) {
+//   - error: An error if token generation or cookie setting fails.
+func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
 
-	existingSession, err := s.getExistingSession(ctx, r)
-	if err == nil {
-		return existingSession, nil
+	sessionToken, err := s.tokenService.GenerateToken(ctx, sessionData.UserID, "", "", s.sessionDuration)
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to generate session token: %v", err)
+		return errors.Wrap(err, "", "failed to generate session token")
 	}
 
-	if vaErr, ok := err.(*errors.VigiloAuthError); ok &&
-		vaErr.ErrorCode == errors.ErrCodeSessionNotFound ||
-		vaErr.ErrorCode == errors.ErrCodeMissingHeader {
-		s.logger.Info(s.module, requestID, "[GetOrCreateSession]: Creating new session because: %v", vaErr.ErrorCode)
-	} else {
-		s.logger.Error(s.module, requestID, "[GetOrCreateSession]: Failed to retrieve session: %v", err)
-		return nil, err
-	}
-
-	if err := s.populateNewSession(r, sessionData); err != nil {
-		s.logger.Error(s.module, requestID, "[GetOrCreateSession]: Failed to create new session: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeSessionCreation, "failed to create new session")
-	}
+	sessionData.ID = sessionToken
+	sessionData.ExpirationTime = time.Now().Add(s.sessionDuration)
 
 	if err := s.sessionRepo.SaveSession(ctx, sessionData); err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeSessionSave, "failed to save new session")
+		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to save session: %v", err)
+		wrappedErr := errors.Wrap(err, errors.ErrCodeInternalServerError, "error creating session")
+		s.auditLogger.StoreEvent(ctx, audit.SessionCreated, false, audit.SessionCreationAction, audit.CookieMethod, wrappedErr)
+		return wrappedErr
 	}
 
-	token, err := s.tokenService.EncryptToken(ctx, sessionData.ID)
-	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeTokenEncryption, "failed to encrypt session token")
-	}
-
-	s.httpCookieService.SetSessionCookie(ctx, w, token, s.sessionDuration)
-	return sessionData, nil
+	ctx = context.WithValue(ctx, constants.ContextKeySessionID, sessionToken)
+	s.auditLogger.StoreEvent(ctx, audit.SessionCreated, true, audit.SessionCreationAction, audit.CookieMethod, nil)
+	s.httpCookieService.SetSessionCookie(ctx, w, sessionToken, s.sessionDuration)
+	return nil
 }
 
 // InvalidateSession invalidates the session token by adding it to the blacklist.
@@ -262,61 +251,4 @@ func (s *sessionService) generateStandardClaims(ctx context.Context, token strin
 	}
 
 	return claims, nil
-}
-
-func (s *sessionService) populateNewSession(r *http.Request, sessionData *session.SessionData) error {
-	sessionID, err := crypto.GenerateRandomString(32)
-	if err != nil {
-		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate session ID")
-	}
-
-	ipAddr := r.Header.Get(constants.XForwardedHeader)
-	if ipAddr == "" {
-		ipAddr = r.RemoteAddr
-	}
-
-	sessionData.ID = constants.SessionIDPrefix + sessionID
-	sessionData.IPAddress = ipAddr
-	sessionData.UserAgent = r.UserAgent()
-	sessionData.ExpirationTime = time.Now().Add(s.sessionDuration)
-	sessionData.AuthenticationTime = time.Time{}
-
-	return nil
-}
-
-func (s *sessionService) getExistingSession(ctx context.Context, r *http.Request) (*session.SessionData, error) {
-	requestID := utils.GetRequestID(ctx)
-
-	token, err := s.httpCookieService.GetSessionToken(r)
-	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeSessionNotFound, "no session token found")
-	}
-
-	if token == "" {
-		return nil, errors.New(errors.ErrCodeSessionNotFound, "empty session token")
-	}
-
-	sessionID, err := s.tokenService.DecryptToken(ctx, token)
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[getExistingSession]: Failed to decrypt session token: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeTokenDecryption, "failed to decrypt session token")
-	}
-
-	existingSession, err := s.sessionRepo.GetSessionByID(ctx, sessionID)
-	if err != nil {
-		if vaErr, ok := err.(*errors.VigiloAuthError); ok && vaErr.ErrorCode == errors.ErrCodeSessionNotFound {
-			s.logger.Debug(s.module, requestID, "[getExistingSession]: Session not found: %v", err)
-			return nil, errors.Wrap(err, errors.ErrCodeSessionNotFound, "session not found in storage")
-		} else {
-			return nil, err
-		}
-	}
-
-	if time.Now().After(existingSession.ExpirationTime) {
-		s.logger.Debug(s.module, requestID, "[getExistingSession]: Session expired")
-		return nil, errors.New(errors.ErrCodeSessionExpired, "session has expired")
-	}
-
-	s.logger.Debug(s.module, requestID, "[getExistingSession]: Found valid session")
-	return existingSession, nil
 }

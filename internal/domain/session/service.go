@@ -1,24 +1,22 @@
 package domain
 
 import (
-	"context"
 	"net/http"
 )
 
 // SessionService defines the interface for session management.
 type SessionService interface {
-	// GetOrCreateSession attempts to retrieve an existing session or creates one if it doesn't exist.
+	// CreateSession creates a new session token and sets it in an HttpOnly cookie.
 	//
 	// Parameters:
-	//	- ctx context.Context: Context for managing timeouts and request IDs.
-	//	- w http.ResponseWriter: The HTTP response writer.
-	//	- r *http.Request: The HTTP request.
-	//	- sessionData *SessionData: The session data.
+	//   - w http.ResponseWriter: The HTTP response writer.
+	//   - r *http.Request: The HTTP request.
+	//   - userID string: The user's ID address.
+	//   - sessionExpiration time.Duration: The session expiration time.
 	//
 	// Returns:
-	//	- *SessionData: The retrieved or created session data.
-	//	- error: An error if retrieval or creation fails.
-	GetOrCreateSession(ctx context.Context, w http.ResponseWriter, r *http.Request, sessionData *SessionData) (*SessionData, error)
+	//   - error: An error if token generation or cookie setting fails.
+	CreateSession(w http.ResponseWriter, r *http.Request, sessionData *SessionData) error
 
 	// InvalidateSession invalidates the session token by adding it to the blacklist.
 	//
