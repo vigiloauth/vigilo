@@ -11,6 +11,7 @@ type UserConsentRecord struct {
 }
 
 type UserConsentResponse struct {
+	Approved        bool     `json:"approved"`
 	ClientID        string   `json:"client_id"`
 	ClientName      string   `json:"client_name"`
 	RedirectURI     string   `json:"redirect_uri"`
