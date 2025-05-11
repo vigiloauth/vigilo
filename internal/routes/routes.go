@@ -88,11 +88,14 @@ func (rc *RouterConfig) getClientRoutes() RouteGroup {
 			// Sensitive operations with strict rate limiting
 			NewRoute().
 				SetMethods(http.MethodPost).
-				SetMiddleware(rc.middleware.AuthMiddleware(), rc.middleware.RequiresContentType(constants.ContentTypeJSON)).
+				SetMiddleware(
+					rc.middleware.StrictRateLimit,
+					rc.middleware.AuthMiddleware(),
+					rc.middleware.RequiresContentType(constants.ContentTypeJSON),
+				).
 				SetPattern(web.ClientEndpoints.RegenerateSecret + urlParam).
 				SetHandler(handler.RegenerateSecret).
 				SetDescription("Regenerate client secret").
-				SetMiddleware(rc.middleware.StrictRateLimit).
 				Build(),
 		},
 	}
