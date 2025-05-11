@@ -20,7 +20,7 @@ import {
   IdcardOutlined,
 } from "@ant-design/icons";
 import "../styles/ConsentForm.scss";
-import { postConsent } from "../api/userApi";
+import { handleUserConsent } from "../api/userApi";
 import URL_PARAMS from "../constants/urlParams";
 
 const { Panel } = Collapse;
@@ -90,49 +90,45 @@ export default function ConsentForm() {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
     checkMobile();
     window.addEventListener("resize", checkMobile);
-
     return () => {
       window.removeEventListener("resize", checkMobile);
     };
   }, []);
 
-  const handleApprove = async () => {
+  useEffect(() => {
+    handleGetConsent();
+  }, []);
+
+  const handleGetConsent = async () => {
     try {
-      setLoading(true);
-      const data = await postConsent({
-        clientID,
-        redirectURI,
-        scope,
-        responseType,
-        state,
-        nonce,
-        display,
-        approved: true,
-        scopes,
+      const data = await handleUserConsent({
+        clientID: clientID,
+        redirectURI: redirectURI,
+        scope: scope,
+        responseType: responseType,
+        state: state,
+        nonce: nonce,
+        display: display,
+        scopes: scopes,
+        method: "GET",
       });
 
-      if (data.redirect_uri) {
-        message.success(
-          "Your consent has been recorded. You are being redirected",
-        );
-        setTimeout(() => {
-          window.location.href = data.redirect_uri;
-        }, 1000);
+      if (data.approved && data.approved === true) {
+        window.location.href = data.redirect_uri;
+      } else {
+        setClientName(data.client_name);
       }
     } catch (err) {
       message.error("Something went wrong. Please try again later");
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleDeny = async () => {
+  const handleConsent = async ({ approved }) => {
     try {
       setLoading(true);
-      const data = await postConsent({
+      const data = await handleUserConsent({
         clientID,
         redirectURI,
         scope,
@@ -140,7 +136,7 @@ export default function ConsentForm() {
         state,
         nonce,
         display,
-        approved: false,
+        approved: approved,
         scopes,
       });
 
@@ -257,7 +253,7 @@ export default function ConsentForm() {
           <Col span={12}>
             <Button
               block
-              onClick={handleDeny}
+              onClick={() => handleConsent({ approved: false })}
               style={{ height: isMobile ? "40px" : "48px" }}
             >
               Deny
@@ -267,8 +263,8 @@ export default function ConsentForm() {
             <Button
               type="primary"
               block
-              onClick={handleApprove}
               loading={loading}
+              onClick={() => handleConsent({ approved: true })}
               style={{ height: isMobile ? "40px" : "48px" }}
             >
               Approve
