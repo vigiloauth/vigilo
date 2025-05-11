@@ -61,7 +61,7 @@ type UserConsentService interface {
 	// Returns:
 	//   - *consent.UserConsentResponse: The response containing client and scope details for the consent process.
 	//   - error: An error if the details cannot be retrieved or prepared.
-	GetConsentDetails(userID, clientID, redirectURI, scope string, r *http.Request) (*UserConsentResponse, error)
+	GetConsentDetails(userID, clientID, redirectURI, state, scope, responseType, nonce, display string, r *http.Request) (*UserConsentResponse, error)
 
 	// ProcessUserConsent processes the user's decision for the consent request.
 	//
