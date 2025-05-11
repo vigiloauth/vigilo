@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /client/regenerate-secret
+POST /clients/regenerate-secret
 ```
 ---
 

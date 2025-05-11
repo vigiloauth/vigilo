@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-GET /admin/audit-events
+GET /admins/audit-events
 ```
 
 ---

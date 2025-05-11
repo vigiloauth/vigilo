@@ -72,8 +72,9 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, r, user.ID, h.tokenConfig.ExpirationTime()); err != nil {
-		web.WriteError(w, err)
+	sessionData := &session.SessionData{UserID: user.ID}
+	if err := h.sessionService.CreateSession(w, r, sessionData); err != nil {
+		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}
 
@@ -106,8 +107,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		web.WriteError(w, wrappedErr)
 		return
 	}
+	sessionData := &session.SessionData{
+		UserID:             response.UserID,
+		IPAddress:          r.RemoteAddr,
+		UserAgent:          r.UserAgent(),
+		AuthenticationTime: time.Now(),
+	}
 
-	if err := h.sessionService.CreateSession(w, r, response.UserID, h.tokenConfig.ExpirationTime()); err != nil {
+	if err := h.sessionService.CreateSession(w, r, sessionData); err != nil {
 		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}
@@ -140,7 +147,14 @@ func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.sessionService.CreateSession(w, r, response.UserID, h.tokenConfig.ExpirationTime()); err != nil {
+	sessionData := &session.SessionData{
+		UserID:             response.UserID,
+		IPAddress:          r.RemoteAddr,
+		UserAgent:          r.UserAgent(),
+		AuthenticationTime: time.Now(),
+	}
+
+	if err := h.sessionService.CreateSession(w, r, sessionData); err != nil {
 		web.WriteError(w, errors.NewSessionCreationError(err))
 		return
 	}

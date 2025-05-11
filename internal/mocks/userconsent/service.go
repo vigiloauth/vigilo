@@ -13,12 +13,12 @@ type MockUserConsentService struct {
 	CheckUserConsentFunc   func(ctx context.Context, userID, clientID, scope string) (bool, error)
 	SaveUserConsentFunc    func(ctx context.Context, userID, clientID, scope string) error
 	RevokeConsentFunc      func(ctx context.Context, userID, clientID string) error
-	GetConsentDetailsFunc  func(userID, clientID, redirectURI, scope string, r *http.Request) (*user.UserConsentResponse, error)
+	GetConsentDetailsFunc  func(userID, clientID, redirectURI, state, scope, responseType, nonce, display string, r *http.Request) (*user.UserConsentResponse, error)
 	ProcessUserConsentFunc func(userID, clientID, redirectURI, scope string, consentRequest *user.UserConsentRequest, r *http.Request) (*user.UserConsentResponse, error)
 }
 
-func (m *MockUserConsentService) GetConsentDetails(userID, clientID, redirectURI, scope string, r *http.Request) (*user.UserConsentResponse, error) {
-	return m.GetConsentDetailsFunc(userID, clientID, redirectURI, scope, r)
+func (m *MockUserConsentService) GetConsentDetails(userID, clientID, redirectURI, state, scope, responseType, nonce, display string, r *http.Request) (*user.UserConsentResponse, error) {
+	return m.GetConsentDetailsFunc(userID, clientID, redirectURI, state, scope, responseType, nonce, display, r)
 }
 
 func (m *MockUserConsentService) ProcessUserConsent(userID, clientID, redirectURI, scope string, consentRequest *user.UserConsentRequest, r *http.Request) (*user.UserConsentResponse, error) {

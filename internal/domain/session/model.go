@@ -8,7 +8,8 @@ type SessionData struct {
 	UserID             string    // ID of the user associated with the session.
 	State              string    // Random string used to prevent CSRF attacks during Authorization Flow.
 	ClientID           string    // ID of the OAuth 2.0 client application.
-	UserIPAddress      string    // IP address of the user at the time of session creation.
+	ClientName         string    // Name of the OAuth 2.0 client application.
+	IPAddress          string    // IP address of the user at the time of session creation.
 	UserAgent          string    // User agent string of the user's browser or device.
 	RedirectURI        string    // Redirect URI from OAuth 2.0 client application.
 	ExpirationTime     time.Time // The timestamp when the session expires.

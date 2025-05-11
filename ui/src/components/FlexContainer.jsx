@@ -1,4 +1,3 @@
-import React from "react";
 import PropTypes from "prop-types";
 import { Flex } from "antd";
 
@@ -7,6 +6,7 @@ const FlexContainer = ({
   vertical = false,
   justify = "center",
   align = "center",
+  width,
   height,
   className,
   style = {},
@@ -16,7 +16,7 @@ const FlexContainer = ({
       vertical={vertical}
       justify={justify}
       align={align}
-      style={{ height, ...style }}
+      style={{ width, height, ...style }}
       className={className}
     >
       {children}

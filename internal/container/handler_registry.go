@@ -83,7 +83,6 @@ func (h *HandlerRegistry) initAuthzHandler() {
 		initFunc: func() *handlers.AuthorizationHandler {
 			return handlers.NewAuthorizationHandler(
 				h.sr.AuthorizationService(),
-				h.sr.SessionService(),
 			)
 		},
 	}

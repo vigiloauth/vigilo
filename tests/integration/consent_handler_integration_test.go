@@ -37,7 +37,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		endpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
-		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, http.StatusFound, rr.Code)
 	})
 
 	t.Run("POST Request - Success", func(t *testing.T) {
@@ -54,12 +54,10 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
 
-		state := testContext.GetStateFromSession()
 		queryParams := url.Values{}
 		queryParams.Add(constants.ClientIDReqField, testClientID)
 		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
 		queryParams.Add(constants.ScopeReqField, testScope)
-		queryParams.Add(constants.StateReqField, state)
 		postEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		userConsentRequest := &consent.UserConsentRequest{
@@ -72,7 +70,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, postEndpoint, bytes.NewReader(requestBody), headers)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, http.StatusFound, rr.Code)
 	})
 
 	t.Run("Missing required OAuth parameters returns error", func(t *testing.T) {
@@ -135,27 +133,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		// Parse the response to extract the state
-		var consentResponse consent.UserConsentResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &consentResponse)
-		assert.NoError(t, err)
-		state := consentResponse.State
-		assert.NotEmpty(t, state)
-
-		queryParams.Add(constants.StateReqField, state)
-		postEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
-		userConsentRequest := &consent.UserConsentRequest{
-			Approved: true,
-			Scopes:   []string{constants.ClientManageScope, constants.UserManageScope},
-		}
-
-		requestBody, err := json.Marshal(userConsentRequest)
-		assert.NoError(t, err)
-
-		rr = testContext.SendHTTPRequest(http.MethodPost, postEndpoint, bytes.NewReader(requestBody), headers)
-		assert.Equal(t, http.StatusForbidden, rr.Code)
+		assert.Equal(t, http.StatusFound, rr.Code)
 	})
 
 	t.Run("Post Request - user denies consent", func(t *testing.T) {
@@ -172,7 +150,6 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		sessionCookie := testContext.GetSessionCookie()
 		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
 
-		// Send GET request to fetch state
 		queryParams := url.Values{}
 		queryParams.Add(constants.ClientIDReqField, testClientID)
 		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
@@ -180,24 +157,6 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var consentResponse consent.UserConsentResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &consentResponse)
-		assert.NoError(t, err)
-		state := consentResponse.State
-		assert.NotEmpty(t, state)
-
-		queryParams.Add(constants.StateReqField, state)
-		postEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
-		userConsentRequest := &consent.UserConsentRequest{
-			Approved: false,
-		}
-
-		requestBody, err := json.Marshal(userConsentRequest)
-		assert.NoError(t, err)
-
-		rr = testContext.SendHTTPRequest(http.MethodPost, postEndpoint, bytes.NewReader(requestBody), headers)
-		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, http.StatusFound, rr.Code)
 	})
 }

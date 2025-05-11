@@ -84,7 +84,7 @@ func (h *ConsentHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		h.handleGetConsent(w, r, userID, clientID, redirectURI, scope)
+		h.handleGetConsent(w, r, userID, clientID, redirectURI, scope, responseType, state, nonce, display)
 	case http.MethodPost:
 		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope, responseType, state, nonce, display)
 	default:
@@ -93,8 +93,8 @@ func (h *ConsentHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetConsent handles GET requests for user consent
-func (h *ConsentHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope string) {
-	response, err := h.consentService.GetConsentDetails(userID, clientID, redirectURI, scope, r)
+func (h *ConsentHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope, responseType, state, nonce, display string) {
+	response, err := h.consentService.GetConsentDetails(userID, clientID, redirectURI, state, scope, responseType, nonce, display, r)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to retrieve user consent details")
 		web.WriteError(w, wrappedErr)

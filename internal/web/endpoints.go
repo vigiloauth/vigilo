@@ -2,10 +2,10 @@ package web
 
 const (
 	defaultAuthEndpoint   string = "/auth"
-	defaultClientEndpoint string = "/client"
+	defaultClientEndpoint string = "/clients"
 	defaultOAuthEndpoint  string = "/oauth2"
-	defaultTokenEndpoint  string = "/token"
-	defaultAdminEndpoint  string = "/admin"
+	defaultTokenEndpoint  string = "/tokens"
+	defaultAdminEndpoint  string = "/admins"
 	wellKnown             string = "/.well-known"
 )
 

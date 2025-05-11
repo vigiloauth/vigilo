@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /client/register
+POST /clients/register
 ```
 
 ---

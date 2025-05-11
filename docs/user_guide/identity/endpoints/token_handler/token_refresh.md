@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /oauth/token
+POST /oauth2/tokens
 ```
 
 ---

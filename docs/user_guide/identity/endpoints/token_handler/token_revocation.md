@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /oauth/token/revoke
+POST /oauth2/tokens/revoke
 
 ```
 

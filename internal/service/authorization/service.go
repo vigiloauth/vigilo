@@ -11,6 +11,7 @@ import (
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
@@ -29,6 +30,7 @@ type authorizationService struct {
 	tokenService       token.TokenService
 	clientService      client.ClientService
 	userService        user.UserService
+	sessionService     session.SessionService
 
 	logger *config.Logger
 	module string
@@ -50,6 +52,7 @@ func NewAuthorizationService(
 	tokenService token.TokenService,
 	clientService client.ClientService,
 	userService user.UserService,
+	sessionService session.SessionService,
 ) authz.AuthorizationService {
 	return &authorizationService{
 		authzCodeService:   authzCodeService,
@@ -57,6 +60,7 @@ func NewAuthorizationService(
 		tokenService:       tokenService,
 		clientService:      clientService,
 		userService:        userService,
+		sessionService:     sessionService,
 		logger:             config.GetServerConfig().Logger(),
 		module:             "Authorization Service",
 	}
@@ -92,24 +96,28 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 
+	userID := s.sessionService.GetUserIDFromSession(request.HTTPRequest)
+	if userID == "" {
+		loginURL := s.buildLoginURL(request)
+		s.logger.Error(s.module, requestID, "[AuthorizeClient]: User is not authenticated, redirecting to login page")
+		return loginURL, nil
+	}
+
+	request.UserID = userID
 	request.Client = retrievedClient
 	if err := request.Validate(); err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Failed to validate request: %v", err)
 		return "", err
 	}
-	s.logger.Debug(s.module, requestID, "[AuthorizeClient] Authorization request parameters validated successfully")
 
-	s.logger.Debug(s.module, requestID, "[AuthorizeClient] Checking user consent status")
 	if err := s.handleUserConsent(ctx, request, consentApproved); err != nil {
 		return "", err
 	}
 
-	s.logger.Debug(s.module, requestID, "[AuthorizeClient] Generating authorization code")
 	code, err := s.generateAuthorizationCode(ctx, request)
 	if err != nil {
 		return "", err
 	}
-	s.logger.Debug(s.module, requestID, "[AuthorizeClient] Authorization code generated successfully: %s", utils.TruncateSensitive(code))
 
 	redirectURL := s.buildRedirectURL(request.RedirectURI, code, request.State, request.Nonce)
 	s.logger.Info(s.module, requestID, "[AuthorizeClient]: Client successfully authorized")
@@ -330,6 +338,29 @@ func (s *authorizationService) buildConsentURL(req *client.ClientAuthorizationRe
 	return "/consent?" + queryParams.Encode()
 }
 
+func (s *authorizationService) buildLoginURL(req *client.ClientAuthorizationRequest) string {
+	queryParams := url.Values{}
+	queryParams.Add(constants.ClientIDReqField, req.ClientID)
+	queryParams.Add(constants.RedirectURIReqField, req.RedirectURI)
+	queryParams.Add(constants.ScopeReqField, req.Scope)
+	queryParams.Add(constants.ResponseTypeReqField, req.ResponseType)
+
+	if req.State != "" {
+		queryParams.Add(constants.StateReqField, req.State)
+	}
+	if req.Nonce != "" {
+		queryParams.Add(constants.NonceReqField, req.Nonce)
+	}
+
+	if req.Display != "" && constants.ValidAuthenticationDisplays[req.Display] {
+		queryParams.Add(constants.DisplayReqField, req.Display)
+	} else {
+		queryParams.Add(constants.DisplayReqField, constants.DisplayPage)
+	}
+
+	return "/authenticate?" + queryParams.Encode()
+}
+
 func (s *authorizationService) buildRedirectURL(redirectURI, code, state, nonce string) string {
 	queryParams := url.Values{}
 	queryParams.Add(constants.CodeURLValue, code)
@@ -400,6 +431,7 @@ func (s *authorizationService) handleUserConsent(ctx context.Context, request *c
 			return errors.NewConsentRequiredError(consentURL)
 		}
 	}
+
 	return nil
 }
 

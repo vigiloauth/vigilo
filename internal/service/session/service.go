@@ -25,9 +25,9 @@ type sessionService struct {
 	sessionRepo       session.SessionRepository
 	httpCookieService cookie.HTTPCookieService
 	auditLogger       audit.AuditLogger
-
-	logger *config.Logger
-	module string
+	sessionDuration   time.Duration
+	logger            *config.Logger
+	module            string
 }
 
 // NewSessionService creates a new instance of SessionService with the required dependencies.
@@ -51,6 +51,7 @@ func NewSessionService(
 		httpCookieService: httpCookieService,
 		auditLogger:       auditLogger,
 		logger:            config.GetServerConfig().Logger(),
+		sessionDuration:   config.GetServerConfig().TokenConfig().ExpirationTime(),
 		module:            "Session Service",
 	}
 }
@@ -65,24 +66,18 @@ func NewSessionService(
 //
 // Returns:
 //   - error: An error if token generation or cookie setting fails.
-func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, userID string, sessionExpiration time.Duration) error {
+func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
 	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
 
-	sessionToken, err := s.tokenService.GenerateToken(ctx, userID, "", "", sessionExpiration)
+	sessionToken, err := s.tokenService.GenerateToken(ctx, sessionData.UserID, "", "", s.sessionDuration)
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to generate session token for user=[%s]: %v", utils.TruncateSensitive(userID), err)
+		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to generate session token: %v", err)
 		return errors.Wrap(err, "", "failed to generate session token")
 	}
 
-	sessionData := &session.SessionData{
-		ID:                 sessionToken,
-		UserID:             userID,
-		UserIPAddress:      r.RemoteAddr,
-		UserAgent:          r.UserAgent(),
-		ExpirationTime:     time.Now().Add(sessionExpiration),
-		AuthenticationTime: time.Now(),
-	}
+	sessionData.ID = sessionToken
+	sessionData.ExpirationTime = time.Now().Add(s.sessionDuration)
 
 	if err := s.sessionRepo.SaveSession(ctx, sessionData); err != nil {
 		s.logger.Error(s.module, requestID, "[CreateSession]: Failed to save session: %v", err)
@@ -93,7 +88,7 @@ func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, u
 
 	ctx = context.WithValue(ctx, constants.ContextKeySessionID, sessionToken)
 	s.auditLogger.StoreEvent(ctx, audit.SessionCreated, true, audit.SessionCreationAction, audit.CookieMethod, nil)
-	s.httpCookieService.SetSessionCookie(ctx, w, sessionToken, sessionExpiration)
+	s.httpCookieService.SetSessionCookie(ctx, w, sessionToken, s.sessionDuration)
 	return nil
 }
 
@@ -223,55 +218,6 @@ func (s *sessionService) GetSessionData(r *http.Request) (*session.SessionData, 
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GetSessionData]: Failed to retrieve session by ID=[%s]: %v", utils.TruncateSensitive(sessionID), err)
 		return nil, errors.Wrap(err, "", "failed to retrieve session")
-	}
-
-	return sessionData, nil
-}
-
-// ClearStateFromSession clears the state value from the session data.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - sessionData *SessionData: The session data to be updated.
-//
-// Returns:
-//   - error: An error if the session update fails, or nil if successful.
-func (s *sessionService) ClearStateFromSession(ctx context.Context, sessionData *session.SessionData) error {
-	requestID := utils.GetRequestID(ctx)
-
-	sessionData.State = ""
-	if err := s.sessionRepo.UpdateSessionByID(ctx, sessionData.ID, sessionData); err != nil {
-		s.logger.Error(s.module, requestID, "[ClearStateFromSession]: Failed to update session=[%s]: %v", utils.TruncateSensitive(sessionData.ID), err)
-		return errors.Wrap(err, "", "failed to update session")
-	}
-
-	s.logger.Debug(s.module, requestID, "[ClearStateFromSession]: State successfully cleared from session=[%s]", utils.TruncateSensitive(sessionData.ID))
-	return nil
-}
-
-// ValidateSessionState retrieves session data and verifies that the state parameter in the request matches the stored session state.
-//
-// Parameters:
-//   - r *http.Request: The HTTP request containing the session information.
-//
-// Returns:
-//   - *SessionData: The retrieved session data if validation is successful.
-//   - error: An error if retrieving session data fails or if the state parameter does not match.
-func (s *sessionService) ValidateSessionState(r *http.Request) (*session.SessionData, error) {
-	requestID := utils.GetRequestID(r.Context())
-	sessionData, err := s.GetSessionData(r)
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[ValidateSessionState]: Failed to retrieve session data: %v", err)
-		return nil, errors.Wrap(err, "", "failed to retrieve session data")
-	}
-
-	state := r.URL.Query().Get(constants.StateReqField)
-	if state == "" || state != sessionData.State {
-		s.logger.Error(s.module, requestID, "[ValidateSessionData]: State parameter=[%s] does not match with session state=[%s]",
-			utils.TruncateSensitive(state),
-			utils.TruncateSensitive(sessionData.State),
-		)
-		return nil, errors.New(errors.ErrCodeInvalidRequest, "state parameter does not match with session state")
 	}
 
 	return sessionData, nil

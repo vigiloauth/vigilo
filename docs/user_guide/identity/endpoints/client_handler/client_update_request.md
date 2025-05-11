@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-PUT /oauth2/client/register/{client_id}
+PUT /oauth2/clients/register/{client_id}
 ```
 
 **Description:**

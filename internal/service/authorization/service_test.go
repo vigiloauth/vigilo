@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -12,11 +13,13 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	mAuthzCodeService "github.com/vigiloauth/vigilo/v2/internal/mocks/authzcode"
 	mClientService "github.com/vigiloauth/vigilo/v2/internal/mocks/client"
+	mSessionService "github.com/vigiloauth/vigilo/v2/internal/mocks/session"
 	mTokenService "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	mUser "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 	mConsentService "github.com/vigiloauth/vigilo/v2/internal/mocks/userconsent"
@@ -39,6 +42,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 	mockConsentService := &mConsentService.MockUserConsentService{}
 	mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{}
 	mockClientService := &mClientService.MockClientService{}
+	mockSessionService := &mSessionService.MockSessionService{}
 	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
@@ -51,9 +55,12 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return getTestClient(), nil
 		}
+		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+			return nil
+		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService, nil, mockSessionService)
 		redirectURI, err := service.AuthorizeClient(ctx, request, testConsentApproved)
 
 		assert.NoError(t, err)
@@ -70,9 +77,12 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return getTestClient(), nil
 		}
+		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+			return nil
+		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService, nil, mockSessionService)
 		redirectURI, err := service.AuthorizeClient(ctx, request, testConsentApproved)
 
 		assert.Error(t, err)
@@ -86,9 +96,12 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
 			return false, errors.NewAccessDeniedError()
 		}
+		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+			return nil
+		}
 
 		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService, nil)
+		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService, nil, mockSessionService)
 
 		_, err := service.AuthorizeClient(ctx, request, true)
 		expectedErr := "the resource owner denied the request"
@@ -101,6 +114,9 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return getTestClient(), nil
 		}
+		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
+			return nil
+		}
 
 		request := &client.ClientAuthorizationRequest{
 			Client: &client.Client{
@@ -111,7 +127,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, mockClientService, nil)
+		service := NewAuthorizationService(nil, nil, nil, mockClientService, nil, mockSessionService)
 		_, err := service.AuthorizeClient(ctx, request, true)
 
 		assert.Error(t, err)
@@ -138,7 +154,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		expected := getTestAuthzCodeData()
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -158,7 +174,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil, nil, nil)
 		expected := "failed to validate authorization code: invalid authorization code"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -180,7 +196,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		expected := "failed to validate client: invalid client"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -214,7 +230,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		tokenRequest := getTestTokenRequest()
 		tokenRequest.CodeVerifier = codeVerifier
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
 		assert.NoError(t, err)
@@ -238,7 +254,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		}
 
 		tokenRequest := getTestTokenRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 
 		expectedErr := "missing code verifier for PKCE"
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
@@ -266,7 +282,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 
 		tokenRequest := getTestTokenRequest()
 		tokenRequest.CodeVerifier = codeVerifier
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
@@ -294,7 +310,7 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, mockTokenService, mockClientService, nil)
+		service := NewAuthorizationService(nil, nil, mockTokenService, mockClientService, nil, nil)
 
 		actual, err := service.GenerateTokens(ctx, getTestAuthzCodeData())
 
@@ -309,7 +325,7 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, mockTokenService, nil, nil)
+		service := NewAuthorizationService(nil, nil, mockTokenService, nil, nil, nil)
 		expected := "failed to generate tokens: An unexpected error occurred. Please try again later."
 		_, err := service.GenerateTokens(ctx, getTestAuthzCodeData())
 
@@ -344,7 +360,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientService, userService)
+		service := NewAuthorizationService(nil, nil, nil, clientService, userService, nil)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.NoError(t, err)
@@ -376,7 +392,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientService, userService)
+		service := NewAuthorizationService(nil, nil, nil, clientService, userService, nil)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.NoError(t, err)
@@ -398,7 +414,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, nil, userService)
+		service := NewAuthorizationService(nil, nil, nil, nil, userService, nil)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.Error(t, err)
@@ -428,7 +444,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientService, userService)
+		service := NewAuthorizationService(nil, nil, nil, clientService, userService, nil)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.Error(t, err)
@@ -458,7 +474,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientService, userService)
+		service := NewAuthorizationService(nil, nil, nil, clientService, userService, nil)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.Error(t, err)

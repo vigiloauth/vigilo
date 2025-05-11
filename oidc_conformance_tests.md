@@ -27,7 +27,5 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
     - ✅ `oidcc-scope-all`
     - ✅ `oidcc-ensure-other-scope-order-succeeds`
     - ✅ `oidcc-display-page`
-    - 🛠️ `oidcc-display-popup`
+    - ✅ `oidcc-display-popup`
     - 🛠️ `oidcc-prompt-login`
-    
-  
