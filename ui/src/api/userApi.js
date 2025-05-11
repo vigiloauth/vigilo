@@ -128,6 +128,9 @@ export async function handleUserConsent({
         case 401:
           errorMessage = "Invalid credentials";
           break;
+        default:
+          errorMessage = "Something went wrong. Please try again later.";
+          break;
       }
       throw new Error(errorMessage);
     }

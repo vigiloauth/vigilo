@@ -1,9 +1,14 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import "../styles/forms.scss";
+import URL_PARAMS from "../constants/urlParams";
+import Container from "../components/Container";
+import FormInput from "../components/FormInput";
+import { authenticateUser } from "../api/userApi";
+
 import {
   Form,
   Button,
   Checkbox,
-  Card,
   Typography,
   Row,
   Col,
@@ -16,16 +21,10 @@ import {
   GoogleOutlined,
   FacebookOutlined,
 } from "@ant-design/icons";
-import FlexContainer from "../components/FlexContainer";
-import Container from "../components/Container";
-import FormInput from "../components/FormInput";
-import { authenticateUser } from "../api/userApi";
-import "../styles/AuthenticationForm.scss";
-import URL_PARAMS from "../constants/urlParams";
 
-const { Title, Text, Link } = Typography;
+const { Text, Link } = Typography;
 
-export default function AuthenticationForm() {
+const AuthenticationForm = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,94 +68,85 @@ export default function AuthenticationForm() {
   };
 
   return (
-    <FlexContainer className="auth-container">
-      <Card className="auth-card" variant="borderless">
-        <Container className="auth-header">
-          <Title>Welcome Back</Title>
-          <Text className="subtitle" type="secondary">
-            Please sign in to continue
-          </Text>
-        </Container>
+    <Form
+      className="form"
+      name="login"
+      initialValues={{ remember: false }}
+      onFinish={onFinish}
+      layout="vertical"
+    >
+      <FormInput
+        placeholder="Username"
+        name="username"
+        required={true}
+        message=""
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        icon={<UserOutlined className="site-form-item-icon" />}
+      />
 
-        <Form
-          className="auth-form"
-          name="login"
-          initialValues={{ remember: false }}
-          onFinish={onFinish}
-          layout="vertical"
+      <FormInput
+        placeholder="Password"
+        name="password"
+        required={true}
+        message=""
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        isPassword={true}
+        icon={<LockOutlined className="site-form-item-icon" />}
+      />
+
+      <Form.Item>
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Form.Item name="remember" valuePropName="checked" noStyle>
+              <Checkbox>Remember me</Checkbox>
+            </Form.Item>
+          </Col>
+          <Col>
+            <Link>Forgot password?</Link>
+          </Col>
+        </Row>
+      </Form.Item>
+
+      <Form.Item className="form">
+        <Button
+          type="primary"
+          className="button"
+          htmlType="submit"
+          block
+          loading={loading}
         >
-          <FormInput
-            placeholder="Username"
-            name="username"
-            required={true}
-            message=""
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            icon={<UserOutlined className="site-form-item-icon" />}
-          />
+          Sign In
+        </Button>
+      </Form.Item>
 
-          <FormInput
-            placeholder="Password"
-            name="password"
-            required={true}
-            message=""
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            isPassword={true}
-            icon={<LockOutlined className="site-form-item-icon" />}
-          />
+      <Divider plain className="divider">
+        or continue with
+      </Divider>
 
-          <Form.Item>
-            <Row justify="space-between" align="middle">
-              <Col>
-                <Form.Item name="remember" valuePropName="checked" noStyle>
-                  <Checkbox>Remember me</Checkbox>
-                </Form.Item>
-              </Col>
-              <Col>
-                <Link>Forgot password?</Link>
-              </Col>
-            </Row>
-          </Form.Item>
-
-          <Form.Item className="auth-form">
-            <Button
-              type="primary"
-              className="auth-button"
-              htmlType="submit"
-              block
-              loading={loading}
-            >
-              Sign In
+      <Form.Item className="social-buttons">
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12}>
+            <Button icon={<GoogleOutlined />} block>
+              Google
             </Button>
-          </Form.Item>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Button icon={<FacebookOutlined />} block>
+              Facebook
+            </Button>
+          </Col>
+        </Row>
+      </Form.Item>
 
-          <Divider plain className="auth-divider">
-            or continue with
-          </Divider>
-
-          <Form.Item className="social-buttons">
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12}>
-                <Button icon={<GoogleOutlined />} block>
-                  Google
-                </Button>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Button icon={<FacebookOutlined />} block>
-                  Facebook
-                </Button>
-              </Col>
-            </Row>
-          </Form.Item>
-
-          <Container className="auth-footer">
-            <Text type="secondary">
-              Don't have an account? <Link>Sign up</Link>
-            </Text>
-          </Container>
-        </Form>
-      </Card>
-    </FlexContainer>
+      <Container className="footer">
+        <Text type="secondary">
+          Don't have an account? <Link>Sign up</Link>
+        </Text>
+      </Container>
+    </Form>
   );
-}
+};
+
+export default AuthenticationForm;
