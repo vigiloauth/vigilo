@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -52,7 +51,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 				formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 				formData.Add(constants.ScopeReqField, constants.ClientManageScope)
 
-				headers := generateHeaderWithCredentials(testClientID, test.clientSecret)
+				headers := GenerateHeaderWithCredentials(testClientID, test.clientSecret)
 
 				rr := testContext.SendHTTPRequest(
 					http.MethodPost,
@@ -89,7 +88,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManageScope)
 
-		headers := generateHeaderWithCredentials("non-existing-id", testClientSecret)
+		headers := GenerateHeaderWithCredentials("non-existing-id", testClientSecret)
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.OAuthEndpoints.Token,
@@ -161,7 +160,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		formData := url.Values{}
 		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManageScope)
-		headers := generateHeaderWithCredentials(testClientID, "invalid-secret")
+		headers := GenerateHeaderWithCredentials(testClientID, "invalid-secret")
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
@@ -188,7 +187,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientManageScope)
 
-		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
+		headers := GenerateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.OAuthEndpoints.Token,
@@ -214,7 +213,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
 		formData.Add(constants.ScopeReqField, constants.ClientDeleteScope)
 
-		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
+		headers := GenerateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.OAuthEndpoints.Token,
@@ -260,7 +259,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 				formData.Add(constants.UsernameReqField, testUsername)
 				formData.Add(constants.PasswordReqField, testPassword1)
 
-				headers := generateHeaderWithCredentials(testClientID, test.clientSecret)
+				headers := GenerateHeaderWithCredentials(testClientID, test.clientSecret)
 				rr := testContext.SendHTTPRequest(
 					http.MethodPost,
 					web.OAuthEndpoints.Token,
@@ -295,7 +294,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		formData.Add(constants.UsernameReqField, testUsername)
 		formData.Add(constants.PasswordReqField, testPassword1)
 
-		headers := generateHeaderWithCredentials("non-existing-id", testClientSecret)
+		headers := GenerateHeaderWithCredentials("non-existing-id", testClientSecret)
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.OAuthEndpoints.Token,
@@ -319,7 +318,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		formData.Add(constants.UsernameReqField, testUsername)
 		formData.Add(constants.PasswordReqField, "invalid-password")
 
-		headers := generateHeaderWithCredentials(testClientID, testClientSecret)
+		headers := GenerateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.OAuthEndpoints.Token,
@@ -343,7 +342,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 		formData.Add(constants.UsernameReqField, testUsername)
 		formData.Add(constants.PasswordReqField, testPassword1)
 
-		headers := generateHeaderWithCredentials(testClientID, "invalid-secret")
+		headers := GenerateHeaderWithCredentials(testClientID, "invalid-secret")
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.OAuthEndpoints.Token,
@@ -1058,11 +1057,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 		formValue := url.Values{}
 		formValue.Add(constants.TokenReqField, testContext.JWTToken)
 
-		headers := map[string]string{
-			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
-		}
-
+		headers := GenerateHeaderWithCredentials(testClientID, testClientSecret)
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.OAuthEndpoints.RevokeToken,
@@ -1072,17 +1067,4 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
-}
-
-func generateHeaderWithCredentials(id, secret string) map[string]string {
-	headers := map[string]string{
-		"Content-Type":  "application/x-www-form-urlencoded",
-		"Authorization": "Basic " + encodeClientCredentials(id, secret),
-	}
-
-	return headers
-}
-
-func encodeClientCredentials(clientID, clientSecret string) string {
-	return base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
 }

@@ -23,14 +23,15 @@ const (
 	ErrCodeNotFound              string = "not_found"
 
 	// User errors
-	ErrCodeDuplicateUser      string = "duplicate_user"
-	ErrCodeUserNotFound       string = "user_not_found"
-	ErrCodeInvalidCredentials string = "invalid_credentials"
-	ErrCodeAccountLocked      string = "account_locked"
-	ErrCodeUnauthorized       string = "unauthorized"
-	ErrCodeLoginRequired      string = "login_required"
-	ErrCodeConsentRequired    string = "consent_required"
-	ErrCodeInsufficientRole   string = "insufficient_role"
+	ErrCodeDuplicateUser       string = "duplicate_user"
+	ErrCodeUserNotFound        string = "user_not_found"
+	ErrCodeInvalidCredentials  string = "invalid_credentials"
+	ErrCodeAccountLocked       string = "account_locked"
+	ErrCodeUnauthorized        string = "unauthorized"
+	ErrCodeLoginRequired       string = "login_required"
+	ErrCodeConsentRequired     string = "consent_required"
+	ErrCodeInsufficientRole    string = "insufficient_role"
+	ErrCodeInteractionRequired string = "interaction_required"
 
 	// Token errors
 	ErrCodeTokenNotFound   string = "token_not_found"
@@ -106,6 +107,8 @@ var statusCodeMap = map[string]int{
 	ErrCodeInvalidGrant:           http.StatusBadRequest,
 	ErrCodeInvalidInput:           http.StatusBadRequest,
 	ErrCodeInvalidDate:            http.StatusBadRequest,
+	ErrCodeInteractionRequired:    http.StatusBadRequest,
+	ErrCodeLoginRequired:          http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -114,7 +117,6 @@ var statusCodeMap = map[string]int{
 	ErrCodeExpiredToken:             http.StatusUnauthorized,
 	ErrCodeInvalidToken:             http.StatusUnauthorized,
 	ErrCodeTokenParsing:             http.StatusUnauthorized,
-	ErrCodeLoginRequired:            http.StatusUnauthorized,
 	ErrCodeConsentRequired:          http.StatusUnauthorized,
 	ErrCodeInvalidSession:           http.StatusUnauthorized,
 	ErrCodeInvalidAuthorizationCode: http.StatusUnauthorized,

@@ -97,7 +97,6 @@ func (sr *ServiceRegistry) initSessionService() {
 	sr.sessionService = LazyInit[session.SessionService]{
 		initFunc: func() session.SessionService {
 			return sessionService.NewSessionService(
-				sr.TokenService(),
 				sr.db.SessionRepository(),
 				sr.HTTPCookieService(),
 				sr.AuditLogger(),

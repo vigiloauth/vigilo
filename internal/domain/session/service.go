@@ -35,7 +35,8 @@ type SessionService interface {
 	//
 	// Returns:
 	//	- string: The user ID.
-	GetUserIDFromSession(r *http.Request) string
+	//	- error: If an error occurs retrieving the user ID from the session.
+	GetUserIDFromSession(r *http.Request) (string, error)
 
 	// UpdateSession updates the current session.
 	//

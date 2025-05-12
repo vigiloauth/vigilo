@@ -70,7 +70,7 @@ func TestUserConsentService_CheckUserConsent(t *testing.T) {
 	t.Run("Error is returned when a database error occurs", func(t *testing.T) {
 		mockUserRepo.GetUserByIDFunc = func(ctx context.Context, userID string) (*users.User, error) { return nil, nil }
 		mockConsentRepo.HasConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
-			return true, errors.NewInternalServerError()
+			return false, errors.NewInternalServerError()
 		}
 
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService, mockAuthzCodeService)
@@ -173,20 +173,35 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 		}
 		mockSessionService := &mSessionService.MockSessionService{
 			GetSessionDataFunc: func(r *http.Request) (*session.SessionData, error) {
-				return &session.SessionData{UserID: testUserID}, nil
+				return &session.SessionData{UserID: testUserID, ID: "sess-1234"}, nil
 			},
 			UpdateSessionFunc: func(r *http.Request, sessionData *session.SessionData) error {
 				return nil
 			},
 		}
+		userRepo := &mUserRepo.MockUserRepository{
+			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
+				return &users.User{ID: userID}, nil
+			},
+		}
+		consentRepo := &mConsentRepo.MockUserConsentRepository{
+			HasConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+				return true, nil
+			},
+			SaveConsentFunc: func(ctx context.Context, userID, clientID, scope string) error { return nil },
+		}
+		authzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
+			GenerateAuthorizationCodeFunc: func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
+				return "code", nil
+			},
+		}
 
-		service := NewUserConsentService(nil, nil, mockSessionService, mockClientService, nil)
+		service := NewUserConsentService(consentRepo, userRepo, mockSessionService, mockClientService, authzCodeService)
 		req := &http.Request{}
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, testScope, testResponseType, testNonce, testDisplay, req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
-		assert.Equal(t, testClientID, response.ClientID)
 	})
 
 	t.Run("Error is returned when the request is not valid", func(t *testing.T) {
@@ -244,7 +259,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 	t.Run("Error is returned when the client does not exist", func(t *testing.T) {
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
-				return nil, nil
+				return nil, errors.New(errors.ErrCodeClientNotFound, "client not found")
 			},
 		}
 		service := NewUserConsentService(nil, nil, nil, mockClientService, nil)

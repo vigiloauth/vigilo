@@ -111,8 +111,8 @@ func (s *InMemorySessionRepository) UpdateSessionByID(ctx context.Context, sessi
 	requestID := utils.GetRequestID(ctx)
 	existingSession, ok := s.data[sessionID]
 	if !ok {
-		logger.Debug(module, requestID, "[UpdateSessionByID]: No session exists with the given ID=%s", sessionID)
-		return errors.New(errors.ErrCodeSessionNotFound, "session does not exist with the provided ID")
+		logger.Error(module, requestID, "[UpdateSessionByID]: No session exists with the given ID=[%s]", utils.TruncateSensitive(sessionID))
+		return errors.New(errors.ErrCodeSessionNotFound, "session does not exist with the given ID")
 	}
 
 	if sessionData.UserID != "" {

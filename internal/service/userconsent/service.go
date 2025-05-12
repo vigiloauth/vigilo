@@ -300,10 +300,6 @@ func (c *userConsentService) processApprovedConsent(
 	if err != nil {
 		c.logger.Error(c.module, requestID, "Failed to retrieve client ID: %v", err)
 		return nil, err
-	} else if client == nil {
-		err := errors.New(errors.ErrCodeInvalidClient, "invalid client ID")
-		c.logger.Error(c.module, requestID, "Failed to process user consent: %v", err)
-		return nil, err
 	}
 
 	authorizationCodeRequest.Client = client
@@ -339,7 +335,7 @@ func (c *userConsentService) buildSuccessResponse(redirectURI, code, state, nonc
 }
 
 func (c *userConsentService) updateSessionWithConsentDetails(r *http.Request, sessionData *session.SessionData, clientID, state, redirectURI string) error {
-	c.logger.Info(c.module, "Updating session with consent details for sessionID=%s, clientID=%s, redirectURI=%s",
+	c.logger.Info(c.module, "", "Updating session with consent details for sessionID=%s, clientID=%s, redirectURI=%s",
 		utils.TruncateSensitive(sessionData.ID), utils.TruncateSensitive(clientID), utils.SanitizeURL(redirectURI))
 
 	sessionData.ClientID = clientID

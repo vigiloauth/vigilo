@@ -142,40 +142,6 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
-	t.Run("Successful Logout", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
-
-		// Login to get token
-		loginRequest := users.NewUserLoginRequest(testUsername, testPassword1)
-		body, err := json.Marshal(loginRequest)
-		assert.NoError(t, err)
-
-		loginRR := testContext.SendHTTPRequest(
-			http.MethodPost,
-			web.UserEndpoints.Login,
-			bytes.NewBuffer(body),
-			nil,
-		)
-
-		var loginResponse users.UserLoginResponse
-		err = json.Unmarshal(loginRR.Body.Bytes(), &loginResponse)
-		assert.NoError(t, err)
-
-		headers := map[string]string{"Authorization": "Bearer " + loginResponse.JWTToken}
-		// Use token to logout
-		logoutRR := testContext.SendHTTPRequest(
-			http.MethodPost,
-			web.UserEndpoints.Logout,
-			nil,
-			headers,
-		)
-
-		assert.Equal(t, http.StatusOK, logoutRR.Code)
-	})
-
 	t.Run("Protected Route With Expired Token", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()

@@ -68,6 +68,7 @@ const (
 	testConsentApproved string = "true"
 	testAuthzCode       string = "valid-auth-code"
 	testIP              string = "192.168.1.10"
+	testNonce           string = "123na"
 )
 
 // VigiloTestContext encapsulates constants testing functionality across all test types
@@ -365,7 +366,6 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, testClientID)
 	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-	// queryParams.Add(constants.State, state)
 	endpoint := web.OAuthEndpoints.Authenticate + "?" + queryParams.Encode()
 
 	rr := tc.SendHTTPRequest(
@@ -404,7 +404,7 @@ func (tc *VigiloTestContext) WithUserSession() {
 
 	rr := tc.SendHTTPRequest(
 		http.MethodPost,
-		web.UserEndpoints.Login,
+		web.OAuthEndpoints.Authenticate,
 		bytes.NewBuffer(body), nil,
 	)
 
@@ -612,4 +612,17 @@ func (tc *VigiloTestContext) decodeErrorResponse(rr *httptest.ResponseRecorder) 
 	err := json.NewDecoder(rr.Body).Decode(&errResp)
 	assert.NoError(tc.T, err, "Failed to unmarshal response body")
 	return errResp
+}
+
+func GenerateHeaderWithCredentials(id, secret string) map[string]string {
+	headers := map[string]string{
+		"Content-Type":  "application/x-www-form-urlencoded",
+		"Authorization": "Basic " + encodeClientCredentials(id, secret),
+	}
+
+	return headers
+}
+
+func encodeClientCredentials(clientID, clientSecret string) string {
+	return base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
 }

@@ -37,7 +37,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		endpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
-		assert.Equal(t, http.StatusFound, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
 	t.Run("POST Request - Success", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, postEndpoint, bytes.NewReader(requestBody), headers)
 
-		assert.Equal(t, http.StatusFound, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
 	t.Run("Missing required OAuth parameters returns error", func(t *testing.T) {
@@ -133,30 +133,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
-		assert.Equal(t, http.StatusFound, rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code)
 	})
 
-	t.Run("Post Request - user denies consent", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithUserSession()
-		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
-			[]string{constants.AuthorizationCodeGrantType},
-		)
-
-		sessionCookie := testContext.GetSessionCookie()
-		headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
-
-		queryParams := url.Values{}
-		queryParams.Add(constants.ClientIDReqField, testClientID)
-		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-		queryParams.Add(constants.ScopeReqField, testScope)
-		getEndpoint := web.OAuthEndpoints.UserConsent + "?" + queryParams.Encode()
-
-		rr := testContext.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
-		assert.Equal(t, http.StatusFound, rr.Code)
-	})
 }

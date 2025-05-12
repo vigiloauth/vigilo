@@ -8,13 +8,13 @@ import (
 
 // VigiloAuthError represents a standardized error structure
 type VigiloAuthError struct {
-	ErrorCode          string   `json:"error"`
-	ErrorDescription   string   `json:"error_description"`
-	ErrorDetails       string   `json:"error_details,omitempty"`
-	WrappedErr         error    `json:"-"`
-	Errors             *[]error `json:"errors,omitempty"`
-	OAuthLoginEndpoint string   `json:"login_url,omitempty"`
-	ConsentURL         string   `json:"consent_url,omitempty"`
+	ErrorCode        string   `json:"error"`
+	ErrorDescription string   `json:"error_description"`
+	ErrorDetails     string   `json:"error_details,omitempty"`
+	WrappedErr       error    `json:"-"`
+	Errors           *[]error `json:"errors,omitempty"`
+	RedirectURL      string   `json:"redirect_url,omitempty"`
+	ConsentURL       string   `json:"consent_url,omitempty"`
 }
 
 // Error implements the error interface
@@ -46,22 +46,12 @@ func NewInternalServerError() error {
 	}
 }
 
-// NewLoginRequiredError returns a new VigiloAuthError when the user is not authenticated
-// during the authorization code flow. The error includes the OAuth login endpoint URL.
-func NewLoginRequiredError(url string) *VigiloAuthError {
-	return &VigiloAuthError{
-		ErrorCode:          ErrCodeLoginRequired,
-		ErrorDescription:   "authentication required to continue the authorization flow",
-		OAuthLoginEndpoint: url,
-	}
-}
-
 // NewConsentRequiredError returns a new VigiloAuthError when the user's consent is required
 // for the requested scope. The error includes the consent URL.
 func NewConsentRequiredError(url string) *VigiloAuthError {
 	return &VigiloAuthError{
 		ErrorCode:        ErrCodeConsentRequired,
-		ErrorDescription: "user consent required for the requested scope",
+		ErrorDescription: "user consent required for the requested scope(s)",
 		ConsentURL:       url,
 	}
 }

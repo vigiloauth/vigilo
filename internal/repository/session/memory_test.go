@@ -97,7 +97,7 @@ func TestInMemorySessionRepository_UpdateSessionByID(t *testing.T) {
 		sessionData := getTestSessionData()
 		sessionRepo := NewInMemorySessionRepository()
 
-		expected := errors.New(errors.ErrCodeSessionNotFound, "session does not exist with the provided ID")
+		expected := errors.New(errors.ErrCodeSessionNotFound, "session does not exist with the given ID")
 		actual := sessionRepo.UpdateSessionByID(ctx, testSessionID, sessionData)
 
 		assert.Error(t, actual)

@@ -163,7 +163,7 @@ func (rc *RouterConfig) getConsentRoutes() RouteGroup {
 			NewRoute().
 				SetMethods(http.MethodGet, http.MethodPost).
 				SetPattern(web.OAuthEndpoints.UserConsent).
-				SetHandler(handler.UserConsent).
+				SetHandler(handler.HandleUserConsent).
 				SetDescription("Manage user consent").
 				Build(),
 		},

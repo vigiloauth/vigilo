@@ -20,6 +20,10 @@ func ValidateClientAuthorizationParameters(query url.Values) string {
 		return buildErrorURL(redirectURI, errors.ErrCodeInvalidRequest, "client_id", state)
 	} else if responseType := query.Get(constants.ResponseTypeReqField); responseType == "" {
 		return buildErrorURL(redirectURI, errors.ErrCodeInvalidRequest, "response_type", state)
+	} else if prompt := query.Get(constants.PasswordReqField); prompt != "" {
+		if !constants.ValidPrompts[prompt] {
+			return buildErrorURL(redirectURI, errors.ErrCodeInvalidRequest, "prompt", state)
+		}
 	}
 
 	return ""
