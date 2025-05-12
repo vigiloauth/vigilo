@@ -2,8 +2,11 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
 
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 )
 
@@ -39,6 +42,41 @@ func WriteError(w http.ResponseWriter, err error) {
 		genericErr := createGenericError(err)
 		WriteJSON(w, http.StatusInternalServerError, genericErr)
 	}
+}
+
+func BuildErrorURL(errCode, errDescription, state, redirectURI string) string {
+	params := url.Values{}
+	params.Add("error", errCode)
+	params.Add("error_description", errDescription)
+	params.Add(constants.StateReqField, state)
+
+	return redirectURI + "?" + params.Encode()
+}
+
+func BuildRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, prompt, display, endpoint string) string {
+	queryParams := url.Values{}
+	queryParams.Add(constants.ClientIDReqField, clientID)
+	queryParams.Add(constants.RedirectURIReqField, redirectURI)
+	queryParams.Add(constants.ScopeReqField, scope)
+	queryParams.Add(constants.ResponseTypeReqField, responseType)
+
+	if state != "" {
+		queryParams.Add(constants.StateReqField, state)
+	}
+	if nonce != "" {
+		queryParams.Add(constants.NonceReqField, nonce)
+	}
+	if prompt != "" {
+		queryParams.Add(constants.PromptReqField, prompt)
+	}
+
+	if display != "" && constants.ValidAuthenticationDisplays[display] {
+		queryParams.Add(constants.DisplayReqField, display)
+	} else {
+		queryParams.Add(constants.DisplayReqField, constants.DisplayPage)
+	}
+
+	return fmt.Sprintf("/%s?%s", endpoint, queryParams.Encode())
 }
 
 func createGenericError(err error) error {

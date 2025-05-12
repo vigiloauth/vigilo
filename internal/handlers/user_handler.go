@@ -72,12 +72,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionData := &session.SessionData{UserID: user.ID}
-	if err := h.sessionService.CreateSession(w, r, sessionData); err != nil {
-		web.WriteError(w, errors.NewSessionCreationError(err))
-		return
-	}
-
 	web.WriteJSON(w, http.StatusCreated, response)
 }
 
@@ -146,6 +140,8 @@ func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		web.WriteError(w, wrappedErr)
 		return
 	}
+
+	h.logger.Debug(h.module, requestID, "[OAuthLogin]: UserID: %s", response.UserID)
 
 	sessionData := &session.SessionData{
 		UserID:             response.UserID,

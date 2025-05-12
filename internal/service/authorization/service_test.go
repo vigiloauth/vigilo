@@ -13,7 +13,6 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
-	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -23,6 +22,7 @@ import (
 	mTokenService "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	mUser "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 	mConsentService "github.com/vigiloauth/vigilo/v2/internal/mocks/userconsent"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 const (
@@ -36,102 +36,292 @@ const (
 	testRefreshToken    string = "refresh-token"
 	testConsentApproved bool   = true
 	codeVerifier        string = "validCodeVerifier123WhichIsVeryLongAndWorks"
+	testRequestID       string = "req-1234"
+	testState           string = "state12345"
+	testNonce           string = "nonce12345"
 )
 
 func TestAuthorizationService_AuthorizeClient(t *testing.T) {
-	mockConsentService := &mConsentService.MockUserConsentService{}
-	mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{}
-	mockClientService := &mClientService.MockClientService{}
-	mockSessionService := &mSessionService.MockSessionService{}
-	ctx := context.Background()
-
-	t.Run("Success", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
-			return false, nil
-		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
-			return "code", nil
-		}
-		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return getTestClient(), nil
-		}
-		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
-			return nil
-		}
-
-		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService, nil, mockSessionService)
-		redirectURI, err := service.AuthorizeClient(ctx, request, testConsentApproved)
-
-		assert.NoError(t, err)
-		assert.NotEqual(t, "", redirectURI)
-	})
-
-	t.Run("Error is returned generating authorization code", func(t *testing.T) {
-		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
-			return true, nil
-		}
-		mockAuthzCodeService.GenerateAuthorizationCodeFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
-			return "", errors.NewInternalServerError()
-		}
-		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return getTestClient(), nil
-		}
-		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
-			return nil
-		}
-
-		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, mockConsentService, nil, mockClientService, nil, mockSessionService)
-		redirectURI, err := service.AuthorizeClient(ctx, request, testConsentApproved)
-
-		assert.Error(t, err)
-		assert.Equal(t, "", redirectURI)
-	})
-
-	t.Run("Error is returned when user does not provide consent", func(t *testing.T) {
-		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return getTestClient(), nil
-		}
-		mockConsentService.CheckUserConsentFunc = func(ctx context.Context, userID, clientID, scope string) (bool, error) {
-			return false, errors.NewAccessDeniedError()
-		}
-		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
-			return nil
-		}
-
-		request := getClientAuthorizationRequest()
-		service := NewAuthorizationService(nil, mockConsentService, nil, mockClientService, nil, mockSessionService)
-
-		_, err := service.AuthorizeClient(ctx, request, true)
-		expectedErr := "the resource owner denied the request"
-
-		assert.Error(t, err)
-		assert.Contains(t, expectedErr, err.Error())
-	})
-
-	t.Run("Error is returned when the client authorization code request is invalid", func(t *testing.T) {
-		mockClientService.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return getTestClient(), nil
-		}
-		mockSessionService.CreateSessionFunc = func(w http.ResponseWriter, r *http.Request, sessionData *session.SessionData) error {
-			return nil
-		}
-
-		request := &client.ClientAuthorizationRequest{
-			Client: &client.Client{
-				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
-				RequiresPKCE:  true,
-				ResponseTypes: []string{constants.IDTokenResponseType},
+	tests := []struct {
+		name             string
+		wantErr          bool
+		request          *client.ClientAuthorizationRequest
+		consentService   *mConsentService.MockUserConsentService
+		clientService    *mClientService.MockClientService
+		sessionService   *mSessionService.MockSessionService
+		authzCodeService *mAuthzCodeService.MockAuthorizationCodeService
+		expectedURL      string
+	}{
+		{
+			name:    "Invalid client ID",
+			wantErr: true,
+			request: &client.ClientAuthorizationRequest{ClientID: "invalidID"},
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return nil, errors.New(errors.ErrCodeClientNotFound, "client not found by ID")
+				},
 			},
-			CodeChallenge: "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
-		}
+		},
+		{
+			name:    "Prompt login forces redirect",
+			wantErr: false,
+			request: &client.ClientAuthorizationRequest{
+				ClientID:     testClientID,
+				RedirectURI:  testRedirectURI,
+				Scope:        constants.OpenIDScope,
+				ResponseType: constants.CodeResponseType,
+				State:        testState,
+				Nonce:        testNonce,
+				Prompt:       constants.PromptLogin,
+				Display:      constants.DisplayPage,
+			},
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return &client.Client{ID: testClientID}, nil
+				},
+			},
+			expectedURL: web.BuildRedirectURL(
+				testClientID,
+				testRedirectURI,
+				constants.OpenIDScope,
+				constants.CodeResponseType,
+				testState,
+				testNonce,
+				constants.PromptLogin,
+				constants.DisplayPage,
+				"authenticate",
+			),
+		},
+		{
+			name:    "Prompt is set to none and user is not authenticated returns errorURL",
+			wantErr: false,
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return &client.Client{ID: clientID}, nil
+				},
+			},
+			sessionService: &mSessionService.MockSessionService{
+				GetUserIDFromSessionFunc: func(r *http.Request) (string, error) {
+					return "", errors.New(errors.ErrCodeSessionNotFound, "user session not found")
+				},
+			},
+			request: &client.ClientAuthorizationRequest{
+				State:       testState,
+				RedirectURI: testRedirectURI,
+				Prompt:      constants.PromptNone,
+			},
+			expectedURL: web.BuildErrorURL(errors.ErrCodeLoginRequired, "authentication required to continue", testState, testRedirectURI),
+		},
+		{
+			name:    "Prompt is set to none and no previous consent",
+			wantErr: false,
+			request: &client.ClientAuthorizationRequest{
+				State:       testState,
+				RedirectURI: testRedirectURI,
+				Prompt:      constants.PromptNone,
+			},
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return &client.Client{ID: clientID}, nil
+				},
+			},
+			sessionService: &mSessionService.MockSessionService{
+				GetUserIDFromSessionFunc: func(r *http.Request) (string, error) {
+					return testUserID, nil
+				},
+			},
+			consentService: &mConsentService.MockUserConsentService{
+				CheckUserConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+					return false, nil
+				},
+			},
+			expectedURL: web.BuildErrorURL(errors.ErrCodeInteractionRequired, "user consent is required to continue", testState, testRedirectURI),
+		},
+		{
+			name:    "Validation fails",
+			wantErr: true,
+			request: &client.ClientAuthorizationRequest{
+				RedirectURI: "invalid redirect URI",
+			},
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return &client.Client{ID: clientID}, nil
+				},
+			},
+			sessionService: &mSessionService.MockSessionService{
+				GetUserIDFromSessionFunc: func(r *http.Request) (string, error) {
+					return testUserID, nil
+				},
+			},
+		},
+		{
+			name:    "Consent URL return when consent is required",
+			wantErr: false,
+			request: &client.ClientAuthorizationRequest{
+				ClientID:     testClientID,
+				RedirectURI:  testRedirectURI,
+				Scope:        constants.OpenIDScope,
+				ResponseType: constants.CodeResponseType,
+				State:        testState,
+				Nonce:        testNonce,
+			},
+			expectedURL: web.BuildRedirectURL(
+				testClientID,
+				testRedirectURI,
+				constants.OpenIDScope,
+				constants.CodeResponseType,
+				testState,
+				testNonce,
+				"", "", "consent",
+			),
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return &client.Client{
+						ID:            clientID,
+						ResponseTypes: []string{constants.CodeResponseType},
+						GrantTypes:    []string{constants.AuthorizationCodeGrantType}}, nil
+				},
+			},
+			sessionService: &mSessionService.MockSessionService{
+				GetUserIDFromSessionFunc: func(r *http.Request) (string, error) {
+					return testUserID, nil
+				},
+			},
+			consentService: &mConsentService.MockUserConsentService{
+				CheckUserConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+					return false, nil
+				},
+			},
+		},
+		{
+			name:    "Error is returned when generating authorization code",
+			wantErr: true,
+			request: &client.ClientAuthorizationRequest{
+				ClientID:     testClientID,
+				RedirectURI:  testRedirectURI,
+				Scope:        constants.OpenIDScope,
+				ResponseType: constants.CodeResponseType,
+				State:        testState,
+				Nonce:        testNonce,
+				Display:      constants.DisplayPage,
+			},
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return &client.Client{
+						ID:            clientID,
+						ResponseTypes: []string{constants.CodeResponseType},
+						GrantTypes:    []string{constants.AuthorizationCodeGrantType}}, nil
+				},
+			},
+			sessionService: &mSessionService.MockSessionService{
+				GetUserIDFromSessionFunc: func(r *http.Request) (string, error) {
+					return testUserID, nil
+				},
+			},
+			consentService: &mConsentService.MockUserConsentService{
+				CheckUserConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+					return true, nil
+				},
+			},
+			authzCodeService: &mAuthzCodeService.MockAuthorizationCodeService{
+				GenerateAuthorizationCodeFunc: func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
+					return "", errors.New(errors.ErrCodeInternalServerError, "failed to generate authorization code")
+				},
+			},
+		},
+		{
+			name:    "Authentication URL is returned when user is not authenticated",
+			wantErr: false,
+			request: &client.ClientAuthorizationRequest{
+				ClientID:     testClientID,
+				RedirectURI:  testRedirectURI,
+				Scope:        constants.OpenIDScope,
+				ResponseType: constants.CodeResponseType,
+				State:        testState,
+				Nonce:        testNonce,
+				Display:      constants.DisplayPage,
+			},
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return &client.Client{ID: clientID}, nil
+				},
+			},
+			sessionService: &mSessionService.MockSessionService{
+				GetUserIDFromSessionFunc: func(r *http.Request) (string, error) {
+					return "", nil
+				},
+			},
+			expectedURL: web.BuildRedirectURL(
+				testClientID,
+				testRedirectURI,
+				constants.OpenIDScope,
+				constants.CodeResponseType,
+				testState,
+				testNonce,
+				"", "",
+				"authenticate",
+			),
+		},
+		{
+			name: "Success",
+			request: &client.ClientAuthorizationRequest{
+				ClientID:     testClientID,
+				RedirectURI:  testRedirectURI,
+				Scope:        constants.OpenIDScope,
+				ResponseType: constants.CodeResponseType,
+				State:        testState,
+				Nonce:        testNonce,
+				Display:      constants.DisplayPage,
+				UserID:       testUserID,
+			},
+			clientService: &mClientService.MockClientService{
+				GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
+					return &client.Client{
+						ID:            clientID,
+						ResponseTypes: []string{constants.CodeResponseType},
+						GrantTypes:    []string{constants.AuthorizationCodeGrantType}}, nil
+				},
+			},
+			sessionService: &mSessionService.MockSessionService{
+				GetUserIDFromSessionFunc: func(r *http.Request) (string, error) {
+					return testUserID, nil
+				},
+			},
+			consentService: &mConsentService.MockUserConsentService{
+				CheckUserConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+					return true, nil
+				},
+			},
+			authzCodeService: &mAuthzCodeService.MockAuthorizationCodeService{
+				GenerateAuthorizationCodeFunc: func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
+					return testAuthzCode, nil
+				},
+			},
+			expectedURL: fmt.Sprintf("%s?code=%s&nonce=%s&state=%s", testRedirectURI, testAuthzCode, testNonce, testState),
+		},
+	}
 
-		service := NewAuthorizationService(nil, nil, nil, mockClientService, nil, mockSessionService)
-		_, err := service.AuthorizeClient(ctx, request, true)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			service := NewAuthorizationService(
+				test.authzCodeService,
+				test.consentService,
+				nil, test.clientService,
+				nil, test.sessionService,
+			)
 
-		assert.Error(t, err)
-	})
+			redirectURL, err := service.AuthorizeClient(ctx, test.request)
+			if test.wantErr {
+				assert.Error(t, err, "Expected an error")
+				assert.Empty(t, redirectURL, "Expected the redirect URL to be empty")
+			} else {
+				assert.NoError(t, err, "Expected no error")
+				assert.NotEmpty(t, redirectURL, "Expected the redirect URL to not be empty")
+				assert.Equal(t, redirectURL, test.expectedURL)
+			}
+		})
+	}
 }
 
 func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
@@ -487,11 +677,12 @@ func getClientAuthorizationRequest() *client.ClientAuthorizationRequest {
 		ClientID:            testClientID,
 		ResponseType:        constants.CodeResponseType,
 		RedirectURI:         testRedirectURI,
-		Scope:               constants.ClientManageScope,
+		Scope:               constants.OpenIDScope,
 		State:               "testState",
 		CodeChallenge:       "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
 		CodeChallengeMethod: client.S256,
 		UserID:              testUserID,
+		Nonce:               "nonce",
 		Client: &client.Client{
 			Name:          "Test Client",
 			Type:          client.Public,

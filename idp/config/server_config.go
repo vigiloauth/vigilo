@@ -482,6 +482,10 @@ func (sc *ServerConfig) EnableRequestLogging() bool {
 	return sc.requestLogging
 }
 
+func (sc *ServerConfig) Domain() string {
+	return sc.domain
+}
+
 func (sc *ServerConfig) Logger() *Logger {
 	return sc.logger
 }

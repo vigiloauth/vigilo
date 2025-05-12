@@ -52,8 +52,8 @@ func NewConsentHandler(
 	}
 }
 
-// UserConsent handles user consent decisions for OAuth authorization
-func (h *ConsentHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
+// HandleUserConsent handles user consent decisions for OAuth authorization
+func (h *ConsentHandler) HandleUserConsent(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 	defer cancel()
 
@@ -75,8 +75,9 @@ func (h *ConsentHandler) UserConsent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if the user is logged in
-	userID := h.sessionService.GetUserIDFromSession(r)
-	if userID == "" {
+	userID, err := h.sessionService.GetUserIDFromSession(r)
+	if err != nil {
+		h.logger.Error(h.module, requestID, "[UserConsent]: Failed to retrieve user ID from session: %v", err)
 		oauthLoginURL := h.buildLoginURL(clientID, redirectURI, scope, responseType, state, nonce, display)
 		http.Redirect(w, r, oauthLoginURL, http.StatusFound)
 		return

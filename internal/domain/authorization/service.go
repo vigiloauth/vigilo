@@ -16,22 +16,14 @@ type AuthorizationService interface {
 	// Parameters:
 	//	- ctx Context: The context for managing timeouts and cancellations.
 	//	- authorizationRequest *ClientAuthorizationRequest: The client authorization request.
-	//  - consentApproved: A boolean indicating whether the user has already approved consent for the requested scopes.
 	//
 	// Returns:
 	//   - string: The redirect URL, or an empty string if authorization failed.
 	//   - error: An error message, if any.
 	//
-	// This method performs the following steps:
-	//  1. Checks if the user is authenticated.
-	//  2. Verifies user consent if required or if already approved.
-	//  3. Generates an authorization code if authorization is successful.
-	//  4. Constructs the redirect URL with the authorization code or error parameters.
-	//  5. Returns the success status, redirect URL and any error messages.
-	//
 	// Errors:
 	//	- Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
-	AuthorizeClient(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest, consentApproved bool) (string, error)
+	AuthorizeClient(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest) (string, error)
 
 	// AuthorizeTokenExchange validates the token exchange request for an OAuth 2.0 authorization code grant.
 	//

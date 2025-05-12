@@ -225,12 +225,12 @@ func (cs *clientService) GetClientByID(ctx context.Context, clientID string) (*c
 func (cs *clientService) ValidateClientRedirectURI(redirectURI string, existingClient *client.Client) error {
 	isValidRedirectURI, err := cs.isValidURIFormat(redirectURI, existingClient.Type)
 	if !isValidRedirectURI {
-		cs.logger.Error(cs.module, "[ValidateClientRedirectURI]: [%s] is not a valid URI", redirectURI)
+		cs.logger.Error(cs.module, "", "[ValidateClientRedirectURI]: [%s] is not a valid URI", redirectURI)
 		return errors.Wrap(err, "", fmt.Sprintf("an error occurred validating the redirectURI: %s", redirectURI))
 	}
 
 	if !existingClient.HasRedirectURI(redirectURI) {
-		cs.logger.Error(cs.module, "[ValidateClientRedirectURI]: Client=[%s] does not have requested redirect URI=[%s]",
+		cs.logger.Error(cs.module, "", "[ValidateClientRedirectURI]: Client=[%s] does not have requested redirect URI=[%s]",
 			utils.TruncateSensitive(existingClient.ID),
 			utils.SanitizeURL(redirectURI),
 		)

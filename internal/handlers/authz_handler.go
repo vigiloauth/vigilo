@@ -58,15 +58,8 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	req.HTTPWriter = w
 	req.HTTPRequest = r
 
-	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req, req.ConsentApproved)
+	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req)
 	if err != nil {
-		if vaErr, ok := err.(*errors.VigiloAuthError); ok && vaErr.ErrorCode == errors.ErrCodeConsentRequired {
-			consentURL := vaErr.ConsentURL
-			h.logger.Info(h.module, requestID, "[AuthorizeClient]: Consent required. Redirecting to consent URL")
-			http.Redirect(w, r, consentURL, http.StatusFound)
-			return
-		}
-
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")
 		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Failed to authorize client: %v", err)
 		web.WriteError(w, wrappedErr)

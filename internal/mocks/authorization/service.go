@@ -13,14 +13,14 @@ import (
 var _ authz.AuthorizationService = (*MockAuthorizationService)(nil)
 
 type MockAuthorizationService struct {
-	AuthorizeClientFunc          func(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest, consentApproved bool) (string, error)
+	AuthorizeClientFunc          func(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest) (string, error)
 	AuthorizeTokenExchangeFunc   func(ctx context.Context, tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error)
 	GenerateTokensFunc           func(ctx context.Context, authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error)
 	AuthorizeUserInfoRequestFunc func(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.User, error)
 }
 
-func (m *MockAuthorizationService) AuthorizeClient(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest, consentApproved bool) (string, error) {
-	return m.AuthorizeClientFunc(ctx, authorizationRequest, consentApproved)
+func (m *MockAuthorizationService) AuthorizeClient(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest) (string, error) {
+	return m.AuthorizeClientFunc(ctx, authorizationRequest)
 }
 
 func (m *MockAuthorizationService) AuthorizeTokenExchange(ctx context.Context, tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
