@@ -35,8 +35,8 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-prompt-login`
 - ✅ `oidcc-prompt-none-not-logged-in`
 - ✅ `oidcc-prompt-none-logged-in`
+- ✅ `oidcc-redirect-uri-regfrag` (incorrect error is being shown)
 
-- 🛠️ `oidcc-redirect-uri-regfrag` (incorrect error is being shown)
 - 🛠️ `oidcc-discovery-endpoint-verification` (missing supported claims)
 - 🛠️ `oidcc-registration-logo-uri` (missing the clients logo in the user auth and consent page)
 - 🛠️ `oidcc-registration-policy-uri` (missing policy link in logo)
@@ -64,5 +64,3 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ❌ `oidcc-ensure-request-object-with-redirect-uri`
 - ❌ `oidcc-redirect-uri-query-mismatch`
 - ❌ `oidcc-redirect-uri-query-added`
-
-
