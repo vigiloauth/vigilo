@@ -78,7 +78,6 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 					rr = testContext.SendHTTPRequest(test.method, web.OIDCEndpoints.UserInfo, requestBody, headers)
 				}
 
-				t.Log("Response:", rr.Body.String())
 				assert.Equal(t, http.StatusOK, rr.Code, "Expected HTTP status code 200 OK, got %d", rr.Code)
 			})
 		}
