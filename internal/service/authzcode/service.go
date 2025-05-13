@@ -141,7 +141,7 @@ func (c *authorizationCodeService) ValidateAuthorizationCode(ctx context.Context
 	authData, err := c.authzCodeRepo.GetAuthorizationCode(ctx, code)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[ValidateAuthorizationCode]: Failed to retrieve authorization code: %v", err)
-		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid authorization code")
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code is either invalid or expired")
 	}
 
 	if err := authData.ValidateFields(clientID, redirectURI); err != nil {

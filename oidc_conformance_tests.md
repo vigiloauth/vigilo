@@ -35,7 +35,9 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-prompt-login`
 - ✅ `oidcc-prompt-none-not-logged-in`
 - ✅ `oidcc-prompt-none-logged-in`
-- ✅ `oidcc-redirect-uri-regfrag` (incorrect error is being shown)
+- ✅ `oidcc-redirect-uri-regfrag`
+- ✅ `oidcc-codereuse`
+- ✅ `oidcc-codereuse-30seconds`
 
 - 🛠️ `oidcc-discovery-endpoint-verification` (missing supported claims)
 - 🛠️ `oidcc-registration-logo-uri` (missing the clients logo in the user auth and consent page)
@@ -55,8 +57,6 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ❌ `oidcc-request-uri-unsigned`
 - ❌ `oidcc-request-uri-signed-rs256`
 - ❌ `oidcc-server-rotate-keys`
-- ❌ `oidcc-codereuse` (currently returns the incorrect error when reusing an authorization code)
-- ❌ `oidcc-codereuse-30seconds` (currently returns the incorrect error when reusing an authorization code)
 - ❌ `oidcc-ensure-redirect-uri-in-authorization-request`
 - ❌ `oidcc-id-token-hint`
 - ❌ `oidcc-max-age-1`
