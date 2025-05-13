@@ -37,16 +37,16 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-prompt-none-logged-in`
 - ✅ `oidcc-redirect-uri-regfrag`
 - ✅ `oidcc-codereuse`
-
-- 🛠️ `oidcc-codereuse-30seconds` (invalid status code, the originally issued access token is revoked)
+- ✅ `oidcc-codereuse-30seconds`
+  
+- 🛠️ `oidcc-ensure-registered-redirect-uri` (The error is correct, but it is not displayed correctly)
 
 - 🛠️ `oidcc-discovery-endpoint-verification` (missing supported claims)
 - 🛠️ `oidcc-registration-logo-uri` (missing the clients logo in the user auth and consent page)
 - 🛠️ `oidcc-registration-policy-uri` (missing policy link in logo)
-- 🛠️ `oidcc-registration-sector-uri` 
+- 🛠️ `oidcc-registration-sector-uri`
 - 🛠️ `oidcc-claims-locales`
 - 🛠️ `oidcc-login-hint`
-- 🛠️ `oidcc-ensure-registered-redirect-uri` (The error is correct, but it is not displayed correctly)
 - 🛠️ `oidcc-registration-tos-uri`
 - 🛠️ `oidcc-claims-essential`
 - 🛠️ `oidcc-ensure-request-with-acr-values-succeeds`
@@ -65,9 +65,3 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ❌ `oidcc-ensure-request-object-with-redirect-uri`
 - ❌ `oidcc-redirect-uri-query-mismatch`
 - ❌ `oidcc-redirect-uri-query-added`
-
-## TODO
-- revoke access token when attempting to reuse code.
-    - try getting passing access token in TokenRequest
-    - currently not being deleted because it is not being added to context?
-- add logs in the middleware to view the token.
