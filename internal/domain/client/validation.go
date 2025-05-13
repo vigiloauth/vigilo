@@ -20,24 +20,32 @@ const module string = "Client Validation"
 // ValidateClientRegistrationRequest checks if the ClientRegistrationRequest contains valid values.
 func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 	logger.Debug(module, "", "Starting validation for client registration request")
-	errorCollection := errors.NewErrorCollection()
 
 	if req.Name == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "client_name is empty")
-		errorCollection.Add(err)
 		logger.Warn(module, "", "Validation failed: client_name is empty")
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "client_name is empty")
+	}
+	if err := validateApplicationType(req); err != nil {
+		logger.Error(module, "", "[ValidateClientRegistrationRequest]: An error occurred validating the application type: %v", err)
+		return err
+	}
+	if err := validateTokenEndpointAuthMethod(req); err != nil {
+		logger.Error(module, "", "[ValidateClientRegistrationRequest]: An error occurred validating the token endpoint auth method: %v", err)
+		return err
 	}
 
-	validateApplicationType(req, errorCollection)
-	validateTokenEndpointAuthMethod(req, errorCollection)
 	determineClientType(req)
-	validateGrantAndResponseTypes(req, errorCollection)
-	validateURIS(req, errorCollection)
-	validateScopes(req, errorCollection)
-
-	if errorCollection.HasErrors() {
-		logger.Error(module, "", "Validation failed with errors for client registration request: %v", errorCollection.Errors())
-		return errorCollection
+	if err := validateGrantAndResponseTypes(req); err != nil {
+		logger.Error(module, "", "[ValidateClientRegistrationRequest]: An error occurred validating grant and response types: %v", err)
+		return err
+	}
+	if err := validateURIS(req); err != nil {
+		logger.Error(module, "", "[ValidateClientRegistrationRequest]: An error occurred validating client URIS: %v", err)
+		return errors.Wrap(err, "", "the value of one or more redirection URIs is invalid")
+	}
+	if err := validateScopes(req); err != nil {
+		logger.Error(module, "", "[ValidateClientRegistrationRequest]: An error occurred validating scopes: %v", err)
+		return err
 	}
 
 	logger.Debug(module, "", "No errors while validating client registration request")
@@ -46,16 +54,21 @@ func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
 
 // ValidateClientUpdateRequest checks if the ClientUpdateRequest contains valid values.
 func ValidateClientUpdateRequest(req *ClientUpdateRequest) error {
-	errorCollection := errors.NewErrorCollection()
-
-	validateGrantType(req, errorCollection)
-	validateURIS(req, errorCollection)
-	validateScopes(req, errorCollection)
-	validateResponseTypes(req, errorCollection)
-
-	if errorCollection.HasErrors() {
-		logger.Error(module, "", "Validation failed with errors for client update request: %v", errorCollection.Errors())
-		return errorCollection
+	if err := validateGrantType(req); err != nil {
+		logger.Error(module, "", "[ValidateClientUpdateRequest]: An error occurred validating grant types: %v", err)
+		return err
+	}
+	if err := validateURIS(req); err != nil {
+		logger.Error(module, "", "[ValidateClientUpdateRequest]: An error occurred validating client URIS: %v", err)
+		return err
+	}
+	if err := validateScopes(req); err != nil {
+		logger.Error(module, "", "[ValidateClientUpdateRequest]: An error occurred validating scopes: %v", err)
+		return err
+	}
+	if err := validateResponseTypes(req); err != nil {
+		logger.Error(module, "", "[ValidateClientUpdateRequest]: An error occurred validating response types: %v", err)
+		return err
 	}
 
 	return nil
@@ -130,57 +143,57 @@ func determineClientType(req *ClientRegistrationRequest) {
 	}
 }
 
-func validateTokenEndpointAuthMethod(req *ClientRegistrationRequest, errorCollection *errors.ErrorCollection) {
+func validateTokenEndpointAuthMethod(req *ClientRegistrationRequest) error {
 	if req.TokenEndpointAuthMethod == "" {
-		return
+		logger.Warn(module, "", "No token endpoint auth method provided")
+		return nil
 	}
 
 	if !constants.ValidTokenEndpointAuthMethods[req.TokenEndpointAuthMethod] {
-		errorCollection.Add(
-			errors.New(
-				errors.ErrCodeInvalidClientMetadata,
-				fmt.Sprintf("invalid token endpoint auth method: %s", req.TokenEndpointAuthMethod),
-			),
+		return errors.New(
+			errors.ErrCodeInvalidClientMetadata,
+			fmt.Sprintf("invalid token endpoint auth method: %s", req.TokenEndpointAuthMethod),
 		)
 	}
+
+	return nil
 }
 
-func validateApplicationType(req *ClientRegistrationRequest, errorCollection *errors.ErrorCollection) {
+func validateApplicationType(req *ClientRegistrationRequest) error {
 	if req.ApplicationType == "" {
-		return
+		logger.Debug(module, "", "No application type given, will be determined dynamically")
+		return nil
 	}
 
 	if !constants.ValidApplicationTypes[req.ApplicationType] {
-		errorCollection.Add(
-			errors.New(
-				errors.ErrCodeInvalidClientMetadata,
-				fmt.Sprintf("invalid application type: %s", req.ApplicationType),
-			),
+		logger.Error(module, "", "Invalid application type provided: %v", req.ApplicationType)
+		return errors.New(
+			errors.ErrCodeInvalidClientMetadata,
+			fmt.Sprintf("invalid application type: %s", req.ApplicationType),
 		)
 	}
+
+	return nil
 }
 
 // Function to replace or modify validateGrantAndResponseTypes
-func validateGrantAndResponseTypes(req *ClientRegistrationRequest, errorCollection *errors.ErrorCollection) {
+func validateGrantAndResponseTypes(req *ClientRegistrationRequest) error {
 	if len(req.GrantTypes) == 0 {
-		errorCollection.Add(errors.New(errors.ErrCodeBadRequest, "at least one grant_type must be requested"))
-		return
+		logger.Error(module, "", "No grant types were requested")
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "at least one grant_type must be requested")
 	}
 	if len(req.ResponseTypes) == 0 && (contains(req.GrantTypes, constants.AuthorizationCodeGrantType) || contains(req.GrantTypes, constants.ImplicitGrantType)) {
-		errorCollection.Add(errors.New(errors.ErrCodeBadRequest, "response_types are required for authorization_code or implicit grant types"))
-		return
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "response_types are required for authorization_code or implicit grant types")
 	}
 
 	if req.Type == Public {
 		if contains(req.GrantTypes, constants.ClientCredentialsGrantType) {
-			err := errors.New(errors.ErrCodeInvalidClientMetadata, "public clients cannot request the client_credentials grant")
-			errorCollection.Add(err)
 			logger.Warn(module, "", "Validation failed: Public client requested client_credentials grant")
+			return errors.New(errors.ErrCodeInvalidClientMetadata, "public clients cannot request the client_credentials grant")
 		}
 		if contains(req.GrantTypes, constants.PasswordGrantType) {
-			err := errors.New(errors.ErrCodeInvalidClientMetadata, "public clients cannot request the password grant")
-			errorCollection.Add(err)
 			logger.Warn(module, "", "Validation failed: Public client requested password grant")
+			return errors.New(errors.ErrCodeInvalidClientMetadata, "public clients cannot request the password grant")
 		}
 
 		if req.Type == Public && contains(req.GrantTypes, constants.AuthorizationCodeGrantType) {
@@ -197,183 +210,161 @@ func validateGrantAndResponseTypes(req *ClientRegistrationRequest, errorCollecti
 
 	if requestsAuthCodeGrant || requestsImplicitGrant {
 		if !requestsCodeResponseType && !requestsIDTokenResponseType && !requestsTokenResponseType {
-			err := errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting authorization_code or implicit grants must include 'code', 'id_token', or 'token' in response_types")
-			errorCollection.Add(err)
 			logger.Warn(module, "", "Validation failed: Auth Code/Implicit grants requested without corresponding response types.")
+			return errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting authorization_code or implicit grants must include 'code', 'id_token', or 'token' in response_types")
 		}
 	}
 
 	if requestsAuthCodeGrant && !requestsCodeResponseType {
-		err := errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting authorization_code grant must include 'code' in response_types")
-		errorCollection.Add(err)
 		logger.Warn(module, "", "Validation failed: Auth Code grant requested without 'code' response type.")
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting authorization_code grant must include 'code' in response_types")
 	}
 
 	if requestsCodeResponseType && !requestsAuthCodeGrant {
-		err := errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting response_types including 'code' must include authorization_code grant")
-		errorCollection.Add(err)
 		logger.Warn(module, "", "Validation failed: 'code' response type requested without Auth Code grant.")
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting response_types including 'code' must include authorization_code grant")
 	}
 
 	usesImplicitResponseTypes := requestsIDTokenResponseType || requestsTokenResponseType
 	requestsImplicitFlowWithoutCode := usesImplicitResponseTypes && !requestsCodeResponseType
 
 	if requestsImplicitGrant && !requestsImplicitFlowWithoutCode && !requestsAuthCodeGrant { // Requests Implicit grant, but no implicit-only response types, and no Auth Code grant for hybrid
-		err := errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting implicit grant must include 'id_token', 'token', or both in response_types (or request a hybrid flow)")
-		errorCollection.Add(err)
 		logger.Warn(module, "", "Validation failed: Implicit grant requested without corresponding response types or hybrid.")
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting implicit grant must include 'id_token', 'token', or both in response_types (or request a hybrid flow)")
 	}
 
 	if requestsImplicitFlowWithoutCode && !requestsImplicitGrant { // Requests implicit-only response types, but no Implicit grant requested
-		err := errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting response_types including 'id_token' or 'token' (without 'code') must include implicit grant")
-		errorCollection.Add(err)
 		logger.Warn(module, "", "Validation failed: Implicit flow response types requested without Implicit grant.")
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "client requesting response_types including 'id_token' or 'token' (without 'code') must include implicit grant")
 	}
 
 	if contains(req.GrantTypes, constants.RefreshTokenGrantType) {
 		if !requestsAuthCodeGrant && !contains(req.GrantTypes, constants.PasswordGrantType) {
-			err := errors.New(errors.ErrCodeInvalidClientMetadata, "refresh_token grant requires a grant type capable of issuing refresh tokens (e.g., authorization_code or password)")
-			errorCollection.Add(err)
 			logger.Warn(module, "", "Validation failed: Refresh Token grant requested without a valid issuing grant.")
+			return errors.New(errors.ErrCodeInvalidClientMetadata, "refresh_token grant requires a grant type capable of issuing refresh tokens (e.g., authorization_code or password)")
 		}
 	}
+
+	return nil
 }
 
 // validateGrantType checks if the provided grant types are valid.
-func validateGrantType(req ClientRequest, errorCollection *errors.ErrorCollection) {
+func validateGrantType(req ClientRequest) error {
 	if len(req.GetGrantTypes()) == 0 {
 		logger.Warn(module, "", "Grant type validation failed: grant_types is empty")
-		err := errors.New(errors.ErrCodeEmptyInput, "grant_types is empty")
-		errorCollection.Add(err)
-		return
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "grant_types is empty")
 	}
 
 	validGrantTypes := constants.SupportedGrantTypes
 	for _, grantType := range req.GetGrantTypes() {
 		if _, ok := validGrantTypes[grantType]; !ok {
 			logger.Warn(module, "", "Unsupported grant type provided: %s", grantType)
-			err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type %s is not supported", grantType))
-			errorCollection.Add(err)
-			continue
+			return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type %s is not supported", grantType))
 		}
 
 		if req.GetType() == Public {
 			if grantType == constants.ClientCredentialsGrantType || grantType == constants.PasswordGrantType {
-				err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type %s is not supported for public clients", grantType))
-				errorCollection.Add(err)
+				return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type %s is not supported for public clients", grantType))
 			}
 		}
 
 		if grantType == constants.RefreshTokenGrantType && len(req.GetGrantTypes()) == 0 {
-			err := errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("%s requires another grant type", grantType))
-			errorCollection.Add(err)
+			return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("%s requires another grant type", grantType))
 		}
 	}
+
+	return nil
 }
 
 // validateURIS checks if redirect URIs are well-formed and secure.
-func validateURIS(req ClientRequest, errorCollection *errors.ErrorCollection) {
+func validateURIS(req ClientRequest) error {
 	if req.GetType() == Confidential && req.HasGrantType(constants.AuthorizationCodeGrantType) && len(req.GetRedirectURIS()) == 0 {
-		err := errors.New(errors.ErrCodeInvalidGrant, "redirect URI(s) are required for confidential clients using the authorization code grant type")
-		errorCollection.Add(err)
-		return
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "redirect URI(s) are required for confidential clients using the authorization code grant type")
 	}
 
 	if req.GetType() == Public && len(req.GetRedirectURIS()) == 0 {
 		logger.Warn(module, "", "Validation failed: redirect_uris is empty for public client")
-		err := errors.New(errors.ErrCodeEmptyInput, "redirect URI(s) are required for public clients")
-		errorCollection.Add(err)
-		return
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "redirect URI(s) are required for public clients")
 	}
 
 	if req.GetJwksURI() != "" {
 		if _, err := url.ParseRequestURI(req.GetJwksURI()); err != nil {
 			logger.Warn(module, "", "Invalid jwks_uri provided: %s", req.GetJwksURI())
-			err = errors.New(errors.ErrCodeInvalidClientMetadata, "invalid jwks_uri format")
-			errorCollection.Add(err)
+			return errors.New(errors.ErrCodeInvalidClientMetadata, "invalid jwks_uri format")
+
 		}
 	}
 
 	if req.GetLogoURI() != "" {
 		if _, err := url.ParseRequestURI(req.GetLogoURI()); err != nil {
 			logger.Warn(module, "", "Invalid logo_uri: %s", req.GetLogoURI())
-			err = errors.New(errors.ErrCodeInvalidClientMetadata, "invalid logo_uri format")
-			errorCollection.Add(err)
+			return errors.New(errors.ErrCodeInvalidClientMetadata, "invalid logo_uri format")
+
 		}
 	}
 
 	mobileSchemePattern := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/`)
 	for _, uri := range req.GetRedirectURIS() {
 		if uri == "" {
-			err := errors.New(errors.ErrCodeInvalidRedirectURI, "'redirect_uri' is empty")
-			errorCollection.Add(err)
 			logger.Warn(module, "", "Empty redirect_uri found")
-			continue
+			return errors.New(errors.ErrCodeInvalidRedirectURI, "'redirect_uri' is empty")
 		}
 		if strings.HasPrefix(uri, "http://localhost") || strings.HasPrefix(uri, "http://127.0.0.1") {
 			continue
 		}
 		if containsWildcard(uri) {
-			err := errors.New(errors.ErrCodeInvalidRedirectURI, "redirect URIs cannot have wildcards")
-			errorCollection.Add(err)
-			logger.Warn(module, "Redirect URI contains wildcard: %s", uri)
-			continue
+			logger.Warn(module, "", "Redirect URI contains wildcard: %s", uri)
+			return errors.New(errors.ErrCodeInvalidRedirectURI, "redirect URIs cannot have wildcards")
 		}
 
 		parsedURI, err := url.Parse(uri)
 		if err != nil {
-			err := errors.New(errors.ErrCodeInvalidRedirectURI, fmt.Sprintf("malformed redirect URI: %s", uri))
-			errorCollection.Add(err)
-			logger.Warn(module, "Malformed redirect URI: %s", uri)
-			continue
+			logger.Warn(module, "", "Malformed redirect URI: %s", uri)
+			return errors.New(errors.ErrCodeInvalidRedirectURI, fmt.Sprintf("malformed redirect URI: %s", uri))
 		}
 
 		switch req.GetType() {
 		case Confidential:
 			if parsedURI.Scheme != "https" {
-				err := errors.New(errors.ErrCodeInvalidRedirectURI, "confidential clients must use HTTPS")
-				errorCollection.Add(err)
-				logger.Warn(module, "Confidential client redirect URI is not using HTTPS: %s", uri)
+				logger.Warn(module, "", "Confidential client redirect URI is not using HTTPS: %s", uri)
+				return errors.New(errors.ErrCodeInvalidRedirectURI, "confidential clients must use HTTPS")
 			}
 			if net.ParseIP(parsedURI.Hostname()) != nil && !isLoopbackIP(parsedURI.Hostname()) {
-				err := errors.New(errors.ErrCodeInvalidRedirectURI, "IP address not allowed as redirect URI hosts")
-				errorCollection.Add(err)
-				logger.Warn(module, "Confidential client redirect URI is using IP address: %s", uri)
+				logger.Warn(module, "", "Confidential client redirect URI is using IP address: %s", uri)
+				return errors.New(errors.ErrCodeInvalidRedirectURI, "IP address not allowed as redirect URI hosts")
 			}
 			if parsedURI.Fragment != "" {
-				err := errors.New(errors.ErrCodeInvalidRedirectURI, "fragment component not allowed")
-				errorCollection.Add(err)
-				logger.Warn(module, "Confidential client redirect URI contains fragment: %s", uri)
+				logger.Warn(module, "", "Confidential client redirect URI contains fragment: %s", uri)
+				return errors.New(errors.ErrCodeInvalidRedirectURI, "fragment component not allowed")
 			}
 
 		case Public:
 			isMobileScheme := mobileSchemePattern.MatchString(uri) && parsedURI.Scheme != "http" && parsedURI.Scheme != "https"
 			if isMobileScheme {
 				if len(parsedURI.Scheme) < 4 {
-					err := errors.New(errors.ErrCodeInvalidRedirectURI, "mobile URI scheme is too short")
-					errorCollection.Add(err)
-					logger.Warn(module, "Mobile URI scheme is too short: %s", uri)
+					logger.Warn(module, "", "Mobile URI scheme is too short: %s", uri)
+					return errors.New(errors.ErrCodeInvalidRedirectURI, "mobile URI scheme is too short")
 				}
 			} else if parsedURI.Scheme != "https" {
-				err := errors.New(errors.ErrCodeInvalidRedirectURI, "public clients must use HTTPS")
-				errorCollection.Add(err)
-				logger.Warn(module, "Public client redirect URI is not using HTTPS: %s", uri)
+				logger.Warn(module, "", "Public client redirect URI is not using HTTPS: %s", uri)
+				return errors.New(errors.ErrCodeInvalidRedirectURI, "public clients must use HTTPS")
 			}
 		}
 	}
+
+	return nil
 }
 
 // validateScopes ensures all provided scopes are valid.
-func validateScopes(req ClientRequest, errorCollection *errors.ErrorCollection) {
+func validateScopes(req ClientRequest) error {
 	if len(req.GetScopes()) == 0 {
-		return
+		return nil
 	}
 
 	for _, scope := range req.GetScopes() {
 		if _, ok := constants.SupportedScopes[scope]; !ok {
-			err := errors.New(errors.ErrCodeInsufficientScope, fmt.Sprintf("scope '%s' is not supported", scope))
-			errorCollection.Add(err)
 			logger.Warn(module, "Unsupported scope: %s", scope)
+			return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("scope '%s' is not supported", scope))
 		}
 	}
 
@@ -383,23 +374,21 @@ func validateScopes(req ClientRequest, errorCollection *errors.ErrorCollection) 
 		req.SetScopes(newScopes)
 		logger.Info(module, "", "Adding default 'oidc' scope to client")
 	}
+
+	return nil
 }
 
 // validateResponseTypes ensures all provided response types are valid and compatible with grant types.
-func validateResponseTypes(req ClientRequest, errorCollection *errors.ErrorCollection) {
+func validateResponseTypes(req ClientRequest) error {
 	if len(req.GetResponseTypes()) == 0 {
 		logger.Warn(module, "", "Response type validation failed: response_types is empty")
-		err := errors.New(errors.ErrCodeEmptyInput, "response_types is empty")
-		errorCollection.Add(err)
-		return
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "response_types is empty")
 	}
 
 	for _, responseType := range req.GetResponseTypes() {
 		if _, ok := constants.SupportedResponseTypes[responseType]; !ok {
 			logger.Warn(module, "", "Unsupported response type: %s", responseType)
-			err := errors.New(errors.ErrCodeInvalidResponseType, fmt.Sprintf("response type '%s' is not supported", responseType))
-			errorCollection.Add(err)
-			continue
+			return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("response type '%s' is not supported", responseType))
 		}
 	}
 
@@ -412,21 +401,20 @@ func validateResponseTypes(req ClientRequest, errorCollection *errors.ErrorColle
 
 	if authCodeOrDeviceCode && !code {
 		logger.Warn(module, "", "Incompatible response type: 'code' is required for grant types 'authorization_code' or 'device_code'")
-		err := errors.New(errors.ErrCodeInvalidResponseType, "code response type is required for the authorization code or device code grant type")
-		errorCollection.Add(err)
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "code response type is required for the authorization code or device code grant type")
 	}
 
 	if implicitFlow && !token {
 		logger.Warn(module, "", "Incompatible response type: 'token' is required for the 'implicit' grant type")
-		err := errors.New(errors.ErrCodeInvalidResponseType, "token response type is required for the implicit flow grant type")
-		errorCollection.Add(err)
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "token response type is required for the implicit flow grant type")
 	}
 
 	if idToken && !(authCodeOrDeviceCode || implicitFlow) {
 		logger.Warn(module, "", "Incompatible response type: 'id_token' requires 'authorization_code' or 'implicit' grant type")
-		err := errors.New(errors.ErrCodeInvalidResponseType, "ID token response type is only allowed with the authorization code, device code or implicit flow grant types")
-		errorCollection.Add(err)
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "ID token response type is only allowed with the authorization code, device code or implicit flow grant types")
 	}
+
+	return nil
 }
 
 // validateCodeChallenge makes sure the code challenge is long enough and that it does not contain invalid characters.
