@@ -305,7 +305,7 @@ func (s *authorizationService) validateAuthorizationCode(ctx context.Context, to
 		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
 
-	s.logger.Debug(s.module, utils.GetRequestID(ctx), "[ValidateAuthorizationCode]: Nonce: %s", authzCodeData.Nonce)
+	s.logger.Debug(s.module, utils.GetRequestID(ctx), "[validateAuthorizationCode]: Nonce: %s", authzCodeData.Nonce)
 	s.logger.Debug(s.module, utils.GetRequestID(ctx), "Successfully validated the authorization code")
 	return authzCodeData, nil
 }
