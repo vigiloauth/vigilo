@@ -459,9 +459,10 @@ func (tc *VigiloTestContext) CreateAuthorizationCodeRequestQueryParams(codeChall
 	queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 	queryParams.Add(constants.ClientIDReqField, testClientID)
 	queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-	queryParams.Add(constants.ScopeReqField, constants.ClientManageScope)
+	queryParams.Add(constants.ScopeReqField, "openid profile")
 	queryParams.Add(constants.StateReqField, tc.State)
 	queryParams.Add(constants.ConsentApprovedURLValue, "true")
+	queryParams.Add(constants.NonceReqField, testNonce)
 
 	if codeChallenge != "" {
 		queryParams.Add(constants.CodeChallengeReqField, codeChallenge)

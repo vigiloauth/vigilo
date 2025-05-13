@@ -20,9 +20,8 @@ var (
 )
 
 type InMemoryAuthorizationCodeRepository struct {
-	codes     map[string]codeEntry
-	mu        sync.RWMutex
-	cleanupCh chan struct{} // Channel for triggering cleanup
+	codes map[string]codeEntry
+	mu    sync.RWMutex
 }
 
 // codeEntry represents a stored authorization code with expiration.
@@ -84,12 +83,6 @@ func (s *InMemoryAuthorizationCodeRepository) GetAuthorizationCode(ctx context.C
 	if !exists {
 		logger.Debug(module, "", "[GetAuthorizationCode]: Code=%s does not exist", code)
 		return nil, errors.New(errors.ErrCodeInvalidAuthorizationCode, "authorization code does not exist")
-	}
-
-	// Check if code has expired
-	if time.Now().After(entry.ExpiresAt) {
-		logger.Warn(module, "", "[GetAuthorizationCode]: Authorization code is expired")
-		return nil, errors.New(errors.ErrCodeExpiredAuthorizationCode, "authorization code is expired")
 	}
 
 	return entry.Data, nil

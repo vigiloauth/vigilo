@@ -142,22 +142,31 @@ func (s *authorizationService) AuthorizeTokenExchange(ctx context.Context, token
 	requestID := utils.GetRequestID(ctx)
 	s.logger.Debug(s.module, requestID, "[AuthorizeTokenExchange]: Starting authorization process...")
 
-	authzCodeData, err := s.validateAuthorizationCode(ctx, tokenRequest)
+	authzCodeData, err := s.authzCodeService.GetAuthorizationCode(ctx, tokenRequest.AuthorizationCode)
 	if err != nil {
+		s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
 		return nil, err
+	}
+
+	if authzCodeData.Used {
+		if authzCodeData.AccessTokenHash != "" {
+			s.revokeAccessToken(ctx, authzCodeData.AccessTokenHash)
+		}
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code already used")
 	}
 
 	if err := s.validateClient(ctx, authzCodeData, tokenRequest); err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeTokenExchange]: Failed to validate client=[%s]: %v", utils.TruncateSensitive(tokenRequest.ClientID), err)
+		s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
 
 	if err := s.handlePKCEValidation(authzCodeData, tokenRequest); err != nil {
-		s.revokeAuthorizationCode(ctx, authzCodeData.Code)
+		s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
 		return nil, err
 	}
 
-	s.revokeAuthorizationCode(ctx, authzCodeData.Code)
+	s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
 	s.logger.Info(s.module, requestID, "[AuthorizeTokenExchange]: Client=[%s] successfully authorized", utils.TruncateSensitive(tokenRequest.ClientID))
 	return authzCodeData, nil
 }
@@ -173,11 +182,9 @@ func (s *authorizationService) AuthorizeTokenExchange(ctx context.Context, token
 //   - error: An error if token generation fails.
 func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
 	requestID := utils.GetRequestID(ctx)
-	s.logger.Info(s.module, requestID, "[GenerateTokens] Start token generation. UserID: %s, ClientID: %s, Scope: %s, Nonce: %s",
+	s.logger.Info(s.module, requestID, "[GenerateTokens] Start token generation. UserID: %s, ClientID: %s",
 		utils.TruncateSensitive(authCodeData.UserID),
 		utils.TruncateSensitive(authCodeData.ClientID),
-		authCodeData.Scope,
-		utils.TruncateSensitive(authCodeData.Nonce),
 	)
 
 	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "")
@@ -206,6 +213,13 @@ func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData 
 		TokenType:    token.BearerToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration()),
 		Scope:        authCodeData.Scope,
+	}
+
+	authCodeData.Used = true
+	authCodeData.AccessTokenHash = accessToken
+	if err := s.authzCodeService.UpdateAuthorizationCode(ctx, authCodeData); err != nil {
+		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to mark authorization code as used: %v", err)
+		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to update authorization code status")
 	}
 
 	s.logger.Info(s.module, requestID, "[GenerateTokens] Token generation complete. Returning TokenResponse")
@@ -296,20 +310,6 @@ func (s *authorizationService) validateClient(ctx context.Context, code *authzCo
 	return nil
 }
 
-func (s *authorizationService) validateAuthorizationCode(ctx context.Context, tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
-	authzCodeData, err := s.authzCodeService.ValidateAuthorizationCode(ctx, tokenRequest.AuthorizationCode, tokenRequest.ClientID, tokenRequest.RedirectURI)
-	if err != nil {
-		s.revokeAuthorizationCode(ctx, tokenRequest.AuthorizationCode)
-		s.revokeAccessToken(ctx)
-		s.logger.Error(s.module, "", "Failed to validate authorization code: %v", err)
-		return nil, errors.Wrap(err, "", "failed to validate authorization code")
-	}
-
-	s.logger.Debug(s.module, utils.GetRequestID(ctx), "[validateAuthorizationCode]: Nonce: %s", authzCodeData.Nonce)
-	s.logger.Debug(s.module, utils.GetRequestID(ctx), "Successfully validated the authorization code")
-	return authzCodeData, nil
-}
-
 func (s *authorizationService) handlePKCEValidation(authzCodeData *authzCode.AuthorizationCodeData, tokenRequest *token.TokenRequest) error {
 	if authzCodeData.CodeChallenge == "" {
 		s.logger.Debug(s.module, "", "PKCE is not required for this request. Skipping validation")
@@ -332,20 +332,8 @@ func (s *authorizationService) handlePKCEValidation(authzCodeData *authzCode.Aut
 	return nil
 }
 
-func (s *authorizationService) revokeAuthorizationCode(ctx context.Context, code string) {
-	if err := s.authzCodeService.RevokeAuthorizationCode(ctx, code); err != nil {
-		s.logger.Error(s.module, utils.GetRequestID(ctx), "[revokeAuthorizationCode]: Failed to revoke authorization code: %v", err)
-	}
-}
-
-func (s *authorizationService) revokeAccessToken(ctx context.Context) {
-	token := ""
-	if val := utils.GetValueFromContext(ctx, constants.ContextKeyAccessToken); val != nil {
-		token, _ = val.(string)
-	}
-
-	s.logger.Debug(s.module, utils.GetRequestID(ctx), "[revokeAccessToken]: Revoking access token: %s", token)
-	if err := s.tokenService.DeleteToken(ctx, token); err != nil {
+func (s *authorizationService) revokeAccessToken(ctx context.Context, token string) {
+	if err := s.tokenService.BlacklistToken(ctx, token); err != nil {
 		s.logger.Error(s.module, utils.GetRequestID(ctx), "[revokeAccessToken]: Failed to blacklist token: %v", err)
 	}
 }
@@ -457,4 +445,14 @@ func (s *authorizationService) buildConsentRequiredErrorURL(request *client.Clie
 		"user consent is required to continue",
 		request.State, request.RedirectURI,
 	)
+}
+
+func (s *authorizationService) markAuthorizationCodeAsUsed(ctx context.Context, authzCodeData *authzCode.AuthorizationCodeData) error {
+	authzCodeData.Used = true
+	if err := s.authzCodeService.UpdateAuthorizationCode(ctx, authzCodeData); err != nil {
+		s.logger.Error(s.module, utils.GetRequestID(ctx), "[AuthorizeTokenExchange]: Failed to mark code as used: %v", err)
+		return err
+	}
+
+	return nil
 }

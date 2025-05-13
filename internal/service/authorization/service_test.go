@@ -329,15 +329,13 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(ctx context.Context, ode, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
-				return getTestAuthzCodeData(), nil
-			},
 			GetAuthorizationCodeFunc: func(ctx context.Context, code string) (*authzCode.AuthorizationCodeData, error) {
 				return getTestAuthzCodeData(), nil
 			},
-			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
+			UpdateAuthorizationCodeFunc: func(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
+				return nil
+			},
 		}
-
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
 				return getTestClient(), nil
@@ -358,14 +356,15 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 
 	t.Run("Error is returned validating authorization code", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
-				return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid authorization code")
+			GetAuthorizationCodeFunc: func(ctx context.Context, code string) (*authzCode.AuthorizationCodeData, error) {
+				data := getTestAuthzCodeData()
+				data.Used = true
+				return data, nil
 			},
-			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil, nil, nil)
-		expected := "failed to validate authorization code: invalid authorization code"
+		expected := "authorization code already used"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
 		assert.Error(t, err)
@@ -375,10 +374,12 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 
 	t.Run("Error is returned validating client", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
+			GetAuthorizationCodeFunc: func(ctx context.Context, code string) (*authzCode.AuthorizationCodeData, error) {
 				return getTestAuthzCodeData(), nil
 			},
-			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
+			UpdateAuthorizationCodeFunc: func(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
+				return nil
+			},
 		}
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -403,13 +404,12 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 
 	t.Run("Successful authorization for request using PKCE", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
-				return authzCodeData, nil
+			GetAuthorizationCodeFunc: func(ctx context.Context, code string) (*authzCode.AuthorizationCodeData, error) {
+				return getTestAuthzCodeData(), nil
 			},
-			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
+			UpdateAuthorizationCodeFunc: func(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
 				return nil
 			},
-			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -429,13 +429,14 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 
 	t.Run("Error is returned when token request does not have required code verifier", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
-				return authzCodeData, nil
+			GetAuthorizationCodeFunc: func(ctx context.Context, code string) (*authzCode.AuthorizationCodeData, error) {
+				data := getTestAuthzCodeData()
+				data.CodeChallenge = "code-challenge"
+				return data, nil
 			},
-			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
+			UpdateAuthorizationCodeFunc: func(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
 				return nil
 			},
-			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -456,13 +457,17 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 
 	t.Run("Error is returned when validating PKCE request", func(t *testing.T) {
 		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
-			ValidateAuthorizationCodeFunc: func(ctx context.Context, code, clientID, redirectURI string) (*authzCode.AuthorizationCodeData, error) {
-				return authzCodeData, nil
+			GetAuthorizationCodeFunc: func(ctx context.Context, code string) (*authzCode.AuthorizationCodeData, error) {
+				data := getTestAuthzCodeData()
+				data.CodeChallenge = "code-challenge"
+				return data, nil
+			},
+			UpdateAuthorizationCodeFunc: func(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
+				return nil
 			},
 			ValidatePKCEFunc: func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error {
 				return errors.New(errors.ErrCodeInvalidGrant, "PKCE validation failed")
 			},
-			RevokeAuthorizationCodeFunc: func(ctx context.Context, code string) error { return nil },
 		}
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -499,8 +504,13 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 				return "idToken", nil
 			},
 		}
+		mockAuthzCodeService := &mAuthzCodeService.MockAuthorizationCodeService{
+			UpdateAuthorizationCodeFunc: func(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
+				return nil
+			},
+		}
 
-		service := NewAuthorizationService(nil, nil, mockTokenService, mockClientService, nil, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, mockTokenService, mockClientService, nil, nil)
 
 		actual, err := service.GenerateTokens(ctx, getTestAuthzCodeData())
 

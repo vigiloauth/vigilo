@@ -355,35 +355,32 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 }
 
 func TestTokenHandler_TokenExchange(t *testing.T) {
-	t.Run("Valid Token Request - Success", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
+	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
 
-		testContext.WithUserSession()
-		testContext.WithUserConsent()
-		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
-			[]string{constants.AuthorizationCodeGrantType},
-		)
+	testContext.WithUserSession()
+	testContext.WithUserConsent()
+	testContext.WithClient(
+		client.Confidential, []string{},
+		[]string{constants.AuthorizationCodeGrantType},
+	)
 
-		authzCode := testContext.GetAuthzCode()
+	authzCode := testContext.GetAuthzCode()
 
-		formData := url.Values{}
-		formData.Add(constants.CodeURLValue, authzCode)
-		formData.Add(constants.RedirectURIReqField, testRedirectURI)
-		formData.Add(constants.StateReqField, testContext.State)
-		formData.Add(constants.GrantTypeReqField, constants.AuthorizationCodeGrantType)
+	formData := url.Values{}
+	formData.Add(constants.CodeURLValue, authzCode)
+	formData.Add(constants.RedirectURIReqField, testRedirectURI)
+	formData.Add(constants.StateReqField, testContext.State)
+	formData.Add(constants.GrantTypeReqField, constants.AuthorizationCodeGrantType)
 
-		headers := map[string]string{
-			"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
-			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": "Basic " + encodeClientCredentials(testClientID, testClientSecret),
-		}
-		rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
-
-		assert.Equal(t, http.StatusOK, rr.Code, "Expected a successful token exchange")
-	})
+	headers := map[string]string{
+		"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
+		"Content-Type":  "application/x-www-form-urlencoded",
+		"Authorization": "Basic " + encodeClientCredentials(testClientID, testClientSecret),
+	}
+	rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
+	t.Logf("body: %v", rr.Body)
+	assert.Equal(t, http.StatusOK, rr.Code, "Expected a successful token exchange")
 }
 
 func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
@@ -414,8 +411,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 
 		for _, test := range tests {
 			testContext.WithClient(
-				test.clientType,
-				[]string{constants.ClientManageScope},
+				test.clientType, []string{},
 				[]string{constants.AuthorizationCodeGrantType},
 			)
 
@@ -471,8 +467,7 @@ func TestTokenHandler_TokenExchange_UsingPKCE(t *testing.T) {
 
 		for _, test := range tests {
 			testContext.WithClient(
-				test.clientType,
-				[]string{constants.ClientManageScope},
+				test.clientType, []string{},
 				[]string{constants.AuthorizationCodeGrantType},
 			)
 
@@ -1067,4 +1062,64 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
+}
+
+func TestTokenHandler_CodeReuseFailsAndRevokesAccessToken(t *testing.T) {
+	testContext := NewVigiloTestContext(t)
+	defer testContext.TearDown()
+
+	testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+	testContext.WithUserConsent()
+	testContext.WithUserSession()
+	testContext.WithClient(
+		client.Confidential, []string{},
+		[]string{constants.AuthorizationCodeGrantType},
+	)
+
+	// 1. Make request to AuthorizeClient endpoint
+	code := testContext.GetAuthzCode()
+
+	// 2. Get Access Token using code from AuthorizeClient
+	formData := url.Values{}
+	formData.Add(constants.CodeURLValue, code)
+	formData.Add(constants.RedirectURIReqField, testRedirectURI)
+	formData.Add(constants.StateReqField, testContext.State)
+	formData.Add(constants.GrantTypeReqField, constants.AuthorizationCodeGrantType)
+
+	headers := map[string]string{
+		"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
+		"Content-Type":  "application/x-www-form-urlencoded",
+		"Authorization": "Basic " + encodeClientCredentials(testClientID, testClientSecret),
+	}
+
+	rr := testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
+	assert.Equal(t, http.StatusOK, rr.Code, "Expected status to be '200 OK'")
+
+	var tokenResponse token.TokenResponse
+	err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
+	assert.NoError(t, err, "Expected no error while decoding token response")
+
+	// 3. Call UserInfo with Access token
+	headers = map[string]string{
+		constants.AuthorizationHeader: constants.BearerAuthHeader + tokenResponse.AccessToken,
+	}
+	rr = testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
+	assert.Equal(t, http.StatusOK, rr.Code, "Expected status to be '200 OK'")
+
+	// 4. Use same authorization code to get an access token. Original access token should be revoked
+	headers = map[string]string{
+		"Cookie":        testContext.SessionCookie.Name + "=" + testContext.SessionCookie.Value,
+		"Content-Type":  "application/x-www-form-urlencoded",
+		"Authorization": "Basic " + encodeClientCredentials(testClientID, testClientSecret),
+	}
+
+	rr = testContext.SendHTTPRequest(http.MethodPost, web.OAuthEndpoints.Token, strings.NewReader(formData.Encode()), headers)
+	assert.Equal(t, http.StatusBadRequest, rr.Code, "Expected status to be '400 Bad Request'")
+
+	// 5. Attempt to use Access Token again. It should have previously been revoked.
+	headers = map[string]string{
+		constants.AuthorizationHeader: constants.BearerAuthHeader + tokenResponse.AccessToken,
+	}
+	rr = testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code, "Expected status to be '401 Unauthorized'")
 }

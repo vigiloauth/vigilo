@@ -129,7 +129,7 @@ func TestAuthorizationCodeService_ValidateAuthorizationCode(t *testing.T) {
 
 		assert.Nil(t, code)
 		assert.Error(t, actual)
-		assert.Equal(t, "invalid authorization code", actual.Error())
+		assert.Equal(t, "authorization code is either invalid or expired", actual.Error())
 	})
 
 	t.Run("Error is returned when there is a client ID mismatch", func(t *testing.T) {
