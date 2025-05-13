@@ -37,7 +37,8 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-prompt-none-logged-in`
 - ✅ `oidcc-redirect-uri-regfrag`
 - ✅ `oidcc-codereuse`
-- ✅ `oidcc-codereuse-30seconds`
+
+- 🛠️ `oidcc-codereuse-30seconds` (invalid status code)
 
 - 🛠️ `oidcc-discovery-endpoint-verification` (missing supported claims)
 - 🛠️ `oidcc-registration-logo-uri` (missing the clients logo in the user auth and consent page)
