@@ -97,7 +97,7 @@ export default function ConsentForm() {
 
   useEffect(() => {
     handleGetConsent();
-  });
+  }, []);
 
   const handleGetConsent = async () => {
     try {
