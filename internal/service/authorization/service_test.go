@@ -672,29 +672,6 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 }
 
-func getClientAuthorizationRequest() *client.ClientAuthorizationRequest {
-	return &client.ClientAuthorizationRequest{
-		ClientID:            testClientID,
-		ResponseType:        constants.CodeResponseType,
-		RedirectURI:         testRedirectURI,
-		Scope:               constants.OpenIDScope,
-		State:               "testState",
-		CodeChallenge:       "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_",
-		CodeChallengeMethod: client.S256,
-		UserID:              testUserID,
-		Nonce:               "nonce",
-		Client: &client.Client{
-			Name:          "Test Client",
-			Type:          client.Public,
-			RequiresPKCE:  true,
-			RedirectURIS:  []string{testRedirectURI},
-			GrantTypes:    []string{constants.AuthorizationCodeGrantType},
-			Scopes:        []string{constants.ClientManageScope},
-			ResponseTypes: []string{constants.CodeResponseType},
-		},
-	}
-}
-
 func getTestAuthzCodeData() *authzCode.AuthorizationCodeData {
 	return &authzCode.AuthorizationCodeData{
 		UserID:      testUserID,
