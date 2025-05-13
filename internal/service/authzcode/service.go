@@ -149,11 +149,6 @@ func (c *authorizationCodeService) ValidateAuthorizationCode(ctx context.Context
 		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
 
-	if err := c.markCodeAsUsed(ctx, code, authData); err != nil {
-		c.logger.Error(c.module, requestID, "[ValidateAuthorizationCode]: Failed to mark authorization code as used: %v", err)
-		return nil, err
-	}
-
 	return authData, nil
 }
 
@@ -166,8 +161,33 @@ func (c *authorizationCodeService) ValidateAuthorizationCode(ctx context.Context
 // Returns:
 //   - error: An error if revocation fails.
 func (c *authorizationCodeService) RevokeAuthorizationCode(ctx context.Context, code string) error {
-	if err := c.authzCodeRepo.DeleteAuthorizationCode(ctx, code); err != nil {
+	requestID := utils.GetRequestID(ctx)
+	authzCodeData, err := c.authzCodeRepo.GetAuthorizationCode(ctx, code)
+	if err != nil {
+		c.logger.Error(c.module, requestID, "[RevokeAuthorizationCode]: Failed to retrieve authorization code: %v", err)
+		return err
+	}
+
+	if err := c.markCodeAsUsed(ctx, code, authzCodeData); err != nil {
 		c.logger.Error(c.module, "", "[RevokeAuthorizationCode]: Failed to revoke authorization code=[%s]: %v", utils.TruncateSensitive(code), err)
+		return err
+	}
+
+	return nil
+}
+
+// UpdateAuthorizationCode updates the provided authorization code data in the repository.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - authData (*authz.AuthorizationCodeData): The authorization code data to be updated.
+//
+// Returns:
+//   - error: An error if updated the authorization code fails, or nil if the operation succeeds.
+func (c *authorizationCodeService) UpdateAuthorizationCode(ctx context.Context, authData *authz.AuthorizationCodeData) error {
+	requestID := utils.GetRequestID(ctx)
+	if err := c.authzCodeRepo.UpdateAuthorizationCode(ctx, authData.Code, authData); err != nil {
+		c.logger.Error(c.module, requestID, "[UpdateAuthorizationCode]: Failed to update authorization code: %v", err)
 		return err
 	}
 
