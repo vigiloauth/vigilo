@@ -344,7 +344,8 @@ func (s *authorizationService) revokeAccessToken(ctx context.Context) {
 		token, _ = val.(string)
 	}
 
-	if err := s.tokenService.BlacklistToken(ctx, token); err != nil {
+	s.logger.Debug(s.module, utils.GetRequestID(ctx), "[revokeAccessToken]: Revoking access token: %s", token)
+	if err := s.tokenService.DeleteToken(ctx, token); err != nil {
 		s.logger.Error(s.module, utils.GetRequestID(ctx), "[revokeAccessToken]: Failed to blacklist token: %v", err)
 	}
 }

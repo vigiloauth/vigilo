@@ -38,7 +38,7 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-redirect-uri-regfrag`
 - ✅ `oidcc-codereuse`
 
-- 🛠️ `oidcc-codereuse-30seconds` (invalid status code)
+- 🛠️ `oidcc-codereuse-30seconds` (invalid status code, the originally issued access token is revoked)
 
 - 🛠️ `oidcc-discovery-endpoint-verification` (missing supported claims)
 - 🛠️ `oidcc-registration-logo-uri` (missing the clients logo in the user auth and consent page)
@@ -65,3 +65,8 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ❌ `oidcc-ensure-request-object-with-redirect-uri`
 - ❌ `oidcc-redirect-uri-query-mismatch`
 - ❌ `oidcc-redirect-uri-query-added`
+
+## TODO
+- revoke access token when attempting to reuse code.
+    - currently not being deleted because it is not being added to context?
+- add logs in the middleware to view the token.
