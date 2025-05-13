@@ -68,5 +68,6 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 
 ## TODO
 - revoke access token when attempting to reuse code.
+    - try getting passing access token in TokenRequest
     - currently not being deleted because it is not being added to context?
 - add logs in the middleware to view the token.
