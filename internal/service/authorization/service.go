@@ -148,7 +148,6 @@ func (s *authorizationService) AuthorizeTokenExchange(ctx context.Context, token
 	}
 
 	if err := s.validateClient(ctx, authzCodeData, tokenRequest); err != nil {
-		s.revokeAuthorizationCode(ctx, authzCodeData.Code)
 		s.logger.Error(s.module, requestID, "[AuthorizeTokenExchange]: Failed to validate client=[%s]: %v", utils.TruncateSensitive(tokenRequest.ClientID), err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
@@ -301,6 +300,7 @@ func (s *authorizationService) validateAuthorizationCode(ctx context.Context, to
 	authzCodeData, err := s.authzCodeService.ValidateAuthorizationCode(ctx, tokenRequest.AuthorizationCode, tokenRequest.ClientID, tokenRequest.RedirectURI)
 	if err != nil {
 		s.revokeAuthorizationCode(ctx, tokenRequest.AuthorizationCode)
+		s.revokeAccessToken(ctx)
 		s.logger.Error(s.module, "", "Failed to validate authorization code: %v", err)
 		return nil, errors.Wrap(err, "", "failed to validate authorization code")
 	}
@@ -334,7 +334,18 @@ func (s *authorizationService) handlePKCEValidation(authzCodeData *authzCode.Aut
 
 func (s *authorizationService) revokeAuthorizationCode(ctx context.Context, code string) {
 	if err := s.authzCodeService.RevokeAuthorizationCode(ctx, code); err != nil {
-		s.logger.Error(s.module, "", "Failed to revoke authorization code: %v", err)
+		s.logger.Error(s.module, utils.GetRequestID(ctx), "[revokeAuthorizationCode]: Failed to revoke authorization code: %v", err)
+	}
+}
+
+func (s *authorizationService) revokeAccessToken(ctx context.Context) {
+	token := ""
+	if val := utils.GetValueFromContext(ctx, constants.ContextKeyAccessToken); val != nil {
+		token, _ = val.(string)
+	}
+
+	if err := s.tokenService.BlacklistToken(ctx, token); err != nil {
+		s.logger.Error(s.module, utils.GetRequestID(ctx), "[revokeAccessToken]: Failed to blacklist token: %v", err)
 	}
 }
 
