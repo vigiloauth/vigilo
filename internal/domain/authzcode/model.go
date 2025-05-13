@@ -14,6 +14,7 @@ type AuthorizationCodeData struct {
 	CodeChallenge       string
 	CodeChallengeMethod string
 	Nonce               string
+	AccessTokenHash     string
 }
 
 const (
