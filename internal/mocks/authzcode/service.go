@@ -16,6 +16,7 @@ type MockAuthorizationCodeService struct {
 	GetAuthorizationCodeFunc      func(ctx context.Context, code string) (*authzCode.AuthorizationCodeData, error)
 	ValidatePKCEFunc              func(authzCodeData *authzCode.AuthorizationCodeData, codeVerifier string) error
 	SaveAuthorizationCodeFunc     func(ctx context.Context, authzCodeData *authzCode.AuthorizationCodeData) error
+	UpdateAuthorizationCodeFunc   func(ctx context.Context, authData *authzCode.AuthorizationCodeData) error
 }
 
 func (m *MockAuthorizationCodeService) GenerateAuthorizationCode(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
@@ -40,4 +41,8 @@ func (m *MockAuthorizationCodeService) ValidatePKCE(authzCodeData *authzCode.Aut
 
 func (m *MockAuthorizationCodeService) SaveAuthorizationCode(ctx context.Context, authzData *authzCode.AuthorizationCodeData) error {
 	return m.SaveAuthorizationCodeFunc(ctx, authzData)
+}
+
+func (m *MockAuthorizationCodeService) UpdateAuthorizationCode(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
+	return m.UpdateAuthorizationCodeFunc(ctx, authData)
 }

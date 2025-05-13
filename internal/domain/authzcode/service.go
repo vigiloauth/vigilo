@@ -78,4 +78,14 @@ type AuthorizationCodeService interface {
 	// Returns:
 	//	- error: An error if storing the authorization code fails, or nil if the operation succeeds.
 	SaveAuthorizationCode(ctx context.Context, authData *AuthorizationCodeData) error
+
+	// UpdateAuthorizationCode updates the provided authorization code data in the repository.
+	//
+	// Parameters:
+	//	- ctx Context: The context for managing timeouts and cancellations.
+	//	- authData (*authz.AuthorizationCodeData): The authorization code data to be updated.
+	//
+	// Returns:
+	//	- error: An error if updated the authorization code fails, or nil if the operation succeeds.
+	UpdateAuthorizationCode(ctx context.Context, authData *AuthorizationCodeData) error
 }
