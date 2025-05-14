@@ -1,13 +1,14 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
-import ConsentPopup from "./popups/ConsentPopup";
 import AuthenticationPage from "./pages/AuthenticationPage";
 import ConsentPage from "./pages/ConsentPage";
 import URL_PARAMS from "./constants/urlParams";
+import ErrorPage from "./pages/ErrorPage";
 
 function App() {
   const queryParams = new URLSearchParams(window.location.search);
   const display = queryParams.get(URL_PARAMS.DISPLAY);
+  const errorType = queryParams.get(URL_PARAMS.TYPE);
 
   return (
     <BrowserRouter>
@@ -18,6 +19,7 @@ function App() {
             element={<AuthenticationPage display={display} />}
           />
           <Route path="/consent" element={<ConsentPage display={display} />} />
+          <Route path="/error" element={<ErrorPage errorType={errorType} />} />
         </Routes>
       </div>
     </BrowserRouter>

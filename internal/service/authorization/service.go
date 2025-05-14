@@ -90,6 +90,11 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 
+	if !client.HasRedirectURI(request.RedirectURI) {
+		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Invalid redirect URI: %s", request.RedirectURI)
+		return "", errors.New(errors.ErrCodeInvalidRedirectURI, "invalid redirect URI")
+	}
+
 	if s.shouldForceLogin(request) {
 		return s.buildLoginRedirect(client.ID, request), nil
 	}

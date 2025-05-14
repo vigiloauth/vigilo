@@ -32,16 +32,22 @@ func WriteError(w http.ResponseWriter, err error) {
 			Errors:           e.Errors(),
 		}
 		WriteJSON(w, http.StatusBadRequest, err)
-	} else if stdErr, ok := err.(*errors.VigiloAuthError); ok {
-		statusCode := errors.StatusCode(stdErr.ErrorCode)
-		if stdErr.ErrorCode == errors.ErrCodeInvalidClient {
-			w.Header().Set("WWW-Authenticate", `Basic realm="auth", error="invalid_client", error_description="Client authentication failed"`)
-		}
-		WriteJSON(w, statusCode, stdErr)
+	} else if errors.Code(err) == errors.ErrCodeInvalidClient {
+		w.Header().Set("WWW-Authenticate", `Basic realm="auth", error="invalid_client", error_description="Client authentication failed"`)
+		WriteJSON(w, errors.StatusCode(errors.ErrCodeInvalidClient), err)
 	} else {
 		genericErr := createGenericError(err)
 		WriteJSON(w, http.StatusInternalServerError, genericErr)
 	}
+}
+
+func RenderErrorPage(w http.ResponseWriter, r *http.Request, errorCode string, invalidURI string) {
+	errorURL := "/error?type=" + errors.ErrorCodeMap[errorCode]
+	if invalidURI != "" {
+		errorURL += "&uri=" + url.QueryEscape(invalidURI)
+	}
+
+	http.Redirect(w, r, errorURL, http.StatusFound)
 }
 
 func BuildErrorURL(errCode, errDescription, state, redirectURI string) string {
