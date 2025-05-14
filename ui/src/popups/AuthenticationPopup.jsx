@@ -1,20 +1,17 @@
 import { useState } from "react";
 import { Modal, Typography } from "antd";
-import "../styles/popup.scss";
+import { useApplicationContext } from "../context/ApplicationContext";
 import Container from "../components/Container";
 import AuthenticationForm from "../forms/AuthenticationForm";
-import URL_PARAMS from "../constants/urlParams";
+import "../styles/popup.scss";
 
 const { Title, Text } = Typography;
 
-export default function AuthenticationPopup({ image }) {
+export default function AuthenticationPopup({ clientLogo, clientName }) {
   const [visible, setVisible] = useState(true);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const redirectURI = urlParams.get(URL_PARAMS.REDIRECT_URI);
+  const { redirectURI } = useApplicationContext();
 
   const onCancel = () => {
-    console.log(redirectURI);
     setVisible(false);
   };
 
@@ -23,6 +20,9 @@ export default function AuthenticationPopup({ image }) {
       window.location.replace(redirectURI);
     }
   };
+
+  const defaultSignInMessage = "Please sign in to continue";
+  const signInMessage = `You are signing into ${clientName}`;
 
   return (
     <Modal
@@ -36,9 +36,9 @@ export default function AuthenticationPopup({ image }) {
       centered
     >
       <Container className="popup-header">
-        {image ? image : <Title>Welcome Back</Title>}
+        {clientLogo ? clientLogo : <Title>Welcome Back</Title>}
         <Text className="subtitle" type="secondary">
-          Please sign in to continue
+          {clientName ? signInMessage : defaultSignInMessage}
         </Text>
       </Container>
       <AuthenticationForm />
