@@ -215,12 +215,14 @@ $mobile-breakpoint: 768px;
 
 .consent-disclaimer {
   font-size: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 25px;
   color: rgba(0, 0, 0, 0.45);
   user-select: none;
 }
 
-.consent-button {
+.consent-button,
+.approve-button {
+  margin-bottom: 15px;
   @media (min-width: $mobile-breakpoint) {
     height: 48px;
   }

@@ -119,10 +119,11 @@ func setupSpaRouting(r *chi.Mux) {
 
 	r.Get("/authenticate", serveIndexHTML(buildPath))
 	r.Get("/consent", serveIndexHTML(buildPath))
+	r.Get("/error", serveIndexHTML(buildPath))
 
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		for _, prefix := range []string{"/authenticate/", "/consent/"} {
+		for _, prefix := range []string{"/authenticate/", "/consent/", "/error/"} {
 			if strings.HasPrefix(path, prefix+"static/") {
 				staticPath := strings.TrimPrefix(path, prefix)
 				r.URL.Path = "/" + staticPath
