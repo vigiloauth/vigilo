@@ -1,13 +1,19 @@
 import { useState } from "react";
-import { Modal, Typography } from "antd";
+import { Modal, Typography, Spin } from "antd";
 import { useApplicationContext } from "../context/ApplicationContext";
 import Container from "../components/Container";
 import AuthenticationForm from "../forms/AuthenticationForm";
+import FlexContainer from "../components/FlexContainer";
 import "../styles/popup.scss";
 
 const { Title, Text } = Typography;
 
-export default function AuthenticationPopup({ clientLogo, clientName }) {
+export default function AuthenticationPopup({
+  clientLogo,
+  clientName,
+  policyURI,
+  loading,
+}) {
   const [visible, setVisible] = useState(true);
   const { redirectURI } = useApplicationContext();
 
@@ -23,6 +29,14 @@ export default function AuthenticationPopup({ clientLogo, clientName }) {
 
   const defaultSignInMessage = "Please sign in to continue";
   const signInMessage = `You are signing into ${clientName}`;
+
+  if (loading) {
+    return (
+      <FlexContainer className="auth-container">
+        <Spin size="large" tip="Loading..." />
+      </FlexContainer>
+    );
+  }
 
   return (
     <Modal
@@ -41,7 +55,7 @@ export default function AuthenticationPopup({ clientLogo, clientName }) {
           {clientName ? signInMessage : defaultSignInMessage}
         </Text>
       </Container>
-      <AuthenticationForm />
+      <AuthenticationForm policyURI={policyURI} />
     </Modal>
   );
 }

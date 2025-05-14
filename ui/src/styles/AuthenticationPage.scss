@@ -11,10 +11,9 @@ $mobile-breakpoint: 768px;
 
 .auth-container {
   overflow: hidden;
-  min-height: 100vh;
+  height: 100vh;
   background-color: #f5f5f5;
   padding: 40px 16px;
-
   @media (max-width: $mobile-breakpoint) {
     padding: 0;
   }
@@ -26,7 +25,6 @@ $mobile-breakpoint: 768px;
   width: 100%;
   max-width: 450px;
   min-height: auto;
-  margin: auto;
   padding: 32px;
   background-color: #fff;
 

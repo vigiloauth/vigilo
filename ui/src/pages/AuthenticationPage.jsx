@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, Typography } from "antd";
+import { Card, Typography, Spin } from "antd";
 import FlexContainer from "../components/FlexContainer";
 import Container from "../components/Container";
 import AuthenticationForm from "../forms/AuthenticationForm";
@@ -10,18 +10,39 @@ import "../styles/AuthenticationPage.scss";
 const { Title, Text } = Typography;
 
 export default function AuthenticationPage({ display }) {
-  const [clientLogo, setClientLogo] = useState("");
+  const [clientLogo, setClientLogo] = useState(null);
   const [clientName, setClientName] = useState("");
-  const { clientInfo } = useApplicationContext();
-
-  useEffect(() => {
-    if (!clientInfo) return;
-    setClientLogo(<img src={clientInfo.logo_uri} alt="client logo" />);
-    setClientName(clientInfo.name);
-  }, [clientInfo]);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const { clientInfo, loading: contextLoading } = useApplicationContext();
 
   const defaultSignInMessage = "Please sign in to continue";
   const signInMessage = `You are signing into ${clientName}`;
+
+  useEffect(() => {
+    if (!clientInfo) return;
+    setClientName(clientInfo.name || "");
+
+    const img = new Image();
+    img.src = clientInfo.logo_uri;
+    img.onload = () => {
+      setClientLogo(<img src={clientInfo.logo_uri} alt="client logo" />);
+      setImageLoaded(true);
+    };
+    img.onerror = () => {
+      setClientLogo(null);
+      setImageLoaded(true);
+    };
+  }, [clientInfo]);
+
+  const isLoading = contextLoading || (clientInfo?.logo_uri && !imageLoaded);
+
+  if (isLoading) {
+    return (
+      <FlexContainer className="auth-container">
+        <Spin size="large" tip="Loading..." />
+      </FlexContainer>
+    );
+  }
 
   return display === "popup" ? (
     <AuthenticationPopup clientLogo={clientLogo} clientName={clientName} />
@@ -34,7 +55,7 @@ export default function AuthenticationPage({ display }) {
             {clientName ? signInMessage : defaultSignInMessage}
           </Text>
         </Container>
-        <AuthenticationForm />
+        <AuthenticationForm policyURI={clientInfo.policy_uri} />
       </Card>
     </FlexContainer>
   );

@@ -22,6 +22,8 @@ type Client struct {
 	TokenEndpointAuthMethod string       // The authentication method used by the client at the token endpoint (e.g., "client_secret_basic", "client_secret_post", "private_key_jwt").
 	JwksURI                 string       // The URL of the client's JSON Web Key Set (JWKS) document for verifying signatures.
 	LogoURI                 string       // The URL of the client's logo.
+	PolicyURI               string       // The URL of the client's privacy policy.
+	SectorIdentifierURI     string       // The URL of the client's containing their redirect URI
 	ApplicationType         string       // The type of the application (e.g., "web", "native").
 	RegistrationAccessToken string       // The access token used to read and update the client's registration information.
 	RedirectURIS            []string     // A list of allowed redirect URIs for the client.
@@ -43,9 +45,11 @@ type Client struct {
 }
 
 type ClientReadResponse struct {
-	ID      string `json:"client_id,omitempty"`
-	Name    string `json:"name,omitempty"`
-	LogoURI string `json:"logo_uri,omitempty"`
+	ID                  string `json:"client_id,omitempty"`
+	Name                string `json:"name,omitempty"`
+	LogoURI             string `json:"logo_uri,omitempty"`
+	PolicyURI           string `json:"policy_uri,omitempty"`
+	SectorIdentifierURI string `json:"sector_identifier_uri,omitempty"`
 }
 
 type ClientRequest interface {
@@ -56,6 +60,7 @@ type ClientRequest interface {
 	GetResponseTypes() []string
 	GetJwksURI() string
 	GetLogoURI() string
+	GetSectorIdentifierURI() string
 	SetScopes(scopes []string)
 	HasGrantType(grantType string) bool
 }
@@ -71,6 +76,8 @@ type ClientRegistrationRequest struct {
 	Contacts                []string     `json:"contacts,omitempty"`
 	JwksURI                 string       `json:"jwks_uri,omitempty"`
 	LogoURI                 string       `json:"logo_uri,omitempty"`
+	PolicyURI               string       `json:"policy_uri,omitempty"`
+	SectorIdentifierURI     string       `json:"sector_identifier_uri,omitempty"`
 	TokenEndpointAuthMethod string       `json:"token_endpoint_auth_method,omitempty"`
 	JWKS                    *domain.Jwks `json:"jwks,omitempty"`
 	RequiresPKCE            bool
@@ -91,6 +98,8 @@ type ClientUpdateRequest struct {
 	Contacts                []string `json:"contacts,omitempty"`
 	JwksURI                 string   `json:"jwks_uri,omitempty"`
 	LogoURI                 string   `json:"logo_uri,omitempty"`
+	PolicyURI               string   `json:"policy_uri,omitempty"`
+	SectorIdentifierURI     string   `json:"sector_identifier_uri,omitempty"`
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method,omitempty"`
 }
 
@@ -111,6 +120,8 @@ type ClientRegistrationResponse struct {
 	UpdatedAt               time.Time `json:"updated_at"`
 	JwksURI                 string    `json:"jwks_uri,omitempty"`
 	LogoURI                 string    `json:"logo_uri,omitempty"`
+	PolicyURI               string    `json:"policy_uri,omitempty"`
+	SectorIdentifierURI     string    `json:"sector_identifier_uri,omitempty"`
 	TokenEndpointAuthMethod string    `json:"token_endpoint_auth_method,omitempty"`
 	RegistrationAccessToken string    `json:"registration_access_token"`
 	RegistrationClientURI   string    `json:"registration_client_uri"`
@@ -189,6 +200,12 @@ func NewClientFromRegistrationRequest(req *ClientRegistrationRequest) *Client {
 	}
 	if req.JwksURI != "" {
 		client.JwksURI = req.JwksURI
+	}
+	if req.PolicyURI != "" {
+		client.PolicyURI = req.PolicyURI
+	}
+	if req.SectorIdentifierURI != "" {
+		client.SectorIdentifierURI = req.SectorIdentifierURI
 	}
 	if req.LogoURI != "" {
 		client.LogoURI = req.LogoURI
@@ -274,6 +291,12 @@ func (c *Client) UpdateValues(request *ClientUpdateRequest) {
 	if request.LogoURI != "" {
 		c.LogoURI = request.LogoURI
 	}
+	if request.PolicyURI != "" {
+		c.PolicyURI = request.PolicyURI
+	}
+	if request.SectorIdentifierURI != "" {
+		c.SectorIdentifierURI = request.SectorIdentifierURI
+	}
 	if request.JwksURI != "" {
 		c.JwksURI = request.JwksURI
 	}
@@ -319,6 +342,10 @@ func (req *ClientRegistrationRequest) GetLogoURI() string {
 	return req.LogoURI
 }
 
+func (req *ClientRegistrationRequest) GetSectorIdentifierURI() string {
+	return req.SectorIdentifierURI
+}
+
 func (req *ClientRegistrationRequest) GetJwksURI() string {
 	return req.JwksURI
 }
@@ -353,6 +380,10 @@ func (req *ClientUpdateRequest) GetResponseTypes() []string {
 
 func (req *ClientUpdateRequest) GetLogoURI() string {
 	return req.LogoURI
+}
+
+func (req *ClientUpdateRequest) GetSectorIdentifierURI() string {
+	return req.SectorIdentifierURI
 }
 
 func (req *ClientUpdateRequest) GetJwksURI() string {

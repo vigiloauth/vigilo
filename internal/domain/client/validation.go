@@ -1,12 +1,15 @@
 package domain
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -15,7 +18,10 @@ import (
 
 var logger = config.GetServerConfig().Logger()
 
-const module string = "Client Validation"
+const (
+	module                string        = "Client Validation"
+	sectorURIFetchTimeout time.Duration = 5 * time.Second
+)
 
 // ValidateClientRegistrationRequest checks if the ClientRegistrationRequest contains valid values.
 func ValidateClientRegistrationRequest(req *ClientRegistrationRequest) error {
@@ -295,11 +301,15 @@ func validateURIS(req ClientRequest) error {
 		}
 	}
 
+	if err := validateSectorIdentifierURI(req.GetRedirectURIS(), req.GetSectorIdentifierURI()); err != nil {
+		logger.Error(module, "", "Failed to validate sector identifier URI: %v", err)
+		return err
+	}
+
 	if req.GetLogoURI() != "" {
 		if _, err := url.ParseRequestURI(req.GetLogoURI()); err != nil {
 			logger.Warn(module, "", "Invalid logo_uri: %s", req.GetLogoURI())
 			return errors.New(errors.ErrCodeInvalidClientMetadata, "invalid logo_uri format")
-
 		}
 	}
 
@@ -445,6 +455,69 @@ func validateCodeChallengeMethod(codeChallengeMethod string) error {
 			errors.ErrCodeInvalidRequest,
 			fmt.Sprintf("invalid code challenge method: '%s'. Valid methods are 'plain' and 'SHA-256'", codeChallengeMethod),
 		)
+	}
+
+	return nil
+}
+
+func validateSectorIdentifierURI(redirectURIs []string, sectorIdentifierURI string) error {
+	if sectorIdentifierURI == "" {
+		return nil
+	}
+
+	parsedURI, err := url.Parse(sectorIdentifierURI)
+	if err != nil {
+		logger.Warn(module, "", "Malformed sector identifier URI: %s", sectorIdentifierURI)
+		return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("malformed sector identifier URI: %s", sectorIdentifierURI))
+	}
+	if parsedURI.Scheme != "https" {
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "sector identifier URI must use HTTPS")
+	}
+
+	client := http.Client{
+		Timeout: sectorURIFetchTimeout,
+	}
+	resp, err := client.Get(sectorIdentifierURI)
+	if err != nil {
+		logger.Warn(module, "", "Failed to fetch sector identifier URI (%s): %v", sectorIdentifierURI, err)
+		return errors.Wrap(err, errors.ErrCodeInvalidClientMetadata, "failed to fetch sector identifier URI")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logger.Warn(module, "", "Sector identifier URI (%s) returned non-200 status: %d", sectorIdentifierURI, resp.StatusCode)
+		return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("sector identifier URI returned non-200 status: %d", resp.StatusCode))
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "application/json") {
+		logger.Warn(module, "", "Sector identifier URI (%s) returned unexpected Content-Type: %s", sectorIdentifierURI, contentType)
+		return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("sector identifier URI returned unexpected Content-Type: %s", contentType))
+	}
+
+	var fetchedRedirectURIs []string
+	if err := json.NewDecoder(resp.Body).Decode(&fetchedRedirectURIs); err != nil {
+		logger.Warn(module, "", "Failed to decode JSON from sector identifier URI (%s): %v", sectorIdentifierURI, err)
+		return errors.Wrap(err, errors.ErrCodeInvalidClientMetadata, "failed to decode JSON from sector identifier URI")
+	}
+
+	if len(fetchedRedirectURIs) == 0 {
+		logger.Warn(module, "", "Sector identifier URI (%s) returned an empty array", sectorIdentifierURI)
+		return errors.New(errors.ErrCodeInvalidClientMetadata, "sector identifier URI returned an empty array")
+	}
+
+	for _, providedURI := range redirectURIs {
+		found := false
+		for _, fetchedURI := range fetchedRedirectURIs {
+			if providedURI == fetchedURI {
+				found = true
+				break
+			}
+		}
+		if !found {
+			logger.Warn(module, "", "Redirect URI '%s' not found in sector identifier URI (%s)", providedURI, sectorIdentifierURI)
+			return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("redirect URI '%s' not found in sector identifier URI (%s)", providedURI, sectorIdentifierURI))
+		}
 	}
 
 	return nil

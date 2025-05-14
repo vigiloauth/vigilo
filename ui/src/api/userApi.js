@@ -42,6 +42,7 @@ export async function authenticateUser({
       case 401:
         errorMessage =
           "Your username or password are incorrect. Please try again.";
+        break;
       case 400:
         errorMessage =
           "Your username or password are incorrect. Please try again.";
