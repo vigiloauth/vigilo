@@ -42,6 +42,12 @@ type Client struct {
 	CanRequestScopes bool
 }
 
+type ClientReadResponse struct {
+	ID      string `json:"client_id,omitempty"`
+	Name    string `json:"name,omitempty"`
+	LogoURI string `json:"logo_uri,omitempty"`
+}
+
 type ClientRequest interface {
 	GetType() string
 	GetGrantTypes() []string

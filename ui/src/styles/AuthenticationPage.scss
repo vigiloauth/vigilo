@@ -10,6 +10,7 @@ $font-family:
 $mobile-breakpoint: 768px;
 
 .auth-container {
+  overflow: hidden;
   min-height: 100vh;
   background-color: #f5f5f5;
   padding: 40px 16px;

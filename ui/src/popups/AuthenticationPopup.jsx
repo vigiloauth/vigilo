@@ -7,7 +7,7 @@ import URL_PARAMS from "../constants/urlParams";
 
 const { Title, Text } = Typography;
 
-export default function AuthenticationPopup() {
+export default function AuthenticationPopup({ image }) {
   const [visible, setVisible] = useState(true);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -36,7 +36,7 @@ export default function AuthenticationPopup() {
       centered
     >
       <Container className="popup-header">
-        <Title level={4}>Welcome Back</Title>
+        {image ? image : <Title>Welcome Back</Title>}
         <Text className="subtitle" type="secondary">
           Please sign in to continue
         </Text>
