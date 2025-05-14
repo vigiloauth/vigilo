@@ -34,7 +34,7 @@ func (e *VigiloAuthError) Error() string {
 //	errorDescription string: A brief description of the error.
 func New(errCode string, errorDescription string) error {
 	return &VigiloAuthError{
-		SystemCode:       ErrorCodeMap[errCode],
+		SystemCode:       SystemErrorCodeMap[errCode],
 		ErrorCode:        errCode,
 		ErrorDescription: errorDescription,
 	}
@@ -43,7 +43,7 @@ func New(errCode string, errorDescription string) error {
 // NewInternalServerError creates a new error with default fields.
 func NewInternalServerError() error {
 	return &VigiloAuthError{
-		SystemCode:       ErrorCodeMap[ErrCodeInternalServerError],
+		SystemCode:       SystemErrorCodeMap[ErrCodeInternalServerError],
 		ErrorCode:        ErrCodeInternalServerError,
 		ErrorDescription: "An unexpected error occurred. Please try again later.",
 	}

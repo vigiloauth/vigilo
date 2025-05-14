@@ -85,7 +85,7 @@ const (
 )
 
 // HTTP status code mappings
-var StatusCodeMap = map[string]int{
+var HTTPStatusCodeMap = map[string]int{
 	// 400 Bad Request
 	ErrCodeEmptyInput:             http.StatusBadRequest,
 	ErrCodeMissingNumber:          http.StatusBadRequest,
@@ -185,7 +185,7 @@ const (
 	authzCodeError  string = "AUTH"
 )
 
-var ErrorCodeMap = map[string]string{
+var SystemErrorCodeMap = map[string]string{
 	// Validation Errors
 	ErrCodeEmptyInput:            prefix + validationError + "0001",
 	ErrCodeInvalidPasswordFormat: prefix + validationError + "0002",
@@ -268,7 +268,7 @@ var ErrorCodeMap = map[string]string{
 
 // StatusCode returns the HTTP status code associated with the error code
 func StatusCode(errorCode string) int {
-	if status, exists := StatusCodeMap[errorCode]; exists {
+	if status, exists := HTTPStatusCodeMap[errorCode]; exists {
 		return status
 	}
 	return http.StatusInternalServerError // Default status
