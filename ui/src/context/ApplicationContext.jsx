@@ -23,8 +23,17 @@ export const ApplicationContextProvider = ({ children }) => {
 
   useEffect(() => {
     if (!queryValues.clientID) return;
-
     const fetchClientInfo = async () => {
+      // try {
+      //   setClientInfo({
+      //     logo_uri: "https://www.certification.openid.net/images/openid.png",
+      //     policy_uri: "https://www.certification.openid.net/login.html",
+      //   });
+      // } catch (err) {
+      //   console.log(err);
+      // } finally {
+      //   setLoading(false);
+      // }
       try {
         const data = await getClientByID({ clientID: queryValues.clientID });
         setClientInfo(data);

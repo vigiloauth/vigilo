@@ -39,11 +39,11 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-codereuse`
 - ✅ `oidcc-codereuse-30seconds`
 - ✅ `oidcc-ensure-registered-redirect-uri`
-- ✅ `oidcc-registration-logo-uri` 
-- ✅ `oidcc-discovery-endpoint-verification` 
+- ✅ `oidcc-registration-logo-uri`
+- ✅ `oidcc-discovery-endpoint-verification`
+- ✅ `oidcc-registration-policy-uri`
+- ✅ `oidcc-registration-sector-uri`
 
-- 🛠️ `oidcc-registration-policy-uri` (missing policy link in logo)
-- 🛠️ `oidcc-registration-sector-uri`
 - 🛠️ `oidcc-claims-locales`
 - 🛠️ `oidcc-login-hint`
 - 🛠️ `oidcc-registration-tos-uri`

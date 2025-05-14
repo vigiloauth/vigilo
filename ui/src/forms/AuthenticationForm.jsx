@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Container from "../components/Container";
+import FlexContainer from "../components/FlexContainer";
 import FormInput from "../components/FormInput";
 import { authenticateUser } from "../api/userApi";
 import { useApplicationContext } from "../context/ApplicationContext";
@@ -23,7 +23,7 @@ import "../styles/forms.scss";
 
 const { Text, Link } = Typography;
 
-const AuthenticationForm = () => {
+const AuthenticationForm = ({ policyURI }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -132,11 +132,14 @@ const AuthenticationForm = () => {
         </Row>
       </Form.Item>
 
-      <Container className="footer">
+      <FlexContainer className="footer" vertical={true} height="10px">
         <Text type="secondary">
           Don't have an account? <Link>Sign up</Link>
         </Text>
-      </Container>
+        <Link target="_blank" className="secondary-link" href={policyURI}>
+          privacy policy
+        </Link>
+      </FlexContainer>
     </Form>
   );
 };

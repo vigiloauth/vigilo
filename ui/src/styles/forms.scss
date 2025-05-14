@@ -139,14 +139,15 @@ $mobile-breakpoint: 768px;
 .footer {
   user-select: none;
   text-align: center;
-  margin-top: 24px;
+  margin-top: 45px;
 
   @media (max-width: $mobile-breakpoint) {
-    margin-top: 16px;
+    margin-top: 70px;
     user-select: none;
   }
 
-  .typography {
+  .typography,
+  .secondary-link {
     user-select: none;
     color: $text-color-secondary;
   }
