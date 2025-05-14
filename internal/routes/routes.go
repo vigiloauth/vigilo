@@ -97,6 +97,13 @@ func (rc *RouterConfig) getClientRoutes() RouteGroup {
 				SetHandler(handler.RegenerateSecret).
 				SetDescription("Regenerate client secret").
 				Build(),
+
+			NewRoute().
+				SetMethods(http.MethodGet).
+				SetPattern(web.ClientEndpoints.GetClientByID + urlParam).
+				SetDescription("Get client by ID").
+				SetHandler(handler.GetClientByID).
+				Build(),
 		},
 	}
 }

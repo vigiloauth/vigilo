@@ -91,6 +91,29 @@ func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
+func (h *ClientHandler) GetClientByID(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+
+	requestID := utils.GetRequestID(ctx)
+	h.logger.Info(h.module, requestID, "[GetClientByID]: Processing request")
+
+	clientID := chi.URLParam(r, constants.ClientIDReqField)
+	retrievedClient, err := h.clientService.GetClientByID(ctx, clientID)
+	if err != nil {
+		web.WriteError(w, errors.Wrap(err, "", "failed to retrieve client by ID"))
+		return
+	}
+
+	response := &client.ClientReadResponse{
+		ID:      retrievedClient.ID,
+		Name:    retrievedClient.Name,
+		LogoURI: retrievedClient.LogoURI,
+	}
+
+	web.WriteJSON(w, http.StatusOK, response)
+}
+
 // ManageClientConfiguration handles client configuration management requests.
 // It supports GET, PUT, and DELETE methods to retrieve, update, or delete client configurations.
 // The method validates the registration access token and extracts the client ID from the URL.
