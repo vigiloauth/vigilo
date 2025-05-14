@@ -8,6 +8,7 @@ import (
 
 // VigiloAuthError represents a standardized error structure
 type VigiloAuthError struct {
+	SystemCode       string   `json:"system_code"`
 	ErrorCode        string   `json:"error"`
 	ErrorDescription string   `json:"error_description"`
 	ErrorDetails     string   `json:"error_details,omitempty"`
@@ -33,6 +34,7 @@ func (e *VigiloAuthError) Error() string {
 //	errorDescription string: A brief description of the error.
 func New(errCode string, errorDescription string) error {
 	return &VigiloAuthError{
+		SystemCode:       ErrorCodeMap[errCode],
 		ErrorCode:        errCode,
 		ErrorDescription: errorDescription,
 	}
@@ -41,6 +43,7 @@ func New(errCode string, errorDescription string) error {
 // NewInternalServerError creates a new error with default fields.
 func NewInternalServerError() error {
 	return &VigiloAuthError{
+		SystemCode:       ErrorCodeMap[ErrCodeInternalServerError],
 		ErrorCode:        ErrCodeInternalServerError,
 		ErrorDescription: "An unexpected error occurred. Please try again later.",
 	}
@@ -153,4 +156,22 @@ func Wrap(err error, code string, message string) error {
 // Unwrap returns the wrapped error
 func (e *VigiloAuthError) Unwrap() error {
 	return e.WrappedErr
+}
+
+// Code extracts the error code from a VigiloAuthError
+func Code(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	if vigiloErr, ok := err.(*VigiloAuthError); ok {
+		return vigiloErr.ErrorCode
+	}
+
+	var vigiloErr *VigiloAuthError
+	if errors.As(err, &vigiloErr) {
+		return vigiloErr.ErrorCode
+	}
+
+	return ""
 }

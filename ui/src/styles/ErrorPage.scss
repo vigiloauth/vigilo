@@ -1,0 +1,239 @@
+$font-family:
+  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+  Arial, sans-serif;
+$text-color-primary: #1b1b1b;
+$text-color-secondary: #605e5c;
+$text-color-error-code: #333;
+$link-color: #0067b8;
+$primary-color: #1890ff;
+$link-hover-color: #004578;
+$border-color: #d1d1d1;
+$background-color: #ffffff;
+$error-box-background: #f3f3f3;
+$error-icon-color: #d93025;
+$box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+$mobile-breakpoint: 768px;
+$border-radius: 8px;
+
+.error-layout {
+  min-height: 100vh;
+  background-color: $background-color;
+  font-family: font-family;
+  color: $text-color-primary;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+}
+
+.error-header {
+  background-color: $background-color;
+  padding: 24px 24px;
+  height: auto;
+  line-height: normal;
+  border-bottom: 1px solid $border-color;
+  display: flex;
+  align-items: flex-start;
+  box-shadow: $box-shadow;
+
+  .logo {
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.error-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px;
+
+  .error-container {
+    max-width: 680px;
+    width: 100%;
+    background-color: $background-color;
+    box-shadow: $box-shadow;
+    padding: 30px;
+    border-radius: $border-radius;
+  }
+
+  .error-main-title {
+    font-size: 32px;
+    font-weight: 600;
+    color: $text-color-primary;
+    margin-bottom: 24px;
+    line-height: 1.2;
+  }
+
+  .error-message-box {
+    display: flex;
+    align-items: flex-start;
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+    margin-bottom: 24px;
+
+    .error-icon {
+      font-size: 20px;
+      color: $error-icon-color;
+      margin-right: 12px;
+      margin-top: 5px;
+    }
+
+    .error-text-content {
+      flex: 1;
+    }
+  }
+
+  .error-subtitle {
+    font-size: 18px;
+    font-weight: normal;
+    color: $text-color-primary;
+    margin-top: 0;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .error-details-code,
+  .error-details-solution {
+    font-size: 14px;
+    color: $text-color-secondary;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    word-wrap: break-word;
+
+    strong {
+      color: $text-color-error-code;
+      font-weight: 600;
+    }
+
+    .ant-typography-link,
+    a {
+      color: $link-color;
+      text-decoration: none;
+      &:hover {
+        color: $link-hover-color;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .error-divider {
+    margin: 24px 0;
+  }
+
+  .error-additional-info {
+    font-size: 13px;
+    color: $text-color-secondary;
+    line-height: 1.6;
+    margin-bottom: 30px;
+  }
+
+  .error-actions {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    margin-bottom: 40px;
+
+    .ant-btn {
+      font-size: 15px;
+      padding: 0 20px;
+      height: 36px;
+      line-height: 34px;
+      border-radius: 2px;
+    }
+
+    .ant-btn-primary {
+      background-color: $primary-color;
+      &:hover,
+      &:focus {
+        background-color: $link-hover-color;
+      }
+    }
+    .ant-btn-default {
+      color: $text-color-primary;
+      &:hover,
+      &:focus {
+        border-color: $text-color-primary;
+        color: $text-color-primary;
+      }
+    }
+  }
+
+  .error-footer-links {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+
+    .ant-typography-link,
+    a,
+    .more-options-trigger {
+      color: $text-color-secondary;
+      text-decoration: none;
+      &:hover {
+        color: $link-color;
+        text-decoration: underline;
+      }
+    }
+    .more-options-trigger {
+      cursor: pointer;
+    }
+  }
+}
+
+@media (max-width: $mobile-breakpoint) {
+  .microsoft-error-header {
+    padding: 16px 20px;
+    .logo svg {
+      text {
+        font-size: 15px;
+      }
+    }
+  }
+
+  .error-content {
+    padding: 20px 15px;
+
+    .error-container {
+      padding: 20px;
+      box-shadow: none;
+    }
+
+    .error-main-title {
+      font-size: 26px;
+    }
+
+    .error-message-box {
+      flex-direction: column;
+      .error-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+      }
+    }
+
+    .error-subtitle {
+      font-size: 16px;
+    }
+
+    .error-details-code,
+    .error-details-solution {
+      font-size: 13px;
+    }
+
+    .error-actions {
+      flex-direction: column;
+      gap: 10px;
+      align-items: stretch;
+
+      .ant-btn {
+        width: 100%;
+      }
+    }
+
+    .error-footer-links {
+      flex-direction: column;
+      gap: 10px;
+      align-items: flex-start;
+    }
+  }
+}

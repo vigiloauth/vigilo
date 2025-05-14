@@ -118,10 +118,11 @@ func (b *InMemoryTokenRepository) GetToken(ctx context.Context, token string) (*
 func (b *InMemoryTokenRepository) BlacklistToken(ctx context.Context, token string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	requestID := utils.GetRequestID(ctx)
 
 	data, exists := b.tokens[token]
 	if !exists || time.Now().After(data.ExpiresAt) {
-		logger.Debug(module, "", "[BlacklistToken]: Token not found or expired")
+		logger.Debug(module, requestID, "[BlacklistToken]: Token not found or expired")
 		return errors.New(errors.ErrCodeTokenNotFound, "token not found or expired")
 	}
 
@@ -143,20 +144,22 @@ func (b *InMemoryTokenRepository) IsTokenBlacklisted(ctx context.Context, token 
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
+	requestID := utils.GetRequestID(ctx)
+
 	_, blacklisted := b.blacklist[token]
 	if blacklisted {
-		logger.Debug(module, "", "[IsTokenBlacklisted]: Token is blacklisted")
+		logger.Debug(module, requestID, "[IsTokenBlacklisted]: Token is blacklisted")
 		return true, nil
 	}
 
 	data, exists := b.tokens[token]
 	if !exists {
-		logger.Debug(module, "", "[IsTokenBlacklisted]: Token is not blacklisted")
+		logger.Debug(module, requestID, "[IsTokenBlacklisted]: Token is not blacklisted")
 		return false, nil
 	}
 
 	if time.Now().After(data.ExpiresAt) {
-		logger.Debug(module, "", "[IsTokenBlacklisted]: Deleting expired token")
+		logger.Debug(module, requestID, "[IsTokenBlacklisted]: Deleting expired token")
 		delete(b.tokens, token)
 		return true, nil
 	}
@@ -176,15 +179,16 @@ func (b *InMemoryTokenRepository) DeleteToken(ctx context.Context, token string)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	requestID := utils.GetRequestID(ctx)
 	if _, exists := b.tokens[token]; !exists {
-		logger.Warn(module, "", "[DeleteToken]: Attempted to delete non-existent token=[%s]", truncateToken(token))
+		logger.Warn(module, requestID, "[DeleteToken]: Attempted to delete non-existent token=[%s]", truncateToken(token))
 		return errors.New(errors.ErrCodeTokenNotFound, "token not found")
 	}
 
 	delete(b.tokens, token)
 	delete(b.blacklist, token)
 
-	logger.Debug(module, "", "[DeleteToken]: Successfully deleted token=[%s]", truncateToken(token))
+	logger.Debug(module, requestID, "[DeleteToken]: Successfully deleted token=[%s]", truncateToken(token))
 	return nil
 }
 

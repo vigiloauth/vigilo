@@ -6,6 +6,7 @@ const URL_PARAMS = {
   RESPONSE_TYPE: "response_type",
   NONCE: "nonce",
   DISPLAY: "display",
+  TYPE: "type",
 };
 
 export default URL_PARAMS;

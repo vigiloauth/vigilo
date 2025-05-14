@@ -60,6 +60,11 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 
 	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req)
 	if err != nil {
+		if errors.Code(err) == errors.ErrCodeInvalidRedirectURI {
+			web.RenderErrorPage(w, r, errors.Code(err), req.RedirectURI)
+			return
+		}
+
 		wrappedErr := errors.Wrap(err, "", "failed to authorize client")
 		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Failed to authorize client: %v", err)
 		web.WriteError(w, wrappedErr)

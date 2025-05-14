@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  Card,
   Typography,
   Button,
   message,
@@ -89,27 +88,17 @@ export default function ConsentForm() {
   const nonce = urlParams.get(URL_PARAMS.NONCE) || "";
   const display = urlParams.get(URL_PARAMS.DISPLAY) || "";
 
-  useEffect(() => {
-    if (scope) {
-      setScopes(scope.split(" "));
-    }
-  }, [scope]);
-
-  useEffect(() => {
-    handleGetConsent();
-  });
-
-  const handleGetConsent = async () => {
+  const handleGetConsent = useCallback(async () => {
     try {
       const data = await handleUserConsent({
-        clientID: clientID,
-        redirectURI: redirectURI,
-        scope: scope,
-        responseType: responseType,
-        state: state,
-        nonce: nonce,
-        display: display,
-        scopes: scopes,
+        clientID,
+        redirectURI,
+        scope,
+        responseType,
+        state,
+        nonce,
+        display,
+        scopes,
         method: "GET",
       });
 
@@ -121,7 +110,26 @@ export default function ConsentForm() {
     } catch (err) {
       message.error("Something went wrong. Please try again later");
     }
-  };
+  }, [
+    clientID,
+    redirectURI,
+    scope,
+    responseType,
+    state,
+    nonce,
+    display,
+    scopes,
+  ]);
+
+  useEffect(() => {
+    if (scope) {
+      setScopes(scope.split(" "));
+    }
+  }, [scope]);
+
+  useEffect(() => {
+    handleGetConsent();
+  }, [handleGetConsent]);
 
   const handleConsent = async ({ approved }) => {
     try {
@@ -208,28 +216,30 @@ export default function ConsentForm() {
         policy. You can revoke access at any time.
       </Paragraph>
 
-      <Row gutter={16}>
-        <Col span={12}>
-          <Button
-            block
-            onClick={() => handleConsent({ approved: false })}
-            className="consent-button deny-button"
-          >
-            Deny
-          </Button>
-        </Col>
-        <Col span={12}>
-          <Button
-            type="primary"
-            block
-            loading={loading}
-            onClick={() => handleConsent({ approved: true })}
-            className="consent-button approve-button"
-          >
-            Approve
-          </Button>
-        </Col>
-      </Row>
+      <Container width="100%">
+        <Row gutter={24}>
+          <Col xs={24} sm={12}>
+            <Button
+              block
+              onClick={() => handleConsent({ approved: false })}
+              className="consent-button deny-button"
+            >
+              Deny
+            </Button>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Button
+              type="primary"
+              block
+              loading={loading}
+              onClick={() => handleConsent({ approved: true })}
+              className="consent-button approve-button"
+            >
+              Approve
+            </Button>
+          </Col>
+        </Row>
+      </Container>
     </FlexContainer>
   );
 }
