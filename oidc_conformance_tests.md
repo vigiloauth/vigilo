@@ -38,8 +38,7 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-redirect-uri-regfrag`
 - ✅ `oidcc-codereuse`
 - ✅ `oidcc-codereuse-30seconds`
-  
-- 🛠️ `oidcc-ensure-registered-redirect-uri` (The error is correct, but it is not displayed correctly)
+- ✅ `oidcc-ensure-registered-redirect-uri` (The error is correct, but it is not displayed correctly)
 
 - 🛠️ `oidcc-discovery-endpoint-verification` (missing supported claims)
 - 🛠️ `oidcc-registration-logo-uri` (missing the clients logo in the user auth and consent page)
