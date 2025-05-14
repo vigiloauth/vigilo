@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { Modal } from "antd";
-import "../styles/popup.scss";
+import { useApplicationContext } from "../context/ApplicationContext";
 import ConsentForm from "../forms/ConsentForm";
-import URL_PARAMS from "../constants/urlParams";
+import "../styles/popup.scss";
 
 export default function ConsentPopup() {
   const [visible, setVisible] = useState(true);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const redirectURI = urlParams.get(URL_PARAMS.REDIRECT_URI);
+  const { redirectURI } = useApplicationContext();
 
   const onCancel = () => {
-    console.log(redirectURI);
     setVisible(false);
   };
 

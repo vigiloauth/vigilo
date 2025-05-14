@@ -18,11 +18,11 @@ import {
   ClockCircleOutlined,
   IdcardOutlined,
 } from "@ant-design/icons";
-import "../styles/forms.scss";
 import { handleUserConsent } from "../api/userApi";
-import URL_PARAMS from "../constants/urlParams";
+import { useApplicationContext } from "../context/ApplicationContext";
 import Container from "../components/Container";
 import FlexContainer from "../components/FlexContainer";
+import "../styles/forms.scss";
 
 const { Panel } = Collapse;
 const { Title, Text, Paragraph } = Typography;
@@ -78,15 +78,8 @@ export default function ConsentForm() {
   const [loading, setLoading] = useState(false);
   const [clientName, setClientName] = useState("An external application");
   const [scopes, setScopes] = useState(defaultScopes);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const clientID = urlParams.get(URL_PARAMS.CLIENT_ID);
-  const redirectURI = urlParams.get(URL_PARAMS.REDIRECT_URI);
-  const state = urlParams.get(URL_PARAMS.STATE) || "";
-  const scope = urlParams.get(URL_PARAMS.SCOPE) || "";
-  const responseType = urlParams.get(URL_PARAMS.RESPONSE_TYPE) || "";
-  const nonce = urlParams.get(URL_PARAMS.NONCE) || "";
-  const display = urlParams.get(URL_PARAMS.DISPLAY) || "";
+  const { clientID, redirectURI, scope, responseType, state, nonce, display } =
+    useApplicationContext();
 
   const handleGetConsent = useCallback(async () => {
     try {

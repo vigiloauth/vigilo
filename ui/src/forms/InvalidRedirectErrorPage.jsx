@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Layout, Typography, Button, Divider, Space } from "antd";
 import { ExclamationCircleFilled } from "@ant-design/icons";
 import "../styles/ErrorPage.scss";

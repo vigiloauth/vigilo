@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 import AuthenticationPage from "./pages/AuthenticationPage";
 import ConsentPage from "./pages/ConsentPage";
+import { ApplicationContextProvider } from "./context/ApplicationContext";
 import URL_PARAMS from "./constants/urlParams";
 import ErrorPage from "./pages/ErrorPage";
 
@@ -12,16 +13,24 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="App">
-        <Routes>
-          <Route
-            path="/authenticate"
-            element={<AuthenticationPage display={display} />}
-          />
-          <Route path="/consent" element={<ConsentPage display={display} />} />
-          <Route path="/error" element={<ErrorPage errorType={errorType} />} />
-        </Routes>
-      </div>
+      <ApplicationContextProvider>
+        <div className="App">
+          <Routes>
+            <Route
+              path="/authenticate"
+              element={<AuthenticationPage display={display} />}
+            />
+            <Route
+              path="/consent"
+              element={<ConsentPage display={display} />}
+            />
+            <Route
+              path="/error"
+              element={<ErrorPage errorType={errorType} />}
+            />
+          </Routes>
+        </div>
+      </ApplicationContextProvider>
     </BrowserRouter>
   );
 }

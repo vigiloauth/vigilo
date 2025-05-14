@@ -1,10 +1,8 @@
 import { useState } from "react";
-import "../styles/forms.scss";
-import URL_PARAMS from "../constants/urlParams";
 import Container from "../components/Container";
 import FormInput from "../components/FormInput";
 import { authenticateUser } from "../api/userApi";
-
+import { useApplicationContext } from "../context/ApplicationContext";
 import {
   Form,
   Button,
@@ -21,6 +19,7 @@ import {
   GoogleOutlined,
   FacebookOutlined,
 } from "@ant-design/icons";
+import "../styles/forms.scss";
 
 const { Text, Link } = Typography;
 
@@ -28,15 +27,8 @@ const AuthenticationForm = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const clientId = urlParams.get(URL_PARAMS.CLIENT_ID);
-  const redirectUri = urlParams.get(URL_PARAMS.REDIRECT_URI);
-  const state = urlParams.get(URL_PARAMS.STATE) || "";
-  const scope = urlParams.get(URL_PARAMS.SCOPE) || "";
-  const responseType = urlParams.get(URL_PARAMS.RESPONSE_TYPE) || "";
-  const nonce = urlParams.get(URL_PARAMS.NONCE) || "";
-  const display = urlParams.get(URL_PARAMS.DISPLAY) || "";
+  const { clientID, redirectURI, state, scope, responseType, nonce, display } =
+    useApplicationContext();
 
   const onFinish = async () => {
     setLoading(true);
@@ -44,8 +36,8 @@ const AuthenticationForm = () => {
       const data = await authenticateUser({
         username,
         password,
-        clientId,
-        redirectUri,
+        clientID,
+        redirectURI,
         state,
         scope,
         responseType,
