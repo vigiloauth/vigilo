@@ -17,6 +17,7 @@ type DiscoveryJSON struct {
 	JwksURI               string `json:"jwks_uri"`               // The URL for the JSON Web Key Set (JWKS).
 	RegistrationEndpoint  string `json:"registration_endpoint"`  // The endpoint for client registration.
 
+	SupportedClaims                   []string `json:"claims_supported"`                         // List of supported claims.
 	SupportedScopes                   []string `json:"scopes_supported"`                         // List of supported scopes.
 	SupportedResponseTypes            []string `json:"response_types_supported"`                 // List of supported response types.
 	SupportedGrantTypes               []string `json:"grant_types_supported"`                    // List of supported grant types.
@@ -52,6 +53,28 @@ func NewDiscoveryJSON(baseURL string) *DiscoveryJSON {
 			constants.AuthMethodClientSecretBasic,
 			constants.AuthMethodClientSecretPost,
 			constants.AuthMethodNone,
+		},
+		SupportedClaims: []string{
+			"sub",
+			"name",
+			"given_name",
+			"family_name",
+			"middle_name",
+			"nickname",
+			"preferred_username",
+			"profile",
+			"picture",
+			"website",
+			"gender",
+			"birthdate",
+			"zoneinfo",
+			"locale",
+			"email",
+			"email_verified",
+			"phone_number",
+			"phone_number_verified",
+			"updated_at",
+			"address",
 		},
 	}
 }
