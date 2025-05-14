@@ -85,7 +85,7 @@ const (
 )
 
 // HTTP status code mappings
-var statusCodeMap = map[string]int{
+var StatusCodeMap = map[string]int{
 	// 400 Bad Request
 	ErrCodeEmptyInput:             http.StatusBadRequest,
 	ErrCodeMissingNumber:          http.StatusBadRequest,
@@ -172,9 +172,103 @@ var statusCodeMap = map[string]int{
 	ErrCodeMethodNotAllowed: http.StatusMethodNotAllowed,
 }
 
+const (
+	prefix          string = "VIG"
+	validationError string = "VAL"
+	userError       string = "USR"
+	tokenError      string = "TOK"
+	emailError      string = "EML"
+	clientError     string = "CLI"
+	sessionError    string = "SES"
+	middlewareError string = "MDW"
+	systemError     string = "SYS"
+	authzCodeError  string = "AUTH"
+)
+
+var ErrorCodeMap = map[string]string{
+	// Validation Errors
+	ErrCodeEmptyInput:            prefix + validationError + "0001",
+	ErrCodeInvalidPasswordFormat: prefix + validationError + "0002",
+	ErrCodePasswordLength:        prefix + validationError + "0003",
+	ErrCodeMissingUppercase:      prefix + validationError + "0004",
+	ErrCodeMissingNumber:         prefix + validationError + "0005",
+	ErrCodeMissingSymbol:         prefix + validationError + "0006",
+	ErrCodeInvalidEmail:          prefix + validationError + "0007",
+	ErrCodeInvalidFormat:         prefix + validationError + "0008",
+	ErrCodeValidationError:       prefix + validationError + "0009",
+	ErrCodeMissingHeader:         prefix + validationError + "0010",
+	ErrCodeInvalidContentType:    prefix + validationError + "0011",
+	ErrCodeInvalidRequest:        prefix + validationError + "0012",
+	ErrCodeBadRequest:            prefix + validationError + "0013",
+	ErrCodeInvalidInput:          prefix + validationError + "0014",
+	ErrCodeInvalidDate:           prefix + validationError + "0015",
+	ErrCodeNotFound:              prefix + validationError + "0016",
+
+	// User Errors
+	ErrCodeDuplicateUser:       prefix + userError + "0001",
+	ErrCodeUserNotFound:        prefix + userError + "0002",
+	ErrCodeInvalidCredentials:  prefix + userError + "0003",
+	ErrCodeAccountLocked:       prefix + userError + "0004",
+	ErrCodeUnauthorized:        prefix + userError + "0005",
+	ErrCodeLoginRequired:       prefix + userError + "0006",
+	ErrCodeConsentRequired:     prefix + userError + "0007",
+	ErrCodeInsufficientRole:    prefix + userError + "0008",
+	ErrCodeInteractionRequired: prefix + userError + "0009",
+
+	// Token Errors
+	ErrCodeTokenNotFound:   prefix + tokenError + "0001",
+	ErrCodeExpiredToken:    prefix + tokenError + "0002",
+	ErrCodeTokenCreation:   prefix + tokenError + "0003",
+	ErrCodeInvalidToken:    prefix + tokenError + "0004",
+	ErrCodeTokenParsing:    prefix + tokenError + "0005",
+	ErrCodeTokenEncryption: prefix + tokenError + "0006",
+	ErrCodeTokenDecryption: prefix + tokenError + "0007",
+
+	// Email Errors
+	ErrCodeConnectionFailed:    prefix + emailError + "0001",
+	ErrCodeEmailDeliveryFailed: prefix + emailError + "0002",
+
+	// Client Errors
+	ErrCodeInvalidClient:          prefix + clientError + "0001",
+	ErrCodeInvalidGrant:           prefix + clientError + "0002",
+	ErrCodeInvalidRedirectURI:     prefix + clientError + "0003",
+	ErrCodeInsufficientScope:      prefix + clientError + "0004",
+	ErrCodeClientSecretNotAllowed: prefix + clientError + "0005",
+	ErrCodeClientNotFound:         prefix + clientError + "0006",
+	ErrCodeDuplicateClient:        prefix + clientError + "0007",
+	ErrCodeInvalidResponseType:    prefix + clientError + "0008",
+	ErrCodeUnauthorizedClient:     prefix + clientError + "0009",
+	ErrCodeUnsupportedGrantType:   prefix + clientError + "0010",
+	ErrCodeAccessDenied:           prefix + clientError + "0011",
+	ErrCodeInvalidClientMetadata:  prefix + clientError + "0012",
+
+	// Session Errors
+	ErrCodeDuplicateSession: prefix + sessionError + "0001",
+	ErrCodeSessionNotFound:  prefix + sessionError + "0002",
+	ErrCodeInvalidSession:   prefix + sessionError + "0003",
+	ErrCodeSessionExpired:   prefix + sessionError + "0004",
+
+	// Middleware Errors
+	ErrCodeRequestLimitExceeded: prefix + middlewareError + "0001",
+	ErrCodeSessionCreation:      prefix + middlewareError + "0002",
+	ErrCodeSessionSave:          prefix + middlewareError + "0003",
+
+	// System Errors
+	ErrCodeInternalServerError: prefix + systemError + "0001",
+	ErrCodeRequestTimeout:      prefix + systemError + "0002",
+	ErrCodeRequestCancelled:    prefix + systemError + "0003",
+	ErrCodeResourceNotFound:    prefix + systemError + "0004",
+	ErrCodeMethodNotAllowed:    prefix + systemError + "0005",
+
+	// Authorization Code Errors
+	ErrCodeInvalidAuthorizationCode:  prefix + authzCodeError + "0001",
+	ErrCodeExpiredAuthorizationCode:  prefix + authzCodeError + "0002",
+	ErrCodeAuthorizationCodeNotFound: prefix + authzCodeError + "0003",
+}
+
 // StatusCode returns the HTTP status code associated with the error code
 func StatusCode(errorCode string) int {
-	if status, exists := statusCodeMap[errorCode]; exists {
+	if status, exists := StatusCodeMap[errorCode]; exists {
 		return status
 	}
 	return http.StatusInternalServerError // Default status
