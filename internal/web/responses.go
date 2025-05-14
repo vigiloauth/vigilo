@@ -32,17 +32,13 @@ func WriteError(w http.ResponseWriter, err error) {
 			Errors:           e.Errors(),
 		}
 		WriteJSON(w, http.StatusBadRequest, err)
-	} else if errors.Code(err) == errors.ErrCodeInvalidClient {
-		w.Header().Set("WWW-Authenticate", `Basic realm="auth", error="invalid_client", error_description="Client authentication failed"`)
-		WriteJSON(w, errors.StatusCode(errors.ErrCodeInvalidClient), err)
 	} else {
-		genericErr := createGenericError(err)
-		WriteJSON(w, http.StatusInternalServerError, genericErr)
+		WriteJSON(w, errors.HTTPStatusCodeMap[errors.Code(err)], err)
 	}
 }
 
 func RenderErrorPage(w http.ResponseWriter, r *http.Request, errorCode string, invalidURI string) {
-	errorURL := "/error?type=" + errors.ErrorCodeMap[errorCode]
+	errorURL := "/error?type=" + errors.SystemErrorCodeMap[errorCode]
 	if invalidURI != "" {
 		errorURL += "&uri=" + url.QueryEscape(invalidURI)
 	}
