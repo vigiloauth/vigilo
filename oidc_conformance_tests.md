@@ -47,6 +47,7 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-claims-locales`
 - ✅ `oidcc-server-client-secret-post`
 - ✅ `oidcc-ensure-request-object-with-redirect-uri`
+- ✅ `oidcc-refresh-token`
 
 - 🛠️ `oidcc-id-token-hint`
 - 🛠️ `oidcc-login-hint`
@@ -58,5 +59,4 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ❌ `oidcc-ensure-post-request-succeeds` (currently does not support post for client authorization)
 - ❌ `oidcc-request-uri-unsigned-supported-correctly-or-rejected-as-unsupported` (Nonce values mismatch and no state is returned)
 - ❌ `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported` (Nonce values mismatch, no state is returned, and 'request_parameter_supported' should be 'true', but is absent and the default value is 'false'.)
-- ❌ `oidcc-refresh-token` (Invalid http status, token endpoint response does not contain 'cache-control' header, invalid token type)
 
