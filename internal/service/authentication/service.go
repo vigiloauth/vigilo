@@ -358,7 +358,7 @@ func (s *authenticationService) validateRefreshTokenAndMatchClient(ctx context.C
 		return false, errors.New(errors.ErrCodeInternalServerError, "failed to parse refresh token")
 	}
 
-	if claims.Subject != clientID {
+	if claims.Audience != clientID {
 		s.logger.Warn(s.module, "", "Token subject mismatch")
 		return false, nil
 	}

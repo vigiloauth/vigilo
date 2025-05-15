@@ -408,9 +408,11 @@ func (cs *clientService) validateClientAuthorization(existingClient *client.Clie
 	}
 
 	scopesArr := strings.Split(requestedScopes, " ")
-	for _, scope := range scopesArr {
-		if !existingClient.HasScope(scope) {
-			return errors.New(errors.ErrCodeInsufficientScope, "client does not have the required scope(s)")
+	if !existingClient.CanRequestScopes {
+		for _, scope := range scopesArr {
+			if !existingClient.HasScope(scope) {
+				return errors.New(errors.ErrCodeInsufficientScope, "client does not have the required scope(s)")
+			}
 		}
 	}
 

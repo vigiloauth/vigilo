@@ -22,6 +22,7 @@ export default function AuthenticationPage({ display }) {
     if (!clientInfo) return;
     setClientName(clientInfo.name || "");
 
+    if (!clientInfo.logo_uri) return;
     const img = new Image();
     img.src = clientInfo.logo_uri;
     img.onload = () => {

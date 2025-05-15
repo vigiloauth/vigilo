@@ -219,6 +219,12 @@ $mobile-breakpoint: 768px;
   margin-bottom: 25px;
   color: rgba(0, 0, 0, 0.45);
   user-select: none;
+  .typography,
+  .secondary-link {
+    font-size: 12px;
+    user-select: none;
+    color: $text-color-secondary;
+  }
 }
 
 .consent-button,

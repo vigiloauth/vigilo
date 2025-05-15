@@ -136,9 +136,13 @@ const AuthenticationForm = ({ policyURI }) => {
         <Text type="secondary">
           Don't have an account? <Link>Sign up</Link>
         </Text>
-        <Link target="_blank" className="secondary-link" href={policyURI}>
-          privacy policy
-        </Link>
+        {policyURI == "" ? (
+          ""
+        ) : (
+          <Link target="_blank" className="secondary-link" href={policyURI}>
+            privacy policy
+          </Link>
+        )}
       </FlexContainer>
     </Form>
   );

@@ -4,7 +4,7 @@ import { useApplicationContext } from "../context/ApplicationContext";
 import ConsentForm from "../forms/ConsentForm";
 import "../styles/popup.scss";
 
-export default function ConsentPopup() {
+export default function ConsentPopup({ policyURI }) {
   const [visible, setVisible] = useState(true);
   const { redirectURI } = useApplicationContext();
 
@@ -29,7 +29,7 @@ export default function ConsentPopup() {
       footer={null}
       centered
     >
-      <ConsentForm />
+      <ConsentForm policyURI={policyURI} />
     </Modal>
   );
 }

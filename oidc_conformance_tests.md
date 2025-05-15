@@ -43,24 +43,20 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-discovery-endpoint-verification`
 - ✅ `oidcc-registration-policy-uri`
 - ✅ `oidcc-registration-sector-uri`
+- ✅ `oidcc-ui-locales`
+- ✅ `oidcc-claims-locales`
+- ✅ `oidcc-server-client-secret-post`
+- ✅ `oidcc-ensure-request-object-with-redirect-uri`
 
-- 🛠️ `oidcc-claims-locales`
+- 🛠️ `oidcc-id-token-hint`
 - 🛠️ `oidcc-login-hint`
-- 🛠️ `oidcc-registration-tos-uri`
-- 🛠️ `oidcc-claims-essential`
-- 🛠️ `oidcc-ensure-request-with-acr-values-succeeds`
-- 🛠️ `oidcc-ui-locales`
-- ❌ `oidcc-redirect-uri-query-OK`
-- ❌ `oidcc-userinfo-rs256`
-- ❌ `oidcc-refresh-token`
-- ❌ `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported`
-- ❌ `oidcc-request-uri-unsigned`
-- ❌ `oidcc-request-uri-signed-rs256`
-- ❌ `oidcc-server-rotate-keys`
-- ❌ `oidcc-ensure-redirect-uri-in-authorization-request`
-- ❌ `oidcc-id-token-hint`
-- ❌ `oidcc-max-age-1`
-- ❌ `oidcc-max-age-10000`
-- ❌ `oidcc-ensure-request-object-with-redirect-uri`
-- ❌ `oidcc-redirect-uri-query-mismatch`
-- ❌ `oidcc-redirect-uri-query-added`
+- 🛠️ `oidcc-ensure-request-with-acr-values-succeeds` (An acr value was requested using acr_values, so the server 'SHOULD' return an acr claim, but it did not.)
+- 🛠️ `oidcc-claims-essential` (name not found in response)
+
+- ❌ `oidcc-max-age-1` (auth_time claim is missing from the id_token, but it is required for a authentication where the max_age parameter was used)
+- ❌ `oidcc-max-age-10000` (auth_time claim is missing from the id_token, but it is required for a authentication where the max_age parameter was used)
+- ❌ `oidcc-ensure-post-request-succeeds` (currently does not support post for client authorization)
+- ❌ `oidcc-request-uri-unsigned-supported-correctly-or-rejected-as-unsupported` (Nonce values mismatch and no state is returned)
+- ❌ `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported` (Nonce values mismatch, no state is returned, and 'request_parameter_supported' should be 'true', but is absent and the default value is 'false'.)
+- ❌ `oidcc-refresh-token` (Invalid http status, token endpoint response does not contain 'cache-control' header, invalid token type)
+

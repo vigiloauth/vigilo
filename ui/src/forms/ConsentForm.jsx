@@ -25,7 +25,7 @@ import FlexContainer from "../components/FlexContainer";
 import "../styles/forms.scss";
 
 const { Panel } = Collapse;
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text, Paragraph, Link } = Typography;
 
 const scopeDetails = {
   openid: {
@@ -74,7 +74,7 @@ const scopeDetails = {
 
 const defaultScopes = ["profile", "openid", "address", "email"];
 
-export default function ConsentForm() {
+export default function ConsentForm({ policyURI }) {
   const [loading, setLoading] = useState(false);
   const [clientName, setClientName] = useState("An external application");
   const [scopes, setScopes] = useState(defaultScopes);
@@ -205,8 +205,15 @@ export default function ConsentForm() {
       <Paragraph className="consent-disclaimer">
         By approving, you allow{" "}
         {clientName ? "an external application" : clientName} to use your
-        information in accordance with their terms of service and privacy
-        policy. You can revoke access at any time.
+        information in accordance with their terms of service and{" "}
+        {policyURI === "" ? (
+          "privacy policy. "
+        ) : (
+          <Link target="_blank" className="secondary-link" href={policyURI}>
+            privacy policy.{" "}
+          </Link>
+        )}
+        You can revoke access at any time.
       </Paragraph>
 
       <Container width="100%">
