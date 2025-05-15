@@ -93,19 +93,7 @@ type TokenService interface {
 	//	- error: An error if querying the database fails.
 	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
 
-	// SaveToken adds a token to the token store.
-	//
-	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- token string: The token string to add.
-	//	- id string: The id associated with the token.
-	//	- expirationTime time.Time: The token's expiration time.
-	//
-	// Returns:
-	//	- error: If a database error occurs.
-	SaveToken(ctx context.Context, token string, id string, expirationTime time.Time) error
-
-	// GetToken retrieves a token from the token store and validates it.
+	// GetTokenData retrieves the token data from the token repository.
 	//
 	// Parameters:
 	//	- ctx Context: The context for managing timeouts and cancellations.
@@ -114,7 +102,7 @@ type TokenService interface {
 	// Returns:
 	//	- *TokenData: The TokenData if the token is valid, or nil if not found or invalid.
 	//	- error: An error if the token is not found, expired, or the subject doesn't match.
-	GetToken(ctx context.Context, token string) (*TokenData, error)
+	GetTokenData(ctx context.Context, token string) (*TokenData, error)
 
 	// DeleteToken removes a token from the token repository.
 	//

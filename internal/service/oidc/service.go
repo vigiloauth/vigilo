@@ -47,19 +47,19 @@ func NewOIDCService(authorizationService authz.AuthorizationService) oidc.OIDCSe
 //     authorized scopes.
 //   - error: An error if the user cannot be found, the scopes are insufficient, or any
 //     other issue occurs during retrieval.
-func (o *oidcService) GetUserInfo(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.UserInfoResponse, error) {
+func (s *oidcService) GetUserInfo(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.UserInfoResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	retrievedUser, err := o.authorizationService.AuthorizeUserInfoRequest(ctx, accessTokenClaims)
+	retrievedUser, err := s.authorizationService.AuthorizeUserInfoRequest(ctx, accessTokenClaims)
 	if err != nil {
-		o.logger.Error(o.module, requestID, "[GetUserInfo]: Failed to authorize user info request: %v", err)
+		s.logger.Error(s.module, requestID, "[GetUserInfo]: Failed to authorize user info request: %v", err)
 		wrappedErr := errors.Wrap(err, "", "failed to authorize request")
 		return nil, wrappedErr
 	}
 
 	userInfoResponse := &user.UserInfoResponse{Sub: retrievedUser.ID}
 	requestedScopes := strings.Split(accessTokenClaims.Scopes, " ")
-	o.populateUserInfoFromScopes(userInfoResponse, retrievedUser, requestedScopes)
+	s.populateUserInfoFromScopes(userInfoResponse, retrievedUser, requestedScopes)
 
 	return userInfoResponse, nil
 }
@@ -72,7 +72,7 @@ func (o *oidcService) GetUserInfo(ctx context.Context, accessTokenClaims *token.
 //
 // Returns:
 //   - *Jwks: A pointer to a Jwks struct containing the public keys in JWKS format.
-func (o *oidcService) GetJwks(ctx context.Context) *jwks.Jwks {
+func (s *oidcService) GetJwks(ctx context.Context) *jwks.Jwks {
 	tokenConfig := config.GetServerConfig().TokenConfig()
 	publicKey := tokenConfig.PublicKey()
 	keyID := tokenConfig.KeyID()
@@ -83,7 +83,7 @@ func (o *oidcService) GetJwks(ctx context.Context) *jwks.Jwks {
 	}
 }
 
-func (o *oidcService) populateUserInfoFromScopes(
+func (s *oidcService) populateUserInfoFromScopes(
 	userInfoResponse *user.UserInfoResponse,
 	retrievedUser *user.User,
 	requestedScopes []string,

@@ -49,7 +49,7 @@ func (m *MockTokenService) IsTokenBlacklisted(ctx context.Context, token string)
 	return m.IsTokenBlacklistedFunc(ctx, token)
 }
 
-func (m *MockTokenService) GetToken(ctx context.Context, token string) (*token.TokenData, error) {
+func (m *MockTokenService) GetTokenData(ctx context.Context, token string) (*token.TokenData, error) {
 	return m.GetTokenFunc(ctx, token)
 }
 

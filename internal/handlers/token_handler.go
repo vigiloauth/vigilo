@@ -216,18 +216,15 @@ func (h *TokenHandler) handleAuthorizationCodeTokenExchange(ctx context.Context,
 
 func (h *TokenHandler) handleRefreshTokenRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
 	refreshToken := r.FormValue(constants.RefreshTokenURLValue)
-	if refreshToken == "" || requestedScopes == "" {
-		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "one or more required parameters are missing"))
-		return
-	}
-
 	response, err := h.authService.RefreshAccessToken(ctx, clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes)
 	if err != nil {
 		h.logger.Error(h.module, requestID, "Failed to issue new access token: %v", err)
+		w.Header().Add("Cache-Control", "no-store")
 		web.WriteError(w, errors.Wrap(err, "", "failed to issue new access and refresh tokens"))
 		return
 	}
 
+	w.Header().Add("Cache-Control", "no-store")
 	web.WriteJSON(w, http.StatusOK, response)
 }
 

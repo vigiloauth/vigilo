@@ -524,11 +524,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithClient(test.clientType, []string{constants.ClientManageScope}, []string{constants.RefreshTokenGrantType})
-				if test.clientType == client.Public {
-					testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
-				} else {
-					testContext.WithEncryptedJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
-				}
+				testContext.WithJWTToken(testClientID, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
 
 				formData := url.Values{}
 				formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -274,30 +275,7 @@ func (ts *tokenService) BlacklistToken(ctx context.Context, token string) error 
 	return nil
 }
 
-// SaveToken adds a token to the token store.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - token string: The token string to add.
-//   - id string: The id associated with the token.
-//   - expirationTime time.Time: The token's expiration time.
-//
-// Returns:
-//   - error: If a database error occurs.
-func (ts *tokenService) SaveToken(ctx context.Context, token string, id string, expirationTime time.Time) error {
-	requestID := utils.GetRequestID(ctx)
-	hashedToken := crypto.EncodeSHA256(token)
-
-	err := ts.tokenRepo.SaveToken(ctx, hashedToken, id, expirationTime)
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[SaveToken]: An error occurred saving the token: %v", err)
-		return errors.Wrap(err, "", "an error occurred saving the token")
-	}
-
-	return nil
-}
-
-// GetToken retrieves a token from the token store and validates it.
+// GetTokenData retrieves the token data from the token repository.
 //
 // Parameters:
 //   - ctx Context: The context for managing timeouts and cancellations.
@@ -306,7 +284,7 @@ func (ts *tokenService) SaveToken(ctx context.Context, token string, id string, 
 // Returns:
 //   - *TokenData: The TokenData if the token is valid, or nil if not found or invalid.
 //   - error: An error if the token is not found, expired, or the subject doesn't match.
-func (ts *tokenService) GetToken(ctx context.Context, token string) (*token.TokenData, error) {
+func (ts *tokenService) GetTokenData(ctx context.Context, token string) (*token.TokenData, error) {
 	requestID := utils.GetRequestID(ctx)
 	hashedToken := crypto.EncodeSHA256(token)
 
@@ -534,7 +512,8 @@ func (ts *tokenService) EncryptToken(ctx context.Context, signedToken string) (s
 func (ts *tokenService) DecryptToken(ctx context.Context, encryptedToken string) (string, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	object, err := jose.ParseEncrypted(encryptedToken)
+	token := strings.TrimPrefix(encryptedToken, "bearer ")
+	object, err := jose.ParseEncrypted(token)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[DecryptToken]: Failed to parse encrypted token: %v", err)
 		return "", errors.New(errors.ErrCodeInvalidToken, "failed to parse encrypted token")
@@ -562,10 +541,10 @@ func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject, audi
 			continue
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-		token.Header["kid"] = ts.keyID
+		jwtClaims := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+		jwtClaims.Header["kid"] = ts.keyID
 
-		signedToken, err := token.SignedString(ts.privateKey)
+		signedToken, err := jwtClaims.SignedString(ts.privateKey)
 		if err != nil {
 			ts.logger.Warn(ts.module, "", "Failed to sign token. Incrementing retry count")
 			currentRetry++
@@ -573,7 +552,15 @@ func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject, audi
 		}
 
 		hashedToken := crypto.EncodeSHA256(signedToken)
-		ts.tokenRepo.SaveToken(ctx, hashedToken, subject, tokenExpiration)
+		tokenData := &token.TokenData{
+			Token:     hashedToken,
+			ID:        subject,
+			ExpiresAt: tokenExpiration,
+			TokenID:   ts.keyID,
+			Claims:    claims,
+		}
+
+		ts.tokenRepo.SaveToken(ctx, hashedToken, subject, tokenData, tokenExpiration)
 		ts.logger.Info(ts.module, "", "Successfully generated token after %d retries", currentRetry)
 		return signedToken, nil
 	}

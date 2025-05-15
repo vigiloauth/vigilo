@@ -184,22 +184,39 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 		return nil, err
 	}
 
-	valid, err := s.validateRefreshTokenAndMatchClient(ctx, clientID, refreshToken)
-	if err != nil {
+	if err := s.validateRefreshTokenAndMatchClient(ctx, clientID, refreshToken); err != nil {
 		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Error validating refresh token: %v", err)
-		return nil, err
-	}
-	if !valid {
-		s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Invalid refresh token. Blacklisting...")
 		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
-			s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist refresh token: %v", err)
-			return nil, err
+			s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist refresh token: %v", err)
 		}
 
-		return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid refresh token")
+		return nil, err
 	}
 
-	newAccessToken, newRefreshToken, err := s.tokenService.GenerateRefreshAndAccessTokens(ctx, clientID, scopes, "")
+	tokenData, err := s.tokenService.GetTokenData(ctx, refreshToken)
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to retrieve token data")
+		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
+			s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist old refresh token: %v", err)
+		}
+		return nil, err
+	}
+
+	if scopes == "" {
+		scopes = tokenData.Claims.Scopes
+	} else {
+		requested := strings.Fields(scopes)
+		original := strings.Fields(tokenData.Claims.Scopes)
+		if !utils.IsSubset(requested, original) {
+			if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
+				s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist old refresh token: %v", err)
+			}
+			return nil, errors.New(errors.ErrCodeInvalidRequest, "requested scopes exceed originally granted scopes")
+		}
+	}
+
+	userID := tokenData.Claims.Subject
+	newAccessToken, newRefreshToken, err := s.tokenService.GenerateTokensWithAudience(ctx, userID, clientID, scopes, "")
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to generate new tokens: %v", err)
 		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
@@ -211,11 +228,15 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 
 	client, err := s.clientService.GetClientByID(ctx, clientID)
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to retrieve client: %v", err)
+		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to retrieve client: %v", err)
+		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
+			s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist old refresh token: %v", err)
+		}
 		return nil, errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client")
 	}
 
 	if client.IsConfidential() {
+		s.logger.Debug(s.module, requestID, "[RefreshAccessToken]: Client is confidential, encrypting tokens")
 		newAccessToken, err = s.tokenService.EncryptToken(ctx, newAccessToken)
 		if err != nil {
 			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt access token: %v", err)
@@ -229,6 +250,7 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 		}
 	}
 
+	s.logger.Debug(s.module, requestID, "[RefreshAccessToken]: Attempting to blacklist old refresh token")
 	if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
 		s.logger.Warn(s.module, requestID, "[RefreshAccessToken] Failed to blacklist old refresh token: %v", err)
 	}
@@ -237,7 +259,7 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 		AccessToken:  newAccessToken,
 		RefreshToken: newRefreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    constants.BearerAuthHeader,
+		TokenType:    token.BearerToken,
 	}, nil
 }
 
@@ -255,7 +277,7 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 //     response will include all relevant claims associated with the token.
 func (s *authenticationService) IntrospectToken(ctx context.Context, tokenStr string) *token.TokenIntrospectionResponse {
 	requestID := utils.GetRequestID(ctx)
-	retrievedToken, err := s.tokenService.GetToken(ctx, tokenStr)
+	retrievedToken, err := s.tokenService.GetTokenData(ctx, tokenStr)
 	if retrievedToken == nil || err != nil {
 		return &token.TokenIntrospectionResponse{Active: false}
 	}
@@ -321,7 +343,7 @@ func (s *authenticationService) AuthenticateClientRequest(ctx context.Context, r
 //   - token string: The token to be revoked.
 func (s *authenticationService) RevokeToken(ctx context.Context, tokenStr string) {
 	requestID := utils.GetRequestID(ctx)
-	retrievedToken, err := s.tokenService.GetToken(ctx, tokenStr)
+	retrievedToken, err := s.tokenService.GetTokenData(ctx, tokenStr)
 	if retrievedToken == nil || err != nil {
 		s.logger.Error(s.module, requestID, "[RevokeToken]: Failed to revoke token")
 		if err != nil {
@@ -348,22 +370,22 @@ func (s *authenticationService) RevokeToken(ctx context.Context, tokenStr string
 	}
 }
 
-func (s *authenticationService) validateRefreshTokenAndMatchClient(ctx context.Context, clientID, refreshToken string) (bool, error) {
+func (s *authenticationService) validateRefreshTokenAndMatchClient(ctx context.Context, clientID, refreshToken string) error {
 	if err := s.tokenService.ValidateToken(ctx, refreshToken); err != nil {
-		return false, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to validate refresh token")
+		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to validate refresh token")
 	}
 
 	claims, err := s.tokenService.ParseAndValidateToken(ctx, refreshToken)
 	if err != nil {
-		return false, errors.New(errors.ErrCodeInternalServerError, "failed to parse refresh token")
+		return errors.New(errors.ErrCodeInvalidGrant, "failed to parse refresh token")
 	}
 
 	if claims.Audience != clientID {
-		s.logger.Warn(s.module, "", "Token subject mismatch")
-		return false, nil
+		s.logger.Warn(s.module, utils.GetRequestID(ctx), "Token audience mismatch: expected %s, got %s", clientID, claims.Audience)
+		return errors.New(errors.ErrCodeInvalidGrant, "refresh token was issued to a different client")
 	}
 
-	return true, nil
+	return nil
 }
 
 func (s *authenticationService) authenticateUser(ctx context.Context, req *user.UserLoginAttempt, clientID string, scopes string) (*user.UserLoginResponse, error) {

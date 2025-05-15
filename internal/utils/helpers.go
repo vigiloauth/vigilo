@@ -15,3 +15,16 @@ func KeysToSlice[K comparable, V any](input map[K]V) []K {
 
 	return keys
 }
+
+func IsSubset(subset, set []string) bool {
+	m := make(map[string]struct{})
+	for _, s := range set {
+		m[s] = struct{}{}
+	}
+	for _, s := range subset {
+		if _, ok := m[s]; !ok {
+			return false
+		}
+	}
+	return true
+}

@@ -12,7 +12,7 @@ import (
 
 // WriteJSON writes the provided data as JSON to the HTTP response writer.
 func WriteJSON(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 
 	if data != nil {

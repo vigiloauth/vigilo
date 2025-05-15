@@ -10,7 +10,7 @@ import (
 var _ token.TokenRepository = (*MockTokenRepository)(nil)
 
 type MockTokenRepository struct {
-	SaveTokenFunc          func(ctx context.Context, token string, id string, expiration time.Time) error
+	SaveTokenFunc          func(ctx context.Context, token string, id string, tokenData *token.TokenData, expiration time.Time) error
 	IsTokenBlacklistedFunc func(ctx context.Context, token string) (bool, error)
 	GetTokenFunc           func(ctx context.Context, token string) (*token.TokenData, error)
 	DeleteTokenFunc        func(ctx context.Context, token string) error
@@ -19,8 +19,8 @@ type MockTokenRepository struct {
 	GetExpiredTokensFunc   func(ctx context.Context) ([]*token.TokenData, error)
 }
 
-func (m *MockTokenRepository) SaveToken(ctx context.Context, token string, id string, expiration time.Time) error {
-	return m.SaveTokenFunc(ctx, token, id, expiration)
+func (m *MockTokenRepository) SaveToken(ctx context.Context, token string, id string, tokenData *token.TokenData, expiration time.Time) error {
+	return m.SaveTokenFunc(ctx, token, id, tokenData, expiration)
 }
 
 func (m *MockTokenRepository) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
