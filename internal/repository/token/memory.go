@@ -23,7 +23,7 @@ const module = "InMemoryTokenRepository"
 // InMemoryTokenRepository implements a token store using an in-memory map.
 type InMemoryTokenRepository struct {
 	tokens    map[string]*domain.TokenData
-	blacklist map[string]struct{}
+	blacklist map[string]*domain.TokenData
 	mu        sync.RWMutex
 }
 
@@ -38,7 +38,7 @@ func GetInMemoryTokenRepository() *InMemoryTokenRepository {
 		logger.Debug(module, "", "Creating new instance of InMemoryTokenRepository")
 		instance = &InMemoryTokenRepository{
 			tokens:    make(map[string]*domain.TokenData),
-			blacklist: make(map[string]struct{}),
+			blacklist: make(map[string]*domain.TokenData),
 		}
 	})
 	return instance
@@ -50,7 +50,7 @@ func ResetInMemoryTokenRepository() {
 		logger.Debug(module, "", "Resetting instance")
 		instance.mu.Lock()
 		instance.tokens = make(map[string]*domain.TokenData)
-		instance.blacklist = make(map[string]struct{})
+		instance.blacklist = make(map[string]*domain.TokenData)
 		instance.mu.Unlock()
 	}
 }
@@ -61,11 +61,12 @@ func ResetInMemoryTokenRepository() {
 //   - ctx Context: The context for managing timeouts and cancellations.
 //   - token string: The token string to add.
 //   - id string: The id associated with the token.
+//   - tokenData *TokenData: The data associated with the token.
 //   - expiration time.Time: The token's expiration time.
 //
 // Returns:
 //   - error: If an error occurs saving the token.
-func (b *InMemoryTokenRepository) SaveToken(ctx context.Context, tokenStr string, id string, expiration time.Time) error {
+func (b *InMemoryTokenRepository) SaveToken(ctx context.Context, tokenStr string, id string, tokenData *domain.TokenData, expiration time.Time) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -75,11 +76,7 @@ func (b *InMemoryTokenRepository) SaveToken(ctx context.Context, tokenStr string
 		return nil
 	}
 
-	b.tokens[tokenStr] = &domain.TokenData{
-		ID:        id,
-		ExpiresAt: expiration,
-		Token:     tokenStr,
-	}
+	b.tokens[tokenStr] = tokenData
 
 	return nil
 }
@@ -126,7 +123,9 @@ func (b *InMemoryTokenRepository) BlacklistToken(ctx context.Context, token stri
 		return errors.New(errors.ErrCodeTokenNotFound, "token not found or expired")
 	}
 
-	b.blacklist[token] = struct{}{}
+	tokenData := b.tokens[token]
+	delete(b.tokens, token)
+	b.blacklist[token] = tokenData
 	logger.Debug(module, "", "[BlacklistToken]: Token has been blacklisted")
 	return nil
 }

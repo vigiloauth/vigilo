@@ -196,15 +196,11 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(
-		context.Background(), id, testScope,
-		strings.Join(tc.User.Roles, " "), duration,
-	)
+	token, _, err := tokenService.GenerateTokensWithAudience(context.Background(), id, testClientID, testScope, strings.Join(tc.User.Roles, " "))
 
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = token
-	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), token, id, time.Now().Add(duration))
 
 	return tc
 }
@@ -226,7 +222,6 @@ func (tc *VigiloTestContext) WithEncryptedJWTToken(id string, duration time.Dura
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = encryptedToken
-	tokenRepo.GetInMemoryTokenRepository().SaveToken(ctx, token, id, time.Now().Add(duration))
 
 	return tc
 }
@@ -241,7 +236,7 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	accessToken, refreshToken, err := tokenService.GenerateTokensWithAudience(
+	accessToken, _, err := tokenService.GenerateTokensWithAudience(
 		context.Background(), subject, audience, strings.Join(scopes, " "),
 		strings.Join(tc.User.Roles, " "),
 	)
@@ -251,8 +246,6 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 	assert.NoError(tc.T, err)
 
 	tc.JWTToken = encryptedToken
-	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), accessToken, subject, time.Now().Add(duration))
-	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), refreshToken, subject, time.Now().Add(duration))
 
 	return tc
 }
@@ -326,7 +319,6 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 	resetToken, err := tokenService.GenerateToken(context.Background(), tc.User.Email, testScope, constants.AdminRole, duration)
 	assert.NoError(tc.T, err)
 
-	tokenRepo.GetInMemoryTokenRepository().SaveToken(context.Background(), resetToken, tc.User.Email, time.Now().Add(duration))
 	return resetToken, tc
 }
 

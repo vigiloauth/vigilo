@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 )
 
 const (
@@ -17,7 +18,7 @@ func TestTokenStore_AddToken(t *testing.T) {
 	tokenStore := GetInMemoryTokenRepository()
 	expiration := time.Now().Add(1 * time.Hour)
 
-	tokenStore.SaveToken(context.Background(), testToken, testID, expiration)
+	tokenStore.SaveToken(context.Background(), testToken, testID, &domain.TokenData{}, expiration)
 
 	tokenStore.mu.Lock()
 	defer tokenStore.mu.Unlock()
@@ -29,7 +30,7 @@ func TestTokenStore_IsTokenBlacklisted(t *testing.T) {
 	tokenStore := GetInMemoryTokenRepository()
 	expiration := time.Now().Add(-1 * time.Hour)
 
-	tokenStore.SaveToken(ctx, testToken, testID, expiration)
+	tokenStore.SaveToken(ctx, testToken, testID, &domain.TokenData{}, expiration)
 	isBlacklisted, err := tokenStore.IsTokenBlacklisted(ctx, testToken)
 
 	assert.NoError(t, err)
@@ -41,7 +42,7 @@ func TestTokenStore_DeleteToken(t *testing.T) {
 	tokenStore := GetInMemoryTokenRepository()
 	expiration := time.Now().Add(1 * time.Hour)
 
-	err := tokenStore.SaveToken(ctx, testToken, testID, expiration)
+	err := tokenStore.SaveToken(ctx, testToken, testID, &domain.TokenData{}, expiration)
 	assert.NoError(t, err)
 
 	token, err := tokenStore.GetToken(ctx, testToken)

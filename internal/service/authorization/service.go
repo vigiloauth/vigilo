@@ -100,11 +100,9 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 	}
 
 	userID, isAuthenticated := s.isUserAuthenticated(requestID, request.HTTPRequest)
-
 	if s.shouldRejectUnauthenticatedUser(request, isAuthenticated) {
 		return s.buildLoginRequiredErrorURL(request), nil
 	}
-
 	if !isAuthenticated {
 		return s.buildLoginRedirect(client.ID, request), nil
 	}
@@ -202,9 +200,7 @@ func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData 
 		utils.TruncateSensitive(refreshToken),
 	)
 
-	s.logger.Debug(s.module, requestID, "[GenerateTokens] Attempting to generate ID token: Nonce: %s", authCodeData.Nonce)
 	idToken, err := s.tokenService.GenerateIDToken(ctx, authCodeData.UserID, authCodeData.ClientID, "", authCodeData.Nonce)
-
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate ID token: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate ID token")
@@ -246,18 +242,19 @@ func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData 
 //   - error: An error if authorization fails, otherwise nil.
 func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, claims *token.TokenClaims) (*user.User, error) {
 	requestID := utils.GetRequestID(ctx)
+	s.logger.Debug(s.module, requestID, "[AuthorizeUserInfoRequest]: Starting user info authorization request")
+
 	if claims == nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: Token claims provided are nil")
 		return nil, errors.NewInternalServerError()
 	}
 
-	userID := claims.StandardClaims.Subject
 	requestedScopes := strings.Split(claims.Scopes, " ")
-
-	if len(requestedScopes) == 0 || !slices.Contains(requestedScopes, constants.OpenIDScope) {
+	if !slices.Contains(requestedScopes, constants.OpenIDScope) {
 		return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
 	}
 
+	userID := claims.StandardClaims.Subject
 	retrievedUser, err := s.userService.GetUserByID(ctx, userID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: An error occurred retrieving the user: %v", err)
@@ -422,9 +419,15 @@ func (s *authorizationService) shouldForceLogin(request *client.ClientAuthorizat
 
 func (s *authorizationService) buildLoginRedirect(clientID string, request *client.ClientAuthorizationRequest) string {
 	return web.BuildRedirectURL(
-		clientID, request.RedirectURI, request.Scope,
-		request.ResponseType, request.State, request.Nonce,
-		request.Prompt, request.Display, "authenticate",
+		clientID,
+		request.RedirectURI,
+		request.Scope,
+		request.ResponseType,
+		request.State,
+		request.Nonce,
+		request.Prompt,
+		request.Display,
+		"authenticate",
 	)
 }
 

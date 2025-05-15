@@ -1,9 +1,7 @@
 package middleware
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"slices"
 	"strings"
@@ -70,82 +68,43 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 
 			var tokenString string
 			var authHeaderErr error
-			// 1. Try to extract token from Authorization: Bearer header (standard for GET and POST)
+
 			tokenString, authHeaderErr = web.ExtractBearerToken(r)
-
-			// --- DEBUG LOGGING START ---
-			if authHeaderErr != nil {
-				m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Bearer token not found in header. Checking request details for POST body token possibility.")
-				m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Request Method: %s", r.Method)
-				m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Request URL: %s", r.URL.Path)
-				m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Request Content-Type header: %s", r.Header.Get("Content-Type"))
-
-				// Optional: Log the raw body for debugging POST requests (be careful with large bodies)
-				if r.Method == http.MethodPost {
-					bodyBytes, readErr := ioutil.ReadAll(r.Body)
-					if readErr != nil {
-						m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to read request body for logging: %v", readErr)
-					} else {
-						m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Raw POST Body: %s", string(bodyBytes))
-						// IMPORTANT: Replace the body after reading it, as it's a stream that can only be read once
-						r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-					}
-				}
-			}
-			// --- DEBUG LOGGING END ---
-
-			// 2. If token not found in header AND method is POST AND content type is form-urlencoded,
-			//    try to extract from the request body.
 			if authHeaderErr != nil && r.Method == http.MethodPost && r.Header.Get("Content-Type") == "application/x-www-form-urlencoded;charset=UTF-8" {
 				m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Bearer token not found in header, attempting to check POST body for access_token parameter.")
-
-				// Parse the form data from the request body
-				// r.ParseForm() must be called before accessing r.Form
-				// Note: r.ParseForm() reads the body, so the optional logging above must replace the body if used.
 				parseErr := r.ParseForm()
 				if parseErr != nil {
 					m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse form body: %v", parseErr)
 					wrappedErr := errors.Wrap(parseErr, errors.ErrCodeInvalidRequest, "failed to parse request body")
 					web.WriteError(w, wrappedErr)
-					return // Stop processing
+					return
 				}
 
-				// Get the access_token parameter from the parsed form
 				bodyToken := r.Form.Get(constants.AccessTokenPost)
-
 				if bodyToken != "" {
 					m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Found access_token in POST body.")
-					tokenString = bodyToken // Use the token from the body
-					// Do NOT clear authHeaderErr here. The logic below depends on it.
-					// The success path is determined by tokenString != "".
+					tokenString = bodyToken
 				} else {
-					// Token not found in header or body
 					m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Access token not found in header or POST body.")
 					wrappedErr := errors.New(errors.ErrCodeUnauthorized, "missing or invalid access token")
 					web.WriteError(w, wrappedErr)
-					return // Stop processing
+					return
 				}
 			} else if authHeaderErr != nil {
-				// Token not found in header, and either not POST or not form-urlencoded,
-				// or the POST body check failed to find the token.
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Access token not found in header, and POST body check conditions not met or token not found in body.")
-				wrappedErr := errors.Wrap(authHeaderErr, errors.ErrCodeUnauthorized, "missing or invalid authorization header") // Use authHeaderErr here
+				wrappedErr := errors.Wrap(authHeaderErr, errors.ErrCodeUnauthorized, "missing or invalid authorization header")
 				web.WriteError(w, wrappedErr)
-				return // Stop processing
+				return
 			}
 
-			// If we reached here, tokenString should contain the token from either header or body,
-			// OR authHeaderErr was nil (meaning token was found in header).
-			// The condition to proceed is that tokenString is not empty.
-
 			if tokenString == "" {
-				// This case should ideally be caught by the blocks above, but as a safeguard:
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: tokenString is empty after all extraction attempts.")
 				wrappedErr := errors.New(errors.ErrCodeUnauthorized, "missing or invalid access token after extraction attempts")
 				web.WriteError(w, wrappedErr)
 				return
 			}
 
+			m.logger.Debug(m.module, requestID, "[AuthMiddleWare]: Attempting to parse and validate token")
 			claims, parseErr := m.tokenService.ParseAndValidateToken(ctx, tokenString)
 			if parseErr != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse token: %s", parseErr)
@@ -154,6 +113,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
+			m.logger.Debug(m.module, requestID, "[AuthMiddleWare]: Attempting to validate token")
 			if validateErr := m.tokenService.ValidateToken(ctx, tokenString); validateErr != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to validate token: %s", validateErr)
 				wrappedErr := errors.Wrap(validateErr, errors.ErrCodeUnauthorized, "an error occurred validating the access token")
@@ -164,7 +124,6 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyTokenClaims, claims)
 			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyAccessToken, tokenString)
 			m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Token validated successfully, passing request to next handler")
-
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

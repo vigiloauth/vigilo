@@ -48,7 +48,7 @@ func NewConsentHandler(
 		consentService: consentService,
 		jwtConfig:      config.GetServerConfig().TokenConfig(),
 		logger:         config.GetServerConfig().Logger(),
-		module:         "OAuth Handler",
+		module:         "User Consent Handler",
 	}
 }
 

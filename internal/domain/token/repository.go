@@ -13,11 +13,12 @@ type TokenRepository interface {
 	//	- ctx Context: The context for managing timeouts and cancellations.
 	//	- token string: The token string to add.
 	//	- id string: The id associated with the token.
+	//	- tokenData *TokenData: The data associated with the token.
 	//	- expiration time.Time: The token's expiration time.
 	//
 	// Returns:
 	//	- error: If an error occurs saving the token.
-	SaveToken(ctx context.Context, token string, id string, expiration time.Time) error
+	SaveToken(ctx context.Context, token string, id string, tokenData *TokenData, expiration time.Time) error
 
 	// IsTokenBlacklisted checks if a token is blacklisted.
 	//

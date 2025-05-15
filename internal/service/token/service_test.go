@@ -46,7 +46,7 @@ func TestTokenService_GenerateToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockTokenRepo := &mTokenRepo.MockTokenRepository{
-				SaveTokenFunc: func(ctx context.Context, token, id string, expiration time.Time) error {
+				SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *domain.TokenData, expiration time.Time) error {
 					return nil
 				},
 				ExistsByTokenIDFunc: func(ctx context.Context, tokenID string) (bool, error) {
@@ -98,7 +98,7 @@ func TestTokenService_ParseToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockTokenRepo := &mTokenRepo.MockTokenRepository{
-				SaveTokenFunc: func(ctx context.Context, token, id string, expiration time.Time) error {
+				SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *domain.TokenData, expiration time.Time) error {
 					return nil
 				},
 				ExistsByTokenIDFunc: func(ctx context.Context, tokenID string) (bool, error) {
@@ -138,7 +138,7 @@ func TestTokenService_GetToken(t *testing.T) {
 
 	tokenService := NewTokenService(mockTokenRepo)
 
-	result, err := tokenService.GetToken(ctx, testToken)
+	result, err := tokenService.GetTokenData(ctx, testToken)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 }
@@ -174,7 +174,7 @@ func TestTokenService_DeleteToken(t *testing.T) {
 
 func TestTokenService_GenerateTokenPair(t *testing.T) {
 	mockTokenRepo := &mTokenRepo.MockTokenRepository{
-		SaveTokenFunc: func(ctx context.Context, token, id string, expiration time.Time) error {
+		SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *domain.TokenData, expiration time.Time) error {
 			return nil
 		},
 		ExistsByTokenIDFunc: func(ctx context.Context, tokenID string) (bool, error) {

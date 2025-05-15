@@ -12,6 +12,7 @@ type TokenData struct {
 	ID        string    // The id associated with the token.
 	ExpiresAt time.Time // The token's expiration time.
 	TokenID   string
+	Claims    *TokenClaims
 }
 
 // TokenResponse represents the structure of an OAuth token response.
@@ -53,7 +54,7 @@ type TokenClaims struct {
 	*jwt.StandardClaims
 }
 
-const BearerToken string = "Bearer"
+const BearerToken string = "bearer"
 
 func NewTokenIntrospectionResponse(claims *TokenClaims) *TokenIntrospectionResponse {
 	response := &TokenIntrospectionResponse{

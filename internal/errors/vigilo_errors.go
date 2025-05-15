@@ -144,6 +144,7 @@ func Wrap(err error, code string, message string) error {
 	} else if IsContextError(err) {
 		return NewContextError(err)
 	} else {
+		vigiloError.SystemCode = SystemErrorCodeMap[code]
 		vigiloError.ErrorCode = code
 		vigiloError.ErrorDescription = message
 		vigiloError.ErrorDetails = err.Error()
