@@ -65,14 +65,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 						}, nil
 					},
 				}
-				mockTokenService := &mTokenService.MockTokenService{
-					GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes, roles string) (string, string, error) {
-						return "refresh", "access", nil
-					},
-					EncryptTokenFunc: func(ctx context.Context, signedToken string) (string, error) {
-						return "access", nil
-					},
-				}
+				mockTokenService := &mTokenService.MockTokenService{}
 
 				service := NewAuthenticationService(mockTokenService, mockClientService, nil)
 				response, err := service.IssueClientCredentialsToken(ctx, testClientID, test.clientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
@@ -92,11 +85,7 @@ func TestAuthenticationService_IssueClientCredentialsToken(t *testing.T) {
 				return &clients.Client{ID: clientID}, nil
 			},
 		}
-		mockTokenService := &mTokenService.MockTokenService{
-			GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes, roles string) (string, string, error) {
-				return "", "", errors.NewInternalServerError()
-			},
-		}
+		mockTokenService := &mTokenService.MockTokenService{}
 
 		service := NewAuthenticationService(mockTokenService, mockClientService, nil)
 		response, err := service.IssueClientCredentialsToken(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
@@ -148,11 +137,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 				return &clients.Client{ID: clientID}, nil
 			},
 		}
-		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
-				return "mocked-access-token", "mocked-refresh-token", nil
-			},
-		}
+		mockTokenService := &mTokenService.MockTokenService{}
 
 		service := NewAuthenticationService(mockTokenService, mockClientService, mockUserService)
 		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManageScope, loginAttempt)
@@ -179,11 +164,7 @@ func TestAuthenticationService_IssuePasswordToken(t *testing.T) {
 				return nil
 			},
 		}
-		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
-				return "", "", errors.NewInternalServerError()
-			},
-		}
+		mockTokenService := &mTokenService.MockTokenService{}
 
 		service := NewAuthenticationService(mockTokenService, mockClientService, mockUserService)
 		response, err := service.IssueResourceOwnerToken(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.UserManageScope, loginAttempt)
@@ -280,28 +261,7 @@ func TestAuthenticationService_RefreshAccessToken(t *testing.T) {
 						return &clients.Client{ID: testClientID, Type: test.clientType, Secret: test.clientSecret}, nil
 					},
 				}
-				mockTokenService := &mTokenService.MockTokenService{
-					ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
-					GenerateRefreshAndAccessTokensFunc: func(ctx context.Context, subject, scopes, roles string) (string, string, error) {
-						return "refresh-token", "access-token", nil
-					},
-					ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
-						return &tokens.TokenClaims{
-							StandardClaims: &jwt.StandardClaims{
-								ExpiresAt: time.Now().Add(10).Unix(),
-								IssuedAt:  time.Now().Unix(),
-								Subject:   testClientID,
-								Issuer:    "test-issuer",
-								Id:        testTokenID,
-								Audience:  "testAudience",
-							},
-						}, nil
-					},
-					EncryptTokenFunc: func(ctx context.Context, signedToken string) (string, error) {
-						return "token", nil
-					},
-					BlacklistTokenFunc: func(ctx context.Context, token string) error { return nil },
-				}
+				mockTokenService := &mTokenService.MockTokenService{}
 
 				service := NewAuthenticationService(mockTokenService, mockClientService, nil)
 				result, err := service.RefreshAccessToken(ctx, testClientID, test.clientSecret, constants.RefreshTokenGrantType, testRefreshToken, constants.ClientManageScope)
@@ -366,32 +326,7 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Success", func(t *testing.T) {
-		mockTokenService := &mTokenService.MockTokenService{
-			GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
-				return &tokens.TokenData{
-					Token:     testRefreshToken,
-					ID:        testClientID,
-					ExpiresAt: time.Now().Add(10),
-					TokenID:   testTokenID,
-				}, nil
-			},
-			ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
-				return &tokens.TokenClaims{
-					StandardClaims: &jwt.StandardClaims{
-						ExpiresAt: time.Now().Add(10).Unix(),
-						IssuedAt:  time.Now().Unix(),
-						Subject:   testClientID,
-						Issuer:    "test-issuer",
-						Id:        testTokenID,
-						Audience:  "testAudience",
-					},
-				}, nil
-			},
-			IsTokenExpiredFunc: func(token string) bool { return false },
-			IsTokenBlacklistedFunc: func(ctx context.Context, token string) (bool, error) {
-				return false, nil
-			},
-		}
+		mockTokenService := &mTokenService.MockTokenService{}
 
 		service := NewAuthenticationService(mockTokenService, nil, nil)
 		response := service.IntrospectToken(ctx, testRefreshToken)
@@ -423,7 +358,7 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 					TokenID:   testTokenID,
 				}, nil
 			},
-			ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
+			ParseTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
 				return nil, errors.NewInternalServerError()
 			},
 		}
@@ -435,32 +370,7 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 	})
 
 	t.Run("Active is set to false when the token is expired", func(t *testing.T) {
-		mockTokenService := &mTokenService.MockTokenService{
-			GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
-				return &tokens.TokenData{
-					Token:     testRefreshToken,
-					ID:        testClientID,
-					ExpiresAt: time.Now().Add(10),
-					TokenID:   testTokenID,
-				}, nil
-			},
-			ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
-				return &tokens.TokenClaims{
-					StandardClaims: &jwt.StandardClaims{
-						ExpiresAt: time.Now().Add(10).Unix(),
-						IssuedAt:  time.Now().Unix(),
-						Subject:   testClientID,
-						Issuer:    "test-issuer",
-						Id:        testTokenID,
-						Audience:  "testAudience",
-					},
-				}, nil
-			},
-			IsTokenExpiredFunc: func(token string) bool { return true },
-			IsTokenBlacklistedFunc: func(ctx context.Context, token string) (bool, error) {
-				return false, nil
-			},
-		}
+		mockTokenService := &mTokenService.MockTokenService{}
 
 		service := NewAuthenticationService(mockTokenService, nil, nil)
 		response := service.IntrospectToken(ctx, testRefreshToken)
@@ -469,32 +379,7 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 	})
 
 	t.Run("Active is set to false when the token is blacklisted", func(t *testing.T) {
-		mockTokenService := &mTokenService.MockTokenService{
-			GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
-				return &tokens.TokenData{
-					Token:     testRefreshToken,
-					ID:        testClientID,
-					ExpiresAt: time.Now().Add(10),
-					TokenID:   testTokenID,
-				}, nil
-			},
-			ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
-				return &tokens.TokenClaims{
-					StandardClaims: &jwt.StandardClaims{
-						ExpiresAt: time.Now().Add(10).Unix(),
-						IssuedAt:  time.Now().Unix(),
-						Subject:   testClientID,
-						Issuer:    "test-issuer",
-						Id:        testTokenID,
-						Audience:  "testAudience",
-					},
-				}, nil
-			},
-			IsTokenExpiredFunc: func(token string) bool { return false },
-			IsTokenBlacklistedFunc: func(ctx context.Context, token string) (bool, error) {
-				return true, nil
-			},
-		}
+		mockTokenService := &mTokenService.MockTokenService{}
 
 		service := NewAuthenticationService(mockTokenService, nil, nil)
 		response := service.IntrospectToken(ctx, testRefreshToken)
@@ -533,7 +418,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 				},
 				mockTokenService: &mTokenService.MockTokenService{
 					ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
-					ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
+					ParseTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
 						return &tokens.TokenClaims{
 							StandardClaims: &jwt.StandardClaims{
 								Subject: testClientID,
@@ -600,7 +485,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 				},
 				mockTokenService: &mTokenService.MockTokenService{
 					ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
-					ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
+					ParseTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
 						return &tokens.TokenClaims{
 							StandardClaims: &jwt.StandardClaims{
 								Subject: testClientID,
@@ -666,7 +551,7 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 			ValidateTokenFunc: func(ctx context.Context, token string) error {
 				return nil
 			},
-			ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
+			ParseTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
 				return nil, errors.NewInternalServerError()
 			},
 		}
@@ -675,83 +560,5 @@ func TestAuthenticationService_AuthenticateClientRequest(t *testing.T) {
 		err = service.AuthenticateClientRequest(ctx, req, constants.TokenIntrospectScope)
 
 		assert.Error(t, err)
-	})
-}
-
-func TestAuthenticationService_RevokeToken(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("Success", func(t *testing.T) {
-		tokenService := &mTokenService.MockTokenService{
-			GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
-				return &tokens.TokenData{}, nil
-			},
-			ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
-				return &tokens.TokenClaims{}, nil
-			},
-			BlacklistTokenFunc: func(ctx context.Context, token string) error {
-				return nil
-			},
-			IsTokenBlacklistedFunc: func(ctx context.Context, token string) (bool, error) {
-				return true, nil
-			},
-		}
-
-		service := NewAuthenticationService(tokenService, nil, nil)
-		service.RevokeToken(ctx, testRefreshToken)
-
-		isBlacklisted, err := tokenService.IsTokenBlacklistedFunc(ctx, testRefreshToken)
-		assert.NoError(t, err)
-		assert.True(t, isBlacklisted)
-	})
-
-	t.Run("Errors", func(t *testing.T) {
-		tests := []struct {
-			name         string
-			tokenService *mTokenService.MockTokenService
-		}{
-			{
-				name: "Error while retrieving the token",
-				tokenService: &mTokenService.MockTokenService{
-					GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
-						return nil, nil
-					},
-					BlacklistTokenFunc: func(ctx context.Context, token string) error { return nil },
-				},
-			},
-			{
-				name: "Error while parsing the token",
-				tokenService: &mTokenService.MockTokenService{
-					GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
-						return &tokens.TokenData{}, nil
-					},
-					ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
-						return nil, errors.NewInternalServerError()
-					},
-					BlacklistTokenFunc: func(ctx context.Context, token string) error { return nil },
-				},
-			},
-			{
-				name: "Error while adding the token to the blacklist",
-				tokenService: &mTokenService.MockTokenService{
-					GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
-						return &tokens.TokenData{}, nil
-					},
-					ParseAndValidateTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
-						return &tokens.TokenClaims{}, nil
-					},
-					BlacklistTokenFunc: func(ctx context.Context, token string) error {
-						return errors.NewInternalServerError()
-					},
-				},
-			},
-		}
-
-		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {
-				service := NewAuthenticationService(test.tokenService, nil, nil)
-				service.RevokeToken(ctx, testRefreshToken)
-			})
-		}
 	})
 }

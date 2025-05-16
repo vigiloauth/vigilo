@@ -1,20 +1,25 @@
 package domain
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // AuthorizationCodeData represents the data associated with an authorization code.
 type AuthorizationCodeData struct {
-	UserID              string
-	ClientID            string
-	RedirectURI         string
-	Scope               string
-	Code                string
-	CreatedAt           time.Time
-	Used                bool
-	CodeChallenge       string
-	CodeChallengeMethod string
-	Nonce               string
-	AccessTokenHash     string
+	UserID                 string
+	ClientID               string
+	RedirectURI            string
+	Scope                  string
+	Code                   string
+	CodeChallenge          string
+	CodeChallengeMethod    string
+	Nonce                  string
+	AccessTokenHash        string
+	Used                   bool
+	CreatedAt              time.Time
+	UserAuthenticationTime time.Time
+	Request                *http.Request
 }
 
 const (

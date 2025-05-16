@@ -748,11 +748,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithClient(test.clientType, []string{constants.TokenIntrospectScope}, []string{constants.AuthorizationCodeGrantType})
-				if test.clientType == client.Public {
-					testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
-				} else {
-					testContext.WithEncryptedJWTToken(testClientID, time.Duration(10)*time.Minute)
-				}
+				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 				if test.clientType == client.Confidential {
@@ -817,11 +813,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithClient(test.clientType, []string{constants.TokenIntrospectScope}, []string{constants.ClientCredentialsGrantType})
-				if test.clientType == client.Public {
-					testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
-				} else {
-					testContext.WithEncryptedJWTToken(testClientID, time.Duration(10)*time.Minute)
-				}
+				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				formValue := url.Values{}
 				formValue.Add(constants.TokenReqField, testContext.JWTToken)
@@ -948,11 +940,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithClient(test.clientType, []string{constants.TokenRevokeScope}, []string{constants.AuthorizationCodeGrantType})
-				if test.clientType == client.Public {
-					testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
-				} else {
-					testContext.WithEncryptedJWTToken(testClientID, time.Duration(10)*time.Minute)
-				}
+				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 				if test.clientType == client.Confidential {
@@ -1017,11 +1005,7 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithClient(test.clientType, []string{constants.TokenIntrospectScope}, []string{constants.ClientCredentialsGrantType})
-				if test.clientType == client.Public {
-					testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
-				} else {
-					testContext.WithEncryptedJWTToken(testClientID, time.Duration(10)*time.Minute)
-				}
+				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
 
 				formValue := url.Values{}
 				formValue.Add(constants.TokenReqField, testContext.JWTToken)

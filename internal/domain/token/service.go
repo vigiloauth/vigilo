@@ -7,34 +7,33 @@ import (
 
 // TokenService defines the interface for managing JWT tokens.
 type TokenService interface {
-	// GenerateToken generates a JWT token for the given subject and expiration time.
+	// GenerateAccessToken generates an access token for the given subject and expiration time.
 	//
 	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- subject string: The subject of the token (e.g., user email).
-	//	- scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
-	//	- roles string: The roles to be added to the token (can be an empty string if none are needed).
-	//	- expirationTime time.Duration: The duration for which the token is valid.
+	//   - ctx Context: The context for managing timeouts and cancellations.
+	//   - subject string: The subject of the token (e.g., user email).
+	//   - scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
+	//   - roles string: The roles to be added to the token (can be an empty string if none are needed).
+	//   - expirationTime time.Duration: The duration for which the token is valid.
 	//
 	// Returns:
-	//	- string: The generated JWT token string.
-	//	- error: An error if token generation fails.
-	GenerateToken(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error)
+	//   - string: The generated JWT token string.
+	//   - error: An error if token generation fails.
+	GenerateAccessToken(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error)
 
-	// GenerateTokensWithAudience generates an access & refresh token.
+	// GenerateToken generates a refresh token for the given subject and expiration time.
 	//
 	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- userID string: The ID of the user. Will be used as the subject.
-	//	- clientID string: The ID of the client. Will be used as the audience.
-	//	- scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
-	//	- roles string: The roles to be added to the token (can be an empty string if none are needed).
+	//   - ctx Context: The context for managing timeouts and cancellations.
+	//   - subject string: The subject of the token (e.g., user email).
+	//   - scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
+	//   - roles string: The roles to be added to the token (can be an empty string if none are needed).
+	//   - expirationTime time.Duration: The duration for which the token is valid.
 	//
 	// Returns:
-	//	- string: The access token.
-	//	- string: The refresh token.
-	//	- error: An error if an error occurs while generating the tokens.
-	GenerateTokensWithAudience(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error)
+	//   - string: The generated JWT token string.
+	//   - error: An error if token generation fails.
+	GenerateRefreshToken(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error)
 
 	// GenerateIDToken creates an ID token for the specified user and client.
 	//
@@ -48,23 +47,14 @@ type TokenService interface {
 	//   - clientID string: The client application identifier requesting the token.
 	//   - scopes string: Space-separated list of requested scopes.
 	//   - nonce string: A random string used to prevent replay attacks.
+	//   - authTime *Time: Time at which the user was authenticated. The value of time can be nil as it only applies when a request with "max_age" was given
 	//
 	// Returns:
 	//   - string: The signed ID token as a JWT string.
 	//   - error: An error if token generation fails.
-	GenerateIDToken(ctx context.Context, userID, clientID, scopes, nonce string) (string, error)
+	GenerateIDToken(ctx context.Context, userID, clientID, scopes, nonce string, authTime time.Time) (string, error)
 
-	// ParseToken parses and validates a JWT token string.
-	//
-	// Parameters:
-	//	- tokenString string: The JWT token string to parse.
-	//
-	// Returns:
-	//	- *TokenClaims: The parsed standard claims from the token.
-	//	- error: An error if token parsing or validation fails.
-	ParseToken(tokenString string) (*TokenClaims, error)
-
-	// ParseAndValidateToken parses and validates a JWT token string, handling both encrypted and non-encrypted tokens.
+	// ParseToken parses and validates a JWT token string, handling both encrypted and non-encrypted tokens.
 	//
 	// This function first attempts to parse the token directly. If parsing succeeds, the token is considered
 	// valid and non-encrypted. If parsing fails, the function attempts to decrypt the token first and then
@@ -80,18 +70,7 @@ type TokenService interface {
 	//
 	// The function first tries to parse the token directly using ts.ParseToken. If this fails, it assumes
 	// the token is encrypted and attempts to decrypt it using ts.DecryptToken before parsing it again.
-	ParseAndValidateToken(ctx context.Context, tokenString string) (*TokenClaims, error)
-
-	// IsTokenBlacklisted checks if a token is blacklisted.
-	//
-	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- token string: The token string to check.
-	//
-	// Returns:
-	//	- bool: True if the token is blacklisted, false otherwise.
-	//	- error: An error if querying the database fails.
-	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
+	ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error)
 
 	// GetTokenData retrieves the token data from the token repository.
 	//
@@ -114,25 +93,6 @@ type TokenService interface {
 	//	- error: An error if the token deletion fails.
 	DeleteToken(ctx context.Context, token string) error
 
-	// DeleteToken removes a token from the token repository asynchronously.
-	//
-	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- token string: The token string to delete.
-	//
-	// Returns:
-	//	- error: An error if the token deletion fails.
-	DeleteTokenAsync(ctx context.Context, token string) <-chan error
-
-	// IsTokenExpired checks to see if the provided token is expired.
-	//
-	// Parameters:
-	//	- token string: The token string
-	//
-	// Returns:
-	//	- bool: True is expired, otherwise false.
-	IsTokenExpired(token string) bool
-
 	// ValidateToken checks to see if a token is blacklisted or expired.
 	//
 	// Parameters:
@@ -142,20 +102,6 @@ type TokenService interface {
 	// Returns:
 	//	- error: An error if the token is blacklisted or expired.
 	ValidateToken(ctx context.Context, token string) error
-
-	// GenerateRefreshAndAccessTokens generates new tokens with the given subject.
-	//
-	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- subject string: The subject for the token claims.
-	//	- scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
-	//	- roles string: The roles to be added to the token (can be an empty string if none are needed).
-	//
-	//	Returns:
-	//	- accessToken string: A new access token.
-	//	- refreshToken string: A new refresh token.
-	//	- error: An error if an error occurs during generation.
-	GenerateRefreshAndAccessTokens(ctx context.Context, subject, scopes, roles string) (string, string, error)
 
 	// BlacklistToken adds the specified token to the blacklist, preventing it from being used
 	// for further authentication or authorization. The token is marked as invalid, even if it
@@ -177,26 +123,4 @@ type TokenService interface {
 	// Returns:
 	//	- error: An error if retrieval or deletion fails.
 	DeleteExpiredTokens(ctx context.Context) error
-
-	// EncryptToken encrypts a signed JWT token using a specified encryption algorithm.
-	//
-	// Parameters:
-	//	 - ctx Context: The context for managing timeouts and cancellations.
-	//   - signedToken string: The signed JWT token to be encrypted.
-	//
-	// Returns:
-	//   - string: The encrypted token in JWE (JSON Web Encryption) format.
-	//   - error: An error if the encryption process fails.
-	EncryptToken(ctx context.Context, signedToken string) (string, error)
-
-	// DecryptToken decrypts an encrypted JWT token back to its original signed form.
-	//
-	// Parameters:
-	//	 - ctx Context: The context for managing timeouts and cancellations.
-	//   - encryptedToken string: The encrypted JWT token in JWE format.
-	//
-	// Returns:
-	//   - string: The decrypted signed JWT token.
-	//   - error: An error if the decryption process fails.
-	DecryptToken(ctx context.Context, encryptedToken string) (string, error)
 }

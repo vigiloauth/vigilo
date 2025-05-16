@@ -3,12 +3,9 @@ package service
 import (
 	"context"
 	"crypto/rsa"
-	"math/rand"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/square/go-jose/v3"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
@@ -53,7 +50,7 @@ func NewTokenService(tokenRepo token.TokenRepository) token.TokenService {
 	}
 }
 
-// GenerateToken generates a JWT token for the given subject and expiration time.
+// GenerateAccessToken generates an access token for the given subject and expiration time.
 //
 // Parameters:
 //   - ctx Context: The context for managing timeouts and cancellations.
@@ -65,53 +62,40 @@ func NewTokenService(tokenRepo token.TokenRepository) token.TokenService {
 // Returns:
 //   - string: The generated JWT token string.
 //   - error: An error if token generation fails.
-func (ts *tokenService) GenerateToken(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
+func (ts *tokenService) GenerateAccessToken(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
 	requestID := utils.GetRequestID(ctx)
-	tokenString, err := ts.generateAndStoreToken(ctx, subject, "", scopes, roles, "", expirationTime)
+
+	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.accessTokenDuration, time.Time{})
 	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[GenerateToken]: Failed to generate token: %v", err)
-		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
+		ts.logger.Error(ts.module, requestID, "[GenerateAccessToken]: Failed to generate access token claims: %v", err)
+		return "", errors.NewInternalServerError()
 	}
 
-	return tokenString, nil
+	return token, nil
 }
 
-// GenerateTokensWithAudience generates an access & refresh token.
+// GenerateToken generates a refresh token for the given subject and expiration time.
 //
 // Parameters:
 //   - ctx Context: The context for managing timeouts and cancellations.
-//   - userID string: The ID of the user. Will be used as the subject.
-//   - clientID string: The ID of the client. Will be used as the audience.
+//   - subject string: The subject of the token (e.g., user email).
 //   - scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
 //   - roles string: The roles to be added to the token (can be an empty string if none are needed).
+//   - expirationTime time.Duration: The duration for which the token is valid.
 //
 // Returns:
-//   - string: The access token.
-//   - string: The refresh token.
-//   - error: An error if an error occurs while generating the tokens.
-func (ts *tokenService) GenerateTokensWithAudience(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
+//   - string: The generated JWT token string.
+//   - error: An error if token generation fails.
+func (ts *tokenService) GenerateRefreshToken(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
 	requestID := utils.GetRequestID(ctx)
-	accessToken, err := ts.generateAndStoreToken(ctx, userID, clientID, scopes, roles, "", ts.accessTokenDuration)
+
+	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.refreshTokenDuration, time.Time{})
 	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[GenerateTokenPair]: Failed to generate access token for user=[%s], client=[%s]: %v",
-			utils.TruncateSensitive(userID),
-			utils.TruncateSensitive(clientID),
-			err,
-		)
-		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate access token")
+		ts.logger.Error(ts.module, requestID, "[GenerateAccessToken]: Failed to generate refresh token claims: %v", err)
+		return "", errors.NewInternalServerError()
 	}
 
-	refreshToken, err := ts.generateAndStoreToken(ctx, userID, clientID, scopes, roles, "", ts.refreshTokenDuration)
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[GenerateTokenPair]: Failed to generate refresh token for user=[%s], client=[%s]: %v",
-			utils.TruncateSensitive(userID),
-			utils.TruncateSensitive(clientID),
-			err,
-		)
-		return "", "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate refresh token")
-	}
-
-	return accessToken, refreshToken, nil
+	return token, nil
 }
 
 // GenerateIDToken creates an ID token for the specified user and client.
@@ -126,18 +110,15 @@ func (ts *tokenService) GenerateTokensWithAudience(ctx context.Context, userID, 
 //   - clientID string: The client application identifier requesting the token.
 //   - scopes string: Space-separated list of requested scopes.
 //   - nonce string: A random string used to prevent replay attacks.
+//   - authTime *Time: Time at which the user was authenticated. The value of time can be nil as it only applies when a request with "max_age" was given
 //
 // Returns:
 //   - string: The signed ID token as a JWT string.
 //   - error: An error if token generation fails.
-func (ts *tokenService) GenerateIDToken(ctx context.Context, userID, clientID, scopes, nonce string) (string, error) {
+func (ts *tokenService) GenerateIDToken(ctx context.Context, userID, clientID, scopes, nonce string, authTime time.Time) (string, error) {
 	requestID := utils.GetRequestID(ctx)
-	ts.logger.Debug(ts.module, requestID, "[GenerateIDToken]: Generating ID token. ClientID: %s, UserID: %s",
-		utils.TruncateSensitive(clientID),
-		utils.TruncateSensitive(userID),
-	)
 
-	idToken, err := ts.generateAndStoreToken(ctx, userID, clientID, scopes, "", nonce, ts.refreshTokenDuration)
+	idToken, err := ts.generateAndStoreToken(ctx, userID, clientID, scopes, "", nonce, ts.refreshTokenDuration, authTime)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[GenerateIDToken]: Failed to generate ID token: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate ID token")
@@ -146,35 +127,7 @@ func (ts *tokenService) GenerateIDToken(ctx context.Context, userID, clientID, s
 	return idToken, nil
 }
 
-// ParseToken parses and validates a JWT token string.
-//
-// Parameters:
-//   - tokenString string: The JWT token string to parse.
-//
-// Returns:
-//   - *TokenClaims: The parsed standard claims from the token.
-//   - error: An error if token parsing or validation fails.
-func (ts *tokenService) ParseToken(tokenString string) (*token.TokenClaims, error) {
-	tokenClaims, err := jwt.ParseWithClaims(tokenString, &token.TokenClaims{}, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, errors.New(errors.ErrCodeTokenParsing, "unexpected signing method")
-		}
-		return ts.publicKey, nil
-	})
-
-	if err != nil {
-		wrappedErr := errors.New(errors.ErrCodeTokenParsing, "failed to parse token")
-		return nil, errors.Wrap(wrappedErr, errors.ErrCodeTokenParsing, "failed to parse JWT with claims")
-	}
-
-	if claims, ok := tokenClaims.Claims.(*token.TokenClaims); ok && tokenClaims.Valid {
-		return claims, nil
-	}
-
-	return nil, errors.New(errors.ErrCodeInvalidToken, "provided token is invalid")
-}
-
-// ParseAndValidateToken parses and validates a JWT token string, handling both encrypted and non-encrypted tokens.
+// ParseToken parses and validates a JWT token string, handling both encrypted and non-encrypted tokens.
 //
 // This function first attempts to parse the token directly. If parsing succeeds, the token is considered
 // valid and non-encrypted. If parsing fails, the function attempts to decrypt the token first and then
@@ -190,66 +143,17 @@ func (ts *tokenService) ParseToken(tokenString string) (*token.TokenClaims, erro
 //
 // The function first tries to parse the token directly using ts.ParseToken. If this fails, it assumes
 // the token is encrypted and attempts to decrypt it using ts.DecryptToken before parsing it again.
-func (ts *tokenService) ParseAndValidateToken(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+func (ts *tokenService) ParseToken(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 	requestID := utils.GetRequestID(ctx)
-	ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Beginning token validation process")
-	ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Attempting to parse token directly")
 
-	claims, err := ts.ParseToken(tokenString)
-	if err == nil {
-		ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Token is valid and not encrypted")
-		ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Token parsed successfully - Subject: %s, Expires: %v",
-			utils.TruncateSensitive(claims.Subject),
-			time.Unix(claims.ExpiresAt, 0))
-		return claims, nil
-	}
-
-	ts.logger.Warn(ts.module, requestID, "[ParseAndValidateToken]: Failed to parse token directly, assuming it is encrypted: %v", err)
-	ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Attempting to decrypt token")
-
-	decryptedToken, err := ts.DecryptToken(ctx, tokenString)
+	claims, err := ts.parseToken(tokenString)
 	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[ParseAndValidateToken]: Failed to decrypt token: %v", err)
-		return nil, errors.New(errors.ErrCodeInvalidToken, "failed to parse or decrypt token")
+		ts.logger.Error(ts.module, requestID, "[ParseToken]: Failed to parse token: %v", err)
+		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to parse token")
 	}
 
-	ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Token decryption successful")
-	ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Attempting to parse decrypted token")
-
-	claims, err = ts.ParseToken(decryptedToken)
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[ParseAndValidateToken]: Failed to parse decrypted token: %v", err)
-		return nil, errors.New(errors.ErrCodeInvalidToken, "failed to parse decrypted token")
-	}
-
-	ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Decrypted token parsed successfully - Subject: %s, Expires: %v",
-		utils.TruncateSensitive(claims.Subject),
-		time.Unix(claims.ExpiresAt, 0))
-
-	ts.logger.Debug(ts.module, requestID, "[ParseAndValidateToken]: Token validation process completed successfully")
+	ts.logger.Debug(ts.module, requestID, "[ParseToken]: Token validation process completed successfully")
 	return claims, nil
-}
-
-// IsTokenBlacklisted checks if a token is blacklisted.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - token string: The token string to check.
-//
-// Returns:
-//   - bool: True if the token is blacklisted, false otherwise.
-//   - error: An error if querying the database fails.
-func (ts *tokenService) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
-	requestID := utils.GetRequestID(ctx)
-	hashedToken := crypto.EncodeSHA256(token)
-
-	isBlacklisted, err := ts.tokenRepo.IsTokenBlacklisted(ctx, hashedToken)
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[IsTokenBlacklisted]: An error occurred searching for the token: %v", err)
-		return false, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred searching for the token")
-	}
-
-	return isBlacklisted, nil
 }
 
 // BlacklistToken adds the specified token to the blacklist, preventing it from being used
@@ -264,8 +168,8 @@ func (ts *tokenService) IsTokenBlacklisted(ctx context.Context, token string) (b
 //   - error: An error if the token is not found in the token store or if it has already expired, in which case it cannot be blacklisted.
 func (ts *tokenService) BlacklistToken(ctx context.Context, token string) error {
 	requestID := utils.GetRequestID(ctx)
-
 	hashedToken := crypto.EncodeSHA256(token)
+
 	err := ts.tokenRepo.BlacklistToken(ctx, hashedToken)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[BlacklistToken]: An error occurred blacklisting a token: %v", err)
@@ -318,64 +222,6 @@ func (ts *tokenService) DeleteToken(ctx context.Context, token string) error {
 	return nil
 }
 
-// DeleteToken removes a token from the token repository asynchronously.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - token string: The token string to delete.
-//
-// Returns:
-//   - error: An error if the token deletion fails.
-func (ts *tokenService) DeleteTokenAsync(ctx context.Context, token string) <-chan error {
-	errChan := make(chan error, 1)
-	requestID := utils.GetRequestID(ctx)
-
-	go func() {
-		maxRetries := 5
-		var deleteErr error
-
-		for i := range maxRetries {
-			hashedToken := crypto.EncodeSHA256(token)
-			if err := ts.tokenRepo.DeleteToken(ctx, hashedToken); err == nil {
-				errChan <- nil
-				return
-			} else {
-				deleteErr = err
-			}
-
-			backoff := time.Duration(100*(1<<i)) * time.Millisecond
-			jitter := time.Duration(rand.Intn(100)) * time.Millisecond
-			time.Sleep(backoff + jitter)
-		}
-
-		ts.logger.Error(ts.module, requestID, "[DeleteTokenAsync]: Failed to delete token=[%s] after %d retries: %v", utils.TruncateSensitive(token), maxRetries, deleteErr)
-		errChan <- deleteErr
-	}()
-
-	return errChan
-}
-
-// IsTokenExpired checks to see if the provided token is expired.
-//
-// Parameters:
-//   - token string: The token string
-//
-// Returns:
-//   - bool: True is expired, otherwise false.
-func (ts *tokenService) IsTokenExpired(token string) bool {
-	claims, err := ts.ParseAndValidateToken(context.TODO(), token)
-	if err != nil {
-		ts.logger.Warn(ts.module, "", "[IsTokenExpired]: Token=[%s] is expired", utils.TruncateSensitive(token))
-		return true
-	}
-	if claims == nil {
-		ts.logger.Warn(ts.module, "", "[IsTokenExpired]: Token=[%s] is expired", utils.TruncateSensitive(token))
-		return true
-	}
-
-	return time.Now().Unix() > claims.ExpiresAt
-}
-
 // ValidateToken checks to see if a token is blacklisted or expired.
 //
 // Parameters:
@@ -387,15 +233,12 @@ func (ts *tokenService) IsTokenExpired(token string) bool {
 func (ts *tokenService) ValidateToken(ctx context.Context, token string) error {
 	requestID := utils.GetRequestID(ctx)
 
-	if ts.IsTokenExpired(token) {
+	if ts.isTokenExpired(token) {
 		ts.logger.Warn(ts.module, "[ValidateToken]: Token=[%s] is expired", utils.TruncateSensitive(token))
 		return errors.New(errors.ErrCodeExpiredToken, "the token is expired")
-	} else if _, err := ts.ParseAndValidateToken(ctx, token); err != nil {
-		ts.logger.Error(ts.module, requestID, "[ValidateToken]: An error occurred parsing the token: %v", err)
-		return errors.New(errors.ErrCodeInvalidGrant, "invalid token format")
 	}
 
-	isTokenBlacklisted, err := ts.IsTokenBlacklisted(ctx, token)
+	isTokenBlacklisted, err := ts.isTokenBlacklisted(ctx, token)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[ValidateToken]: An error occurred validating the token: %v", err)
 		return err
@@ -405,36 +248,6 @@ func (ts *tokenService) ValidateToken(ctx context.Context, token string) error {
 	}
 
 	return nil
-}
-
-// GenerateRefreshAndAccessTokens generates new tokens with the given subject.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - subject string: The subject for the token claims.
-//   - scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
-//   - roles string: The roles to be added to the token (can be an empty string if none are needed).
-//
-// Returns:
-//   - accessToken string: A new access token.
-//   - refreshToken string: A new refresh token.
-//   - error: An error if an error occurs during generation.
-func (ts *tokenService) GenerateRefreshAndAccessTokens(ctx context.Context, subject, scopes, roles string) (string, string, error) {
-	requestID := utils.GetRequestID(ctx)
-
-	refreshToken, err := ts.generateAndStoreToken(ctx, subject, "", scopes, roles, "", ts.refreshTokenDuration)
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[GenerateRefreshAndAccessToken]: An error occurred generating a refresh token: %v", err)
-		return "", "", err
-	}
-
-	accessToken, err := ts.generateAndStoreToken(ctx, subject, "", scopes, roles, "", ts.accessTokenDuration)
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[GenerateRefreshAndAccessToken]: An error occurred generating an access token: %v", err)
-		return "", "", err
-	}
-
-	return accessToken, refreshToken, nil
 }
 
 // DeleteExpiredTokens retrieves expired tokens from the repository and deletes them.
@@ -461,114 +274,97 @@ func (ts *tokenService) DeleteExpiredTokens(ctx context.Context) error {
 	return nil
 }
 
-// EncryptToken encrypts a signed JWT token using a specified encryption algorithm.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - signedToken string: The signed JWT token to be encrypted.
-//
-// Returns:
-//   - string: The encrypted token in JWE (JSON Web Encryption) format.
-//   - error: An error if the encryption process fails.
-func (ts *tokenService) EncryptToken(ctx context.Context, signedToken string) (string, error) {
+func (ts *tokenService) parseToken(tokenString string) (*token.TokenClaims, error) {
+	tokenClaims, err := jwt.ParseWithClaims(tokenString, &token.TokenClaims{}, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, errors.New(errors.ErrCodeTokenParsing, "unexpected signing method")
+		}
+		return ts.publicKey, nil
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse JWT with claims")
+	}
+
+	if claims, ok := tokenClaims.Claims.(*token.TokenClaims); ok && tokenClaims.Valid {
+		return claims, nil
+	}
+
+	return nil, errors.New(errors.ErrCodeInvalidToken, "provided token is invalid")
+}
+
+func (ts *tokenService) isTokenExpired(token string) bool {
+	claims, err := ts.ParseToken(context.TODO(), token)
+	if err != nil {
+		ts.logger.Warn(ts.module, "", "[IsTokenExpired]: Token=[%s] is expired", utils.TruncateSensitive(token))
+		return true
+	}
+	if claims == nil {
+		ts.logger.Warn(ts.module, "", "[IsTokenExpired]: Token=[%s] is expired", utils.TruncateSensitive(token))
+		return true
+	}
+
+	return time.Now().Unix() > claims.ExpiresAt
+}
+
+func (ts *tokenService) isTokenBlacklisted(ctx context.Context, token string) (bool, error) {
 	requestID := utils.GetRequestID(ctx)
-	encrypter, err := jose.NewEncrypter(
-		jose.A256GCM,
-		jose.Recipient{
-			Algorithm: jose.RSA_OAEP,
-			Key:       ts.publicKey,
-		}, nil,
-	)
+	hashedToken := crypto.EncodeSHA256(token)
 
+	isBlacklisted, err := ts.tokenRepo.IsTokenBlacklisted(ctx, hashedToken)
 	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[EncryptToken]: An error occurred creating a new encrypter: %v", err)
-		return "", errors.NewInternalServerError()
+		ts.logger.Error(ts.module, requestID, "[IsTokenBlacklisted]: An error occurred searching for the token: %v", err)
+		return false, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred searching for the token")
 	}
 
-	encrypted, err := encrypter.Encrypt([]byte(signedToken))
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[EncryptToken]: Failed to encrypt token: %v", err)
-		return "", errors.NewInternalServerError()
-	}
-
-	serializedToken, err := encrypted.CompactSerialize()
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[EncryptToken]: Failed to serialize encrypted token: %v", err)
-		return "", errors.NewInternalServerError()
-	}
-
-	return serializedToken, nil
+	return isBlacklisted, nil
 }
 
-// DecryptToken decrypts an encrypted JWT token back to its original signed form.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - encryptedToken string: The encrypted JWT token in JWE format.
-//
-// Returns:
-//   - string: The decrypted signed JWT token.
-//   - error: An error if the decryption process fails.
-func (ts *tokenService) DecryptToken(ctx context.Context, encryptedToken string) (string, error) {
-	requestID := utils.GetRequestID(ctx)
+func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject, audience, scopes, roles, nonce string, duration time.Duration, authTime time.Time) (string, error) {
+	const maxRetries = 5
 
-	token := strings.TrimPrefix(encryptedToken, "bearer ")
-	object, err := jose.ParseEncrypted(token)
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[DecryptToken]: Failed to parse encrypted token: %v", err)
-		return "", errors.New(errors.ErrCodeInvalidToken, "failed to parse encrypted token")
+	var lastErr error
+	for i := range maxRetries {
+		signedToken, err := ts.attemptTokenGeneration(ctx, subject, audience, scopes, roles, nonce, duration, authTime)
+		if err == nil {
+			ts.logger.Info(ts.module, "", "Successfully generated token after %d retries", i)
+			return signedToken, nil
+		}
+		lastErr = err
+		ts.logger.Warn(ts.module, "", "Failed to generate token (attempt %d/%d): %v", i+1, maxRetries, err)
 	}
 
-	decrypted, err := object.Decrypt(ts.privateKey)
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[DecryptToken]: Failed to decrypt token: %v", err)
-		return "", errors.New(errors.ErrCodeInvalidToken, "failed to decrypt token")
-	}
-
-	return string(decrypted), nil
+	return "", errors.Wrap(lastErr, errors.ErrCodeInternalServerError, "failed to generate token after maximum retries")
 }
 
-func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject, audience, scopes, roles, nonce string, duration time.Duration) (string, error) {
-	maximumRetries := 5
-	currentRetry := 0
-
-	for currentRetry < maximumRetries {
-		tokenExpiration := time.Now().Add(duration)
-		claims, err := ts.generateStandardClaims(ctx, subject, audience, scopes, roles, nonce, tokenExpiration.Unix())
-		if err != nil {
-			ts.logger.Warn(ts.module, "", "Failed to generate JWT Standard Claims. Incrementing retry count")
-			currentRetry++
-			continue
-		}
-
-		jwtClaims := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-		jwtClaims.Header["kid"] = ts.keyID
-
-		signedToken, err := jwtClaims.SignedString(ts.privateKey)
-		if err != nil {
-			ts.logger.Warn(ts.module, "", "Failed to sign token. Incrementing retry count")
-			currentRetry++
-			continue
-		}
-
-		hashedToken := crypto.EncodeSHA256(signedToken)
-		tokenData := &token.TokenData{
-			Token:     hashedToken,
-			ID:        subject,
-			ExpiresAt: tokenExpiration,
-			TokenID:   ts.keyID,
-			Claims:    claims,
-		}
-
-		ts.tokenRepo.SaveToken(ctx, hashedToken, subject, tokenData, tokenExpiration)
-		ts.logger.Info(ts.module, "", "Successfully generated token after %d retries", currentRetry)
-		return signedToken, nil
+func (ts *tokenService) attemptTokenGeneration(ctx context.Context, subject, audience, scopes, roles, nonce string, duration time.Duration, authTime time.Time) (string, error) {
+	tokenExpiration := time.Now().Add(duration)
+	claims, err := ts.generateStandardClaims(ctx, subject, audience, scopes, roles, nonce, tokenExpiration.Unix(), authTime)
+	if err != nil {
+		return "", err
 	}
 
-	return "", errors.New(errors.ErrCodeInternalServerError, "failed to generate and store after maximum retries reached")
+	jwtClaims := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	jwtClaims.Header["kid"] = ts.keyID
+
+	signedToken, err := jwtClaims.SignedString(ts.privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	hashedToken := crypto.EncodeSHA256(signedToken)
+	tokenData := &token.TokenData{
+		Token:     hashedToken,
+		ID:        subject,
+		ExpiresAt: tokenExpiration,
+		TokenID:   ts.keyID,
+		Claims:    claims,
+	}
+
+	return signedToken, ts.tokenRepo.SaveToken(ctx, hashedToken, subject, tokenData, tokenExpiration)
 }
 
-func (ts *tokenService) generateStandardClaims(ctx context.Context, subject, audience, scopes, roles, nonce string, tokenExpiration int64) (*token.TokenClaims, error) {
+func (ts *tokenService) generateStandardClaims(ctx context.Context, subject, audience, scopes, roles, nonce string, tokenExpiration int64, authTime time.Time) (*token.TokenClaims, error) {
 	claims := &token.TokenClaims{
 		StandardClaims: &jwt.StandardClaims{
 			Subject:   subject,
@@ -593,7 +389,7 @@ func (ts *tokenService) generateStandardClaims(ctx context.Context, subject, aud
 		return nil, err
 	} else if existsByID {
 		ts.logger.Warn(ts.module, requestID, "Failed to generate standard claims. Token already exists.")
-		return nil, nil
+		return nil, errors.New(errors.ErrCodeInternalServerError, "token ID already exists")
 	} else {
 		claims.Id = tokenID
 	}
@@ -603,6 +399,9 @@ func (ts *tokenService) generateStandardClaims(ctx context.Context, subject, aud
 	}
 	if nonce != "" {
 		claims.Nonce = nonce
+	}
+	if !authTime.IsZero() {
+		claims.AuthTime = authTime.Unix()
 	}
 
 	return claims, nil

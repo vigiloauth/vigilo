@@ -219,12 +219,12 @@ func (h *TokenHandler) handleRefreshTokenRequest(ctx context.Context, w http.Res
 	response, err := h.authService.RefreshAccessToken(ctx, clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes)
 	if err != nil {
 		h.logger.Error(h.module, requestID, "Failed to issue new access token: %v", err)
-		w.Header().Add("Cache-Control", "no-store")
+		web.SetNoStoreHeader(w)
 		web.WriteError(w, errors.Wrap(err, "", "failed to issue new access and refresh tokens"))
 		return
 	}
 
-	w.Header().Add("Cache-Control", "no-store")
+	web.SetNoStoreHeader(w)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 

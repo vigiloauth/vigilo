@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	clients "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
@@ -287,51 +286,11 @@ func (c *userConsentService) processApprovedConsent(
 		return nil, wrappedErr
 	}
 
-	authorizationCodeRequest := &clients.ClientAuthorizationRequest{
-		ClientID:     clientID,
-		UserID:       userID,
-		Scope:        approvedScopes,
-		RedirectURI:  redirectURI,
-		ResponseType: constants.CodeResponseType,
-		Nonce:        consentRequest.Nonce,
-	}
-
-	client, err := c.clientService.GetClientByID(ctx, clientID)
-	if err != nil {
-		c.logger.Error(c.module, requestID, "Failed to retrieve client ID: %v", err)
-		return nil, err
-	}
-
-	authorizationCodeRequest.Client = client
-	code, err := c.authzCodeService.GenerateAuthorizationCode(ctx, authorizationCodeRequest)
-	if err != nil {
-		wrappedErr := errors.Wrap(err, "", "failed to generate authorization code")
-		c.logger.Error(c.module, requestID, "Failed to generate authorization code: %v", err)
-		return nil, wrappedErr
-	}
-
 	c.logger.Debug(c.module, requestID, "Building success response for approved consent")
-	return c.buildSuccessResponse(redirectURI, code, consentRequest.State, consentRequest.Nonce), nil
-}
-
-func (c *userConsentService) buildSuccessResponse(redirectURI, code, state, nonce string) *consent.UserConsentResponse {
-	queryParams := url.Values{}
-	queryParams.Add(constants.CodeURLValue, code)
-
-	if state != "" {
-		queryParams.Add(constants.StateReqField, state)
-	}
-	if nonce != "" {
-		queryParams.Add(constants.NonceReqField, nonce)
-	}
-
-	response := &consent.UserConsentResponse{
-		Success:     true,
-		Approved:    true,
-		RedirectURI: redirectURI + "?" + queryParams.Encode(),
-	}
-
-	return response
+	return &consent.UserConsentResponse{
+		Success:  true,
+		Approved: true,
+	}, nil
 }
 
 func (c *userConsentService) updateSessionWithConsentDetails(r *http.Request, sessionData *session.SessionData, clientID, state, redirectURI string) error {

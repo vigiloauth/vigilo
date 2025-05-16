@@ -49,7 +49,7 @@ func TestUserService_CreateUser_Success(t *testing.T) {
 		},
 	}
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateTokenFunc: func(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
+		GenerateAccessTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
 			return testToken, nil
 		},
 	}
@@ -189,8 +189,8 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 		},
 	}
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateTokenFunc: func(ctx context.Context, id, scopes, roles string, duration time.Duration) (string, error) {
-			return "testToken", nil
+		GenerateAccessTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+			return testToken, nil
 		},
 	}
 	mockLoginService := &mLoginService.MockLoginAttemptService{
@@ -371,7 +371,7 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 		}
 		tokenService := &mTokenService.MockTokenService{
 			ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
-			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
+			ParseTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
 				return &tokens.TokenClaims{
 					StandardClaims: &jwt.StandardClaims{
 						Subject: testEmail,
@@ -411,7 +411,7 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 	t.Run("Error is returned when parsing the verification code fails", func(t *testing.T) {
 		tokenService := &mTokenService.MockTokenService{
 			ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
-			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
+			ParseTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
 				return nil, errors.NewInternalServerError()
 			},
 		}
@@ -428,7 +428,7 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 		}
 		tokenService := &mTokenService.MockTokenService{
 			ValidateTokenFunc: func(ctx context.Context, token string) error { return nil },
-			ParseTokenFunc: func(token string) (*tokens.TokenClaims, error) {
+			ParseTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {
 				return &tokens.TokenClaims{
 					StandardClaims: &jwt.StandardClaims{
 						Subject: testEmail,

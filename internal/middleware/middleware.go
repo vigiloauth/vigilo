@@ -64,12 +64,12 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			requestID := utils.GetRequestID(ctx)
-			m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Processing request method=[%s] url=[%s]", r.Method, r.URL.Path)
 
 			var tokenString string
 			var authHeaderErr error
 
 			tokenString, authHeaderErr = web.ExtractBearerToken(r)
+
 			if authHeaderErr != nil && r.Method == http.MethodPost && r.Header.Get("Content-Type") == "application/x-www-form-urlencoded;charset=UTF-8" {
 				m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Bearer token not found in header, attempting to check POST body for access_token parameter.")
 				parseErr := r.ParseForm()
@@ -86,8 +86,8 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 					tokenString = bodyToken
 				} else {
 					m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Access token not found in header or POST body.")
-					wrappedErr := errors.New(errors.ErrCodeUnauthorized, "missing or invalid access token")
-					web.WriteError(w, wrappedErr)
+					err := errors.New(errors.ErrCodeUnauthorized, "missing or invalid access token")
+					web.WriteError(w, err)
 					return
 				}
 			} else if authHeaderErr != nil {
@@ -104,8 +104,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			m.logger.Debug(m.module, requestID, "[AuthMiddleWare]: Attempting to parse and validate token")
-			claims, parseErr := m.tokenService.ParseAndValidateToken(ctx, tokenString)
+			claims, parseErr := m.tokenService.ParseToken(ctx, tokenString)
 			if parseErr != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse token: %s", parseErr)
 				wrappedErr := errors.Wrap(parseErr, errors.ErrCodeTokenParsing, "failed to parse token")
@@ -123,7 +122,6 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 
 			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyTokenClaims, claims)
 			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyAccessToken, tokenString)
-			m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Token validated successfully, passing request to next handler")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -168,7 +166,6 @@ func (m *Middleware) WithRole(requiredRole string) func(http.Handler) http.Handl
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			requestID := utils.GetRequestID(ctx)
-			m.logger.Debug(m.module, requestID, "[WithRole]: Processing request method=[%s] url=[%s]", r.Method, r.URL.Path)
 
 			var claims *token.TokenClaims
 			if val := utils.GetValueFromContext(ctx, constants.ContextKeyTokenClaims); val != nil {
@@ -197,7 +194,6 @@ func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		requestID := utils.GetRequestID(ctx)
-		m.logger.Debug(m.module, requestID, "[RedirectToHTTPS]: Processing request method=[%s] url=[%s]", r.Method, r.URL.Path)
 
 		if r.TLS == nil {
 			m.logger.Debug(m.module, requestID, "[RedirectToHTTPS]: Redirecting request to HTTPS")
@@ -205,7 +201,6 @@ func (m *Middleware) RedirectToHTTPS(next http.Handler) http.Handler {
 			return
 		}
 
-		m.logger.Debug(m.module, requestID, "[RedirectToHTTPS]: Passing request to next handler")
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -216,8 +211,6 @@ func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 		ctx := r.Context()
 		requestID := utils.GetRequestID(ctx)
 
-		m.logger.Debug(m.module, requestID, "[RateLimit]: Applying rate limiting to request method=[%s] url=[%s]", r.Method, r.URL.Path)
-
 		if !m.rateLimiter.Allow(requestID) {
 			m.logger.Warn(m.module, requestID, "[RateLimit]: Rate limit exceeded for url=[%s]", r.URL.Path)
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "too many requests")
@@ -225,7 +218,6 @@ func (m *Middleware) RateLimit(next http.Handler) http.Handler {
 			return
 		}
 
-		m.logger.Debug(m.module, requestID, "[RateLimit]: Passing request to next handler")
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -237,8 +229,6 @@ func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 		ctx := r.Context()
 		requestID := utils.GetRequestID(ctx)
 
-		m.logger.Debug(m.module, requestID, "[StrictRateLimit]: Applying strict rate limiting to request method=[%s] url=[%s]", r.Method, r.URL.Path)
-
 		if !strictLimiter.Allow(requestID) {
 			m.logger.Warn(m.module, requestID, "[StrictRateLimit]: Strict rate limit exceeded for url=[%s]", r.URL.Path)
 			err := errors.New(errors.ErrCodeRequestLimitExceeded, "rate limit exceeded for sensitive operations")
@@ -246,7 +236,6 @@ func (m *Middleware) StrictRateLimit(next http.Handler) http.Handler {
 			return
 		}
 
-		m.logger.Debug(m.module, requestID, "[StrictRateLimit]: Passing request to next handler")
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -257,7 +246,6 @@ func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handle
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			requestID := utils.GetRequestID(ctx)
-			m.logger.Debug(m.module, requestID, "[RequireRequestMethod]: Validating request method=[%s] for url=[%s]", r.Method, r.URL.Path)
 
 			if r.Method != requestMethod {
 				m.logger.Warn(m.module, requestID, "[RequireRequestMethod]: Invalid request method received for url=%s", r.URL.Path)
@@ -266,7 +254,6 @@ func (m *Middleware) RequireRequestMethod(requestMethod string) func(http.Handle
 				return
 			}
 
-			m.logger.Debug(m.module, requestID, "[RequireRequestMethod]: Passing request to next handler")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -302,7 +289,6 @@ func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			requestID := utils.GetRequestID(ctx)
-			m.logger.Debug(m.module, requestID, "[RequiresContentType]: Validating content type=[%s] for url=[%s]", contentType, r.URL.Path)
 
 			if r.Method == http.MethodOptions {
 				m.logger.Debug(m.module, requestID, "[RequiresContentType]: Passing request to next handler")
@@ -334,7 +320,6 @@ func (m *Middleware) RequiresContentType(contentType string) func(http.Handler) 
 				return
 			}
 
-			m.logger.Debug(m.module, requestID, "[RequiresContentType]: Passing request to next handler")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

@@ -74,13 +74,14 @@ func (c *authorizationCodeService) GenerateAuthorizationCode(ctx context.Context
 	}
 
 	authData := &authz.AuthorizationCodeData{
-		UserID:      req.UserID,
-		ClientID:    req.ClientID,
-		RedirectURI: req.RedirectURI,
-		Scope:       req.Scope,
-		CreatedAt:   time.Now(),
-		Used:        false,
-		Nonce:       req.Nonce,
+		UserID:                 req.UserID,
+		ClientID:               req.ClientID,
+		RedirectURI:            req.RedirectURI,
+		Scope:                  req.Scope,
+		CreatedAt:              time.Now(),
+		Used:                   false,
+		Nonce:                  req.Nonce,
+		UserAuthenticationTime: req.UserAuthenticationTime.UTC(),
 	}
 
 	if err := c.handlePKCE(req, authData); err != nil {
