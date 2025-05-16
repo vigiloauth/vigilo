@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 // TokenData represents the data associated with a token.
@@ -18,12 +19,12 @@ type TokenData struct {
 // TokenResponse represents the structure of an OAuth token response.
 // This is returned to the client after successful authentication.
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type"`
-	IDToken      string `json:"id_token"`
-	ExpiresIn    int    `json:"expires_in"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	Scope        string `json:"scope,omitempty"`
+	AccessToken  string      `json:"access_token"`
+	TokenType    string      `json:"token_type"`
+	IDToken      string      `json:"id_token"`
+	ExpiresIn    int         `json:"expires_in"`
+	RefreshToken string      `json:"refresh_token,omitempty"`
+	Scope        types.Scope `json:"scope,omitempty"`
 }
 
 type TokenIntrospectionResponse struct {
@@ -48,10 +49,10 @@ type TokenRequest struct {
 }
 
 type TokenClaims struct {
-	Scopes   string `json:"scopes,omitempty"`
-	Roles    string `json:"roles,omitempty"`
-	Nonce    string `json:"nonce,omitempty"`
-	AuthTime int64  `json:"auth_time,omitempty"`
+	Scopes   types.Scope `json:"scopes,omitempty"`
+	Roles    string      `json:"roles,omitempty"`
+	Nonce    string      `json:"nonce,omitempty"`
+	AuthTime int64       `json:"auth_time,omitempty"`
 	*jwt.StandardClaims
 }
 

@@ -4,9 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
@@ -19,6 +17,7 @@ import (
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
@@ -248,8 +247,8 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 		return nil, errors.NewInternalServerError()
 	}
 
-	requestedScopes := strings.Split(claims.Scopes, " ")
-	if !slices.Contains(requestedScopes, constants.OpenIDScope) {
+	requestedScopes := types.ParseScopesString(claims.Scopes.String())
+	if !types.ContainsScope(requestedScopes, types.OpenIDScope) {
 		return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
 	}
 
@@ -268,7 +267,7 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 	return retrievedUser, nil
 }
 
-func (s *authorizationService) validateClientScopes(ctx context.Context, clientID string, requestedScopes []string) error {
+func (s *authorizationService) validateClientScopes(ctx context.Context, clientID string, requestedScopes []types.Scope) error {
 	retrievedClient, err := s.clientService.GetClientByID(ctx, clientID)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrCodeUnauthorized, "invalid client credentials")
@@ -347,7 +346,7 @@ func (s *authorizationService) handleUserConsent(ctx context.Context, request *c
 			consentURL := web.BuildRedirectURL(
 				request.ClientID,
 				request.RedirectURI,
-				request.Scope,
+				request.Scope.String(),
 				request.ResponseType,
 				request.State,
 				request.Nonce,
@@ -467,7 +466,7 @@ func (s *authorizationService) buildLoginRedirect(clientID string, request *clie
 	return web.BuildRedirectURL(
 		clientID,
 		request.RedirectURI,
-		request.Scope,
+		request.Scope.String(),
 		request.ResponseType,
 		request.State,
 		request.Nonce,

@@ -10,6 +10,7 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
@@ -62,7 +63,7 @@ func NewTokenService(tokenRepo token.TokenRepository) token.TokenService {
 // Returns:
 //   - string: The generated JWT token string.
 //   - error: An error if token generation fails.
-func (ts *tokenService) GenerateAccessToken(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+func (ts *tokenService) GenerateAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 	requestID := utils.GetRequestID(ctx)
 
 	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.accessTokenDuration, time.Time{})
@@ -86,7 +87,7 @@ func (ts *tokenService) GenerateAccessToken(ctx context.Context, subject, audien
 // Returns:
 //   - string: The generated JWT token string.
 //   - error: An error if token generation fails.
-func (ts *tokenService) GenerateRefreshToken(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+func (ts *tokenService) GenerateRefreshToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 	requestID := utils.GetRequestID(ctx)
 
 	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.refreshTokenDuration, time.Time{})
@@ -115,7 +116,7 @@ func (ts *tokenService) GenerateRefreshToken(ctx context.Context, subject, audie
 // Returns:
 //   - string: The signed ID token as a JWT string.
 //   - error: An error if token generation fails.
-func (ts *tokenService) GenerateIDToken(ctx context.Context, userID, clientID, scopes, nonce string, authTime time.Time) (string, error) {
+func (ts *tokenService) GenerateIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
 	requestID := utils.GetRequestID(ctx)
 
 	idToken, err := ts.generateAndStoreToken(ctx, userID, clientID, scopes, "", nonce, ts.refreshTokenDuration, authTime)
@@ -320,7 +321,7 @@ func (ts *tokenService) isTokenBlacklisted(ctx context.Context, token string) (b
 	return isBlacklisted, nil
 }
 
-func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject, audience, scopes, roles, nonce string, duration time.Duration, authTime time.Time) (string, error) {
+func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, duration time.Duration, authTime time.Time) (string, error) {
 	const maxRetries = 5
 
 	var lastErr error
@@ -337,7 +338,7 @@ func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject, audi
 	return "", errors.Wrap(lastErr, errors.ErrCodeInternalServerError, "failed to generate token after maximum retries")
 }
 
-func (ts *tokenService) attemptTokenGeneration(ctx context.Context, subject, audience, scopes, roles, nonce string, duration time.Duration, authTime time.Time) (string, error) {
+func (ts *tokenService) attemptTokenGeneration(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, duration time.Duration, authTime time.Time) (string, error) {
 	tokenExpiration := time.Now().Add(duration)
 	claims, err := ts.generateStandardClaims(ctx, subject, audience, scopes, roles, nonce, tokenExpiration.Unix(), authTime)
 	if err != nil {
@@ -364,7 +365,7 @@ func (ts *tokenService) attemptTokenGeneration(ctx context.Context, subject, aud
 	return signedToken, ts.tokenRepo.SaveToken(ctx, hashedToken, subject, tokenData, tokenExpiration)
 }
 
-func (ts *tokenService) generateStandardClaims(ctx context.Context, subject, audience, scopes, roles, nonce string, tokenExpiration int64, authTime time.Time) (*token.TokenClaims, error) {
+func (ts *tokenService) generateStandardClaims(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenExpiration int64, authTime time.Time) (*token.TokenClaims, error) {
 	claims := &token.TokenClaims{
 		StandardClaims: &jwt.StandardClaims{
 			Subject:   subject,
@@ -372,8 +373,7 @@ func (ts *tokenService) generateStandardClaims(ctx context.Context, subject, aud
 			IssuedAt:  time.Now().Unix(),
 			ExpiresAt: tokenExpiration,
 		},
-		Scopes: scopes,
-		Roles:  roles,
+		Roles: roles,
 	}
 
 	requestID := utils.GetRequestID(ctx)
@@ -402,6 +402,9 @@ func (ts *tokenService) generateStandardClaims(ctx context.Context, subject, aud
 	}
 	if !authTime.IsZero() {
 		claims.AuthTime = authTime.Unix()
+	}
+	if scopes != "" {
+		claims.Scopes = scopes
 	}
 
 	return claims, nil

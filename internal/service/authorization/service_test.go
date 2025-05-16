@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 	mTokenService "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	mUser "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 	mConsentService "github.com/vigiloauth/vigilo/v2/internal/mocks/userconsent"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
@@ -30,7 +30,6 @@ const (
 	testUserID          string = "testUserID"
 	testClientID        string = "testClientID"
 	testRedirectURI     string = "https://localhost/callback"
-	testScope           string = "client:manage user:manage"
 	testAuthzCode       string = "code"
 	testClientSecret    string = "client-secret"
 	testAccessToken     string = "access-token"
@@ -69,7 +68,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			request: &client.ClientAuthorizationRequest{
 				ClientID:     testClientID,
 				RedirectURI:  testRedirectURI,
-				Scope:        constants.OpenIDScope,
+				Scope:        types.OpenIDScope,
 				ResponseType: constants.CodeResponseType,
 				State:        testState,
 				Nonce:        testNonce,
@@ -84,7 +83,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			expectedURL: web.BuildRedirectURL(
 				testClientID,
 				testRedirectURI,
-				constants.OpenIDScope,
+				types.OpenIDScope.String(),
 				constants.CodeResponseType,
 				testState,
 				testNonce,
@@ -132,7 +131,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 				},
 			},
 			consentService: &mConsentService.MockUserConsentService{
-				CheckUserConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+				CheckUserConsentFunc: func(ctx context.Context, userID, clientID string, scope types.Scope) (bool, error) {
 					return false, nil
 				},
 			},
@@ -161,7 +160,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			request: &client.ClientAuthorizationRequest{
 				ClientID:     testClientID,
 				RedirectURI:  testRedirectURI,
-				Scope:        constants.OpenIDScope,
+				Scope:        types.OpenIDScope,
 				ResponseType: constants.CodeResponseType,
 				State:        testState,
 				Nonce:        testNonce,
@@ -169,7 +168,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			expectedURL: web.BuildRedirectURL(
 				testClientID,
 				testRedirectURI,
-				constants.OpenIDScope,
+				types.OpenIDScope.String(),
 				constants.CodeResponseType,
 				testState,
 				testNonce,
@@ -189,7 +188,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 				},
 			},
 			consentService: &mConsentService.MockUserConsentService{
-				CheckUserConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+				CheckUserConsentFunc: func(ctx context.Context, userID, clientID string, scope types.Scope) (bool, error) {
 					return false, nil
 				},
 			},
@@ -200,7 +199,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			request: &client.ClientAuthorizationRequest{
 				ClientID:     testClientID,
 				RedirectURI:  testRedirectURI,
-				Scope:        constants.OpenIDScope,
+				Scope:        types.OpenIDScope,
 				ResponseType: constants.CodeResponseType,
 				State:        testState,
 				Nonce:        testNonce,
@@ -220,7 +219,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 				},
 			},
 			consentService: &mConsentService.MockUserConsentService{
-				CheckUserConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+				CheckUserConsentFunc: func(ctx context.Context, userID, clientID string, scope types.Scope) (bool, error) {
 					return true, nil
 				},
 			},
@@ -236,7 +235,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			request: &client.ClientAuthorizationRequest{
 				ClientID:     testClientID,
 				RedirectURI:  testRedirectURI,
-				Scope:        constants.OpenIDScope,
+				Scope:        types.OpenIDScope,
 				ResponseType: constants.CodeResponseType,
 				State:        testState,
 				Nonce:        testNonce,
@@ -255,7 +254,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			expectedURL: web.BuildRedirectURL(
 				testClientID,
 				testRedirectURI,
-				constants.OpenIDScope,
+				types.OpenIDScope.String(),
 				constants.CodeResponseType,
 				testState,
 				testNonce,
@@ -268,7 +267,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 			request: &client.ClientAuthorizationRequest{
 				ClientID:     testClientID,
 				RedirectURI:  testRedirectURI,
-				Scope:        constants.OpenIDScope,
+				Scope:        types.OpenIDScope,
 				ResponseType: constants.CodeResponseType,
 				State:        testState,
 				Nonce:        testNonce,
@@ -289,7 +288,7 @@ func TestAuthorizationService_AuthorizeClient(t *testing.T) {
 				},
 			},
 			consentService: &mConsentService.MockUserConsentService{
-				CheckUserConsentFunc: func(ctx context.Context, userID, clientID, scope string) (bool, error) {
+				CheckUserConsentFunc: func(ctx context.Context, userID, clientID string, scope types.Scope) (bool, error) {
 					return true, nil
 				},
 			},
@@ -494,17 +493,17 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockClientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
-				return &client.Client{ID: clientID, Type: client.Confidential}, nil
+				return &client.Client{ID: clientID, Type: types.ConfidentialClient}, nil
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateAccessTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+			GenerateAccessTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 				return "accessToken", nil
 			},
-			GenerateRefreshTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+			GenerateRefreshTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 				return "refreshToken", nil
 			},
-			GenerateIDTokenFunc: func(ctx context.Context, userID, clientID, scopes, nonce string, authTime time.Time) (string, error) {
+			GenerateIDTokenFunc: func(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
 				return "idToken", nil
 			},
 		}
@@ -524,7 +523,7 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 
 	t.Run("Error is returned generating access token", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateAccessTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+			GenerateAccessTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 				return "", errors.NewInternalServerError()
 			},
 		}
@@ -540,9 +539,9 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 
 func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
+		scopes := fmt.Sprintf("%s %s %s", types.OpenIDScope, types.UserEmailScope, types.UserAddressScope)
 		claims := &token.TokenClaims{
-			Scopes: scopes,
+			Scopes: types.Scope(scopes),
 			StandardClaims: &jwt.StandardClaims{
 				Subject:  testUserID,
 				Audience: testClientID,
@@ -551,15 +550,13 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 
 		userService := &mUser.MockUserService{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
-				return &users.User{
-					Scopes: strings.Split(scopes, " "),
-				}, nil
+				return &users.User{}, nil
 			},
 		}
 		clientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
 				return &client.Client{
-					Scopes: strings.Split(scopes, " "),
+					Scopes: types.ParseScopesString(scopes),
 				}, nil
 			},
 		}
@@ -572,9 +569,9 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 
 	t.Run("Success when 'offline_access' scope is present", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s %s", constants.OpenIDScope, constants.UserOfflineAccessScope, constants.UserEmailScope, constants.UserAddressScope)
+		scopes := fmt.Sprintf("%s %s %s %s", types.OpenIDScope, types.UserOfflineAccessScope, types.UserEmailScope, types.UserAddressScope)
 		claims := &token.TokenClaims{
-			Scopes: scopes,
+			Scopes: types.Scope(scopes),
 			StandardClaims: &jwt.StandardClaims{
 				Subject:  testUserID,
 				Audience: testClientID,
@@ -583,15 +580,13 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 
 		userService := &mUser.MockUserService{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
-				return &users.User{
-					Scopes: strings.Split(scopes, " "),
-				}, nil
+				return &users.User{}, nil
 			},
 		}
 		clientService := &mClientService.MockClientService{
 			GetClientByIDFunc: func(ctx context.Context, clientID string) (*client.Client, error) {
 				return &client.Client{
-					Scopes: strings.Split(scopes, " "),
+					Scopes: types.ParseScopesString(scopes),
 				}, nil
 			},
 		}
@@ -605,7 +600,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 
 	t.Run("Error is returned when the claims do not have sufficient scopes", func(t *testing.T) {
 		claims := &token.TokenClaims{
-			Scopes: constants.ClientDeleteScope,
+			Scopes: types.OpenIDScope,
 			StandardClaims: &jwt.StandardClaims{
 				Subject:  testUserID,
 				Audience: testClientID,
@@ -626,9 +621,9 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 
 	t.Run("Error is returned when the user scopes do not match the request scopes", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
+		scopes := fmt.Sprintf("%s %s %s", types.OpenIDScope, types.UserEmailScope, types.UserAddressScope)
 		claims := &token.TokenClaims{
-			Scopes: scopes,
+			Scopes: types.Scope(scopes),
 			StandardClaims: &jwt.StandardClaims{
 				Subject:  testUserID,
 				Audience: testClientID,
@@ -637,9 +632,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 
 		userService := &mUser.MockUserService{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
-				return &users.User{
-					Scopes: []string{constants.UserPhoneScope},
-				}, nil
+				return &users.User{}, nil
 			},
 		}
 		clientService := &mClientService.MockClientService{
@@ -656,9 +649,9 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 	})
 
 	t.Run("Error is return when user session is not present", func(t *testing.T) {
-		scopes := fmt.Sprintf("%s %s %s", constants.OpenIDScope, constants.UserEmailScope, constants.UserAddressScope)
+		scopes := fmt.Sprintf("%s %s %s", types.OpenIDScope, types.UserEmailScope, types.UserAddressScope)
 		claims := &token.TokenClaims{
-			Scopes: scopes,
+			Scopes: types.Scope(scopes),
 			StandardClaims: &jwt.StandardClaims{
 				Subject:  testUserID,
 				Audience: testClientID,
@@ -667,9 +660,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 
 		userService := &mUser.MockUserService{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
-				return &users.User{
-					Scopes: []string{constants.UserPhoneScope},
-				}, nil
+				return &users.User{}, nil
 			},
 		}
 		clientService := &mClientService.MockClientService{
@@ -687,11 +678,12 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 }
 
 func getTestAuthzCodeData() *authzCode.AuthorizationCodeData {
+	scopes := fmt.Sprintf("%s %s", types.OpenIDScope, types.UserAddressScope)
 	return &authzCode.AuthorizationCodeData{
 		UserID:      testUserID,
 		ClientID:    testClientID,
 		RedirectURI: testRedirectURI,
-		Scope:       testScope,
+		Scope:       types.Scope(scopes),
 	}
 }
 
@@ -699,9 +691,9 @@ func getTestClient() *client.Client {
 	return &client.Client{
 		ID:            testClientID,
 		Secret:        testClientSecret,
-		Type:          client.Confidential,
-		RedirectURIS:  []string{testClientID},
-		Scopes:        []string{constants.ClientManageScope, constants.UserReadScope},
+		Type:          types.ConfidentialClient,
+		RedirectURIs:  []string{testClientID},
+		Scopes:        []types.Scope{types.OpenIDScope, types.UserAddressScope},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 		ResponseTypes: []string{constants.CodeResponseType},
 		RequiresPKCE:  true,

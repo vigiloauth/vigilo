@@ -3,6 +3,8 @@ package domain
 import (
 	"context"
 	"net/http"
+
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 // UserConsentService defines the interface for managing user consent operations
@@ -20,7 +22,7 @@ type UserConsentService interface {
 	// Returns:
 	//	- bool: True if consent exists, false if consent is needed.
 	//	- error: An error if the consent check operation fails.
-	CheckUserConsent(ctx context.Context, userID, clientID, scope string) (bool, error)
+	CheckUserConsent(ctx context.Context, userID, clientID string, scope types.Scope) (bool, error)
 
 	// SaveUserConsent records a user's consent for a client application
 	// to access resources within the specified scope.
@@ -33,7 +35,7 @@ type UserConsentService interface {
 	//
 	// Returns:
 	//	- error: An error if the consent cannot be saved, or nil if successful.
-	SaveUserConsent(ctx context.Context, userID, clientID, scope string) error
+	SaveUserConsent(ctx context.Context, userID, clientID string, scope types.Scope) error
 
 	// RevokeConsent removes a user's consent for a client.
 	//
@@ -61,7 +63,7 @@ type UserConsentService interface {
 	// Returns:
 	//   - *consent.UserConsentResponse: The response containing client and scope details for the consent process.
 	//   - error: An error if the details cannot be retrieved or prepared.
-	GetConsentDetails(userID, clientID, redirectURI, state, scope, responseType, nonce, display string, r *http.Request) (*UserConsentResponse, error)
+	GetConsentDetails(userID, clientID, redirectURI, state string, scope types.Scope, responseType, nonce, display string, r *http.Request) (*UserConsentResponse, error)
 
 	// ProcessUserConsent processes the user's decision for the consent request.
 	//
@@ -80,5 +82,5 @@ type UserConsentService interface {
 	// Returns:
 	//   - *consent.UserConsentResponse: The response containing the result of the consent process (e.g., success or denial).
 	//   - error: An error if the consent decision cannot be processed or stored.
-	ProcessUserConsent(userID, clientID, redirectURI, scope string, consentRequest *UserConsentRequest, r *http.Request) (*UserConsentResponse, error)
+	ProcessUserConsent(userID, clientID, redirectURI string, scope types.Scope, consentRequest *UserConsentRequest, r *http.Request) (*UserConsentResponse, error)
 }

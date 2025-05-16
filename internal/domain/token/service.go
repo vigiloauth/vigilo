@@ -3,6 +3,8 @@ package domain
 import (
 	"context"
 	"time"
+
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 // TokenService defines the interface for managing JWT tokens.
@@ -19,7 +21,7 @@ type TokenService interface {
 	// Returns:
 	//   - string: The generated JWT token string.
 	//   - error: An error if token generation fails.
-	GenerateAccessToken(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error)
+	GenerateAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error)
 
 	// GenerateToken generates a refresh token for the given subject and expiration time.
 	//
@@ -33,7 +35,7 @@ type TokenService interface {
 	// Returns:
 	//   - string: The generated JWT token string.
 	//   - error: An error if token generation fails.
-	GenerateRefreshToken(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error)
+	GenerateRefreshToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error)
 
 	// GenerateIDToken creates an ID token for the specified user and client.
 	//
@@ -52,7 +54,7 @@ type TokenService interface {
 	// Returns:
 	//   - string: The signed ID token as a JWT string.
 	//   - error: An error if token generation fails.
-	GenerateIDToken(ctx context.Context, userID, clientID, scopes, nonce string, authTime time.Time) (string, error)
+	GenerateIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error)
 
 	// ParseToken parses and validates a JWT token string, handling both encrypted and non-encrypted tokens.
 	//

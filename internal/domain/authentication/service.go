@@ -6,6 +6,7 @@ import (
 
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 // AuthenticationService defines methods for issuing OAuth 2.0 tokens
@@ -23,7 +24,7 @@ type AuthenticationService interface {
 	//
 	// Returns:
 	//	- *TokenResponse: A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails.
-	IssueClientCredentialsToken(ctx context.Context, clientID, clientSecret, requestedGrantType, requestedScopes string) (*token.TokenResponse, error)
+	IssueClientCredentialsToken(ctx context.Context, clientID string, clientSecret string, requestedGrantType string, requestedScopes types.Scope) (*token.TokenResponse, error)
 
 	// IssueResourceOwnerToken generates a token using the resource owner password credentials grant type.
 	// This flow is used when the user provides their credentials directly to the client application.
@@ -38,7 +39,7 @@ type AuthenticationService interface {
 	//
 	// Returns:
 	//	- *TokenResponse: A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails.
-	IssueResourceOwnerToken(ctx context.Context, clientID, clientSecret, requestedGrantType, requestedScopes string, loginAttempt *user.UserLoginAttempt) (*token.TokenResponse, error)
+	IssueResourceOwnerToken(ctx context.Context, clientID string, clientSecret string, requestedGrantType string, requestedScopes types.Scope, loginAttempt *user.UserLoginAttempt) (*token.TokenResponse, error)
 
 	// RefreshAccessToken generates a new access token using a previously issued refresh token.
 	// This method implements the OAuth 2.0 refresh token grant flow.
@@ -53,7 +54,7 @@ type AuthenticationService interface {
 	//
 	// Returns:
 	//	- *TokenResponse: A TokenResponse containing the newly generated access token and related metadata, or an error if token refresh fails.
-	RefreshAccessToken(ctx context.Context, clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes string) (*token.TokenResponse, error)
+	RefreshAccessToken(ctx context.Context, clientID string, clientSecret string, requestedGrantType string, refreshToken string, requestedScopes types.Scope) (*token.TokenResponse, error)
 
 	// IntrospectToken verifies the validity of a given token by introspecting its details.
 	// This method checks whether the token is valid, expired, or revoked and returns the
@@ -85,7 +86,7 @@ type AuthenticationService interface {
 	// Returns:
 	//	- error: Returns an error if the header is malformed, the credentials are invalid,
 	//	or the token fails validation.
-	AuthenticateClientRequest(ctx context.Context, r *http.Request, scope string) error
+	AuthenticateClientRequest(ctx context.Context, r *http.Request, scope types.Scope) error
 
 	// RevokeToken handles revoking the given token. The token can either be an Access token or a Refresh token.
 	// This method has no return values since the content of the response should be ignored by clients.

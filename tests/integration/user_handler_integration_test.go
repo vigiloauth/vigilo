@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	repository "github.com/vigiloauth/vigilo/v2/internal/repository/user"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
@@ -40,10 +40,10 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.AdminRole})
 		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
+			types.ConfidentialClient,
+			[]types.Scope{},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -73,9 +73,10 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
+		testContext.WithUser([]string{constants.AdminRole})
 		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
+			types.ConfidentialClient,
+			[]types.Scope{},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -105,7 +106,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 func TestUserHandler_RegisterUser_DuplicateEmail(t *testing.T) {
 	testContext := NewVigiloTestContext(t)
 	defer testContext.TearDown()
-	testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+	testContext.WithUser([]string{constants.AdminRole})
 
 	requestBody := users.NewUserRegistrationRequest(testUsername, testEmail, testPassword1)
 	requestBody.Birthdate = testBirthdate
@@ -127,7 +128,8 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.AdminRole})
+
 		requestBody := users.NewUserLoginRequest(testUsername, testPassword1)
 		body, err := json.Marshal(requestBody)
 		assert.NoError(t, err)
@@ -146,7 +148,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.AdminRole})
 		testContext.WithExpiredToken()
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.UserEndpoints.Logout, nil, nil)
@@ -179,7 +181,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.AdminRole})
 		endpoint := web.UserEndpoints.Verify + "?token="
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
 

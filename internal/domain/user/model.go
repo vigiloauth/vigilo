@@ -29,8 +29,7 @@ type User struct {
 
 	Address *UserAddress
 
-	Scopes []string
-	Roles  []string
+	Roles []string
 
 	LastFailedLogin time.Time
 	CreatedAt       time.Time
@@ -191,7 +190,6 @@ func NewUserFromRegistrationRequest(req *UserRegistrationRequest) *User {
 		Email:             req.Email,
 		PhoneNumber:       req.PhoneNumber,
 		Zoneinfo:          time.UTC.String(),
-		Scopes:            req.Scopes,
 		Roles:             req.Roles,
 		Locale:            req.Address.Locality,
 		Website:           req.Website,
@@ -301,7 +299,6 @@ func NewUserLoginResponse(user *User, jwtToken string) *UserLoginResponse {
 		UserID:          user.ID,
 		Username:        user.PreferredUsername,
 		Email:           user.Email,
-		Scopes:          user.Scopes,
 		Roles:           user.Roles,
 		JWTToken:        jwtToken,
 		LastFailedLogin: user.LastFailedLogin,
@@ -325,10 +322,6 @@ func NewUserLoginAttempt(ipAddress, userAgent string) *UserLoginAttempt {
 		UserAgent:      userAgent,
 		FailedAttempts: 0,
 	}
-}
-
-func (u *User) HasScope(scope string) bool {
-	return slices.Contains(u.Scopes, scope)
 }
 
 func (u *User) HasRole(role string) bool {

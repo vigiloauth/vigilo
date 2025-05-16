@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
@@ -14,6 +13,7 @@ import (
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
@@ -76,7 +76,12 @@ func NewUserConsentService(
 // Returns:
 //   - bool: True if consent exists, false if consent is needed.
 //   - error: An error if the consent check operation fails.
-func (c *userConsentService) CheckUserConsent(ctx context.Context, userID, clientID, scope string) (bool, error) {
+func (c *userConsentService) CheckUserConsent(
+	ctx context.Context,
+	userID string,
+	clientID string,
+	scope types.Scope,
+) (bool, error) {
 	requestID := utils.GetRequestID(ctx)
 	if _, err := c.userRepo.GetUserByID(ctx, userID); err != nil {
 		c.logger.Error(c.module, requestID, "[CheckUserConsent]: An error occurred retrieving a user by ID: %v", err)
@@ -97,7 +102,12 @@ func (c *userConsentService) CheckUserConsent(ctx context.Context, userID, clien
 //
 // Returns:
 //   - error: An error if the consent cannot be saved, or nil if successful.
-func (c *userConsentService) SaveUserConsent(ctx context.Context, userID, clientID, scope string) error {
+func (c *userConsentService) SaveUserConsent(
+	ctx context.Context,
+	userID string,
+	clientID string,
+	scope types.Scope,
+) error {
 	requestID := utils.GetRequestID(ctx)
 	if _, err := c.userRepo.GetUserByID(ctx, userID); err != nil {
 		c.logger.Error(c.module, requestID, "[SaveUserConsent]: An error occurred retrieving the user by ID: %v", err)
@@ -141,7 +151,17 @@ func (c *userConsentService) RevokeConsent(ctx context.Context, userID, clientID
 // Returns:
 //   - *consent.UserConsentResponse: The response containing client and scope details for the consent process.
 //   - error: An error if the details cannot be retrieved or prepared.
-func (c *userConsentService) GetConsentDetails(userID, clientID, redirectURI, state, scope, responseType, nonce, display string, r *http.Request) (*consent.UserConsentResponse, error) {
+func (c *userConsentService) GetConsentDetails(
+	userID string,
+	clientID string,
+	redirectURI string,
+	state string,
+	scope types.Scope,
+	responseType string,
+	nonce string,
+	display string,
+	r *http.Request,
+) (*consent.UserConsentResponse, error) {
 	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
 
@@ -186,14 +206,14 @@ func (c *userConsentService) GetConsentDetails(userID, clientID, redirectURI, st
 		return c.processApprovedConsent(ctx, userID, clientID, redirectURI, scope, consentRequest)
 	}
 
-	scopeList := c.parseScopes(scope)
+	scopeList := types.ParseScopesString(scope.String())
 	return &consent.UserConsentResponse{
 		Approved:        approved,
 		ClientID:        clientID,
 		ClientName:      client.Name,
 		RedirectURI:     redirectURI,
 		Scopes:          scopeList,
-		State:           scope,
+		State:           state,
 		ConsentEndpoint: web.OAuthEndpoints.UserConsent,
 	}, nil
 }
@@ -219,7 +239,7 @@ func (c *userConsentService) ProcessUserConsent(
 	userID string,
 	clientID string,
 	redirectURI string,
-	scope string,
+	scope types.Scope,
 	consentRequest *consent.UserConsentRequest,
 	r *http.Request,
 ) (*consent.UserConsentResponse, error) {
@@ -252,7 +272,12 @@ func (c *userConsentService) handleDeniedConsent(state, redirectURI string) *con
 	}
 }
 
-func (c *userConsentService) validateRequest(userID, clientID, redirectURI, scope string) error {
+func (c *userConsentService) validateRequest(
+	userID string,
+	clientID string,
+	redirectURI string,
+	scope types.Scope,
+) error {
 	if userID == "" || clientID == "" || redirectURI == "" || scope == "" {
 		c.logger.Error(c.module, "", "Missing required OAuth parameters in request")
 		return errors.New(errors.ErrCodeBadRequest, "missing required OAuth parameters")
@@ -261,9 +286,9 @@ func (c *userConsentService) validateRequest(userID, clientID, redirectURI, scop
 	return nil
 }
 
-func (c *userConsentService) getApprovedScopes(defaultScopes string, requestScopes []string) string {
-	if len(requestScopes) > 0 {
-		return strings.Join(requestScopes, " ")
+func (c *userConsentService) getApprovedScopes(defaultScopes types.Scope, requestedScopes []types.Scope) types.Scope {
+	if len(requestedScopes) > 0 {
+		return types.CombineScopes(requestedScopes...)
 	}
 
 	return defaultScopes
@@ -274,7 +299,7 @@ func (c *userConsentService) processApprovedConsent(
 	userID string,
 	clientID string,
 	redirectURI string,
-	scope string,
+	scope types.Scope,
 	consentRequest *consent.UserConsentRequest,
 ) (*consent.UserConsentResponse, error) {
 	requestID := utils.GetRequestID(ctx)
@@ -308,8 +333,4 @@ func (c *userConsentService) updateSessionWithConsentDetails(r *http.Request, se
 	}
 
 	return nil
-}
-
-func (c *userConsentService) parseScopes(scope string) []string {
-	return strings.Split(scope, " ")
 }

@@ -15,6 +15,7 @@ import (
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
@@ -70,7 +71,7 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 	newClient.ID = constants.ClientIDPrefix + clientID
 
 	var plainSecret string
-	if newClient.Type == client.Confidential {
+	if newClient.Type == types.ConfidentialClient {
 		plainSecret, err = cs.generateClientSecret()
 		if err != nil {
 			cs.logger.Error(cs.module, requestID, "[Register]: Failed to generate client secret: %v", err)
@@ -85,7 +86,8 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 		newClient.SecretExpiration = 0
 	}
 
-	accessToken, err := cs.tokenService.GenerateAccessToken(ctx, newClient.ID, "", strings.Join(newClient.Scopes, " "), "", "")
+	requestedScopes := types.CombineScopes(newClient.Scopes...)
+	accessToken, err := cs.tokenService.GenerateAccessToken(ctx, newClient.ID, "", requestedScopes, "", "")
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[Register]: Failed to generate registration access token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate the registration access token")
@@ -131,7 +133,7 @@ func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID st
 		return nil, errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
 	}
 
-	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, constants.ClientCredentialsGrantType, constants.ClientManageScope); err != nil {
+	if err := cs.validateClientAuthorization(retrievedClient, retrievedClient.Secret, constants.ClientCredentialsGrantType, ""); err != nil {
 		cs.logger.Error(cs.module, requestID, "[RegenerateClientSecret]: Failed to validate client=[%s]: %v", utils.TruncateSensitive(clientID), err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
@@ -175,7 +177,7 @@ func (cs *clientService) RegenerateClientSecret(ctx context.Context, clientID st
 //
 // Returns:
 //   - error: An error if authentication or authorization fails.
-func (cs *clientService) AuthenticateClient(ctx context.Context, clientID string, clientSecret string, requestedGrant string, requestedScopes string) error {
+func (cs *clientService) AuthenticateClient(ctx context.Context, clientID string, clientSecret string, requestedGrant string, requestedScopes types.Scope) error {
 	requestID := utils.GetRequestID(ctx)
 
 	existingClient, err := cs.clientRepo.GetClientByID(ctx, clientID)
@@ -302,7 +304,7 @@ func (cs *clientService) ValidateAndUpdateClient(ctx context.Context, clientID, 
 	}
 
 	if retrievedClient.IsConfidential() {
-		request.Type = client.Confidential
+		request.Type = types.ConfidentialClient
 		if err := request.Validate(); err != nil {
 			cs.logger.Error(cs.module, requestID, "[ValidateAndUpdateClient]: Failed to validate ClientUpdateRequest: %v", err)
 			return nil, err
@@ -379,7 +381,7 @@ func (cs *clientService) ValidateAndDeleteClient(ctx context.Context, clientID, 
 //
 // Returns:
 //   - error: An error indicating why the client is not authorized, or nil if the client is valid.
-func (cs *clientService) validateClientAuthorization(existingClient *client.Client, clientSecret string, requestedGrant string, requestedScopes string) error {
+func (cs *clientService) validateClientAuthorization(existingClient *client.Client, clientSecret string, requestedGrant string, requestedScopes types.Scope) error {
 	if clientSecret != "" {
 		if !existingClient.IsConfidential() {
 			return errors.New(errors.ErrCodeUnauthorizedClient, "client is not confidential")
@@ -389,10 +391,10 @@ func (cs *clientService) validateClientAuthorization(existingClient *client.Clie
 		}
 	}
 
-	scopesArr := strings.Split(requestedScopes, " ")
+	scopesArr := strings.Split(requestedScopes.String(), " ")
 	if !existingClient.CanRequestScopes {
 		for _, scope := range scopesArr {
-			if !existingClient.HasScope(scope) {
+			if !existingClient.HasScope(types.Scope(scope)) {
 				return errors.New(errors.ErrCodeInsufficientScope, "client does not have the required scope(s)")
 			}
 		}
@@ -453,7 +455,7 @@ func (cs *clientService) generateClientSecret() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
-func (cs *clientService) isValidURIFormat(uri string, clientType string) (bool, error) {
+func (cs *clientService) isValidURIFormat(uri string, clientType types.ClientType) (bool, error) {
 	parsedURL, err := cs.parseURI(uri)
 	if err != nil {
 		return false, errors.Wrap(err, "", "invalid redirect URI format")
@@ -464,11 +466,11 @@ func (cs *clientService) isValidURIFormat(uri string, clientType string) (bool, 
 	}
 
 	switch clientType {
-	case client.Public:
+	case types.PublicClient:
 		if err := cs.validatePublicClientURIScheme(parsedURL); err != nil {
 			return false, errors.Wrap(err, "", "failed to valid public client redirect URI")
 		}
-	case client.Confidential:
+	case types.ConfidentialClient:
 		if err := cs.validateConfidentialClientURIScheme(parsedURL); err != nil {
 			return false, errors.Wrap(err, "", "failed to valid confidential client redirect URI")
 		}

@@ -12,6 +12,7 @@ import (
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
@@ -53,7 +54,7 @@ func NewAuthenticationService(
 //
 // Returns:
 //   - *TokenResponse: A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails.
-func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context, clientID, clientSecret, grantType, scopes string) (*token.TokenResponse, error) {
+func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context, clientID string, clientSecret string, grantType string, scopes types.Scope) (*token.TokenResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 
 	if err := s.clientService.AuthenticateClient(ctx, clientID, clientSecret, grantType, scopes); err != nil {
@@ -95,14 +96,14 @@ func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context,
 //
 // Returns:
 //   - *TokenResponse: A TokenResponse containing the generated access token and related metadata, or an error if token issuance fails.
-func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, clientID, clientSecret, grantType, scopes string, req *user.UserLoginAttempt) (*token.TokenResponse, error) {
+func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, clientID string, clientSecret string, grantType string, scopes types.Scope, req *user.UserLoginAttempt) (*token.TokenResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 	if err := s.clientService.AuthenticateClient(ctx, clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to authenticate client: %v", err)
 		return nil, err
 	}
 
-	loginResponse, err := s.authenticateUser(ctx, req, clientID, scopes)
+	loginResponse, err := s.authenticateUser(ctx, req, clientID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to authenticate user: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to authenticate user")
@@ -143,7 +144,7 @@ func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, cli
 //
 // Returns:
 //   - *TokenResponse: A TokenResponse containing the newly generated access token and related metadata, or an error if token refresh fails.
-func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID, clientSecret, grantType, refreshToken, scopes string) (*token.TokenResponse, error) {
+func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID string, clientSecret string, grantType string, refreshToken string, scopes types.Scope) (*token.TokenResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 	if err := s.clientService.AuthenticateClient(ctx, clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to authenticate client: %v", err)
@@ -166,8 +167,8 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 	if scopes == "" {
 		scopes = tokenData.Claims.Scopes
 	} else {
-		requested := strings.Fields(scopes)
-		original := strings.Fields(tokenData.Claims.Scopes)
+		requested := strings.Fields(scopes.String())
+		original := strings.Fields(tokenData.Claims.Scopes.String())
 		if !utils.IsSubset(requested, original) {
 			if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
 				s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist old refresh token: %v", err)
@@ -252,7 +253,7 @@ func (s *authenticationService) IntrospectToken(ctx context.Context, tokenStr st
 // Returns:
 //   - error: Returns an error if the header is malformed, the credentials are invalid,
 //     or the token fails validation.
-func (s *authenticationService) AuthenticateClientRequest(ctx context.Context, r *http.Request, scope string) error {
+func (s *authenticationService) AuthenticateClientRequest(ctx context.Context, r *http.Request, scope types.Scope) error {
 	authHeader := r.Header.Get(constants.AuthorizationHeader)
 
 	switch {
@@ -319,18 +320,10 @@ func (s *authenticationService) validateRefreshTokenAndMatchClient(ctx context.C
 	return nil
 }
 
-func (s *authenticationService) authenticateUser(ctx context.Context, req *user.UserLoginAttempt, clientID string, scopes string) (*user.UserLoginResponse, error) {
-	existingUser, err := s.userService.GetUserByUsername(ctx, req.Username)
-	if err != nil {
+func (s *authenticationService) authenticateUser(ctx context.Context, req *user.UserLoginAttempt, clientID string) (*user.UserLoginResponse, error) {
+	if _, err := s.userService.GetUserByUsername(ctx, req.Username); err != nil {
 		s.logger.Error(s.module, "", "An error occurred retrieving user by username: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "user not found")
-	}
-
-	scopeArr := strings.Split(scopes, " ")
-	for _, scope := range scopeArr {
-		if !existingUser.HasScope(scope) {
-			return nil, errors.New(errors.ErrCodeInsufficientScope, "user does not have the required scope(s)")
-		}
 	}
 
 	loginAttempt := &user.UserLoginRequest{Username: req.Username, Password: req.Password}
@@ -342,7 +335,7 @@ func (s *authenticationService) authenticateUser(ctx context.Context, req *user.
 	return loginResponse, nil
 }
 
-func (s *authenticationService) authenticateWithBasicAuth(ctx context.Context, r *http.Request, scope string) error {
+func (s *authenticationService) authenticateWithBasicAuth(ctx context.Context, r *http.Request, scope types.Scope) error {
 	clientID, clientSecret, err := web.ExtractClientBasicAuth(r)
 	if err != nil {
 		return err
@@ -355,7 +348,7 @@ func (s *authenticationService) authenticateWithBasicAuth(ctx context.Context, r
 	return nil
 }
 
-func (s *authenticationService) authenticateWithBearerToken(ctx context.Context, r *http.Request, scope string) error {
+func (s *authenticationService) authenticateWithBearerToken(ctx context.Context, r *http.Request, scope types.Scope) error {
 	bearerToken, err := web.ExtractBearerToken(r)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to extract bearer token")

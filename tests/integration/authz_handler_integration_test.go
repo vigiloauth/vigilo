@@ -8,23 +8,23 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	tests := []struct {
 		name   string
-		scopes []string
+		scopes []types.Scope
 	}{
 		{
 			name:   "Success when client registered with scopes",
-			scopes: []string{constants.ClientManageScope, constants.UserManageScope},
+			scopes: []types.Scope{types.TokenIntrospectScope},
 		},
 		{
 			name:   "Success when client didn't register with scopes",
-			scopes: []string{},
+			scopes: []types.Scope{},
 		},
 	}
 
@@ -34,11 +34,12 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 			defer testContext.TearDown()
 
 			testContext.WithClient(
-				client.Confidential, test.scopes,
+				types.ConfidentialClient,
+				test.scopes,
 				[]string{constants.AuthorizationCodeGrantType},
 			)
 
-			testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+			testContext.WithUser([]string{constants.AdminRole})
 			testContext.WithUserConsent()
 			testContext.WithUserSession()
 
@@ -69,11 +70,11 @@ func TestAuthorizationHandler_AuthorizeClient_MissingResponseTypeInRequest_Retur
 	defer testContext.TearDown()
 
 	testContext.WithClient(
-		client.Confidential,
-		[]string{constants.ClientManageScope, constants.UserManageScope},
+		types.ConfidentialClient,
+		[]types.Scope{types.OpenIDScope, types.TokenIntrospectScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
-	testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+	testContext.WithUser([]string{constants.AdminRole})
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
 
@@ -101,11 +102,10 @@ func TestAuthorizationHandler_AuthorizeClient_NewLoginRequiredError_IsReturned(t
 	defer testContext.TearDown()
 
 	testContext.WithClient(
-		client.Confidential,
-		[]string{constants.ClientManageScope, constants.UserManageScope},
+		types.ConfidentialClient,
+		[]types.Scope{types.OpenIDScope, types.TokenIntrospectScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
-
 	testContext.WithUserConsent()
 
 	// Call AuthorizeClient Endpoint
@@ -131,11 +131,10 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 	defer testContext.TearDown()
 
 	testContext.WithClient(
-		client.Confidential,
-		[]string{constants.ClientManageScope, constants.UserManageScope},
+		types.ConfidentialClient,
+		[]types.Scope{types.OpenIDScope, types.TokenIntrospectScope},
 		[]string{constants.AuthorizationCodeGrantType},
 	)
-
 	testContext.WithUserSession()
 	testContext.WithUserConsent()
 
@@ -164,18 +163,18 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 	t.Run("Success when client is using PKCE", func(t *testing.T) {
 		tests := []struct {
 			name                string
-			codeChallengeMethod string
-			clientType          string
+			codeChallengeMethod types.CodeChallengeMethod
+			clientType          types.ClientType
 		}{
 			{
 				name:                "Public client using SHA-256 code challenge method",
-				codeChallengeMethod: client.S256,
-				clientType:          client.Public,
+				codeChallengeMethod: types.SHA256CodeChallengeMethod,
+				clientType:          types.PublicClient,
 			},
 			{
 				name:                "Public client using plain code challenge method",
-				codeChallengeMethod: client.Plain,
-				clientType:          client.Public,
+				codeChallengeMethod: types.PlainCodeChallengeMethod,
+				clientType:          types.PublicClient,
 			},
 		}
 
@@ -183,7 +182,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			testContext := NewVigiloTestContext(t)
 			testContext.WithClient(
 				test.clientType,
-				[]string{constants.ClientManageScope},
+				[]types.Scope{types.OpenIDScope},
 				[]string{constants.AuthorizationCodeGrantType},
 			)
 
@@ -193,11 +192,11 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 			queryParams := url.Values{}
 			queryParams.Add(constants.ClientIDReqField, testClientID)
 			queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-			queryParams.Add(constants.ScopeReqField, constants.ClientManageScope)
+			queryParams.Add(constants.ScopeReqField, types.OpenIDScope.String())
 			queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 			queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 			queryParams.Add(constants.CodeChallengeReqField, testContext.SH256CodeChallenge)
-			queryParams.Add(constants.CodeChallengeMethodReqField, test.codeChallengeMethod)
+			queryParams.Add(constants.CodeChallengeMethodReqField, test.codeChallengeMethod.String())
 
 			sessionCookie := testContext.GetSessionCookie()
 			headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
@@ -215,8 +214,8 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		defer testContext.TearDown()
 
 		testContext.WithClient(
-			client.Public,
-			[]string{constants.ClientManageScope},
+			types.PublicClient,
+			[]types.Scope{types.OpenIDScope, types.TokenIntrospectScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -239,8 +238,8 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		defer testContext.TearDown()
 
 		testContext.WithClient(
-			client.Public,
-			[]string{constants.ClientManageScope},
+			types.PublicClient,
+			[]types.Scope{types.OpenIDScope, types.TokenIntrospectScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -250,7 +249,7 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		queryParams := url.Values{}
 		queryParams.Add(constants.ClientIDReqField, testClientID)
 		queryParams.Add(constants.RedirectURIReqField, testRedirectURI)
-		queryParams.Add(constants.ScopeReqField, constants.ClientManageScope)
+		queryParams.Add(constants.ScopeReqField, types.OpenIDScope.String())
 		queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 		queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
 		queryParams.Add(constants.CodeChallengeReqField, testContext.SH256CodeChallenge)
@@ -303,15 +302,15 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 		for _, test := range tests {
 			testContext := NewVigiloTestContext(t)
 			testContext.WithClient(
-				client.Public,
-				[]string{constants.ClientManageScope},
+				types.PublicClient,
+				[]types.Scope{types.OpenIDScope, types.TokenIntrospectScope},
 				[]string{constants.AuthorizationCodeGrantType},
 			)
 
 			testContext.WithUserSession()
 			testContext.WithUserConsent()
 
-			queryParams := testContext.CreateAuthorizationCodeRequestQueryParams(test.codeChallenge, client.S256)
+			queryParams := testContext.CreateAuthorizationCodeRequestQueryParams(test.codeChallenge, types.SHA256CodeChallengeMethod.String())
 			sessionCookie := testContext.GetSessionCookie()
 			headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
 			endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()

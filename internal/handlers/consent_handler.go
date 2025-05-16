@@ -13,6 +13,7 @@ import (
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
@@ -64,7 +65,7 @@ func (h *ConsentHandler) HandleUserConsent(w http.ResponseWriter, r *http.Reques
 	query := r.URL.Query()
 	clientID := query.Get(constants.ClientIDReqField)
 	redirectURI := query.Get(constants.RedirectURIReqField)
-	scope := query.Get(constants.ScopeReqField)
+	scope := types.Scope(query.Get(constants.ScopeReqField))
 	responseType := query.Get(constants.ResponseTypeReqField)
 	state := query.Get(constants.StateReqField)
 	nonce := query.Get(constants.NonceReqField)
@@ -79,7 +80,7 @@ func (h *ConsentHandler) HandleUserConsent(w http.ResponseWriter, r *http.Reques
 	userID, err := h.sessionService.GetUserIDFromSession(r)
 	if err != nil {
 		h.logger.Error(h.module, requestID, "[UserConsent]: Failed to retrieve user ID from session: %v", err)
-		oauthLoginURL := h.buildLoginURL(clientID, redirectURI, scope, responseType, state, nonce, display)
+		oauthLoginURL := h.buildLoginURL(clientID, redirectURI, scope.String(), responseType, state, nonce, display)
 		http.Redirect(w, r, oauthLoginURL, http.StatusFound)
 		return
 	}
@@ -95,7 +96,18 @@ func (h *ConsentHandler) HandleUserConsent(w http.ResponseWriter, r *http.Reques
 }
 
 // handleGetConsent handles GET requests for user consent
-func (h *ConsentHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope, responseType, state, nonce, display string) {
+func (h *ConsentHandler) handleGetConsent(
+	w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+	clientID string,
+	redirectURI string,
+	scope types.Scope,
+	responseType string,
+	state string,
+	nonce string,
+	display string,
+) {
 	response, err := h.consentService.GetConsentDetails(userID, clientID, redirectURI, state, scope, responseType, nonce, display, r)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to retrieve user consent details")
@@ -107,7 +119,17 @@ func (h *ConsentHandler) handleGetConsent(w http.ResponseWriter, r *http.Request
 }
 
 // handlePostConsent handles POST requests for user consent
-func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope, responseType, state, nonce, display string) {
+func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+	clientID string,
+	redirectURI string,
+	scope types.Scope,
+	responseType string,
+	state string,
+	nonce string,
+	display string,
+) {
 	consentRequest, err := web.DecodeJSONRequest[consent.UserConsentRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
@@ -127,7 +149,7 @@ func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	response.RedirectURI = h.buildOAuthRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, display, response.Approved)
+	response.RedirectURI = h.buildOAuthRedirectURL(clientID, redirectURI, scope.String(), responseType, state, nonce, display, response.Approved)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 

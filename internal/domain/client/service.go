@@ -1,6 +1,10 @@
 package domain
 
-import "context"
+import (
+	"context"
+
+	"github.com/vigiloauth/vigilo/v2/internal/types"
+)
 
 // ClientService defines the interface for managing client registration.
 type ClientService interface {
@@ -102,5 +106,5 @@ type ClientService interface {
 	//
 	// Returns:
 	//	- error: An error if authentication or authorization fails.
-	AuthenticateClient(ctx context.Context, clientID string, clientSecret string, requestedGrant string, requestedScopes string) error
+	AuthenticateClient(ctx context.Context, clientID string, clientSecret string, requestedGrant string, requestedScopes types.Scope) error
 }

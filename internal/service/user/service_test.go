@@ -20,6 +20,7 @@ import (
 	mLoginService "github.com/vigiloauth/vigilo/v2/internal/mocks/login"
 	mTokenService "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	mUserRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
@@ -49,7 +50,7 @@ func TestUserService_CreateUser_Success(t *testing.T) {
 		},
 	}
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateAccessTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+		GenerateAccessTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 			return testToken, nil
 		},
 	}
@@ -189,7 +190,7 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 		},
 	}
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateAccessTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+		GenerateAccessTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 			return testToken, nil
 		},
 	}
@@ -448,7 +449,6 @@ func TestUserService_ValidateVerificationCode(t *testing.T) {
 func createNewUser() *users.User {
 	user := users.NewUser(testUsername, testEmail, testPassword1)
 	user.Address = users.NewUserAddress("123 Main", "Springfield", "IL", "012345", "USA")
-	user.Scopes = []string{constants.UserReadScope}
 	user.Roles = []string{constants.AdminRole}
 	return user
 }

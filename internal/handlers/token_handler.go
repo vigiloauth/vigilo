@@ -15,6 +15,7 @@ import (
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
@@ -49,7 +50,7 @@ func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[IntrospectToken]: Processing request")
 
-	if err := h.authService.AuthenticateClientRequest(ctx, r, constants.TokenIntrospectScope); err != nil {
+	if err := h.authService.AuthenticateClientRequest(ctx, r, types.TokenIntrospectScope); err != nil {
 		web.WriteError(w, errors.NewClientAuthenticationError(err))
 		return
 	}
@@ -73,7 +74,7 @@ func (h *TokenHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 	requestID := utils.GetRequestID(ctx)
 	h.logger.Info(h.module, requestID, "[RevokeToken]: Processing request")
 
-	if err := h.authService.AuthenticateClientRequest(ctx, r, constants.TokenRevokeScope); err != nil {
+	if err := h.authService.AuthenticateClientRequest(ctx, r, types.TokenRevokeScope); err != nil {
 		web.WriteError(w, errors.NewClientAuthenticationError(err))
 		return
 	}
@@ -110,7 +111,7 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	}
 
 	requestedGrantType := r.FormValue(constants.GrantTypeReqField)
-	requestedScopes := r.FormValue(constants.ScopeReqField)
+	requestedScopes := types.Scope(r.FormValue(constants.ScopeReqField))
 
 	if requestedGrantType == "" {
 		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "one or more required parameters are missing"))
@@ -137,7 +138,7 @@ func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *TokenHandler) handleClientCredentialsRequest(ctx context.Context, w http.ResponseWriter, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+func (h *TokenHandler) handleClientCredentialsRequest(ctx context.Context, w http.ResponseWriter, requestID, clientID, clientSecret, requestedGrantType string, requestedScopes types.Scope) {
 	response, err := h.authService.IssueClientCredentialsToken(ctx, clientID, clientSecret, requestedGrantType, requestedScopes)
 	if err != nil {
 		h.logger.Error(h.module, requestID, "Failed to issue token for client credentials grant: %v", err)
@@ -148,7 +149,7 @@ func (h *TokenHandler) handleClientCredentialsRequest(ctx context.Context, w htt
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *TokenHandler) handlePasswordGrantRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+func (h *TokenHandler) handlePasswordGrantRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType string, requestedScopes types.Scope) {
 	if r.URL.Query().Get(constants.PasswordReqField) != "" {
 		web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "password must not be in the URL"))
 		return
@@ -214,7 +215,7 @@ func (h *TokenHandler) handleAuthorizationCodeTokenExchange(ctx context.Context,
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *TokenHandler) handleRefreshTokenRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType, requestedScopes string) {
+func (h *TokenHandler) handleRefreshTokenRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, requestID, clientID, clientSecret, requestedGrantType string, requestedScopes types.Scope) {
 	refreshToken := r.FormValue(constants.RefreshTokenURLValue)
 	response, err := h.authService.RefreshAccessToken(ctx, clientID, clientSecret, requestedGrantType, refreshToken, requestedScopes)
 	if err != nil {

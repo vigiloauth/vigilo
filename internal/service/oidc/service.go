@@ -2,16 +2,15 @@ package service
 
 import (
 	"context"
-	"strings"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
 	jwks "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
 	oidc "github.com/vigiloauth/vigilo/v2/internal/domain/oidc"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
@@ -58,7 +57,7 @@ func (s *oidcService) GetUserInfo(ctx context.Context, accessTokenClaims *token.
 	}
 
 	userInfoResponse := &user.UserInfoResponse{Sub: retrievedUser.ID}
-	requestedScopes := strings.Split(accessTokenClaims.Scopes, " ")
+	requestedScopes := types.ParseScopesString(accessTokenClaims.Scopes.String())
 	s.populateUserInfoFromScopes(userInfoResponse, retrievedUser, requestedScopes)
 
 	return userInfoResponse, nil
@@ -86,11 +85,11 @@ func (s *oidcService) GetJwks(ctx context.Context) *jwks.Jwks {
 func (s *oidcService) populateUserInfoFromScopes(
 	userInfoResponse *user.UserInfoResponse,
 	retrievedUser *user.User,
-	requestedScopes []string,
+	requestedScopes []types.Scope,
 ) {
 	for _, scope := range requestedScopes {
 		switch scope {
-		case constants.UserProfileScope:
+		case types.UserProfileScope:
 			userInfoResponse.Name = retrievedUser.Name
 			userInfoResponse.FamilyName = retrievedUser.FamilyName
 			userInfoResponse.GivenName = retrievedUser.GivenName
@@ -105,13 +104,13 @@ func (s *oidcService) populateUserInfoFromScopes(
 			userInfoResponse.Zoneinfo = retrievedUser.Zoneinfo
 			userInfoResponse.Locale = retrievedUser.Locale
 			userInfoResponse.UpdatedAt = retrievedUser.UpdatedAt.UTC().Unix()
-		case constants.UserEmailScope:
+		case types.UserEmailScope:
 			userInfoResponse.Email = retrievedUser.Email
 			userInfoResponse.EmailVerified = &retrievedUser.EmailVerified
-		case constants.UserPhoneScope:
+		case types.UserPhoneScope:
 			userInfoResponse.PhoneNumber = retrievedUser.PhoneNumber
 			userInfoResponse.PhoneNumberVerified = &retrievedUser.PhoneNumberVerified
-		case constants.UserAddressScope:
+		case types.UserAddressScope:
 			userInfoResponse.Address = retrievedUser.Address
 		}
 	}

@@ -74,10 +74,8 @@ func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.
 		u.logger.Error(u.module, requestID, "[CreateUser]: Failed to send account verification email: %v", err)
 	}
 
-	scopes := strings.Join(user.Scopes, " ")
 	roles := strings.Join(user.Roles, " ")
-
-	accessToken, err := u.tokenService.GenerateAccessToken(ctx, user.Email, user.ID, scopes, roles, "")
+	accessToken, err := u.tokenService.GenerateAccessToken(ctx, user.Email, user.ID, "", roles, "")
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[CreateUser]: Failed to generate a session token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate session token")
@@ -384,10 +382,8 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 		return nil, wrappedErr
 	}
 
-	scopes := strings.Join(retrievedUser.Scopes, " ")
 	roles := strings.Join(retrievedUser.Roles, " ")
-
-	accessToken, err := u.tokenService.GenerateAccessToken(ctx, retrievedUser.Email, retrievedUser.ID, scopes, roles, "")
+	accessToken, err := u.tokenService.GenerateAccessToken(ctx, retrievedUser.Email, retrievedUser.ID, "", roles, "")
 	if err != nil {
 		u.logger.Error(u.module, requestID, "Failed to generate access token for user=[%s]: %v", utils.TruncateSensitive(retrievedUser.ID), err)
 		return nil, errors.NewInternalServerError()
@@ -489,12 +485,9 @@ func (u *userService) sendVerificationEmail(ctx context.Context, user *users.Use
 	requestID := utils.GetRequestID(ctx)
 
 	verificationCode, err := u.tokenService.GenerateRefreshToken(
-		ctx,
-		user.Email,
-		user.ID,
-		strings.Join(user.Scopes, " "),
-		strings.Join(user.Roles, " "),
-		"",
+		ctx, user.Email,
+		user.ID, "",
+		strings.Join(user.Roles, " "), "",
 	)
 
 	if err != nil {

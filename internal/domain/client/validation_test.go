@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 const validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_"
@@ -13,7 +14,7 @@ const validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX323434231423424234234
 func TestClientRegistrationRequest_Validate(t *testing.T) {
 	t.Run("Successful Validation", func(t *testing.T) {
 		client := createClientRegistrationRequest()
-		client.Scopes = []string{}
+		client.Scopes = []types.Scope{}
 		err := client.Validate()
 		assert.NoError(t, err)
 	})
@@ -21,7 +22,7 @@ func TestClientRegistrationRequest_Validate(t *testing.T) {
 	t.Run("Invalid Grant Types", func(t *testing.T) {
 		client := createClientRegistrationRequest()
 		client.ApplicationType = constants.NativeApplicationType
-		client.TokenEndpointAuthMethod = constants.NoTokenAuth
+		client.TokenEndpointAuthMethod = types.NoTokenAuth
 		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentialsGrantType)
 
 		err := client.Validate()
@@ -31,7 +32,7 @@ func TestClientRegistrationRequest_Validate(t *testing.T) {
 	t.Run("Invalid Redirect URIS", func(t *testing.T) {
 		invalidRedirectURI := "http:/missing-slash/callback"
 		client := createClientRegistrationRequest()
-		client.RedirectURIS = append(client.RedirectURIS, invalidRedirectURI)
+		client.RedirectURIs = append(client.RedirectURIs, invalidRedirectURI)
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -40,7 +41,7 @@ func TestClientRegistrationRequest_Validate(t *testing.T) {
 	t.Run("Invalid Scopes", func(t *testing.T) {
 		invalidScope := "update"
 		client := createClientRegistrationRequest()
-		client.Scopes = append(client.Scopes, invalidScope)
+		client.Scopes = append(client.Scopes, types.Scope(invalidScope))
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -89,7 +90,7 @@ func TestClientUpdateRequest_Validate(t *testing.T) {
 	t.Run("Invalid Redirect URIS", func(t *testing.T) {
 		invalidRedirectURI := "http:/missing-slash/callback"
 		client := createClientUpdateRequest()
-		client.RedirectURIS = append(client.RedirectURIS, invalidRedirectURI)
+		client.RedirectURIs = append(client.RedirectURIs, invalidRedirectURI)
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -98,7 +99,7 @@ func TestClientUpdateRequest_Validate(t *testing.T) {
 	t.Run("Invalid Scopes", func(t *testing.T) {
 		invalidScope := "update"
 		client := createClientUpdateRequest()
-		client.Scopes = append(client.Scopes, invalidScope)
+		client.Scopes = append(client.Scopes, types.Scope(invalidScope))
 
 		err := client.Validate()
 		assert.Error(t, err)
@@ -141,7 +142,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 					Client:              createClient(),
 					ResponseType:        constants.CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWasdasd2dasXyz0123456789-_",
-					CodeChallengeMethod: S256,
+					CodeChallengeMethod: types.SHA256CodeChallengeMethod,
 				},
 			},
 			{
@@ -150,7 +151,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 					Client:              createClient(),
 					ResponseType:        constants.CodeResponseType,
 					CodeChallenge:       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_",
-					CodeChallengeMethod: S256,
+					CodeChallengeMethod: types.SHA256CodeChallengeMethod,
 				},
 			},
 		}
@@ -172,7 +173,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 					Client:              createClient(),
 					ResponseType:        constants.CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWXyz01234562345654323456789+/",
-					CodeChallengeMethod: S256,
+					CodeChallengeMethod: types.SHA256CodeChallengeMethod,
 				},
 			},
 			{
@@ -181,7 +182,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 					Client:              createClient(),
 					ResponseType:        constants.CodeResponseType,
 					CodeChallenge:       "abcdEFGHijklMNOPqrstUVWXyz012345012345678765434567887656789@#!",
-					CodeChallengeMethod: S256,
+					CodeChallengeMethod: types.SHA256CodeChallengeMethod,
 				},
 			},
 		}
@@ -197,7 +198,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 	t.Run("Error is returned when the code challenge is too short", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			CodeChallenge:       "short",
-			CodeChallengeMethod: S256,
+			CodeChallengeMethod: types.SHA256CodeChallengeMethod,
 			Client:              createClient(),
 			ResponseType:        constants.CodeResponseType,
 		}
@@ -233,14 +234,14 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 
 		err := ValidateClientAuthorizationRequest(request)
 		assert.NoError(t, err)
-		assert.Equal(t, Plain, request.CodeChallengeMethod)
+		assert.Equal(t, types.PlainCodeChallengeMethod, request.CodeChallengeMethod)
 	})
 
 	t.Run("Error is returned when client does not have 'code' response type", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			ResponseType: constants.IDTokenResponseType,
 			Client: &Client{
-				Type:          Public,
+				Type:          types.PublicClient,
 				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 				ResponseTypes: []string{constants.IDTokenResponseType},
 				RequiresPKCE:  true,
@@ -259,7 +260,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			ResponseType: constants.CodeResponseType,
 			Client: &Client{
-				Type:          Confidential,
+				Type:          types.ConfidentialClient,
 				ResponseTypes: []string{constants.CodeResponseType},
 				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 			},
@@ -272,11 +273,11 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 	t.Run("Error is returned when the client does not have authorization code grant", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
-				Type:          Public,
+				Type:          types.PublicClient,
 				ResponseTypes: []string{constants.CodeResponseType},
 			},
 			ResponseType:        constants.CodeResponseType,
-			CodeChallengeMethod: Plain,
+			CodeChallengeMethod: types.PlainCodeChallengeMethod,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
@@ -289,13 +290,13 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 	t.Run("Error is returned when public client does not have PKCE grant", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
-				Type:          Public,
+				Type:          types.PublicClient,
 				ResponseTypes: []string{constants.CodeResponseType},
 				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 			},
 			ResponseType:        constants.CodeResponseType,
 			CodeChallenge:       validCodeChallenge,
-			CodeChallengeMethod: Plain,
+			CodeChallengeMethod: types.PlainCodeChallengeMethod,
 		}
 
 		err := ValidateClientAuthorizationRequest(request)
@@ -308,7 +309,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 	t.Run("Error is returned when client has PKCE but does not provide a code challenge", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
-				Type:          Public,
+				Type:          types.PublicClient,
 				ResponseTypes: []string{constants.CodeResponseType},
 				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 				RequiresPKCE:  true,
@@ -326,7 +327,7 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 	t.Run("Success when confidential client is not using PKCE", func(t *testing.T) {
 		request := &ClientAuthorizationRequest{
 			Client: &Client{
-				Type:          Confidential,
+				Type:          types.ConfidentialClient,
 				ResponseTypes: []string{constants.CodeResponseType},
 				GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 			},
@@ -341,24 +342,24 @@ func TestClientAuthorizationRequest_Validate(t *testing.T) {
 func createClientRegistrationRequest() *ClientRegistrationRequest {
 	return &ClientRegistrationRequest{
 		Name:                    "Test Client",
-		Type:                    Public,
-		RedirectURIS:            []string{"https://www.example-app.com/callback"},
+		Type:                    types.PublicClient,
+		RedirectURIs:            []string{"https://www.example-app.com/callback"},
 		GrantTypes:              []string{constants.AuthorizationCodeGrantType},
 		RequiresPKCE:            true,
-		Scopes:                  []string{constants.ClientReadScope, constants.ClientWriteScope},
+		Scopes:                  []types.Scope{types.OpenIDScope, types.TokenIntrospectScope},
 		ResponseTypes:           []string{constants.CodeResponseType, constants.IDTokenResponseType},
 		ApplicationType:         constants.WebApplicationType,
-		TokenEndpointAuthMethod: constants.ClientSecretBasicTokenAuth,
+		TokenEndpointAuthMethod: types.ClientSecretBasicTokenAuth,
 	}
 }
 
 func createClientUpdateRequest() *ClientUpdateRequest {
 	return &ClientUpdateRequest{
 		Name:          "Test Client",
-		Type:          Public,
-		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
+		Type:          types.PublicClient,
+		RedirectURIs:  []string{"https://www.example-app.com/callback", "myapp://callback"},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
-		Scopes:        []string{constants.ClientReadScope, constants.ClientWriteScope},
+		Scopes:        []types.Scope{types.OpenIDScope, types.TokenIntrospectScope},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }
@@ -366,11 +367,11 @@ func createClientUpdateRequest() *ClientUpdateRequest {
 func createClient() *Client {
 	return &Client{
 		Name:          "Test Client",
-		Type:          Public,
-		RedirectURIS:  []string{"https://www.example-app.com/callback", "myapp://callback"},
+		Type:          types.PublicClient,
+		RedirectURIs:  []string{"https://www.example-app.com/callback", "myapp://callback"},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 		RequiresPKCE:  true,
-		Scopes:        []string{constants.ClientReadScope, constants.ClientWriteScope},
+		Scopes:        []types.Scope{types.OpenIDScope},
 		ResponseTypes: []string{constants.CodeResponseType, constants.IDTokenResponseType},
 	}
 }

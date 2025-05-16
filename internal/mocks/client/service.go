@@ -4,6 +4,7 @@ import (
 	"context"
 
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 var _ client.ClientService = (*MockClientService)(nil)
@@ -16,7 +17,7 @@ type MockClientService struct {
 	ValidateAndRetrieveClientFunc func(ctx context.Context, clientID, registrationAccessToken string) (*client.ClientInformationResponse, error)
 	ValidateAndUpdateClientFunc   func(ctx context.Context, clientID, registrationAccessToken string, request *client.ClientUpdateRequest) (*client.ClientInformationResponse, error)
 	ValidateAndDeleteClientFunc   func(ctx context.Context, clientID, registrationAccessToken string) error
-	AuthenticateClientFunc        func(ctx context.Context, clientID string, clientSecret string, grantType string, scopes string) error
+	AuthenticateClientFunc        func(ctx context.Context, clientID string, clientSecret string, grantType string, scopes types.Scope) error
 }
 
 func (m *MockClientService) Register(ctx context.Context, newClient *client.Client) (*client.ClientRegistrationResponse, error) {
@@ -47,6 +48,6 @@ func (m *MockClientService) ValidateAndDeleteClient(ctx context.Context, clientI
 	return m.ValidateAndDeleteClientFunc(ctx, clientID, registrationAccessToken)
 }
 
-func (m *MockClientService) AuthenticateClient(ctx context.Context, clientID string, clientSecret string, grantType string, scopes string) error {
+func (m *MockClientService) AuthenticateClient(ctx context.Context, clientID string, clientSecret string, grantType string, scopes types.Scope) error {
 	return m.AuthenticateClientFunc(ctx, clientID, clientSecret, grantType, scopes)
 }

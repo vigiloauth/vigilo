@@ -11,6 +11,7 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
@@ -63,7 +64,7 @@ func ResetInMemoryUserConsentRepository() {
 //
 //	bool: True if consent exists, false otherwise.
 //	error: An error if the check fails, or nil if successful.
-func (c *InMemoryUserConsentRepository) HasConsent(ctx context.Context, userID, clientID, requestedScope string) (bool, error) {
+func (c *InMemoryUserConsentRepository) HasConsent(ctx context.Context, userID string, clientID string, requestedScope types.Scope) (bool, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -75,8 +76,8 @@ func (c *InMemoryUserConsentRepository) HasConsent(ctx context.Context, userID, 
 		return false, nil
 	}
 
-	grantedScopes := strings.Fields(record.Scope)
-	requestedScopes := strings.Fields(requestedScope)
+	grantedScopes := strings.Fields(record.Scope.String())
+	requestedScopes := strings.Fields(requestedScope.String())
 
 	for _, reqScope := range requestedScopes {
 		found := slices.Contains(grantedScopes, reqScope)
@@ -99,7 +100,7 @@ func (c *InMemoryUserConsentRepository) HasConsent(ctx context.Context, userID, 
 //
 // Returns:
 //   - error: An error if the consent cannot be saved, or nil if successful.
-func (c *InMemoryUserConsentRepository) SaveConsent(ctx context.Context, userID, clientID, scope string) error {
+func (c *InMemoryUserConsentRepository) SaveConsent(ctx context.Context, userID, clientID string, scope types.Scope) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

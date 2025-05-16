@@ -51,10 +51,11 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-max-age-1` 
 - ✅ `oidcc-max-age-10000` 
 
+- 🛠️ `oidcc-claims-essential` (name not found in response)
+
 - 🛠️ `oidcc-id-token-hint`
 - 🛠️ `oidcc-login-hint`
 - 🛠️ `oidcc-ensure-request-with-acr-values-succeeds` (An acr value was requested using acr_values, so the server 'SHOULD' return an acr claim, but it did not.)
-- 🛠️ `oidcc-claims-essential` (name not found in response)
 
 - ❌ `oidcc-ensure-post-request-succeeds` (currently does not support post for client authorization)
 - ❌ `oidcc-request-uri-unsigned-supported-correctly-or-rejected-as-unsupported` (Nonce values mismatch and no state is returned)

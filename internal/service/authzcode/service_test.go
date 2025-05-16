@@ -16,6 +16,7 @@ import (
 	mAuthzRepository "github.com/vigiloauth/vigilo/v2/internal/mocks/authzcode"
 	mClientService "github.com/vigiloauth/vigilo/v2/internal/mocks/client"
 	mUserService "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 const (
@@ -25,7 +26,6 @@ const (
 	testClientName     string = "testClient"
 	testClientID       string = "clientID"
 	testClientSecret   string = "secret"
-	testScope          string = "clients:manage"
 	testRedirectURI    string = "http://localhost/callback"
 	testCode           string = "12314324code"
 	validCodeChallenge string = "abcdEFGHijklMNOPqrstUVWX32343423142342423423423yz0123456789-_"
@@ -175,7 +175,7 @@ func TestAuthorizationCodeService_ValidatePKCE(t *testing.T) {
 		{
 			name: "Successful validation for SHA-256 encryption",
 			codeData: &authz.AuthorizationCodeData{
-				CodeChallengeMethod: authz.S256,
+				CodeChallengeMethod: types.SHA256CodeChallengeMethod,
 				CodeChallenge:       codeChallenge,
 			},
 			codeVerifier: codeVerifier,
@@ -184,7 +184,7 @@ func TestAuthorizationCodeService_ValidatePKCE(t *testing.T) {
 		{
 			name: "Successful validation for plain method",
 			codeData: &authz.AuthorizationCodeData{
-				CodeChallengeMethod: authz.Plain,
+				CodeChallengeMethod: types.PlainCodeChallengeMethod,
 				CodeChallenge:       codeVerifier,
 			},
 			codeVerifier: codeVerifier,
@@ -203,7 +203,7 @@ func TestAuthorizationCodeService_ValidatePKCE(t *testing.T) {
 		{
 			name: "Failed validation for SHA-256 encryption with invalid code verifier",
 			codeData: &authz.AuthorizationCodeData{
-				CodeChallengeMethod: authz.S256,
+				CodeChallengeMethod: types.SHA256CodeChallengeMethod,
 				CodeChallenge:       codeChallenge,
 			},
 			codeVerifier: "invalidCodeVerifier",
@@ -213,7 +213,7 @@ func TestAuthorizationCodeService_ValidatePKCE(t *testing.T) {
 		{
 			name: "Failed validation for plain method with mismatched code verifier",
 			codeData: &authz.AuthorizationCodeData{
-				CodeChallengeMethod: authz.Plain,
+				CodeChallengeMethod: types.PlainCodeChallengeMethod,
 				CodeChallenge:       codeChallenge,
 			},
 			codeVerifier: "invalidCodeVerifier",
@@ -248,40 +248,43 @@ func createTestClient() *client.Client {
 		Name:          testClientName,
 		ID:            testClientID,
 		Secret:        testClientSecret,
-		Type:          client.Confidential,
-		RedirectURIS:  []string{testRedirectURI},
-		Scopes:        []string{constants.ClientManageScope, constants.ClientReadScope, constants.ClientWriteScope},
+		Type:          types.ConfidentialClient,
+		RedirectURIs:  []string{testRedirectURI},
+		Scopes:        []types.Scope{types.OpenIDScope},
 		ResponseTypes: []string{constants.CodeResponseType, constants.TokenResponseType},
 		GrantTypes:    []string{constants.AuthorizationCodeGrantType},
 	}
 }
 
 func createAuthzCodeData() *authz.AuthorizationCodeData {
+	scopes := fmt.Sprintf("%s %s", types.OpenIDScope, types.UserAddressScope)
 	return &authz.AuthorizationCodeData{
 		UserID:      testUserID,
 		ClientID:    testClientID,
 		RedirectURI: testRedirectURI,
-		Scope:       testScope,
+		Scope:       types.Scope(scopes),
 		CreatedAt:   time.Now(),
 	}
 }
 
 func createClientAuthorizationRequest() *client.ClientAuthorizationRequest {
+	scopes := fmt.Sprintf("%s %s", types.OpenIDScope, types.UserAddressScope)
+
 	return &client.ClientAuthorizationRequest{
 		ClientID:    testClientID,
 		UserID:      testUserID,
-		Scope:       testScope,
+		Scope:       types.Scope(scopes),
 		RedirectURI: testRedirectURI,
 		Client: &client.Client{
-			Type:          client.Public,
+			Type:          types.PublicClient,
 			RequiresPKCE:  true,
 			ResponseTypes: []string{constants.CodeResponseType},
 			GrantTypes:    []string{constants.AuthorizationCodeGrantType},
-			Scopes:        []string{testScope},
-			RedirectURIS:  []string{testRedirectURI},
+			Scopes:        []types.Scope{types.OpenIDScope, types.UserAddressScope},
+			RedirectURIs:  []string{testRedirectURI},
 		},
 		ResponseType:        constants.CodeResponseType,
 		CodeChallenge:       validCodeChallenge,
-		CodeChallengeMethod: client.Plain,
+		CodeChallengeMethod: types.PlainCodeChallengeMethod,
 	}
 }

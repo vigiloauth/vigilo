@@ -26,15 +26,6 @@ func (req *UserRegistrationRequest) Validate() error {
 		errorCollection.Add(err)
 	}
 
-	if len(req.Scopes) > 0 {
-		for _, scope := range req.Scopes {
-			if _, ok := constants.SupportedScopes[scope]; !ok {
-				err := errors.New(errors.ErrCodeBadRequest, fmt.Sprintf("invalid scope '%s'", scope))
-				errorCollection.Add(err)
-			}
-		}
-	}
-
 	validateEmail(req.Email, errorCollection)
 	validatePassword(req.Password, errorCollection)
 	validatePhoneNumber(req.PhoneNumber, errorCollection)

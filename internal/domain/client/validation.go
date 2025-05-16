@@ -14,6 +14,7 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 var logger = config.GetServerConfig().Logger()
@@ -103,7 +104,7 @@ func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
 	if req.CodeChallenge != "" {
 		if req.CodeChallengeMethod == "" {
 			logger.Warn(module, "", "Code challenge method was not provided, defaulting to 'plain'")
-			req.CodeChallengeMethod = Plain
+			req.CodeChallengeMethod = types.PlainCodeChallengeMethod
 		}
 
 		if err := validateCodeChallengeMethod(req.CodeChallengeMethod); err != nil {
@@ -122,8 +123,8 @@ func ValidateClientAuthorizationRequest(req *ClientAuthorizationRequest) error {
 
 func determineClientType(req *ClientRegistrationRequest) {
 	if req.TokenEndpointAuthMethod == "" && req.ApplicationType == "" {
-		req.Type = Confidential
-		req.TokenEndpointAuthMethod = constants.ClientSecretBasicTokenAuth
+		req.Type = types.ConfidentialClient
+		req.TokenEndpointAuthMethod = types.ClientSecretBasicTokenAuth
 		req.ApplicationType = constants.WebApplicationType
 		return
 	}
@@ -131,20 +132,20 @@ func determineClientType(req *ClientRegistrationRequest) {
 	if req.TokenEndpointAuthMethod == "" {
 		switch req.ApplicationType {
 		case constants.WebApplicationType:
-			req.Type = Confidential
+			req.Type = types.ConfidentialClient
 			return
 		case constants.NativeApplicationType:
-			req.Type = Public
+			req.Type = types.PublicClient
 			return
 		}
 	}
 
 	switch req.TokenEndpointAuthMethod {
-	case constants.AuthMethodNone:
-		req.Type = Public
+	case types.NoTokenAuth:
+		req.Type = types.PublicClient
 		return
-	case constants.ClientSecretBasicTokenAuth, constants.ClientSecretPostTokenAuth:
-		req.Type = Confidential
+	case types.ClientSecretBasicTokenAuth, types.ClientSecretPostTokenAuth:
+		req.Type = types.ConfidentialClient
 		return
 	}
 }
@@ -155,7 +156,7 @@ func validateTokenEndpointAuthMethod(req *ClientRegistrationRequest) error {
 		return nil
 	}
 
-	if !constants.ValidTokenEndpointAuthMethods[req.TokenEndpointAuthMethod] {
+	if !types.SupportedTokenEndpointAuthMethods[req.TokenEndpointAuthMethod] {
 		return errors.New(
 			errors.ErrCodeInvalidClientMetadata,
 			fmt.Sprintf("invalid token endpoint auth method: %s", req.TokenEndpointAuthMethod),
@@ -192,7 +193,7 @@ func validateGrantAndResponseTypes(req *ClientRegistrationRequest) error {
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "response_types are required for authorization_code or implicit grant types")
 	}
 
-	if req.Type == Public {
+	if req.Type == types.PublicClient {
 		if contains(req.GrantTypes, constants.ClientCredentialsGrantType) {
 			logger.Warn(module, "", "Validation failed: Public client requested client_credentials grant")
 			return errors.New(errors.ErrCodeInvalidClientMetadata, "public clients cannot request the client_credentials grant")
@@ -202,7 +203,7 @@ func validateGrantAndResponseTypes(req *ClientRegistrationRequest) error {
 			return errors.New(errors.ErrCodeInvalidClientMetadata, "public clients cannot request the password grant")
 		}
 
-		if req.Type == Public && contains(req.GrantTypes, constants.AuthorizationCodeGrantType) {
+		if req.Type == types.PublicClient && contains(req.GrantTypes, constants.AuthorizationCodeGrantType) {
 			req.RequiresPKCE = true
 		}
 	}
@@ -268,7 +269,7 @@ func validateGrantType(req ClientRequest) error {
 			return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type %s is not supported", grantType))
 		}
 
-		if req.GetType() == Public {
+		if req.GetType() == types.PublicClient {
 			if grantType == constants.ClientCredentialsGrantType || grantType == constants.PasswordGrantType {
 				return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("grant type %s is not supported for public clients", grantType))
 			}
@@ -284,11 +285,11 @@ func validateGrantType(req ClientRequest) error {
 
 // validateURIS checks if redirect URIs are well-formed and secure.
 func validateURIS(req ClientRequest) error {
-	if req.GetType() == Confidential && req.HasGrantType(constants.AuthorizationCodeGrantType) && len(req.GetRedirectURIS()) == 0 {
+	if req.GetType() == types.ConfidentialClient && req.HasGrantType(constants.AuthorizationCodeGrantType) && len(req.GetRedirectURIS()) == 0 {
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "redirect URI(s) are required for confidential clients using the authorization code grant type")
 	}
 
-	if req.GetType() == Public && len(req.GetRedirectURIS()) == 0 {
+	if req.GetType() == types.PublicClient && len(req.GetRedirectURIS()) == 0 {
 		logger.Warn(module, "", "Validation failed: redirect_uris is empty for public client")
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "redirect URI(s) are required for public clients")
 	}
@@ -334,7 +335,7 @@ func validateURIS(req ClientRequest) error {
 		}
 
 		switch req.GetType() {
-		case Confidential:
+		case types.ConfidentialClient:
 			if parsedURI.Scheme != "https" {
 				logger.Warn(module, "", "Confidential client redirect URI is not using HTTPS: %s", uri)
 				return errors.New(errors.ErrCodeInvalidRedirectURI, "confidential clients must use HTTPS")
@@ -348,7 +349,7 @@ func validateURIS(req ClientRequest) error {
 				return errors.New(errors.ErrCodeInvalidRedirectURI, "fragment component not allowed")
 			}
 
-		case Public:
+		case types.PublicClient:
 			isMobileScheme := mobileSchemePattern.MatchString(uri) && parsedURI.Scheme != "http" && parsedURI.Scheme != "https"
 			if isMobileScheme {
 				if len(parsedURI.Scheme) < 4 {
@@ -372,15 +373,15 @@ func validateScopes(req ClientRequest) error {
 	}
 
 	for _, scope := range req.GetScopes() {
-		if _, ok := constants.SupportedScopes[scope]; !ok {
-			logger.Warn(module, "Unsupported scope: %s", scope)
+		if _, ok := types.SupportedScopes[scope]; !ok {
+			logger.Warn(module, "Unsupported scope: %s", scope.String())
 			return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("scope '%s' is not supported", scope))
 		}
 	}
 
-	if !contains(req.GetScopes(), constants.OpenIDScope) {
+	if !contains(req.GetScopes(), types.OpenIDScope) {
 		requestedScopes := req.GetScopes()
-		newScopes := append(requestedScopes, constants.OpenIDScope)
+		newScopes := append(requestedScopes, types.OpenIDScope)
 		req.SetScopes(newScopes)
 		logger.Info(module, "", "Adding default 'oidc' scope to client")
 	}
@@ -448,8 +449,8 @@ func validateCodeChallenge(codeChallenge string) error {
 }
 
 // validateCodeChallengeMethod makes sure the code challenge method is valid.
-func validateCodeChallengeMethod(codeChallengeMethod string) error {
-	if _, ok := ValidCodeChallengeMethods[codeChallengeMethod]; !ok {
+func validateCodeChallengeMethod(codeChallengeMethod types.CodeChallengeMethod) error {
+	if _, ok := types.SupportedCodeChallengeMethods[codeChallengeMethod]; !ok {
 		logger.Error(module, "", "Failed to validate authorization request: invalid code challenge method: %s", codeChallengeMethod)
 		return errors.New(
 			errors.ErrCodeInvalidRequest,

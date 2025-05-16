@@ -43,7 +43,7 @@ func TestAdminHandler_GetAuditEvents(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.UserRole})
+		testContext.WithUser([]string{constants.UserRole})
 		testContext.WithJWTToken(testUserID, time.Duration(2*time.Hour))
 		testContext.WithAuditEvents()
 		headers := map[string]string{"Authorization": constants.BearerAuthHeader + testContext.JWTToken}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
@@ -13,6 +12,7 @@ import (
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
@@ -226,14 +226,14 @@ func (c *authorizationCodeService) GetAuthorizationCode(ctx context.Context, cod
 //   - error: An error if the validation fails, including cases where the code verifier does not match the code challenge
 //     or if the code challenge method is unsupported. Returns nil if validation succeeds.
 func (c *authorizationCodeService) ValidatePKCE(authzCodeData *authz.AuthorizationCodeData, codeVerifier string) error {
-	if authzCodeData.CodeChallengeMethod == authz.S256 {
+	if authzCodeData.CodeChallengeMethod == types.SHA256CodeChallengeMethod {
 		hashedVerifier := crypto.EncodeSHA256(codeVerifier)
 		if hashedVerifier != authzCodeData.CodeChallenge {
 			c.logger.Error(c.module, "", "[ValidatePKCE]: The provided code challenge does not match with the code verifier.")
 			return errors.New(errors.ErrCodeInvalidGrant, "invalid code verifier")
 		}
 
-	} else if authzCodeData.CodeChallengeMethod == authz.Plain {
+	} else if authzCodeData.CodeChallengeMethod == types.PlainCodeChallengeMethod {
 		if codeVerifier != authzCodeData.CodeChallenge {
 			c.logger.Error(c.module, "", "[ValidatePKCE]: The provided code challenge does not match with the code verifier.")
 			return errors.New(errors.ErrCodeInvalidGrant, "invalid code verifier")
@@ -246,7 +246,7 @@ func (c *authorizationCodeService) ValidatePKCE(authzCodeData *authz.Authorizati
 	return nil
 }
 
-func (c authorizationCodeService) validateClientParameters(ctx context.Context, redirectURI, clientID, scopesString string) error {
+func (c authorizationCodeService) validateClientParameters(ctx context.Context, redirectURI, clientID string, scopesString types.Scope) error {
 	client, err := c.clientService.GetClientByID(ctx, clientID)
 	if err != nil {
 		c.logger.Error(c.module, "", "Failed to retrieve client: %v", err)
@@ -255,10 +255,10 @@ func (c authorizationCodeService) validateClientParameters(ctx context.Context, 
 
 	// Client registered with scopes so they must be used for this request.
 	if !client.CanRequestScopes {
-		scopes := strings.Split(scopesString, " ")
+		scopes := types.ParseScopesString(scopesString.String())
 		for _, scope := range scopes {
 			if !client.HasScope(scope) {
-				c.logger.Error(c.module, "Failed to validate client: client is missing required scope=[%s]", scope)
+				c.logger.Error(c.module, "Failed to validate client: client is missing required scope=[%s]", scope.String())
 				return errors.New(errors.ErrCodeInsufficientScope, "client is missing required scopes")
 			}
 		}

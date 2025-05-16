@@ -14,6 +14,7 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	mockClient "github.com/vigiloauth/vigilo/v2/internal/mocks/client"
 	mockToken "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 const (
@@ -31,9 +32,9 @@ func TestClientService_Register(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Success When Saving Public Client", func(t *testing.T) {
-		testClient.Type = client.Public
+		testClient.Type = types.PublicClient
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
-		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 			return testToken, nil
 		}
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
@@ -47,7 +48,7 @@ func TestClientService_Register(t *testing.T) {
 	})
 
 	t.Run("Error When Generating Client ID", func(t *testing.T) {
-		testClient.Type = client.Public
+		testClient.Type = types.PublicClient
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return true }
 
 		cs := NewClientService(mockClientStore, mockTokenService)
@@ -58,10 +59,10 @@ func TestClientService_Register(t *testing.T) {
 	})
 
 	t.Run("Success When Saving Confidential Client", func(t *testing.T) {
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
-		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 			return testToken, nil
 		}
 
@@ -74,7 +75,7 @@ func TestClientService_Register(t *testing.T) {
 	})
 
 	t.Run("Database Error When Saving Client", func(t *testing.T) {
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error {
 			return errors.New(errors.ErrCodeDuplicateClient, "client already exists with given ID")
@@ -88,10 +89,10 @@ func TestClientService_Register(t *testing.T) {
 	})
 
 	t.Run("Error is returned when generating registration access token", func(t *testing.T) {
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
-		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
 			return testToken, nil
 		}
 
@@ -110,9 +111,9 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.Secret = testClientSecret
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 		testClient.ID = testClientID
-		testClient.Scopes = append(testClient.Scopes, constants.ClientManageScope)
+		testClient.Scopes = append(testClient.Scopes, types.OpenIDScope)
 		testClient.GrantTypes = append(testClient.GrantTypes, constants.ClientCredentialsGrantType)
 
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -120,7 +121,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 		}
 
 		cs := NewClientService(mockClientStore, nil)
-		err := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
+		err := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, types.OpenIDScope)
 
 		assert.NoError(t, err)
 	})
@@ -131,7 +132,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 		}
 
 		cs := NewClientService(mockClientStore, nil)
-		err := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
+		err := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, types.OpenIDScope)
 
 		assert.Error(t, err)
 	})
@@ -140,7 +141,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 		testClient := createTestClient()
 		testClient.Secret = "client_secret_2"
 		testClient.ID = testClientID
-		testClient.Scopes = append(testClient.Scopes, constants.ClientManageScope)
+		testClient.Scopes = append(testClient.Scopes, types.OpenIDScope)
 		testClient.GrantTypes = append(testClient.GrantTypes, constants.ClientCredentialsGrantType)
 
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -148,7 +149,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 		}
 
 		cs := NewClientService(mockClientStore, nil)
-		err := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
+		err := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, types.OpenIDScope)
 
 		assert.Error(t, err)
 	})
@@ -157,9 +158,9 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 		testClient := createTestClient()
 		testClient.Secret = testClientSecret
 		testClient.ID = testClientID
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 		testClient.GrantTypes = []string{}
-		testClient.Scopes = append(testClient.Scopes, constants.ClientManageScope)
+		testClient.Scopes = append(testClient.Scopes, types.OpenIDScope)
 
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
@@ -167,27 +168,7 @@ func TestClientService_AuthenticateClient_CredentialsGrant(t *testing.T) {
 
 		cs := NewClientService(mockClientStore, nil)
 		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client authorization: client does not have the required grant type")
-		expected := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
-
-		assert.Error(t, expected)
-		assert.Equal(t, expected.Error(), actual.Error())
-	})
-
-	t.Run("Missing required scopes", func(t *testing.T) {
-		testClient := createTestClient()
-		testClient.Secret = testClientSecret
-		testClient.ID = testClientID
-		testClient.Type = client.Confidential
-		testClient.GrantTypes = append(testClient.GrantTypes, constants.ClientCredentialsGrantType)
-		testClient.Scopes = []string{constants.ClientReadScope}
-
-		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			return testClient, nil
-		}
-
-		cs := NewClientService(mockClientStore, nil)
-		actual := errors.New(errors.ErrCodeInvalidGrant, "failed to validate client authorization: client does not have the required scope(s)")
-		expected := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, constants.ClientManageScope)
+		expected := cs.AuthenticateClient(ctx, testClientID, testClientSecret, constants.ClientCredentialsGrantType, types.OpenIDScope)
 
 		assert.Error(t, expected)
 		assert.Equal(t, expected.Error(), actual.Error())
@@ -200,7 +181,7 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 
 	t.Run("Successful Client Secret Regeneration", func(t *testing.T) {
 		testClient := createTestClient()
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 		testClient.ID = testClientID
 		testClient.Secret = ""
 
@@ -237,8 +218,8 @@ func TestClientService_RegenerateClientSecret(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
 		testClient.Secret = testClientSecret
-		testClient.Type = client.Confidential
-		testClient.Scopes = []string{}
+		testClient.Type = types.ConfidentialClient
+		testClient.Scopes = []types.Scope{}
 
 		mockClientStore := &mockClient.MockClientRepository{}
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -311,7 +292,7 @@ func TestClientService_GetClientByID(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.ID, actual.ID)
-		assert.Equal(t, expected.RedirectURIS, actual.RedirectURIS)
+		assert.Equal(t, expected.RedirectURIs, actual.RedirectURIs)
 	})
 
 	t.Run("Client does not exist with the given ID", func(t *testing.T) {
@@ -335,7 +316,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 	t.Run("Success - response does not contain secret for public clients", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
-		testClient.Type = client.Public
+		testClient.Type = types.PublicClient
 
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
@@ -364,7 +345,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 	t.Run("Success - response contains secret for confidential clients", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 		testClient.Secret = testClientSecret
 
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -405,7 +386,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 	t.Run("Error is returned when the access token is invalid", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
@@ -430,7 +411,7 @@ func TestClientService_ValidateAndRetrieveClient(t *testing.T) {
 	t.Run("Error is returned when the client ID does not match the access token ID", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 
 		mockClientStore.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
@@ -511,7 +492,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 	t.Run("Error is returned when the access token is invalid", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return testClient, nil
@@ -536,7 +517,7 @@ func TestClientService_ValidateAndUpdateClient(t *testing.T) {
 	t.Run("Error is returned when client secrets do not match", func(t *testing.T) {
 		testClient := createTestClient()
 		testClient.ID = testClientID
-		testClient.Type = client.Confidential
+		testClient.Type = types.ConfidentialClient
 		testClient.Secret = testClientSecret
 
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -569,7 +550,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		testClient := createTestClient()
-		testClient.Scopes = append(testClient.Scopes, constants.ClientDeleteScope)
+		testClient.Scopes = append(testClient.Scopes, types.OpenIDScope)
 
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return createTestClient(), nil
@@ -606,7 +587,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 
 	t.Run("Error - Registration access token and client ID mismatch", func(t *testing.T) {
 		testClient := createTestClient()
-		testClient.Scopes = append(testClient.Scopes, constants.ClientDeleteScope)
+		testClient.Scopes = append(testClient.Scopes, types.OpenIDScope)
 		testClient.ID = testClientID
 
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -631,7 +612,7 @@ func TestClientService_ValidateAndDeleteClient(t *testing.T) {
 
 	t.Run("Error - Registration access token is expired", func(t *testing.T) {
 		testClient := createTestClient()
-		testClient.Scopes = append(testClient.Scopes, constants.ClientDeleteScope)
+		testClient.Scopes = append(testClient.Scopes, types.OpenIDScope)
 		testClient.ID = testClientID
 
 		mockClientRepo.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
@@ -677,7 +658,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 				req.GrantTypes = append(req.GrantTypes, constants.PasswordGrantType)
 
 				if test.IsConfidential {
-					req.Type = client.Confidential
+					req.Type = types.ConfidentialClient
 					req.Secret = testClientSecret
 				}
 
@@ -689,7 +670,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 
 				ctx := context.Background()
 				service := NewClientService(mockClientRepo, nil)
-				err := service.AuthenticateClient(ctx, req.ID, req.Secret, constants.PasswordGrantType, constants.ClientManageScope)
+				err := service.AuthenticateClient(ctx, req.ID, req.Secret, constants.PasswordGrantType, types.OpenIDScope)
 				assert.NoError(t, err, "error is not expected")
 			})
 		}
@@ -704,7 +685,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 
 		ctx := context.Background()
 		service := NewClientService(mockClientRepo, nil)
-		err := service.AuthenticateClient(ctx, testClientID, testClientSecret, constants.PasswordGrantType, constants.ClientManageScope)
+		err := service.AuthenticateClient(ctx, testClientID, testClientSecret, constants.PasswordGrantType, types.OpenIDScope)
 
 		assert.Error(t, err)
 		assert.Equal(t, "failed to retrieve client: client credentials are either missing or invalid", err.Error())
@@ -720,7 +701,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 
 		ctx := context.Background()
 		service := NewClientService(mockClientRepo, nil)
-		err := service.AuthenticateClient(ctx, req.ID, req.Secret, constants.PasswordGrantType, constants.ClientManageScope)
+		err := service.AuthenticateClient(ctx, req.ID, req.Secret, constants.PasswordGrantType, types.OpenIDScope)
 
 		assert.Error(t, err)
 		assert.Equal(t, "failed to validate client authorization: client does not have the required grant type", err.Error())
@@ -728,7 +709,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 
 	t.Run("Client secret does not match", func(t *testing.T) {
 		req := createTestClient()
-		req.Type = client.Confidential
+		req.Type = types.ConfidentialClient
 		req.Secret = testClientSecret
 
 		mockClientRepo := &mockClient.MockClientRepository{
@@ -740,7 +721,7 @@ func TestClientService_AuthenticateClient_PasswordGrant(t *testing.T) {
 		ctx := context.Background()
 		service := NewClientService(mockClientRepo, nil)
 		expectedErr := "failed to validate client authorization: the client credentials are invalid or incorrectly formatted"
-		err := service.AuthenticateClient(ctx, req.ID, "invalid_secret", constants.PasswordGrantType, constants.ClientManageScope)
+		err := service.AuthenticateClient(ctx, req.ID, "invalid_secret", constants.PasswordGrantType, types.OpenIDScope)
 
 		assert.Error(t, err)
 		assert.Equal(t, expectedErr, err.Error())
@@ -751,9 +732,9 @@ func createTestClient() *client.Client {
 	return &client.Client{
 		ID:           testClientID,
 		Name:         "Test Name",
-		RedirectURIS: []string{testRedirectURI},
+		RedirectURIs: []string{testRedirectURI},
 		GrantTypes:   []string{constants.AuthorizationCodeGrantType, constants.ClientCredentialsGrantType},
-		Scopes:       []string{constants.ClientReadScope, constants.ClientWriteScope, constants.ClientManageScope},
+		Scopes:       []types.Scope{types.OpenIDScope},
 	}
 }
 
@@ -761,8 +742,8 @@ func createClientUpdateRequest() *client.ClientUpdateRequest {
 	return &client.ClientUpdateRequest{
 		ID:           testClientID,
 		Name:         "Test Name",
-		RedirectURIS: []string{testRedirectURI},
+		RedirectURIs: []string{testRedirectURI},
 		GrantTypes:   []string{constants.AuthorizationCodeGrantType, constants.ClientCredentialsGrantType},
-		Scopes:       []string{constants.ClientReadScope, constants.ClientWriteScope, constants.ClientManageScope},
+		Scopes:       []types.Scope{types.OpenIDScope},
 	}
 }
