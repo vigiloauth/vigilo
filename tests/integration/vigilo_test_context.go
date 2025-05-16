@@ -62,7 +62,7 @@ const (
 	testClientID        string = "client-1234"
 	testUserID          string = "user-1234"
 	testClientSecret    string = "a-string-secret-at-least-256-bits-long-enough"
-	testScope           string = "clients:manage users:manage"
+	testScope           string = "openid profile address"
 	encodedTestScope    string = "client%3Amanage%20user%3Amanage"
 	testRedirectURI     string = "https://vigiloauth.com/callback"
 	testConsentApproved string = "true"
@@ -196,32 +196,17 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, _, err := tokenService.GenerateTokensWithAudience(context.Background(), id, testClientID, testScope, strings.Join(tc.User.Roles, " "))
-
-	assert.NoError(tc.T, err)
-
-	tc.JWTToken = token
-
-	return tc
-}
-
-func (tc *VigiloTestContext) WithEncryptedJWTToken(id string, duration time.Duration) *VigiloTestContext {
-	ctx := context.Background()
-	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
-	}
-
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(
-		ctx, id, testScope,
-		strings.Join(tc.User.Roles, " "), duration,
+	token, err := tokenService.GenerateAccessToken(
+		context.Background(),
+		testUserID,
+		testClientID,
+		testScope,
+		"",
+		testNonce,
 	)
-	assert.NoError(tc.T, err)
 
-	encryptedToken, err := tokenService.EncryptToken(ctx, token)
 	assert.NoError(tc.T, err)
-
-	tc.JWTToken = encryptedToken
+	tc.JWTToken = token
 
 	return tc
 }
@@ -236,25 +221,32 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	accessToken, _, err := tokenService.GenerateTokensWithAudience(
-		context.Background(), subject, audience, strings.Join(scopes, " "),
-		strings.Join(tc.User.Roles, " "),
+	accessToken, err := tokenService.GenerateAccessToken(
+		context.Background(),
+		testUserID,
+		testClientID,
+		strings.Join(scopes, " "),
+		"",
+		testNonce,
 	)
 	assert.NoError(tc.T, err)
-
-	encryptedToken, err := tokenService.EncryptToken(context.Background(), accessToken)
-	assert.NoError(tc.T, err)
-
-	tc.JWTToken = encryptedToken
+	tc.JWTToken = accessToken
 
 	return tc
 }
 
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateToken(context.Background(), id, testScope, constants.AdminRole, config.GetServerConfig().TokenConfig().RefreshTokenDuration())
-	assert.NoError(tc.T, err)
+	token, err := tokenService.GenerateAccessToken(
+		context.Background(),
+		testUserID,
+		testClientID,
+		testScope,
+		"",
+		testNonce,
+	)
 
+	assert.NoError(tc.T, err)
 	tc.JWTToken = token
 	tokenService.BlacklistToken(context.Background(), token)
 
@@ -316,10 +308,17 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 	}
 
 	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	resetToken, err := tokenService.GenerateToken(context.Background(), tc.User.Email, testScope, constants.AdminRole, duration)
-	assert.NoError(tc.T, err)
+	token, err := tokenService.GenerateAccessToken(
+		context.Background(),
+		testUserID,
+		testClientID,
+		testScope,
+		"",
+		testNonce,
+	)
 
-	return resetToken, tc
+	assert.NoError(tc.T, err)
+	return token, tc
 }
 
 // WithCustomConfig sets a custom server configuration

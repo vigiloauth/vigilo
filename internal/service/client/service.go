@@ -85,12 +85,7 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 		newClient.SecretExpiration = 0
 	}
 
-	accessToken, err := cs.tokenService.GenerateToken(
-		ctx, newClient.ID,
-		strings.Join(newClient.Scopes, " "),
-		"", config.GetServerConfig().TokenConfig().AccessTokenDuration(),
-	)
-
+	accessToken, err := cs.tokenService.GenerateAccessToken(ctx, newClient.ID, "", strings.Join(newClient.Scopes, " "), "", "")
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[Register]: Failed to generate registration access token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate the registration access token")
@@ -99,9 +94,6 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 	newClient.CreatedAt, newClient.UpdatedAt, newClient.IDIssuedAt = time.Now(), time.Now(), time.Now()
 	newClient.RegistrationClientURI = cs.buildClientConfigurationEndpoint(newClient.ID)
 	newClient.RegistrationAccessToken = accessToken
-	if newClient.IsConfidential() {
-		newClient.RegistrationAccessToken, _ = cs.tokenService.EncryptToken(ctx, accessToken)
-	}
 
 	if err := cs.clientRepo.SaveClient(ctx, newClient); err != nil {
 		cs.logger.Error(cs.module, requestID, "[Register]: Failed to save client: %v", err)
@@ -357,8 +349,7 @@ func (cs *clientService) ValidateAndDeleteClient(ctx context.Context, clientID, 
 		return err
 	}
 
-	retrievedClient, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken)
-	if err != nil {
+	if _, err := cs.validateClientAndToken(ctx, clientID, registrationAccessToken); err != nil {
 		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to validate client or registration access token: %v", err)
 		return err
 	}
@@ -368,17 +359,8 @@ func (cs *clientService) ValidateAndDeleteClient(ctx context.Context, clientID, 
 		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to delete client")
 	}
 
-	if retrievedClient.IsConfidential() {
-		registrationAccessToken, err = cs.tokenService.DecryptToken(ctx, registrationAccessToken)
-		if err != nil {
-			return err
-		}
-	}
-
-	errChan := cs.tokenService.DeleteTokenAsync(ctx, registrationAccessToken)
-	if err := <-errChan; err != nil {
-		cs.logger.Error(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to delete registration access token: %v", err)
-		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to delete registration access token")
+	if err := cs.tokenService.DeleteToken(ctx, registrationAccessToken); err != nil {
+		cs.logger.Warn(cs.module, requestID, "[ValidateAndDeleteClient]: Failed to delete registration access token: %v", err)
 	}
 
 	return nil
@@ -429,19 +411,12 @@ func (cs *clientService) validateClientAndToken(ctx context.Context, clientID, r
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeUnauthorized, "the provided client ID is invalid or does not match the registered credentials")
 	}
 
-	if retrievedClient.IsConfidential() {
-		registrationAccessToken, err = cs.tokenService.DecryptToken(ctx, registrationAccessToken)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	if err != nil {
 		cs.logger.Error(cs.module, "", "An error occurred retrieving the client by ID: %v", err)
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInternalServerError, "an internal error occurred")
 	}
 
-	tokenClaim, err := cs.tokenService.ParseAndValidateToken(ctx, registrationAccessToken)
+	tokenClaim, err := cs.tokenService.ParseToken(ctx, registrationAccessToken)
 	if err != nil {
 		return nil, cs.revokeTokenAndReturnError(ctx, registrationAccessToken, errors.ErrCodeInvalidToken, "failed to parse registration access token")
 	} else if tokenClaim.Subject != clientID {

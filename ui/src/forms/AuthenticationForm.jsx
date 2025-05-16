@@ -108,6 +108,7 @@ const AuthenticationForm = ({ policyURI }) => {
           htmlType="submit"
           block
           loading={loading}
+          disabled={loading}
         >
           Sign In
         </Button>
@@ -120,12 +121,12 @@ const AuthenticationForm = ({ policyURI }) => {
       <Form.Item className="social-buttons">
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12}>
-            <Button icon={<GoogleOutlined />} block>
+            <Button icon={<GoogleOutlined />} disabled={loading} block>
               Google
             </Button>
           </Col>
           <Col xs={24} sm={12}>
-            <Button icon={<FacebookOutlined />} block>
+            <Button icon={<FacebookOutlined />} disabled={loading} block>
               Facebook
             </Button>
           </Col>

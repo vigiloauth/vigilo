@@ -80,7 +80,3 @@ func BuildRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, 
 
 	return fmt.Sprintf("/%s?%s", endpoint, queryParams.Encode())
 }
-
-func createGenericError(err error) error {
-	return errors.New(errors.ErrCodeInternalServerError, err.Error())
-}

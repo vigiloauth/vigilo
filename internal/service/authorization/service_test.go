@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
@@ -497,10 +498,13 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
-				return testAccessToken, testRefreshToken, nil
+			GenerateAccessTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+				return "accessToken", nil
 			},
-			GenerateIDTokenFunc: func(ctx context.Context, userID, clientID, scopes, nonce string) (string, error) {
+			GenerateRefreshTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+				return "refreshToken", nil
+			},
+			GenerateIDTokenFunc: func(ctx context.Context, userID, clientID, scopes, nonce string, authTime time.Time) (string, error) {
 				return "idToken", nil
 			},
 		}
@@ -520,8 +524,8 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 
 	t.Run("Error is returned generating access token", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateTokensWithAudienceFunc: func(ctx context.Context, userID, clientID, scopes, roles string) (string, string, error) {
-				return "", "", errors.NewInternalServerError()
+			GenerateAccessTokenFunc: func(ctx context.Context, subject, audience, scopes, roles, nonce string) (string, error) {
+				return "", errors.NewInternalServerError()
 			},
 		}
 

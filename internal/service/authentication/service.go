@@ -61,37 +61,23 @@ func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context,
 		return nil, errors.Wrap(err, "", "failed to authenticate client")
 	}
 
-	client, err := s.clientService.GetClientByID(ctx, clientID)
+	accessToken, err := s.tokenService.GenerateAccessToken(ctx, "", clientID, scopes, "", "")
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: Failed to retrieve client: %v", err)
-		return nil, errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client")
-	}
-
-	refreshToken, accessToken, err := s.tokenService.GenerateRefreshAndAccessTokens(ctx, clientID, scopes, "")
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: An error occurred generating tokens: %v", err)
+		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: An error occurred generating an access token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to issue tokens")
 	}
 
-	if client.IsConfidential() {
-		accessToken, err = s.tokenService.EncryptToken(ctx, accessToken)
-		if err != nil {
-			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt access token: %v", err)
-			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt access token")
-		}
-
-		refreshToken, err = s.tokenService.EncryptToken(ctx, refreshToken)
-		if err != nil {
-			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt refresh token: %v", err)
-			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt refresh token")
-		}
+	refreshToken, err := s.tokenService.GenerateAccessToken(ctx, "", clientID, scopes, "", "")
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: An error occurred generating a refresh token: %v", err)
+		return nil, errors.Wrap(err, "", "failed to issue tokens")
 	}
 
 	return &token.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    constants.BearerAuthHeader,
+		TokenType:    token.BearerToken,
 		Scope:        scopes,
 	}, nil
 }
@@ -122,44 +108,24 @@ func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, cli
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to authenticate user")
 	}
 
-	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(
-		ctx,
-		loginResponse.UserID,
-		clientID,
-		scopes,
-		strings.Join(loginResponse.Roles, " "),
-	)
-
+	userRoles := strings.Join(loginResponse.Roles, " ")
+	accessToken, err := s.tokenService.GenerateAccessToken(ctx, loginResponse.UserID, clientID, scopes, userRoles, "")
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to generate token pair: %v", err)
+		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to generate an access token: %v", err)
 		return nil, err
 	}
 
-	client, err := s.clientService.GetClientByID(ctx, clientID)
+	refreshToken, err := s.tokenService.GenerateAccessToken(ctx, loginResponse.UserID, clientID, scopes, userRoles, "")
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to retrieve client: %v", err)
-		return nil, errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client")
-	}
-
-	if client.IsConfidential() {
-		accessToken, err = s.tokenService.EncryptToken(ctx, accessToken)
-		if err != nil {
-			s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to encrypt access token: %v", err)
-			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt access token")
-		}
-
-		refreshToken, err = s.tokenService.EncryptToken(ctx, refreshToken)
-		if err != nil {
-			s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to encrypt refresh token: %v", err)
-			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt refresh token")
-		}
+		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to generate a refresh token: %v", err)
+		return nil, err
 	}
 
 	return &token.TokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration().Seconds()),
-		TokenType:    constants.BearerAuthHeader,
+		TokenType:    token.BearerToken,
 		Scope:        scopes,
 	}, nil
 }
@@ -181,24 +147,19 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 	requestID := utils.GetRequestID(ctx)
 	if err := s.clientService.AuthenticateClient(ctx, clientID, clientSecret, grantType, scopes); err != nil {
 		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to authenticate client: %v", err)
+		s.blacklistToken(ctx, refreshToken)
 		return nil, err
 	}
 
 	if err := s.validateRefreshTokenAndMatchClient(ctx, clientID, refreshToken); err != nil {
 		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Error validating refresh token: %v", err)
-		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
-			s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist refresh token: %v", err)
-		}
-
+		s.blacklistToken(ctx, refreshToken)
 		return nil, err
 	}
 
 	tokenData, err := s.tokenService.GetTokenData(ctx, refreshToken)
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to retrieve token data")
-		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
-			s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist old refresh token: %v", err)
-		}
+		s.blacklistToken(ctx, refreshToken)
 		return nil, err
 	}
 
@@ -216,44 +177,20 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 	}
 
 	userID := tokenData.Claims.Subject
-	newAccessToken, newRefreshToken, err := s.tokenService.GenerateTokensWithAudience(ctx, userID, clientID, scopes, "")
+	newAccessToken, err := s.tokenService.GenerateAccessToken(ctx, userID, clientID, scopes, "", "")
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to generate new tokens: %v", err)
-		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
-			s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist old refresh token: %v", err)
-		}
-
+		s.blacklistToken(ctx, refreshToken)
 		return nil, errors.Wrap(err, "", "failed to generate new tokens")
 	}
 
-	client, err := s.clientService.GetClientByID(ctx, clientID)
+	newRefreshToken, err := s.tokenService.GenerateRefreshToken(ctx, userID, clientID, scopes, "", "")
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[RefreshAccessToken]: Failed to retrieve client: %v", err)
-		if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
-			s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist old refresh token: %v", err)
-		}
-		return nil, errors.New(errors.ErrCodeInvalidClient, "failed to retrieve client")
-	}
-
-	if client.IsConfidential() {
-		s.logger.Debug(s.module, requestID, "[RefreshAccessToken]: Client is confidential, encrypting tokens")
-		newAccessToken, err = s.tokenService.EncryptToken(ctx, newAccessToken)
-		if err != nil {
-			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt access token: %v", err)
-			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt access token")
-		}
-
-		newRefreshToken, err = s.tokenService.EncryptToken(ctx, newRefreshToken)
-		if err != nil {
-			s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to encrypt refresh token: %v", err)
-			return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to encrypt refresh token")
-		}
+		s.blacklistToken(ctx, refreshToken)
+		return nil, errors.Wrap(err, "", "failed to generate new tokens")
 	}
 
 	s.logger.Debug(s.module, requestID, "[RefreshAccessToken]: Attempting to blacklist old refresh token")
-	if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
-		s.logger.Warn(s.module, requestID, "[RefreshAccessToken] Failed to blacklist old refresh token: %v", err)
-	}
+	s.blacklistToken(ctx, refreshToken)
 
 	return &token.TokenResponse{
 		AccessToken:  newAccessToken,
@@ -282,20 +219,14 @@ func (s *authenticationService) IntrospectToken(ctx context.Context, tokenStr st
 		return &token.TokenIntrospectionResponse{Active: false}
 	}
 
-	claims, err := s.tokenService.ParseAndValidateToken(ctx, tokenStr)
+	claims, err := s.tokenService.ParseToken(ctx, tokenStr)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IntrospectToken]: Failed to parse token: %v", err)
 		return &token.TokenIntrospectionResponse{Active: false}
 	}
 
 	response := token.NewTokenIntrospectionResponse(claims)
-	isBlacklisted, err := s.tokenService.IsTokenBlacklisted(ctx, tokenStr)
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[IntrospectToken]: Failed to check if token is blacklisted: %v", err)
-		return &token.TokenIntrospectionResponse{Active: false}
-	}
-
-	if isBlacklisted || s.tokenService.IsTokenExpired(tokenStr) {
+	if err := s.tokenService.ValidateToken(ctx, tokenStr); err != nil {
 		s.logger.Debug(s.module, requestID, "[IntrospectToken]: Token is either blacklisted or expired... Setting active to false")
 		response.Active = false
 	} else {
@@ -356,7 +287,7 @@ func (s *authenticationService) RevokeToken(ctx context.Context, tokenStr string
 		return
 	}
 
-	if _, err := s.tokenService.ParseAndValidateToken(ctx, tokenStr); err != nil {
+	if _, err := s.tokenService.ParseToken(ctx, tokenStr); err != nil {
 		s.logger.Error(s.module, requestID, "[RevokeToken]: Failed to parse token: %v", err)
 		if err := s.tokenService.BlacklistToken(ctx, tokenStr); err != nil {
 			s.logger.Error(s.module, requestID, "[RevokeToken]: Failed to blacklist token: %v", err)
@@ -375,7 +306,7 @@ func (s *authenticationService) validateRefreshTokenAndMatchClient(ctx context.C
 		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to validate refresh token")
 	}
 
-	claims, err := s.tokenService.ParseAndValidateToken(ctx, refreshToken)
+	claims, err := s.tokenService.ParseToken(ctx, refreshToken)
 	if err != nil {
 		return errors.New(errors.ErrCodeInvalidGrant, "failed to parse refresh token")
 	}
@@ -434,7 +365,7 @@ func (s *authenticationService) authenticateWithBearerToken(ctx context.Context,
 		return errors.Wrap(err, "", "failed to validate bearer token")
 	}
 
-	claims, err := s.tokenService.ParseAndValidateToken(ctx, bearerToken)
+	claims, err := s.tokenService.ParseToken(ctx, bearerToken)
 	if err != nil {
 		return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
 	}
@@ -445,4 +376,10 @@ func (s *authenticationService) authenticateWithBearerToken(ctx context.Context,
 	}
 
 	return nil
+}
+
+func (s *authenticationService) blacklistToken(ctx context.Context, token string) {
+	if err := s.tokenService.BlacklistToken(ctx, token); err != nil {
+		s.logger.Warn(s.module, utils.GetRequestID(ctx), "[RefreshAccessToken]: Failed to blacklist token: %v", err)
+	}
 }

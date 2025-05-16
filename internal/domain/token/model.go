@@ -48,9 +48,10 @@ type TokenRequest struct {
 }
 
 type TokenClaims struct {
-	Scopes string `json:"scopes,omitempty"`
-	Roles  string `json:"roles,omitempty"`
-	Nonce  string `json:"nonce,omitempty"`
+	Scopes   string `json:"scopes,omitempty"`
+	Roles    string `json:"roles,omitempty"`
+	Nonce    string `json:"nonce,omitempty"`
+	AuthTime int64  `json:"auth_time,omitempty"`
 	*jwt.StandardClaims
 }
 

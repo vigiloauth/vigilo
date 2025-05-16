@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
@@ -22,10 +21,7 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	mockTokenService := &mocks.MockTokenService{}
 	tokenString := "validToken"
 
-	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
-		return tokenString, nil
-	}
-	mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+	mockTokenService.ParseTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 		return &token.TokenClaims{
 			StandardClaims: &jwt.StandardClaims{
 				Subject: email,
@@ -53,13 +49,9 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 
 func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 	mockTokenService := &mocks.MockTokenService{}
-
 	tokenString := "blacklistedToken"
 
-	mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject, scopes, roles string, expirationTime time.Duration) (string, error) {
-		return tokenString, nil
-	}
-	mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+	mockTokenService.ParseTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 		return &token.TokenClaims{
 			StandardClaims: &jwt.StandardClaims{
 				Subject: email,
@@ -91,7 +83,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	mockTokenService.ValidateTokenFunc = func(ctx context.Context, tokenString string) error {
 		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
 	}
-	mockTokenService.ParseAndValidateTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+	mockTokenService.ParseTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 		return nil, errors.New(errors.ErrCodeInvalidToken, "invalid-token")
 	}
 

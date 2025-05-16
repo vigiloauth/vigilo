@@ -232,6 +232,7 @@ export default function ConsentForm({ policyURI }) {
               type="primary"
               block
               loading={loading}
+              disabled={loading}
               onClick={() => handleConsent({ approved: true })}
               className="consent-button approve-button"
             >

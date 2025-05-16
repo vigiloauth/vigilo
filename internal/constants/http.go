@@ -4,7 +4,7 @@ package constants
 const (
 	AuthorizationHeader       string = "Authorization"                     // Header for authorization credentials
 	BasicAuthHeader           string = "Basic "                            // Prefix for Basic Authentication
-	BearerAuthHeader          string = "Bearer "                           // Prefix for Bearer Authentication
+	BearerAuthHeader          string = "bearer "                           // Prefix for Bearer Authentication
 	CacheControlHeader        string = "Cache-Control"                     // Header for cache control directives
 	RequestIDHeader           string = "X-Request-ID"                      // Header for tracking unique request IDs
 	SessionTokenHeader        string = "vigilo-auth-session-token"         // Header for Vigilo session tokens
@@ -44,4 +44,5 @@ const (
 	PasswordReqField            string = "password"              // Field for the password (used in password grant)
 	DisplayReqField             string = "display"               // Field for the display query
 	PromptReqField              string = "prompt"
+	MaxAgeReqField              string = "max_age"
 )

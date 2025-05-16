@@ -47,7 +47,13 @@ func ExtractBearerToken(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	return strings.TrimPrefix(authHeader, constants.BearerAuthHeader), nil
+	lowercaseHeader := strings.ToLower(authHeader)
+	if !strings.HasPrefix(lowercaseHeader, "bearer ") {
+		err := errors.New(errors.ErrCodeInvalidFormat, "authorization header must start with Bearer")
+		return "", err
+	}
+
+	return authHeader[7:], nil
 }
 
 // SetNoStoreHeader sets the Cache-Control header of an HTTP response to "no-store".

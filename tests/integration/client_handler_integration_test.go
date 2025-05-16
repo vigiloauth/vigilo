@@ -318,7 +318,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 			[]string{constants.ClientManageScope},
 			[]string{constants.ClientCredentialsGrantType},
 		)
-		testContext.WithEncryptedJWTToken("invalid-ID", 1*time.Hour)
+		testContext.WithJWTToken("invalid-ID", 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
@@ -341,7 +341,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 			request.GetScopes(),
 			request.GetGrantTypes(),
 		)
-		testContext.WithEncryptedJWTToken(testClientID, 1*time.Hour)
+		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
@@ -446,7 +446,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 			request.GetScopes(),
 			request.GetGrantTypes(),
 		)
-		testContext.WithEncryptedJWTToken(testClientID, 1*time.Hour)
+		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
@@ -475,7 +475,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 			request.GetScopes(),
 			request.GetGrantTypes(),
 		)
-		testContext.WithEncryptedJWTToken("invalid-id", 1*time.Hour)
+		testContext.WithJWTToken("invalid-id", 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
@@ -502,7 +502,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 			request.GetScopes(),
 			request.GetGrantTypes(),
 		)
-		testContext.WithEncryptedJWTToken(testClientID, -1*time.Hour)
+		testContext.WithJWTToken(testClientID, -1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
@@ -529,7 +529,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 			request.GetScopes(),
 			request.GetGrantTypes(),
 		)
-		testContext.WithEncryptedJWTToken(testClientID, 1*time.Hour)
+		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, "invalid-client-id")
@@ -557,7 +557,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 			request.GetScopes(),
 			request.GetGrantTypes(),
 		)
-		testContext.WithEncryptedJWTToken(testClientID, 1*time.Hour)
+		testContext.WithJWTToken(testClientID, 1*time.Hour)
 		defer testContext.TearDown()
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)

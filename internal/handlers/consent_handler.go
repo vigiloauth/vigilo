@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
@@ -126,6 +127,7 @@ func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	response.RedirectURI = h.buildOAuthRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, display, response.Approved)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
@@ -150,4 +152,29 @@ func (h *ConsentHandler) buildLoginURL(clientID, redirectURI, scope, responseTyp
 	}
 
 	return "/authenticate?" + queryParams.Encode()
+}
+
+func (h *ConsentHandler) buildOAuthRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, display string, approved bool) string {
+	queryParams := url.Values{}
+	queryParams.Add(constants.ClientIDReqField, clientID)
+	queryParams.Add(constants.RedirectURIReqField, redirectURI)
+	queryParams.Add(constants.ConsentApprovedURLValue, strconv.FormatBool(approved))
+
+	if state != "" {
+		queryParams.Add(constants.StateReqField, state)
+	}
+	if scope != "" {
+		queryParams.Add(constants.ScopeReqField, scope)
+	}
+	if responseType != "" {
+		queryParams.Add(constants.ResponseTypeReqField, responseType)
+	}
+	if nonce != "" {
+		queryParams.Add(constants.NonceReqField, nonce)
+	}
+	if display != "" {
+		queryParams.Add(constants.DisplayReqField, display)
+	}
+
+	return "/identity" + web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
 }

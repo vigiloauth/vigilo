@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -109,7 +111,7 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 
 	request.UserID = userID
 	request.Client = client
-
+	request.UserAuthenticationTime = s.getUserAuthenticationTime(requestID, request.HTTPRequest)
 	if s.shouldRejectMissingConsent(ctx, request, isAuthenticated) {
 		return s.buildConsentRequiredErrorURL(request), nil
 	}
@@ -185,27 +187,24 @@ func (s *authorizationService) AuthorizeTokenExchange(ctx context.Context, token
 //   - error: An error if token generation fails.
 func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
 	requestID := utils.GetRequestID(ctx)
-	s.logger.Info(s.module, requestID, "[GenerateTokens] Start token generation. UserID: %s, ClientID: %s",
-		utils.TruncateSensitive(authCodeData.UserID),
-		utils.TruncateSensitive(authCodeData.ClientID),
-	)
 
-	accessToken, refreshToken, err := s.tokenService.GenerateTokensWithAudience(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "")
+	accessToken, err := s.tokenService.GenerateAccessToken(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "", authCodeData.Nonce)
 	if err != nil {
-		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate tokens: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate tokens")
+		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate access token: %v", err)
+		return nil, errors.NewInternalServerError()
 	}
-	s.logger.Debug(s.module, requestID, "[GenerateTokens] Successfully generated Access token (%s) and Refresh token (%s)",
-		utils.TruncateSensitive(accessToken),
-		utils.TruncateSensitive(refreshToken),
-	)
 
-	idToken, err := s.tokenService.GenerateIDToken(ctx, authCodeData.UserID, authCodeData.ClientID, "", authCodeData.Nonce)
+	refreshToken, err := s.tokenService.GenerateRefreshToken(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "", authCodeData.Nonce)
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate refresh token: %v", err)
+		return nil, errors.NewInternalServerError()
+	}
+
+	idToken, err := s.tokenService.GenerateIDToken(ctx, authCodeData.UserID, authCodeData.ClientID, "", authCodeData.Nonce, authCodeData.UserAuthenticationTime)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate ID token: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate ID token")
+		return nil, errors.NewInternalServerError()
 	}
-	s.logger.Debug(s.module, requestID, "[GenerateTokens] Successfully generated ID token: %s", utils.TruncateSensitive(idToken))
 
 	response := &token.TokenResponse{
 		AccessToken:  accessToken,
@@ -388,6 +387,20 @@ func (s *authorizationService) isUserAuthenticated(requestID string, r *http.Req
 	return userID, true
 }
 
+func (s *authorizationService) getUserAuthenticationTime(requestID string, r *http.Request) time.Time {
+	sessionData, err := s.sessionService.GetSessionData(r)
+	if err != nil {
+		s.logger.Warn(s.module, requestID, "[getUserAuthenticationTime]: Failed to get session data: %v", err)
+		return time.Time{}
+	}
+
+	if sessionData.AuthenticationTime.IsZero() {
+		return time.Time{}
+	}
+
+	return sessionData.AuthenticationTime.UTC()
+}
+
 func (s *authorizationService) hasPreConfiguredConsent(ctx context.Context, request *client.ClientAuthorizationRequest) bool {
 	requestID := utils.GetRequestID(ctx)
 	hasConsent, err := s.userConsentService.CheckUserConsent(ctx, request.UserID, request.ClientID, request.Scope)
@@ -414,7 +427,40 @@ func (s *authorizationService) buildRedirectURL(redirectURI, code, state, nonce 
 }
 
 func (s *authorizationService) shouldForceLogin(request *client.ClientAuthorizationRequest) bool {
-	return request.Prompt == constants.PromptLogin
+	if request.Prompt == constants.PromptLogin {
+		return true
+	}
+
+	maxAge := request.MaxAge
+	if maxAge != "" {
+		if maxAge == "0" {
+			return true
+		}
+
+		maxAgeSeconds, err := strconv.ParseInt(maxAge, 10, 64)
+		if err != nil {
+			s.logger.Warn(s.module, "", "Failed to parse max_age: %v", err)
+			return true
+		}
+
+		sessionData, err := s.sessionService.GetSessionData(request.HTTPRequest)
+		if err != nil {
+			return true
+		}
+
+		var secondsSinceLastLogin float64
+		if sessionData == nil {
+			secondsSinceLastLogin = 0
+		} else {
+			secondsSinceLastLogin = time.Since(sessionData.AuthenticationTime).Seconds()
+		}
+
+		if secondsSinceLastLogin > float64(maxAgeSeconds) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *authorizationService) buildLoginRedirect(clientID string, request *client.ClientAuthorizationRequest) string {
