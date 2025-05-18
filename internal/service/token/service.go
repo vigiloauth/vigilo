@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/jwt"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
@@ -18,6 +19,7 @@ import (
 var _ token.TokenService = (*tokenService)(nil)
 
 type tokenService struct {
+	jwtService           domain.JWTService
 	tokenRepo            token.TokenRepository
 	privateKey           *rsa.PrivateKey
 	publicKey            *rsa.PublicKey
@@ -37,9 +39,10 @@ type tokenService struct {
 //
 // Returns:
 //   - *TokenService: A new TokenService instance.
-func NewTokenService(tokenRepo token.TokenRepository) token.TokenService {
+func NewTokenService(tokenRepo token.TokenRepository, jwtService domain.JWTService) token.TokenService {
 	return &tokenService{
 		tokenRepo:            tokenRepo,
+		jwtService:           jwtService,
 		privateKey:           config.GetServerConfig().TokenConfig().SecretKey(),
 		publicKey:            config.GetServerConfig().TokenConfig().PublicKey(),
 		keyID:                config.GetServerConfig().TokenConfig().KeyID(),
@@ -51,52 +54,42 @@ func NewTokenService(tokenRepo token.TokenRepository) token.TokenService {
 	}
 }
 
-// GenerateAccessToken generates an access token for the given subject and expiration time.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - subject string: The subject of the token (e.g., user email).
-//   - scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
-//   - roles string: The roles to be added to the token (can be an empty string if none are needed).
-//   - expirationTime time.Duration: The duration for which the token is valid.
-//
-// Returns:
-//   - string: The generated JWT token string.
-//   - error: An error if token generation fails.
-func (ts *tokenService) GenerateAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
-	requestID := utils.GetRequestID(ctx)
-
-	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.accessTokenDuration, time.Time{})
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[GenerateAccessToken]: Failed to generate access token claims: %v", err)
-		return "", errors.NewInternalServerError()
-	}
-
-	return token, nil
-}
-
 // GenerateToken generates a refresh token for the given subject and expiration time.
 //
 // Parameters:
 //   - ctx Context: The context for managing timeouts and cancellations.
 //   - subject string: The subject of the token (e.g., user email).
-//   - scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
+//   - audience string: The audience of the token (e.g., client ID).
+//   - scopes types.Scope: The scopes to be added to the token (can be an empty string if none are needed)..
 //   - roles string: The roles to be added to the token (can be an empty string if none are needed).
-//   - expirationTime time.Duration: The duration for which the token is valid.
+//   - nonce string: A random string used to prevent replay attacks provided by the client.
+//   - tokenType types.TokenType: The type of token to create (BearerTokenType or AccessTokenType).
 //
 // Returns:
 //   - string: The generated JWT token string.
 //   - error: An error if token generation fails.
-func (ts *tokenService) GenerateRefreshToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+func (ts *tokenService) GenerateToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.refreshTokenDuration, time.Time{})
-	if err != nil {
-		ts.logger.Error(ts.module, requestID, "[GenerateAccessToken]: Failed to generate refresh token claims: %v", err)
+	switch tokenType {
+	case types.AccessTokenType:
+		accessToken, err := ts.generateAccessToken(ctx, subject, audience, scopes, roles, nonce)
+		if err != nil {
+			ts.logger.Error(ts.module, requestID, "[GenerateToken]: Failed to generate access token: %v", err)
+			return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
+		}
+		return accessToken, nil
+	case types.RefreshTokenType:
+		refreshToken, err := ts.generateRefreshToken(ctx, subject, audience, scopes, roles, nonce)
+		if err != nil {
+			ts.logger.Error(ts.module, requestID, "[GenerateToken]: Failed to generate access token: %v", err)
+			return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
+		}
+		return refreshToken, nil
+	default:
+		ts.logger.Error(ts.module, requestID, "[GenerateToken]: Unsupported token type provided: %s", tokenType)
 		return "", errors.NewInternalServerError()
 	}
-
-	return token, nil
 }
 
 // GenerateIDToken creates an ID token for the specified user and client.
@@ -147,7 +140,7 @@ func (ts *tokenService) GenerateIDToken(ctx context.Context, userID string, clie
 func (ts *tokenService) ParseToken(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	claims, err := ts.parseToken(tokenString)
+	claims, err := ts.jwtService.ParseWithClaims(ctx, tokenString)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[ParseToken]: Failed to parse token: %v", err)
 		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to parse token")
@@ -217,7 +210,7 @@ func (ts *tokenService) DeleteToken(ctx context.Context, token string) error {
 	err := ts.tokenRepo.DeleteToken(ctx, hashedToken)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[DeleteToken]: An error occurred deleting a token: %v", err)
-		return errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred deleting the given token")
+		return errors.Wrap(err, "", "an error occurred deleting the given token")
 	}
 
 	return nil
@@ -234,7 +227,7 @@ func (ts *tokenService) DeleteToken(ctx context.Context, token string) error {
 func (ts *tokenService) ValidateToken(ctx context.Context, token string) error {
 	requestID := utils.GetRequestID(ctx)
 
-	if ts.isTokenExpired(token) {
+	if ts.isTokenExpired(ctx, token) {
 		ts.logger.Warn(ts.module, "[ValidateToken]: Token=[%s] is expired", utils.TruncateSensitive(token))
 		return errors.New(errors.ErrCodeExpiredToken, "the token is expired")
 	}
@@ -275,37 +268,40 @@ func (ts *tokenService) DeleteExpiredTokens(ctx context.Context) error {
 	return nil
 }
 
-func (ts *tokenService) parseToken(tokenString string) (*token.TokenClaims, error) {
-	tokenClaims, err := jwt.ParseWithClaims(tokenString, &token.TokenClaims{}, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, errors.New(errors.ErrCodeTokenParsing, "unexpected signing method")
-		}
-		return ts.publicKey, nil
-	})
+func (ts *tokenService) generateAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+	requestID := utils.GetRequestID(ctx)
 
+	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.accessTokenDuration, time.Time{})
 	if err != nil {
-		return nil, errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse JWT with claims")
+		ts.logger.Error(ts.module, requestID, "[GenerateAccessToken]: Failed to generate access token claims: %v", err)
+		return "", errors.NewInternalServerError()
 	}
 
-	if claims, ok := tokenClaims.Claims.(*token.TokenClaims); ok && tokenClaims.Valid {
-		return claims, nil
-	}
-
-	return nil, errors.New(errors.ErrCodeInvalidToken, "provided token is invalid")
+	return token, nil
 }
 
-func (ts *tokenService) isTokenExpired(token string) bool {
-	claims, err := ts.ParseToken(context.TODO(), token)
+func (ts *tokenService) generateRefreshToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+	requestID := utils.GetRequestID(ctx)
+
+	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.refreshTokenDuration, time.Time{})
 	if err != nil {
-		ts.logger.Warn(ts.module, "", "[IsTokenExpired]: Token=[%s] is expired", utils.TruncateSensitive(token))
-		return true
+		ts.logger.Error(ts.module, requestID, "[GenerateAccessToken]: Failed to generate refresh token claims: %v", err)
+		return "", errors.NewInternalServerError()
 	}
-	if claims == nil {
-		ts.logger.Warn(ts.module, "", "[IsTokenExpired]: Token=[%s] is expired", utils.TruncateSensitive(token))
+
+	return token, nil
+}
+
+func (ts *tokenService) isTokenExpired(ctx context.Context, token string) bool {
+	requestID := utils.GetRequestID(ctx)
+
+	claims, err := ts.jwtService.ParseWithClaims(ctx, token)
+	if err != nil || claims == nil {
+		ts.logger.Warn(ts.module, requestID, "[isTokenExpired]: Token=[%s] is expired", utils.TruncateSensitive(token))
 		return true
 	}
 
-	return time.Now().Unix() > claims.ExpiresAt
+	return time.Now().Unix() > claims.StandardClaims.ExpiresAt
 }
 
 func (ts *tokenService) isTokenBlacklisted(ctx context.Context, token string) (bool, error) {
@@ -315,7 +311,7 @@ func (ts *tokenService) isTokenBlacklisted(ctx context.Context, token string) (b
 	isBlacklisted, err := ts.tokenRepo.IsTokenBlacklisted(ctx, hashedToken)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[IsTokenBlacklisted]: An error occurred searching for the token: %v", err)
-		return false, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred searching for the token")
+		return true, errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred searching for the token")
 	}
 
 	return isBlacklisted, nil

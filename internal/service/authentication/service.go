@@ -62,13 +62,13 @@ func (s *authenticationService) IssueClientCredentialsToken(ctx context.Context,
 		return nil, errors.Wrap(err, "", "failed to authenticate client")
 	}
 
-	accessToken, err := s.tokenService.GenerateAccessToken(ctx, "", clientID, scopes, "", "")
+	accessToken, err := s.tokenService.GenerateToken(ctx, "", clientID, scopes, "", "", types.AccessTokenType)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: An error occurred generating an access token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to issue tokens")
 	}
 
-	refreshToken, err := s.tokenService.GenerateAccessToken(ctx, "", clientID, scopes, "", "")
+	refreshToken, err := s.tokenService.GenerateToken(ctx, "", clientID, scopes, "", "", types.RefreshTokenType)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: An error occurred generating a refresh token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to issue tokens")
@@ -110,13 +110,13 @@ func (s *authenticationService) IssueResourceOwnerToken(ctx context.Context, cli
 	}
 
 	userRoles := strings.Join(loginResponse.Roles, " ")
-	accessToken, err := s.tokenService.GenerateAccessToken(ctx, loginResponse.UserID, clientID, scopes, userRoles, "")
+	accessToken, err := s.tokenService.GenerateToken(ctx, loginResponse.UserID, clientID, scopes, userRoles, "", types.AccessTokenType)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to generate an access token: %v", err)
 		return nil, err
 	}
 
-	refreshToken, err := s.tokenService.GenerateAccessToken(ctx, loginResponse.UserID, clientID, scopes, userRoles, "")
+	refreshToken, err := s.tokenService.GenerateToken(ctx, loginResponse.UserID, clientID, scopes, userRoles, "", types.RefreshTokenType)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to generate a refresh token: %v", err)
 		return nil, err
@@ -178,13 +178,13 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 	}
 
 	userID := tokenData.Claims.Subject
-	newAccessToken, err := s.tokenService.GenerateAccessToken(ctx, userID, clientID, scopes, "", "")
+	newAccessToken, err := s.tokenService.GenerateToken(ctx, userID, clientID, scopes, "", "", types.AccessTokenType)
 	if err != nil {
 		s.blacklistToken(ctx, refreshToken)
 		return nil, errors.Wrap(err, "", "failed to generate new tokens")
 	}
 
-	newRefreshToken, err := s.tokenService.GenerateRefreshToken(ctx, userID, clientID, scopes, "", "")
+	newRefreshToken, err := s.tokenService.GenerateToken(ctx, userID, clientID, scopes, "", "", types.RefreshTokenType)
 	if err != nil {
 		s.blacklistToken(ctx, refreshToken)
 		return nil, errors.Wrap(err, "", "failed to generate new tokens")
@@ -363,7 +363,7 @@ func (s *authenticationService) authenticateWithBearerToken(ctx context.Context,
 		return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
 	}
 
-	clientID := claims.Subject
+	clientID := claims.Audience
 	if err := s.clientService.AuthenticateClient(ctx, clientID, "", "", scope); err != nil {
 		return err
 	}

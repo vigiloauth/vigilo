@@ -34,7 +34,7 @@ func TestClientService_Register(t *testing.T) {
 	t.Run("Success When Saving Public Client", func(t *testing.T) {
 		testClient.Type = types.PublicClient
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
-		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+		mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
 			return testToken, nil
 		}
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
@@ -62,7 +62,7 @@ func TestClientService_Register(t *testing.T) {
 		testClient.Type = types.ConfidentialClient
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
-		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+		mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
 			return testToken, nil
 		}
 
@@ -92,7 +92,7 @@ func TestClientService_Register(t *testing.T) {
 		testClient.Type = types.ConfidentialClient
 		mockClientStore.IsExistingIDFunc = func(ctx context.Context, clientID string) bool { return false }
 		mockClientStore.SaveClientFunc = func(ctx context.Context, client *client.Client) error { return nil }
-		mockTokenService.GenerateAccessTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+		mockTokenService.GenerateTokenFunc = func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
 			return testToken, nil
 		}
 

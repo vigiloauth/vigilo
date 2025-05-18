@@ -497,11 +497,8 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 			},
 		}
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateAccessTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+			GenerateTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
 				return "accessToken", nil
-			},
-			GenerateRefreshTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
-				return "refreshToken", nil
 			},
 			GenerateIDTokenFunc: func(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
 				return "idToken", nil
@@ -523,7 +520,7 @@ func TestAuthorizationService_GenerateTokens(t *testing.T) {
 
 	t.Run("Error is returned generating access token", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GenerateAccessTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+			GenerateTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
 				return "", errors.NewInternalServerError()
 			},
 		}

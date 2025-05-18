@@ -60,8 +60,8 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 
 	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req)
 	if err != nil {
-		if errors.Code(err) == errors.ErrCodeInvalidRedirectURI {
-			web.RenderErrorPage(w, r, errors.Code(err), req.RedirectURI)
+		if errors.ErrorCode(err) == errors.ErrCodeInvalidRedirectURI {
+			web.RenderErrorPage(w, r, errors.ErrorCode(err), req.RedirectURI)
 			return
 		}
 

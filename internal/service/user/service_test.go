@@ -50,7 +50,7 @@ func TestUserService_CreateUser_Success(t *testing.T) {
 		},
 	}
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateAccessTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+		GenerateTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
 			return testToken, nil
 		},
 	}
@@ -190,7 +190,7 @@ func TestUserService_SuccessfulUserAuthentication(t *testing.T) {
 		},
 	}
 	mockTokenService := &mTokenService.MockTokenService{
-		GenerateAccessTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+		GenerateTokenFunc: func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
 			return testToken, nil
 		},
 	}

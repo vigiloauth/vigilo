@@ -9,33 +9,21 @@ import (
 
 // TokenService defines the interface for managing JWT tokens.
 type TokenService interface {
-	// GenerateAccessToken generates an access token for the given subject and expiration time.
-	//
-	// Parameters:
-	//   - ctx Context: The context for managing timeouts and cancellations.
-	//   - subject string: The subject of the token (e.g., user email).
-	//   - scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
-	//   - roles string: The roles to be added to the token (can be an empty string if none are needed).
-	//   - expirationTime time.Duration: The duration for which the token is valid.
-	//
-	// Returns:
-	//   - string: The generated JWT token string.
-	//   - error: An error if token generation fails.
-	GenerateAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error)
-
 	// GenerateToken generates a refresh token for the given subject and expiration time.
 	//
 	// Parameters:
 	//   - ctx Context: The context for managing timeouts and cancellations.
 	//   - subject string: The subject of the token (e.g., user email).
-	//   - scopes string: The scopes to be added to the token (can be an empty string if none are needed)..
+	//   - audience string: The audience of the token (e.g., client ID).
+	// 	 - scopes types.Scope: The scopes to be added to the token (can be an empty string if none are needed)..
 	//   - roles string: The roles to be added to the token (can be an empty string if none are needed).
-	//   - expirationTime time.Duration: The duration for which the token is valid.
+	//   - nonce string: A random string used to prevent replay attacks provided by the client.
+	//	 - tokenType types.TokenType: The type of token to create (BearerTokenType or AccessTokenType).
 	//
 	// Returns:
 	//   - string: The generated JWT token string.
 	//   - error: An error if token generation fails.
-	GenerateRefreshToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error)
+	GenerateToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error)
 
 	// GenerateIDToken creates an ID token for the specified user and client.
 	//

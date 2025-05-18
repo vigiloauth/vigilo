@@ -187,13 +187,13 @@ func (s *authorizationService) AuthorizeTokenExchange(ctx context.Context, token
 func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	accessToken, err := s.tokenService.GenerateAccessToken(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "", authCodeData.Nonce)
+	accessToken, err := s.tokenService.GenerateToken(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "", authCodeData.Nonce, types.AccessTokenType)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate access token: %v", err)
 		return nil, errors.NewInternalServerError()
 	}
 
-	refreshToken, err := s.tokenService.GenerateRefreshToken(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "", authCodeData.Nonce)
+	refreshToken, err := s.tokenService.GenerateToken(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "", authCodeData.Nonce, types.RefreshTokenType)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate refresh token: %v", err)
 		return nil, errors.NewInternalServerError()

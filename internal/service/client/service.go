@@ -87,7 +87,7 @@ func (cs *clientService) Register(ctx context.Context, newClient *client.Client)
 	}
 
 	requestedScopes := types.CombineScopes(newClient.Scopes...)
-	accessToken, err := cs.tokenService.GenerateAccessToken(ctx, newClient.ID, "", requestedScopes, "", "")
+	accessToken, err := cs.tokenService.GenerateToken(ctx, newClient.ID, "", requestedScopes, "", "", types.AccessTokenType)
 	if err != nil {
 		cs.logger.Error(cs.module, requestID, "[Register]: Failed to generate registration access token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate the registration access token")

@@ -159,8 +159,8 @@ func (e *VigiloAuthError) Unwrap() error {
 	return e.WrappedErr
 }
 
-// Code extracts the error code from a VigiloAuthError
-func Code(err error) string {
+// ErrorCode extracts the error code from a VigiloAuthError
+func ErrorCode(err error) string {
 	if err == nil {
 		return ""
 	}
@@ -172,6 +172,23 @@ func Code(err error) string {
 	var vigiloErr *VigiloAuthError
 	if errors.As(err, &vigiloErr) {
 		return vigiloErr.ErrorCode
+	}
+
+	return ""
+}
+
+func SystemErrorCode(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	if vigiloErr, ok := err.(*VigiloAuthError); ok {
+		return vigiloErr.SystemCode
+	}
+
+	var vigiloErr *VigiloAuthError
+	if errors.As(err, &vigiloErr) {
+		return vigiloErr.SystemCode
 	}
 
 	return ""

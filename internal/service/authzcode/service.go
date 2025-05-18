@@ -247,9 +247,11 @@ func (c *authorizationCodeService) ValidatePKCE(authzCodeData *authz.Authorizati
 }
 
 func (c authorizationCodeService) validateClientParameters(ctx context.Context, redirectURI, clientID string, scopesString types.Scope) error {
+	requestID := utils.GetRequestID(ctx)
+
 	client, err := c.clientService.GetClientByID(ctx, clientID)
 	if err != nil {
-		c.logger.Error(c.module, "", "Failed to retrieve client: %v", err)
+		c.logger.Error(c.module, requestID, "Failed to retrieve client: %v", err)
 		return errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 
@@ -258,7 +260,7 @@ func (c authorizationCodeService) validateClientParameters(ctx context.Context, 
 		scopes := types.ParseScopesString(scopesString.String())
 		for _, scope := range scopes {
 			if !client.HasScope(scope) {
-				c.logger.Error(c.module, "Failed to validate client: client is missing required scope=[%s]", scope.String())
+				c.logger.Error(c.module, requestID, "Failed to validate client: client is missing required scope=[%s]", scope.String())
 				return errors.New(errors.ErrCodeInsufficientScope, "client is missing required scopes")
 			}
 		}

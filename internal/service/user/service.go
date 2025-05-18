@@ -14,6 +14,7 @@ import (
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
@@ -75,7 +76,7 @@ func (u *userService) CreateUser(ctx context.Context, user *users.User) (*users.
 	}
 
 	roles := strings.Join(user.Roles, " ")
-	accessToken, err := u.tokenService.GenerateAccessToken(ctx, user.Email, user.ID, "", roles, "")
+	accessToken, err := u.tokenService.GenerateToken(ctx, user.Email, user.ID, "", roles, "", types.AccessTokenType)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[CreateUser]: Failed to generate a session token: %v", err)
 		return nil, errors.Wrap(err, "", "failed to generate session token")
@@ -215,14 +216,10 @@ func (u *userService) ValidateVerificationCode(ctx context.Context, verification
 		return errors.NewInternalServerError()
 	}
 
-	user, err := u.userRepo.GetUserByEmail(ctx, claims.Subject)
+	user, err := u.userRepo.GetUserByID(ctx, claims.Subject)
 	if err != nil {
-		u.logger.Error(u.module, requestID, "[ValidateVerificationCode]: An error occurred retrieving the user by username: %v", err)
-		return errors.Wrap(err, errors.ErrCodeInternalServerError, "an error occurred retrieving the user")
-	}
-
-	if user == nil {
-		return errors.New(errors.ErrCodeUnauthorized, "the verification code is invalid")
+		u.logger.Error(u.module, requestID, "[ValidateVerificationCode]: An error occurred retrieving the user by ID: %v", err)
+		return errors.Wrap(err, errors.ErrCodeUnauthorized, "the verification code is invalid")
 	}
 
 	if user.EmailVerified {
@@ -383,7 +380,7 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	}
 
 	roles := strings.Join(retrievedUser.Roles, " ")
-	accessToken, err := u.tokenService.GenerateAccessToken(ctx, retrievedUser.Email, retrievedUser.ID, "", roles, "")
+	accessToken, err := u.tokenService.GenerateToken(ctx, retrievedUser.Email, retrievedUser.ID, "", roles, "", types.AccessTokenType)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "Failed to generate access token for user=[%s]: %v", utils.TruncateSensitive(retrievedUser.ID), err)
 		return nil, errors.NewInternalServerError()
@@ -484,10 +481,11 @@ func (u *userService) saveUser(ctx context.Context, user *users.User) error {
 func (u *userService) sendVerificationEmail(ctx context.Context, user *users.User) error {
 	requestID := utils.GetRequestID(ctx)
 
-	verificationCode, err := u.tokenService.GenerateRefreshToken(
+	verificationCode, err := u.tokenService.GenerateToken(
 		ctx, user.Email,
 		user.ID, "",
-		strings.Join(user.Roles, " "), "",
+		strings.Join(user.Roles, " "),
+		"", types.RefreshTokenType,
 	)
 
 	if err != nil {

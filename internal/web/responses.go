@@ -33,7 +33,7 @@ func WriteError(w http.ResponseWriter, err error) {
 		}
 		WriteJSON(w, http.StatusBadRequest, err)
 	} else {
-		WriteJSON(w, errors.HTTPStatusCodeMap[errors.Code(err)], err)
+		WriteJSON(w, errors.HTTPStatusCodeMap[errors.ErrorCode(err)], err)
 	}
 }
 

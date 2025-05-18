@@ -9,6 +9,7 @@ import (
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	cookie "github.com/vigiloauth/vigilo/v2/internal/domain/cookies"
 	email "github.com/vigiloauth/vigilo/v2/internal/domain/email"
+	jwt "github.com/vigiloauth/vigilo/v2/internal/domain/jwt"
 	login "github.com/vigiloauth/vigilo/v2/internal/domain/login"
 	oidc "github.com/vigiloauth/vigilo/v2/internal/domain/oidc"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
@@ -23,6 +24,7 @@ import (
 	clientService "github.com/vigiloauth/vigilo/v2/internal/service/client"
 	cookieService "github.com/vigiloauth/vigilo/v2/internal/service/cookies"
 	emailService "github.com/vigiloauth/vigilo/v2/internal/service/email"
+	jwtService "github.com/vigiloauth/vigilo/v2/internal/service/jwt"
 	loginService "github.com/vigiloauth/vigilo/v2/internal/service/login"
 	oidcService "github.com/vigiloauth/vigilo/v2/internal/service/oidc"
 	sessionService "github.com/vigiloauth/vigilo/v2/internal/service/session"
@@ -47,6 +49,7 @@ type ServiceRegistry struct {
 	goMailerService      LazyInit[email.Mailer]
 	auditLogger          LazyInit[audit.AuditLogger]
 	oidcService          LazyInit[oidc.OIDCService]
+	jwtService           LazyInit[jwt.JWTService]
 
 	logger *config.Logger
 	module string
@@ -69,6 +72,7 @@ func NewServiceRegistry(dbRegistry *RepositoryRegistry, logger *config.Logger) *
 
 func (sr *ServiceRegistry) initServices() {
 	sr.initTokenService()
+	sr.initJWTService()
 	sr.initSessionService()
 	sr.initUserService()
 	sr.initClientService()
@@ -87,7 +91,19 @@ func (sr *ServiceRegistry) initTokenService() {
 	sr.logger.Debug(sr.module, "", "Initializing Token Service")
 	sr.tokenService = LazyInit[token.TokenService]{
 		initFunc: func() token.TokenService {
-			return tokenService.NewTokenService(sr.db.TokenRepository())
+			return tokenService.NewTokenService(
+				sr.db.TokenRepository(),
+				sr.JWTService(),
+			)
+		},
+	}
+}
+
+func (sr *ServiceRegistry) initJWTService() {
+	sr.logger.Debug(sr.module, "", "Initializing JWT Service")
+	sr.jwtService = LazyInit[jwt.JWTService]{
+		initFunc: func() jwt.JWTService {
+			return jwtService.NewJWTService()
 		},
 	}
 }
@@ -285,6 +301,11 @@ func (sr *ServiceRegistry) AuthorizationService() authz.AuthorizationService {
 func (sr *ServiceRegistry) HTTPCookieService() cookie.HTTPCookieService {
 	sr.logger.Debug(sr.module, "", "Getting HTTP Cookie Service")
 	return sr.httpCookieService.Get()
+}
+
+func (sr *ServiceRegistry) JWTService() jwt.JWTService {
+	sr.logger.Debug(sr.module, "", "Getting JWT Service")
+	return sr.jwtService.Get()
 }
 
 func (sr *ServiceRegistry) AuthenticationService() auth.AuthenticationService {
