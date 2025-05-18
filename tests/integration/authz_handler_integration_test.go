@@ -20,7 +20,7 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	}{
 		{
 			name:   "Success when client registered with scopes",
-			scopes: []types.Scope{types.TokenIntrospectScope},
+			scopes: []types.Scope{types.OpenIDScope, types.UserProfileScope, types.UserAddressScope},
 		},
 		{
 			name:   "Success when client didn't register with scopes",
@@ -156,7 +156,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 		nil, headers,
 	)
 
-	assert.Equal(t, http.StatusFound, rr.Code)
+	assert.Equal(t, http.StatusForbidden, rr.Code)
 }
 
 func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {

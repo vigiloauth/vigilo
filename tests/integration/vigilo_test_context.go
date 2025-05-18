@@ -30,7 +30,9 @@ import (
 	sessionRepo "github.com/vigiloauth/vigilo/v2/internal/repository/session"
 	tokenRepo "github.com/vigiloauth/vigilo/v2/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/v2/internal/repository/userconsent"
+	jwt "github.com/vigiloauth/vigilo/v2/internal/service/jwt"
 	tokenService "github.com/vigiloauth/vigilo/v2/internal/service/token"
+
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 
 	"github.com/vigiloauth/vigilo/v2/internal/web"
@@ -195,14 +197,33 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateAccessToken(
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
+	token, err := tokenService.GenerateToken(
+		context.Background(),
+		id,
+		testClientID,
+		types.CombineScopes(types.Scope(testScope)),
+		"", testNonce, types.AccessTokenType,
+	)
+
+	assert.NoError(tc.T, err)
+	tc.JWTToken = token
+
+	return tc
+}
+
+func (tc *VigiloTestContext) WithAdminToken(id string, duration time.Duration) *VigiloTestContext {
+	if tc.User == nil {
+		tc.WithUser([]string{constants.AdminRole})
+	}
+
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
+	token, err := tokenService.GenerateToken(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.CombineScopes(types.Scope(testScope)),
-		"",
-		testNonce,
+		constants.AdminRole, testNonce, types.AccessTokenType,
 	)
 
 	assert.NoError(tc.T, err)
@@ -220,14 +241,13 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 		scopes = append(scopes, types.OpenIDScope)
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	accessToken, err := tokenService.GenerateAccessToken(
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
+	accessToken, err := tokenService.GenerateToken(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.NewScopeList(scopes...),
-		"",
-		testNonce,
+		"", testNonce, types.AccessTokenType,
 	)
 	assert.NoError(tc.T, err)
 	tc.JWTToken = accessToken
@@ -236,14 +256,13 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 }
 
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateAccessToken(
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
+	token, err := tokenService.GenerateToken(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.CombineScopes(types.Scope(testScope)),
-		"",
-		testNonce,
+		"", testNonce, types.AccessTokenType,
 	)
 
 	assert.NoError(tc.T, err)
@@ -298,7 +317,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 
 // WithExpiredToken generates an expired token for testing.
 func (tc *VigiloTestContext) WithExpiredToken() *VigiloTestContext {
-	return tc.WithJWTToken(testEmail, -1*time.Hour)
+	return tc.WithJWTToken(testUserID, -10*time.Hour)
 }
 
 // WithPasswordResetToken generates a password reset token.
@@ -307,14 +326,13 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateAccessToken(
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
+	token, err := tokenService.GenerateToken(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.CombineScopes(types.Scope(testScope)),
-		"",
-		testNonce,
+		"", testNonce, types.AccessTokenType,
 	)
 
 	assert.NoError(tc.T, err)

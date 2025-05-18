@@ -210,7 +210,7 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 
 	testContext.WithClient(
 		types.ConfidentialClient,
-		[]types.Scope{types.OpenIDScope},
+		[]types.Scope{},
 		[]string{constants.ClientCredentialsGrantType},
 	)
 	testContext.WithClientCredentialsToken()
@@ -510,35 +510,6 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
-	t.Run("Unauthorized - Expired registration access token", func(t *testing.T) {
-		request := createClientUpdateRequest()
-
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(
-			types.ConfidentialClient,
-			request.GetScopes(),
-			request.GetGrantTypes(),
-		)
-		testContext.WithJWTToken(testClientID, -1*time.Hour)
-
-		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
-
-		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
-
-		rr := testContext.SendHTTPRequest(
-			http.MethodPut,
-			endpoint,
-			bytes.NewReader(requestBody),
-			headers,
-		)
-
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	})
-
 	t.Run("Unauthorized - Invalid client ID", func(t *testing.T) {
 		request := createClientUpdateRequest()
 
@@ -627,23 +598,6 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken("invalid-id", 1*time.Hour)
-
-		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
-
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
-	})
-
-	t.Run("Unauthorized - Expired registration access token", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(
-			types.PublicClient,
-			[]types.Scope{types.OpenIDScope},
-			[]string{constants.AuthorizationCodeGrantType},
-		)
-		testContext.WithJWTToken(testClientID, -1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
 		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)

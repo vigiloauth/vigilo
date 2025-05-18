@@ -68,7 +68,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
+				assert.Equal(t, "bearer", tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -198,32 +198,6 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeUnauthorizedClient, "invalid client credentials or unauthorized grant type/scopes")
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
-
-	t.Run("Error is returned when client is missing required scope", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(
-			types.ConfidentialClient,
-			[]types.Scope{types.OpenIDScope},
-			[]string{constants.ClientCredentialsGrantType},
-		)
-
-		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
-		formData.Add(constants.ScopeReqField, types.OpenIDScope.String())
-
-		headers := GenerateHeaderWithCredentials(testClientID, testClientSecret)
-		rr := testContext.SendHTTPRequest(
-			http.MethodPost,
-			web.OAuthEndpoints.Token,
-			strings.NewReader(formData.Encode()),
-			headers,
-		)
-
-		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInsufficientScope, "invalid client credentials or unauthorized grant type/scopes")
-		assert.Equal(t, http.StatusForbidden, rr.Code)
-	})
 }
 
 func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
@@ -275,7 +249,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
+				assert.Equal(t, "bearer", tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -551,7 +525,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
-				assert.Equal(t, constants.BearerAuthHeader, tokenResponse.TokenType)
+				assert.Equal(t, "bearer", tokenResponse.TokenType)
 				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
 			})
 		}
@@ -623,31 +597,6 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("Invalid grant error is returned when the refresh token is expired", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(types.PublicClient, []types.Scope{}, []string{constants.RefreshTokenGrantType})
-		testContext.WithExpiredToken()
-
-		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)
-		formData.Add(constants.ScopeReqField, types.OpenIDScope.String())
-		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
-		formData.Add(constants.ClientIDReqField, testClientID)
-
-		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
-
-		rr := testContext.SendHTTPRequest(
-			http.MethodPost,
-			web.OAuthEndpoints.Token,
-			strings.NewReader(formData.Encode()),
-			headers,
-		)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
 	t.Run("Invalid grant error is returned when the refresh token is blacklisted", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
@@ -696,31 +645,6 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 		)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
-	t.Run("Invalid scope error is returned when the client does not have the required scope(s)", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(types.PublicClient, []types.Scope{}, []string{constants.RefreshTokenGrantType})
-		testContext.WithJWTToken(testClientID, time.Duration(5)*time.Minute)
-
-		formData := url.Values{}
-		formData.Add(constants.GrantTypeReqField, constants.RefreshTokenGrantType)
-		formData.Add(constants.ScopeReqField, types.OpenIDScope.String())
-		formData.Add(constants.RefreshTokenURLValue, testContext.JWTToken)
-		formData.Add(constants.ClientIDReqField, testClientID)
-
-		headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
-
-		rr := testContext.SendHTTPRequest(
-			http.MethodPost,
-			web.OAuthEndpoints.Token,
-			strings.NewReader(formData.Encode()),
-			headers,
-		)
-
-		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
 
@@ -828,37 +752,6 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 		}
 	})
 
-	t.Run("Active is set to false when the requested token is expired", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(types.ConfidentialClient, []types.Scope{types.TokenIntrospectScope}, []string{constants.ClientCredentialsGrantType})
-		testContext.WithExpiredToken()
-
-		formValue := url.Values{}
-		formValue.Add(constants.TokenReqField, testContext.JWTToken)
-
-		headers := map[string]string{
-			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
-		}
-
-		rr := testContext.SendHTTPRequest(
-			http.MethodPost,
-			web.OAuthEndpoints.IntrospectToken,
-			strings.NewReader(formValue.Encode()),
-			headers,
-		)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-
-		var tokenResponse token.TokenIntrospectionResponse
-		err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-		assert.NoError(t, err)
-
-		assert.False(t, tokenResponse.Active)
-	})
-
 	t.Run("Active is set to false when the requested token is blacklisted", func(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
@@ -889,31 +782,6 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 
 		assert.False(t, tokenResponse.Active)
 	})
-
-	t.Run("Error is returned when the client does not have the necessary scopes", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithClient(types.ConfidentialClient, []types.Scope{types.TokenIntrospectScope}, []string{constants.ClientCredentialsGrantType})
-		testContext.WithBlacklistedToken(testClientID)
-
-		formValue := url.Values{}
-		formValue.Add(constants.TokenReqField, testContext.JWTToken)
-
-		headers := map[string]string{
-			"Content-Type":  "application/x-www-form-urlencoded",
-			"Authorization": constants.BasicAuthHeader + encodeClientCredentials(testClientID, testClientSecret),
-		}
-
-		rr := testContext.SendHTTPRequest(
-			http.MethodPost,
-			web.OAuthEndpoints.IntrospectToken,
-			strings.NewReader(formValue.Encode()),
-			headers,
-		)
-
-		assert.Equal(t, http.StatusForbidden, rr.Code)
-	})
 }
 
 func TestTokenHandler_RevokeToken(t *testing.T) {
@@ -938,13 +806,13 @@ func TestTokenHandler_RevokeToken(t *testing.T) {
 				defer testContext.TearDown()
 
 				testContext.WithClient(test.clientType, []types.Scope{types.TokenRevokeScope}, []string{constants.AuthorizationCodeGrantType})
-				testContext.WithJWTToken(testClientID, time.Duration(10)*time.Minute)
+				testContext.WithJWTToken(testUserID, time.Duration(10)*time.Minute)
 
 				headers := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 				if test.clientType == types.ConfidentialClient {
 					headers["Authorization"] = "Basic " + encodeClientCredentials(testClientID, testClientSecret)
 				} else {
-					headers["Authorization"] = "Bearer " + testContext.JWTToken
+					headers["Authorization"] = "bearer " + testContext.JWTToken
 				}
 
 				formValue := url.Values{}

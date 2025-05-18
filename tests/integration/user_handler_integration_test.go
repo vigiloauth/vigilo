@@ -82,7 +82,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 
 		loginRequest := users.UserLoginRequest{
 			Username: testUsername,
-			Password: testPassword1,
+			Password: "invalid-password",
 		}
 
 		requestBody, err := json.Marshal(loginRequest)
@@ -153,7 +153,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.UserEndpoints.Logout, nil, nil)
 
-		assert.Equal(t, http.StatusUnauthorized, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
 
@@ -163,7 +163,8 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		defer testContext.TearDown()
 
 		tokenDuration := 5 * time.Minute
-		testContext.WithJWTToken(testEmail, time.Duration(tokenDuration))
+		testContext.WithUser([]string{constants.AdminRole})
+		testContext.WithJWTToken(testUserID, time.Duration(tokenDuration))
 
 		endpoint := web.UserEndpoints.Verify + "?token=" + testContext.JWTToken
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
@@ -198,8 +199,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		testContext := NewVigiloTestContext(t)
 		defer testContext.TearDown()
 
-		tokenDuration := -5 * time.Minute
-		testContext.WithJWTToken(testEmail, time.Duration(tokenDuration))
+		testContext.WithExpiredToken()
 
 		endpoint := web.UserEndpoints.Verify + "?token=" + testContext.JWTToken
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
