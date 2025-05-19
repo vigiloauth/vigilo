@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	claims "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/jwt"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -68,12 +69,20 @@ func NewTokenService(tokenRepo token.TokenRepository, jwtService domain.JWTServi
 // Returns:
 //   - string: The generated JWT token string.
 //   - error: An error if token generation fails.
-func (ts *tokenService) GenerateToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {
+func (ts *tokenService) GenerateToken(
+	ctx context.Context,
+	subject string,
+	audience string,
+	scopes types.Scope,
+	roles string,
+	nonce string,
+	tokenType types.TokenType,
+) (string, error) {
 	requestID := utils.GetRequestID(ctx)
 
 	switch tokenType {
 	case types.AccessTokenType:
-		accessToken, err := ts.generateAccessToken(ctx, subject, audience, scopes, roles, nonce)
+		accessToken, err := ts.generateAccessToken(ctx, subject, audience, scopes, roles, nonce, nil)
 		if err != nil {
 			ts.logger.Error(ts.module, requestID, "[GenerateToken]: Failed to generate access token: %v", err)
 			return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
@@ -90,6 +99,27 @@ func (ts *tokenService) GenerateToken(ctx context.Context, subject string, audie
 		ts.logger.Error(ts.module, requestID, "[GenerateToken]: Unsupported token type provided: %s", tokenType)
 		return "", errors.NewInternalServerError()
 	}
+}
+
+func (ts *tokenService) GenerateAccessTokenWithClaims(
+	ctx context.Context,
+	subject string,
+	audience string,
+	scopes types.Scope,
+	roles string,
+	nonce string,
+	tokenType types.TokenType,
+	claims *claims.ClaimsRequest,
+) (string, error) {
+	requestID := utils.GetRequestID(ctx)
+
+	accessToken, err := ts.generateAccessToken(ctx, subject, audience, scopes, roles, nonce, claims)
+	if err != nil {
+		ts.logger.Error(ts.module, requestID, "[GenerateTokenWithClaims]: Failed to generate access token: %v", err)
+		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate token")
+	}
+
+	return accessToken, nil
 }
 
 // GenerateIDToken creates an ID token for the specified user and client.
@@ -109,10 +139,17 @@ func (ts *tokenService) GenerateToken(ctx context.Context, subject string, audie
 // Returns:
 //   - string: The signed ID token as a JWT string.
 //   - error: An error if token generation fails.
-func (ts *tokenService) GenerateIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
+func (ts *tokenService) GenerateIDToken(
+	ctx context.Context,
+	userID string,
+	clientID string,
+	scopes types.Scope,
+	nonce string,
+	authTime time.Time,
+) (string, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	idToken, err := ts.generateAndStoreToken(ctx, userID, clientID, scopes, "", nonce, ts.refreshTokenDuration, authTime)
+	idToken, err := ts.generateAndStoreToken(ctx, userID, clientID, scopes, "", nonce, ts.refreshTokenDuration, authTime, nil)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[GenerateIDToken]: Failed to generate ID token: %v", err)
 		return "", errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to generate ID token")
@@ -121,11 +158,7 @@ func (ts *tokenService) GenerateIDToken(ctx context.Context, userID string, clie
 	return idToken, nil
 }
 
-// ParseToken parses and validates a JWT token string, handling both encrypted and non-encrypted tokens.
-//
-// This function first attempts to parse the token directly. If parsing succeeds, the token is considered
-// valid and non-encrypted. If parsing fails, the function attempts to decrypt the token first and then
-// parse the decrypted token.
+// ParseToken parses and validate the structure of a JWT token string.
 //
 // Parameters:
 //   - ctx ctx.Context: Context for the request, containing the request ID for logging.
@@ -134,9 +167,6 @@ func (ts *tokenService) GenerateIDToken(ctx context.Context, userID string, clie
 // Returns:
 //   - *token.TokenClaims: The parsed token claims if successful.
 //   - error: An error if token parsing, decryption, or validation fails.
-//
-// The function first tries to parse the token directly using ts.ParseToken. If this fails, it assumes
-// the token is encrypted and attempts to decrypt it using ts.DecryptToken before parsing it again.
 func (ts *tokenService) ParseToken(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
 	requestID := utils.GetRequestID(ctx)
 
@@ -268,10 +298,28 @@ func (ts *tokenService) DeleteExpiredTokens(ctx context.Context) error {
 	return nil
 }
 
-func (ts *tokenService) generateAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+func (ts *tokenService) generateAccessToken(
+	ctx context.Context,
+	subject string,
+	audience string,
+	scopes types.Scope,
+	roles string,
+	nonce string,
+	claims *claims.ClaimsRequest,
+) (string, error) {
 	requestID := utils.GetRequestID(ctx)
+	token, err := ts.generateAndStoreToken(
+		ctx,
+		subject,
+		audience,
+		scopes,
+		roles,
+		nonce,
+		ts.accessTokenDuration,
+		time.Time{},
+		claims,
+	)
 
-	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.accessTokenDuration, time.Time{})
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[GenerateAccessToken]: Failed to generate access token claims: %v", err)
 		return "", errors.NewInternalServerError()
@@ -280,10 +328,26 @@ func (ts *tokenService) generateAccessToken(ctx context.Context, subject string,
 	return token, nil
 }
 
-func (ts *tokenService) generateRefreshToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+func (ts *tokenService) generateRefreshToken(
+	ctx context.Context,
+	subject string,
+	audience string,
+	scopes types.Scope,
+	roles string,
+	nonce string,
+) (string, error) {
 	requestID := utils.GetRequestID(ctx)
+	token, err := ts.generateAndStoreToken(
+		ctx,
+		subject,
+		audience,
+		scopes,
+		roles,
+		nonce,
+		ts.refreshTokenDuration,
+		time.Time{}, nil,
+	)
 
-	token, err := ts.generateAndStoreToken(ctx, subject, audience, scopes, roles, nonce, ts.refreshTokenDuration, time.Time{})
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[GenerateAccessToken]: Failed to generate refresh token claims: %v", err)
 		return "", errors.NewInternalServerError()
@@ -317,12 +381,32 @@ func (ts *tokenService) isTokenBlacklisted(ctx context.Context, token string) (b
 	return isBlacklisted, nil
 }
 
-func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, duration time.Duration, authTime time.Time) (string, error) {
+func (ts *tokenService) generateAndStoreToken(
+	ctx context.Context,
+	subject string,
+	audience string,
+	scopes types.Scope,
+	roles string,
+	nonce string,
+	duration time.Duration,
+	authTime time.Time,
+	claims *claims.ClaimsRequest,
+) (string, error) {
 	const maxRetries = 5
 
 	var lastErr error
 	for i := range maxRetries {
-		signedToken, err := ts.attemptTokenGeneration(ctx, subject, audience, scopes, roles, nonce, duration, authTime)
+		signedToken, err := ts.attemptTokenGeneration(
+			ctx, subject,
+			audience,
+			scopes,
+			roles,
+			nonce,
+			duration,
+			authTime,
+			claims,
+		)
+
 		if err == nil {
 			ts.logger.Info(ts.module, "", "Successfully generated token after %d retries", i)
 			return signedToken, nil
@@ -334,14 +418,34 @@ func (ts *tokenService) generateAndStoreToken(ctx context.Context, subject strin
 	return "", errors.Wrap(lastErr, errors.ErrCodeInternalServerError, "failed to generate token after maximum retries")
 }
 
-func (ts *tokenService) attemptTokenGeneration(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, duration time.Duration, authTime time.Time) (string, error) {
+func (ts *tokenService) attemptTokenGeneration(
+	ctx context.Context,
+	subject string,
+	audience string,
+	scopes types.Scope,
+	roles string,
+	nonce string,
+	duration time.Duration,
+	authTime time.Time,
+	claims *claims.ClaimsRequest,
+) (string, error) {
 	tokenExpiration := time.Now().Add(duration)
-	claims, err := ts.generateStandardClaims(ctx, subject, audience, scopes, roles, nonce, tokenExpiration.Unix(), authTime)
+	standardClaims, err := ts.generateStandardClaims(
+		ctx, subject,
+		audience,
+		scopes,
+		roles,
+		nonce,
+		tokenExpiration.Unix(),
+		authTime,
+		claims,
+	)
+
 	if err != nil {
 		return "", err
 	}
 
-	jwtClaims := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	jwtClaims := jwt.NewWithClaims(jwt.SigningMethodRS256, standardClaims)
 	jwtClaims.Header["kid"] = ts.keyID
 
 	signedToken, err := jwtClaims.SignedString(ts.privateKey)
@@ -351,18 +455,28 @@ func (ts *tokenService) attemptTokenGeneration(ctx context.Context, subject stri
 
 	hashedToken := crypto.EncodeSHA256(signedToken)
 	tokenData := &token.TokenData{
-		Token:     hashedToken,
-		ID:        subject,
-		ExpiresAt: tokenExpiration,
-		TokenID:   ts.keyID,
-		Claims:    claims,
+		Token:       hashedToken,
+		ID:          subject,
+		ExpiresAt:   tokenExpiration,
+		TokenID:     ts.keyID,
+		TokenClaims: standardClaims,
 	}
 
 	return signedToken, ts.tokenRepo.SaveToken(ctx, hashedToken, subject, tokenData, tokenExpiration)
 }
 
-func (ts *tokenService) generateStandardClaims(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenExpiration int64, authTime time.Time) (*token.TokenClaims, error) {
-	claims := &token.TokenClaims{
+func (ts *tokenService) generateStandardClaims(
+	ctx context.Context,
+	subject string,
+	audience string,
+	scopes types.Scope,
+	roles string,
+	nonce string,
+	tokenExpiration int64,
+	authTime time.Time,
+	claims *claims.ClaimsRequest,
+) (*token.TokenClaims, error) {
+	tokenClaims := &token.TokenClaims{
 		StandardClaims: &jwt.StandardClaims{
 			Subject:   subject,
 			Issuer:    ts.issuer,
@@ -387,21 +501,24 @@ func (ts *tokenService) generateStandardClaims(ctx context.Context, subject stri
 		ts.logger.Warn(ts.module, requestID, "Failed to generate standard claims. Token already exists.")
 		return nil, errors.New(errors.ErrCodeInternalServerError, "token ID already exists")
 	} else {
-		claims.Id = tokenID
+		tokenClaims.Id = tokenID
 	}
 
 	if audience != "" {
-		claims.StandardClaims.Audience = audience
+		tokenClaims.StandardClaims.Audience = audience
 	}
 	if nonce != "" {
-		claims.Nonce = nonce
+		tokenClaims.Nonce = nonce
 	}
 	if !authTime.IsZero() {
-		claims.AuthTime = authTime.Unix()
+		tokenClaims.AuthTime = authTime.Unix()
 	}
 	if scopes != "" {
-		claims.Scopes = scopes
+		tokenClaims.Scopes = scopes
+	}
+	if claims != nil {
+		tokenClaims.RequestedClaims = claims
 	}
 
-	return claims, nil
+	return tokenClaims, nil
 }

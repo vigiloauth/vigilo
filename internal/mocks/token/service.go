@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
@@ -11,9 +12,11 @@ import (
 var _ token.TokenService = (*MockTokenService)(nil)
 
 type MockTokenService struct {
-	GenerateTokenFunc       func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error)
+	GenerateTokenFunc                 func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error)
+	GenerateAccessTokenWithClaimsFunc func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType, claims *domain.ClaimsRequest) (string, error)
+
 	GenerateIDTokenFunc     func(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error)
-	GetTokenFunc            func(ctx context.Context, token string) (*token.TokenData, error)
+	GetTokenDataFunc        func(ctx context.Context, tokenStr string) (*token.TokenData, error)
 	DeleteTokenFunc         func(ctx context.Context, token string) error
 	ValidateTokenFunc       func(ctx context.Context, token string) error
 	BlacklistTokenFunc      func(ctx context.Context, token string) error
@@ -21,8 +24,12 @@ type MockTokenService struct {
 	ParseTokenFunc          func(ctx context.Context, tokenStr string) (*token.TokenClaims, error)
 }
 
+func (m *MockTokenService) GenerateAccessTokenWithClaims(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType, claims *domain.ClaimsRequest) (string, error) {
+	return m.GenerateAccessTokenWithClaimsFunc(ctx, subject, audience, scopes, roles, nonce, tokenType, claims)
+}
+
 func (m *MockTokenService) GetTokenData(ctx context.Context, token string) (*token.TokenData, error) {
-	return m.GetTokenFunc(ctx, token)
+	return m.GetTokenDataFunc(ctx, token)
 }
 
 func (m *MockTokenService) GenerateToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error) {

@@ -124,6 +124,7 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 		return url, nil
 	}
 
+	s.logger.Warn(s.module, requestID, "CLAIMS: %v", request.ClaimsRequest)
 	code, err := s.generateAuthorizationCode(ctx, request)
 	if err != nil {
 		return "", err
@@ -187,19 +188,43 @@ func (s *authorizationService) AuthorizeTokenExchange(ctx context.Context, token
 func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	accessToken, err := s.tokenService.GenerateToken(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "", authCodeData.Nonce, types.AccessTokenType)
+	accessToken, err := s.tokenService.GenerateAccessTokenWithClaims(
+		ctx,
+		authCodeData.UserID,
+		authCodeData.ClientID,
+		authCodeData.Scope, "",
+		authCodeData.Nonce,
+		types.AccessTokenType,
+		authCodeData.ClaimsRequest,
+	)
+
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate access token: %v", err)
 		return nil, errors.NewInternalServerError()
 	}
 
-	refreshToken, err := s.tokenService.GenerateToken(ctx, authCodeData.UserID, authCodeData.ClientID, authCodeData.Scope, "", authCodeData.Nonce, types.RefreshTokenType)
+	refreshToken, err := s.tokenService.GenerateToken(
+		ctx,
+		authCodeData.UserID,
+		authCodeData.ClientID,
+		authCodeData.Scope, "",
+		authCodeData.Nonce,
+		types.RefreshTokenType,
+	)
+
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate refresh token: %v", err)
 		return nil, errors.NewInternalServerError()
 	}
 
-	idToken, err := s.tokenService.GenerateIDToken(ctx, authCodeData.UserID, authCodeData.ClientID, "", authCodeData.Nonce, authCodeData.UserAuthenticationTime)
+	idToken, err := s.tokenService.GenerateIDToken(
+		ctx,
+		authCodeData.UserID,
+		authCodeData.ClientID, "",
+		authCodeData.Nonce,
+		authCodeData.UserAuthenticationTime,
+	)
+
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate ID token: %v", err)
 		return nil, errors.NewInternalServerError()

@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	jwk "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
 	oidc "github.com/vigiloauth/vigilo/v2/internal/domain/oidc"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -81,6 +82,27 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 				assert.Equal(t, http.StatusOK, rr.Code, "Expected HTTP status code 200 OK, got %d", rr.Code)
 			})
 		}
+	})
+
+	t.Run("Success using claims request in query parameter", func(t *testing.T) {
+		testContext := NewVigiloTestContext(t)
+		defer testContext.TearDown()
+
+		testContext.WithUser([]string{constants.UserRole})
+		testContext.WithClient(types.ConfidentialClient, []types.Scope{}, []string{constants.AuthorizationCodeGrantType})
+		testContext.WithJWTTokenWithClaims(testUserID, testClientID, &domain.ClaimsRequest{
+			UserInfo: &domain.ClaimSet{
+				"name": &domain.ClaimSpec{
+					Essential: true,
+				},
+			},
+		})
+
+		headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
+		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
+
+		t.Logf("b: %v", rr.Body)
+		assert.Equal(t, http.StatusBadRequest, rr.Code, "Expected HTTP Status code 200 OK, got: %d", rr.Code)
 	})
 
 	t.Run("Success with individual scopes only", func(t *testing.T) {

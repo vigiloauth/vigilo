@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
@@ -22,4 +23,5 @@ type AuthorizationCodeData struct {
 	CreatedAt              time.Time
 	UserAuthenticationTime time.Time
 	Request                *http.Request
+	ClaimsRequest          *domain.ClaimsRequest
 }

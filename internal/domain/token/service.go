@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
@@ -25,6 +26,8 @@ type TokenService interface {
 	//   - error: An error if token generation fails.
 	GenerateToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType) (string, error)
 
+	GenerateAccessTokenWithClaims(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, tokenType types.TokenType, claims *domain.ClaimsRequest) (string, error)
+
 	// GenerateIDToken creates an ID token for the specified user and client.
 	//
 	// The ID token is a JWT that contains claims about the authentication of the user.
@@ -44,11 +47,7 @@ type TokenService interface {
 	//   - error: An error if token generation fails.
 	GenerateIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error)
 
-	// ParseToken parses and validates a JWT token string, handling both encrypted and non-encrypted tokens.
-	//
-	// This function first attempts to parse the token directly. If parsing succeeds, the token is considered
-	// valid and non-encrypted. If parsing fails, the function attempts to decrypt the token first and then
-	// parse the decrypted token.
+	// ParseToken parses and validate the structure of a JWT token string.
 	//
 	// Parameters:
 	//   - ctx ctx.Context: Context for the request, containing the request ID for logging.
@@ -57,9 +56,6 @@ type TokenService interface {
 	// Returns:
 	//   - *token.TokenClaims: The parsed token claims if successful.
 	//   - error: An error if token parsing, decryption, or validation fails.
-	//
-	// The function first tries to parse the token directly using ts.ParseToken. If this fails, it assumes
-	// the token is encrypted and attempts to decrypt it using ts.DecryptToken before parsing it again.
 	ParseToken(ctx context.Context, tokenString string) (*TokenClaims, error)
 
 	// GetTokenData retrieves the token data from the token repository.

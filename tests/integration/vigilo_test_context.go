@@ -20,6 +20,7 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
@@ -249,6 +250,27 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 		types.NewScopeList(scopes...),
 		"", testNonce, types.AccessTokenType,
 	)
+	assert.NoError(tc.T, err)
+	tc.JWTToken = accessToken
+
+	return tc
+}
+
+func (tc *VigiloTestContext) WithJWTTokenWithClaims(subject, audience string, claims *domain.ClaimsRequest) *VigiloTestContext {
+	if tc.User == nil {
+		tc.WithUser([]string{constants.AdminRole})
+	}
+
+	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
+	accessToken, err := tokenService.GenerateAccessTokenWithClaims(
+		context.Background(),
+		testUserID,
+		testClientID,
+		types.OpenIDScope,
+		"", testNonce, types.AccessTokenType,
+		claims,
+	)
+
 	assert.NoError(tc.T, err)
 	tc.JWTToken = accessToken
 

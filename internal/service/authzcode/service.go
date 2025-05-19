@@ -84,6 +84,10 @@ func (c *authorizationCodeService) GenerateAuthorizationCode(ctx context.Context
 		UserAuthenticationTime: req.UserAuthenticationTime.UTC(),
 	}
 
+	if req.ClaimsRequest != nil {
+		authData.ClaimsRequest = req.ClaimsRequest
+	}
+
 	if err := c.handlePKCE(req, authData); err != nil {
 		return "", err
 	}

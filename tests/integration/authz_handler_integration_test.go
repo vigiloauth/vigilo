@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -49,6 +50,17 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 			queryParams.Add(constants.ScopeReqField, testScope)
 			queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 			queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
+
+			claimsMap := map[string]any{
+				"userinfo": map[string]any{
+					"name": map[string]bool{
+						"essential": true,
+					},
+				},
+			}
+
+			claimsJSON, _ := json.Marshal(claimsMap)
+			queryParams.Add("claims", string(claimsJSON))
 
 			sessionCookie := testContext.GetSessionCookie()
 			headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}

@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	jwks "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
 	oidc "github.com/vigiloauth/vigilo/v2/internal/domain/oidc"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
@@ -60,6 +62,11 @@ func (s *oidcService) GetUserInfo(ctx context.Context, accessTokenClaims *token.
 	requestedScopes := types.ParseScopesString(accessTokenClaims.Scopes.String())
 	s.populateUserInfoFromScopes(userInfoResponse, retrievedUser, requestedScopes)
 
+	userInfoClaims := accessTokenClaims.RequestedClaims
+	if userInfoClaims != nil {
+		s.populateUserInfoFromRequestedClaims(userInfoResponse, retrievedUser, userInfoClaims)
+	}
+
 	return userInfoResponse, nil
 }
 
@@ -112,6 +119,83 @@ func (s *oidcService) populateUserInfoFromScopes(
 			userInfoResponse.PhoneNumberVerified = &retrievedUser.PhoneNumberVerified
 		case types.UserAddressScope:
 			userInfoResponse.Address = retrievedUser.Address
+		}
+	}
+}
+
+func (s *oidcService) populateUserInfoFromRequestedClaims(
+	userInfoResponse *user.UserInfoResponse,
+	retrievedUser *user.User,
+	requestedClaims *domain.ClaimsRequest,
+) {
+	if requestedClaims.UserInfo == nil {
+		return
+	}
+
+	userInfoClaims := *(requestedClaims.UserInfo)
+	claimSetters := map[string]func(){
+		constants.NameClaim: func() {
+			userInfoResponse.Name = retrievedUser.Name
+		},
+		constants.GivenNameClaim: func() {
+			userInfoResponse.GivenName = retrievedUser.GivenName
+		},
+		constants.FamilyNameClaim: func() {
+			userInfoResponse.FamilyName = retrievedUser.FamilyName
+		},
+		constants.MiddleNameClaim: func() {
+			userInfoResponse.MiddleName = retrievedUser.MiddleName
+		},
+		constants.NicknameClaim: func() {
+			userInfoResponse.Nickname = retrievedUser.Nickname
+		},
+		constants.PreferredUsernameClaim: func() {
+			userInfoResponse.PreferredUsername = retrievedUser.PreferredUsername
+		},
+		constants.ProfileClaim: func() {
+			userInfoResponse.Profile = retrievedUser.Profile
+		},
+		constants.PictureClaim: func() {
+			userInfoResponse.Picture = retrievedUser.Picture
+		},
+		constants.WebsiteClaim: func() {
+			userInfoResponse.Website = retrievedUser.Website
+		},
+		constants.GenderClaim: func() {
+			userInfoResponse.Gender = retrievedUser.Gender
+		},
+		constants.BirthdateClaim: func() {
+			userInfoResponse.Birthdate = retrievedUser.Birthdate
+		},
+		constants.ZoneinfoClaim: func() {
+			userInfoResponse.Zoneinfo = retrievedUser.Zoneinfo
+		},
+		constants.LocaleClaim: func() {
+			userInfoResponse.Locale = retrievedUser.Locale
+		},
+		constants.EmailClaim: func() {
+			userInfoResponse.Email = retrievedUser.Email
+		},
+		constants.EmailVerifiedClaim: func() {
+			userInfoResponse.EmailVerified = &retrievedUser.EmailVerified
+		},
+		constants.PhoneNumberClaim: func() {
+			userInfoResponse.PhoneNumber = retrievedUser.PhoneNumber
+		},
+		constants.PhoneNumberVerifiedClaim: func() {
+			userInfoResponse.PhoneNumberVerified = &retrievedUser.PhoneNumberVerified
+		},
+		constants.UpdatedAtClaim: func() {
+			userInfoResponse.UpdatedAt = retrievedUser.UpdatedAt.UTC().Unix()
+		},
+		constants.AddressClaim: func() {
+			userInfoResponse.Address = retrievedUser.Address
+		},
+	}
+
+	for claimName := range userInfoClaims {
+		if setter, exists := claimSetters[claimName]; exists {
+			setter()
 		}
 	}
 }

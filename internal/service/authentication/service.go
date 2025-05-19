@@ -165,10 +165,10 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 	}
 
 	if scopes == "" {
-		scopes = tokenData.Claims.Scopes
+		scopes = tokenData.TokenClaims.Scopes
 	} else {
 		requested := strings.Fields(scopes.String())
-		original := strings.Fields(tokenData.Claims.Scopes.String())
+		original := strings.Fields(tokenData.TokenClaims.Scopes.String())
 		if !utils.IsSubset(requested, original) {
 			if err := s.tokenService.BlacklistToken(ctx, refreshToken); err != nil {
 				s.logger.Warn(s.module, requestID, "[RefreshAccessToken]: Failed to blacklist old refresh token: %v", err)
@@ -177,7 +177,7 @@ func (s *authenticationService) RefreshAccessToken(ctx context.Context, clientID
 		}
 	}
 
-	userID := tokenData.Claims.Subject
+	userID := tokenData.TokenClaims.Subject
 	newAccessToken, err := s.tokenService.GenerateToken(ctx, userID, clientID, scopes, "", "", types.AccessTokenType)
 	if err != nil {
 		s.blacklistToken(ctx, refreshToken)
@@ -363,7 +363,7 @@ func (s *authenticationService) authenticateWithBearerToken(ctx context.Context,
 		return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
 	}
 
-	clientID := claims.Audience
+	clientID := claims.StandardClaims.Audience
 	if err := s.clientService.AuthenticateClient(ctx, clientID, "", "", scope); err != nil {
 		return err
 	}

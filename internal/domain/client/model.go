@@ -7,7 +7,8 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	domain "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
+	claims "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
+	jwks "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
@@ -35,7 +36,7 @@ type Client struct {
 	IDIssuedAt              time.Time             // The timestamp when the client ID was issued.
 	SecretExpiration        int                   // The expiration time of the client secret in seconds (0 for no expiration).
 	RequiresPKCE            bool                  // Indicates if the client requires Proof Key for Code Exchange (PKCE) for the authorization code grant.
-	JWKS                    *domain.Jwks          // The client's JSON Web Key Set (JWKS) for verifying signatures, embedded directly.
+	JWKS                    *jwks.Jwks            // The client's JSON Web Key Set (JWKS) for verifying signatures, embedded directly.
 	RegistrationClientURI   string                // The URL of the client's registration endpoint.
 
 	// CanRequestScopes indicates if the client is restricted to its registered scopes during authorization.
@@ -65,7 +66,7 @@ type ClientRegistrationRequest struct {
 	PolicyURI               string                `json:"policy_uri,omitempty"`
 	SectorIdentifierURI     string                `json:"sector_identifier_uri,omitempty"`
 	TokenEndpointAuthMethod types.TokenAuthMethod `json:"token_endpoint_auth_method,omitempty"`
-	JWKS                    *domain.Jwks          `json:"jwks,omitempty"`
+	JWKS                    *jwks.Jwks            `json:"jwks,omitempty"`
 	RequiresPKCE            bool
 	Type                    types.ClientType
 }
@@ -136,18 +137,18 @@ type ClientSecretRegenerationResponse struct {
 
 // ClientAuthorizationRequest represents the incoming request to the /authorize endpoint.
 type ClientAuthorizationRequest struct {
-	ClientID            string                    `schema:"client_id"`
-	ResponseType        string                    `schema:"response_type"`
-	RedirectURI         string                    `schema:"redirect_uri"`
-	Scope               types.Scope               `schema:"scope,omitempty"`
-	State               string                    `schema:"state,omitempty"`
-	Nonce               string                    `schema:"nonce,omitempty"`
-	CodeChallenge       string                    `schema:"code_challenge,omitempty"`
-	CodeChallengeMethod types.CodeChallengeMethod `schema:"code_challenge_method,omitempty"`
-	Display             string                    `schema:"display,omitempty"`
-	Prompt              string                    `schema:"prompt,omitempty"`
-	MaxAge              string                    `schema:"max_age,omitempty"`
-
+	ClientID               string                    `schema:"client_id"`
+	ResponseType           string                    `schema:"response_type"`
+	RedirectURI            string                    `schema:"redirect_uri"`
+	Scope                  types.Scope               `schema:"scope,omitempty"`
+	State                  string                    `schema:"state,omitempty"`
+	Nonce                  string                    `schema:"nonce,omitempty"`
+	CodeChallenge          string                    `schema:"code_challenge,omitempty"`
+	CodeChallengeMethod    types.CodeChallengeMethod `schema:"code_challenge_method,omitempty"`
+	Display                string                    `schema:"display,omitempty"`
+	Prompt                 string                    `schema:"prompt,omitempty"`
+	MaxAge                 string                    `schema:"max_age,omitempty"`
+	ClaimsRequest          *claims.ClaimsRequest     `schema:"-"`
 	UserID                 string
 	ConsentApproved        bool
 	Client                 *Client
@@ -273,7 +274,7 @@ func NewClientInformationResponse(clientID, clientSecret, registrationClientURI,
 }
 
 func NewClientAuthorizationRequest(query url.Values) *ClientAuthorizationRequest {
-	return &ClientAuthorizationRequest{
+	req := &ClientAuthorizationRequest{
 		ClientID:            query.Get(constants.ClientIDReqField),
 		RedirectURI:         query.Get(constants.RedirectURIReqField),
 		Scope:               types.Scope(query.Get(constants.ScopeReqField)),
@@ -287,6 +288,16 @@ func NewClientAuthorizationRequest(query url.Values) *ClientAuthorizationRequest
 		Prompt:              query.Get(constants.PromptReqField),
 		MaxAge:              query.Get(constants.MaxAgeReqField),
 	}
+
+	claimsParam := query.Get("claims")
+	if claimsParam != "" {
+		claimsRequest, err := claims.ParseClaimsParameter(claimsParam)
+		if err == nil {
+			req.ClaimsRequest = claimsRequest
+		}
+	}
+
+	return req
 }
 
 // HasGrantType checks to see if the client has the required grant type.

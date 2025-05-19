@@ -315,7 +315,7 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 
 	t.Run("Active is set to false when the token does not exist", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
+			GetTokenDataFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
 				return nil, nil
 			},
 		}
@@ -328,7 +328,7 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 
 	t.Run("Active is set to false when their is an error parsing the token", func(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
-			GetTokenFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
+			GetTokenDataFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
 				return &tokens.TokenData{
 					Token:     testRefreshToken,
 					ID:        testClientID,

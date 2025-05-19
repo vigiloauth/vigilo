@@ -61,3 +61,8 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ❌ `oidcc-request-uri-unsigned-supported-correctly-or-rejected-as-unsupported` (Nonce values mismatch and no state is returned)
 - ❌ `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported` (Nonce values mismatch, no state is returned, and 'request_parameter_supported' should be 'true', but is absent and the default value is 'false'.)
 
+
+TODO 
+pass requested claims through to UI
+    - authenticate
+    - consent
