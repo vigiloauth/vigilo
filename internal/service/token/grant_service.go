@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	clients "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -79,5 +80,18 @@ func (s *tokenGrantService) IssueResourceOwnerToken(ctx context.Context, clientI
 //   - *TokenResponse: The response containing the new access token (and optionally a new refresh token).
 //   - error: An error if the refresh token is invalid or expired.
 func (s *tokenGrantService) RefreshToken(ctx context.Context, clientID, clientSecret, grantType, refreshToken string, scopes types.Scope) (*tokens.TokenResponse, error) {
+	return nil, nil
+}
+
+// ExchangeAuthorizationCodeForTokens creates access and refresh tokens based on a validated token exchange request.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - authCodeData *authz.AuthorizationCodeData: The authorization code data.
+//
+// Returns:
+//   - *token.TokenResponse: A fully formed token response with access and refresh tokens.
+//   - error: An error if token generation fails.
+func (s *tokenGrantService) ExchangeAuthorizationCodeForTokens(ctx context.Context, authCodeData *authz.AuthorizationCodeData) (*tokens.TokenResponse, error) {
 	return nil, nil
 }
