@@ -70,7 +70,6 @@ func (h *HandlerRegistry) initTokenHandler() {
 		initFunc: func() *handlers.TokenHandler {
 			return handlers.NewTokenHandler(
 				h.sr.AuthenticationService(),
-				h.sr.SessionService(),
 				h.sr.AuthorizationService(),
 			)
 		},

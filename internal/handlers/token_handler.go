@@ -11,7 +11,6 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	auth "github.com/vigiloauth/vigilo/v2/internal/domain/authentication"
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
-	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -22,7 +21,6 @@ import (
 
 type TokenHandler struct {
 	authService          auth.AuthenticationService
-	sessionService       session.SessionService
 	authorizationService authz.AuthorizationService
 
 	logger *config.Logger
@@ -31,12 +29,10 @@ type TokenHandler struct {
 
 func NewTokenHandler(
 	authService auth.AuthenticationService,
-	sessionService session.SessionService,
 	authorizationService authz.AuthorizationService,
 ) *TokenHandler {
 	return &TokenHandler{
 		authService:          authService,
-		sessionService:       sessionService,
 		authorizationService: authorizationService,
 		logger:               config.GetServerConfig().Logger(),
 		module:               "Token Handler",

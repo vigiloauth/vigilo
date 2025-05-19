@@ -116,7 +116,6 @@ func (sr *ServiceRegistry) initTokenGrantService() {
 	sr.tokenGrantService = LazyInit[token.TokenGrantService]{
 		initFunc: func() token.TokenGrantService {
 			return tokenService.NewTokenGrantService(
-				sr.ClientRequestAuthenticator(),
 				sr.TokenIssuer(),
 			)
 		},

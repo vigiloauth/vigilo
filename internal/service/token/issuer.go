@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	claims "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
@@ -93,4 +94,41 @@ func (s *tokenIssuer) IssueTokenPair(
 
 	s.logger.Debug(s.module, requestID, "[IssueTokenPair]: Successfully issued token pair")
 	return accessToken, refreshToken, nil
+}
+
+// IssueIDToken creates an ID token for the specified user and client.
+//
+// The ID token is a JWT that contains claims about the authentication of the user.
+// It includes information such as the user ID, client ID, scopes, and nonce for
+// replay protection. The token is generated and then stored in the token store.
+//
+// Parameters:
+//   - ctx context.Context: Context for the request, containing the request ID for logging.
+//   - userID string: The unique identifier of the user.
+//   - clientID string: The client application identifier requesting the token.
+//   - scopes string: Space-separated list of requested scopes.
+//   - nonce string: A random string used to prevent replay attacks.
+//   - authTime *Time: Time at which the user was authenticated. The value of time can be nil as it only applies when a request with "max_age" was given
+//
+// Returns:
+//   - string: The signed ID token as a JWT string.
+//   - error: An error if token generation fails.
+func (s *tokenIssuer) IssueIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
+	requestID := utils.GetRequestID(ctx)
+
+	IDToken, err := s.tokenService.GenerateIDToken(
+		ctx,
+		userID,
+		clientID,
+		scopes,
+		nonce,
+		authTime,
+	)
+
+	if err != nil {
+		s.logger.Error(s.module, requestID, "[IssueIDToken]: Failed to issue ID Token: %v", err)
+		return "", errors.Wrap(err, "", "failed to create ID Token")
+	}
+
+	return IDToken, nil
 }

@@ -4,8 +4,7 @@ import (
 	"context"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
-	clients "github.com/vigiloauth/vigilo/v2/internal/domain/client"
+	code "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
@@ -15,21 +14,18 @@ var _ tokens.TokenGrantService = (*tokenGrantService)(nil)
 
 // Create a user authenticator class
 type tokenGrantService struct {
-	clientAuthenticator clients.ClientRequestAuthenticator
-	tokenIssuer         tokens.TokenIssuer
-	logger              *config.Logger
-	module              string
+	tokenIssuer tokens.TokenIssuer
+	logger      *config.Logger
+	module      string
 }
 
 func NewTokenGrantService(
-	clientAuthenticator clients.ClientRequestAuthenticator,
 	tokenIssuer tokens.TokenIssuer,
 ) tokens.TokenGrantService {
 	return &tokenGrantService{
-		clientAuthenticator: clientAuthenticator,
-		tokenIssuer:         tokenIssuer,
-		logger:              config.GetServerConfig().Logger(),
-		module:              "Token Grant Service",
+		tokenIssuer: tokenIssuer,
+		logger:      config.GetServerConfig().Logger(),
+		module:      "Token Grant Service",
 	}
 }
 
@@ -92,6 +88,6 @@ func (s *tokenGrantService) RefreshToken(ctx context.Context, clientID, clientSe
 // Returns:
 //   - *token.TokenResponse: A fully formed token response with access and refresh tokens.
 //   - error: An error if token generation fails.
-func (s *tokenGrantService) ExchangeAuthorizationCodeForTokens(ctx context.Context, authCodeData *authz.AuthorizationCodeData) (*tokens.TokenResponse, error) {
+func (s *tokenGrantService) ExchangeAuthorizationCodeForTokens(ctx context.Context, authCodeData *code.AuthorizationCodeData) (*tokens.TokenResponse, error) {
 	return nil, nil
 }
