@@ -117,7 +117,7 @@ func (sr *ServiceRegistry) initTokenGrantService() {
 		initFunc: func() token.TokenGrantService {
 			return tokenService.NewTokenGrantService(
 				sr.ClientRequestAuthenticator(),
-				sr.TokenService(),
+				sr.TokenIssuer(),
 			)
 		},
 	}

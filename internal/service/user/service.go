@@ -101,7 +101,7 @@ func (u *userService) GetUserByUsername(ctx context.Context, username string) (*
 	return u.userRepo.GetUserByUsername(ctx, username)
 }
 
-// HandleOAuthLogin authenticates a user based on an OAuth login request.
+// AuthenticateUser authenticates a user based on an OAuth login request.
 //
 // This method constructs a User object and a UserLoginAttempt object from the provided
 // login request and request metadata, then delegates the authentication process
@@ -116,7 +116,7 @@ func (u *userService) GetUserByUsername(ctx context.Context, username string) (*
 // Returns:
 //   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 //   - error: An error if authentication fails or if the input is invalid.
-func (u *userService) HandleOAuthLogin(ctx context.Context, request *users.UserLoginRequest, clientID, redirectURI string) (*users.UserLoginResponse, error) {
+func (u *userService) AuthenticateUser(ctx context.Context, request *users.UserLoginRequest, clientID, redirectURI string) (*users.UserLoginResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 	if err := request.Validate(); err != nil {
 		u.logger.Error(u.module, requestID, "[HandleOAuthLogin]: Failed to validate request: %v", err)

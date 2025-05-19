@@ -23,7 +23,7 @@ func (m *MockUserService) CreateUser(ctx context.Context, user *user.User) (*use
 	return m.CreateUserFunc(ctx, user)
 }
 
-func (m *MockUserService) HandleOAuthLogin(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
+func (m *MockUserService) AuthenticateUser(ctx context.Context, request *user.UserLoginRequest, clientID, redirectURI string) (*user.UserLoginResponse, error) {
 	return m.HandleOAuthLoginFunc(ctx, request, clientID, redirectURI)
 }
 

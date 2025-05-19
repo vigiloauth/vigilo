@@ -12,20 +12,21 @@ import (
 
 var _ tokens.TokenGrantService = (*tokenGrantService)(nil)
 
+// Create a user authenticator class
 type tokenGrantService struct {
 	clientAuthenticator clients.ClientRequestAuthenticator
-	tokenService        tokens.TokenService
+	tokenIssuer         tokens.TokenIssuer
 	logger              *config.Logger
 	module              string
 }
 
 func NewTokenGrantService(
 	clientAuthenticator clients.ClientRequestAuthenticator,
-	tokenService tokens.TokenService,
+	tokenIssuer tokens.TokenIssuer,
 ) tokens.TokenGrantService {
 	return &tokenGrantService{
 		clientAuthenticator: clientAuthenticator,
-		tokenService:        tokenService,
+		tokenIssuer:         tokenIssuer,
 		logger:              config.GetServerConfig().Logger(),
 		module:              "Token Grant Service",
 	}

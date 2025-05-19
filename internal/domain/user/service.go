@@ -25,7 +25,7 @@ type UserService interface {
 	//	- error: If an error occurs retrieving the user.
 	GetUserByUsername(ctx context.Context, username string) (*User, error)
 
-	// HandleOAuthLogin authenticates a user based on an OAuth login request.
+	// AuthenticateUser authenticates a user based on an OAuth login request.
 	//
 	// This method constructs a User object and a UserLoginAttempt object from the provided
 	// login request and request metadata, then delegates the authentication process
@@ -40,7 +40,7 @@ type UserService interface {
 	// Returns:
 	//	- *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 	//	- error: An error if authentication fails or if the input is invalid.
-	HandleOAuthLogin(ctx context.Context, request *UserLoginRequest, clientID, redirectURI string) (*UserLoginResponse, error)
+	AuthenticateUser(ctx context.Context, request *UserLoginRequest, clientID, redirectURI string) (*UserLoginResponse, error)
 
 	// AuthenticateUserWithRequest authenticates a user based on a login request and request metadata.
 	//
