@@ -394,7 +394,7 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	}
 
 	u.logLoginEvent(ctx, true, nil, retrievedUser.ID)
-	return users.NewUserLoginResponse(retrievedUser, accessToken), nil
+	return users.NewUserLoginResponse(retrievedUser, accessToken, ""), nil
 }
 
 func (u *userService) updateAuthenticatedUser(ctx context.Context, user *users.User) error {

@@ -36,7 +36,6 @@ import (
 type ServiceRegistry struct {
 	db                   *RepositoryRegistry
 	sessionService       LazyInit[session.SessionService]
-	userService          LazyInit[user.UserService]
 	consentService       LazyInit[consent.UserConsentService]
 	authzCodeService     LazyInit[authzCode.AuthorizationCodeService]
 	loginAttemptService  LazyInit[login.LoginAttemptService]
@@ -50,12 +49,18 @@ type ServiceRegistry struct {
 	jwtService           LazyInit[jwt.JWTService]
 
 	clientService       LazyInit[client.ClientService]
-	clientAuthenticator LazyInit[client.ClientRequestAuthenticator]
+	clientAuthenticator LazyInit[client.ClientAuthenticator]
 
-	tokenService           LazyInit[token.TokenService]
-	tokenManagementService LazyInit[token.TokenManagementService]
-	tokenIssuer            LazyInit[token.TokenIssuer]
-	tokenGrantService      LazyInit[token.TokenGrantService]
+	userService       LazyInit[user.UserService]
+	userAuthenticator LazyInit[user.UserAuthenticator]
+
+	tokenService          LazyInit[token.TokenService]
+	tokenManager          LazyInit[token.TokenManager]
+	tokenParser           LazyInit[token.TokenParser]
+	tokenRequestProcessor LazyInit[token.TokenRequestProcessor]
+	tokenIssuer           LazyInit[token.TokenIssuer]
+	tokenValidator        LazyInit[token.TokenValidator]
+	tokenCreator          LazyInit[token.TokenCreator]
 
 	logger *config.Logger
 	module string
@@ -78,16 +83,22 @@ func NewServiceRegistry(dbRegistry *RepositoryRegistry, logger *config.Logger) *
 
 func (sr *ServiceRegistry) initServices() {
 	sr.initTokenService()
+	sr.initTokenRequestProcessor()
+	sr.initTokenManager()
+	sr.initTokenParser()
+	sr.initTokenValidator()
+	sr.initTokenCreator()
 	sr.initTokenIssuer()
-	sr.initTokenManagementService()
-	sr.initTokenGrantService()
+
 	sr.initJWTService()
 
 	sr.initClientService()
-	sr.initClientRequestAuthenticator()
+	sr.initClientAuthenticator()
+
+	sr.initUserService()
+	sr.initUserAuthenticator()
 
 	sr.initSessionService()
-	sr.initUserService()
 	sr.initConsentService()
 	sr.initAuthzCodeService()
 	sr.initLoginAttemptService()
@@ -106,17 +117,6 @@ func (sr *ServiceRegistry) initTokenService() {
 			return tokenService.NewTokenService(
 				sr.db.TokenRepository(),
 				sr.JWTService(),
-			)
-		},
-	}
-}
-
-func (sr *ServiceRegistry) initTokenGrantService() {
-	sr.logger.Debug(sr.module, "", "Initializing Token Grant Service")
-	sr.tokenGrantService = LazyInit[token.TokenGrantService]{
-		initFunc: func() token.TokenGrantService {
-			return tokenService.NewTokenGrantService(
-				sr.TokenIssuer(),
 			)
 		},
 	}
@@ -159,6 +159,20 @@ func (sr *ServiceRegistry) initUserService() {
 	}
 }
 
+func (sr *ServiceRegistry) initUserAuthenticator() {
+	sr.logger.Debug(sr.module, "", "Initializing User Authenticator")
+	sr.userAuthenticator = LazyInit[user.UserAuthenticator]{
+		initFunc: func() user.UserAuthenticator {
+			return userService.NewUserAuthenticator(
+				sr.db.UserRepository(),
+				sr.AuditLogger(),
+				sr.db.LoginAttemptRepository(),
+				sr.TokenIssuer(),
+			)
+		},
+	}
+}
+
 func (sr *ServiceRegistry) initClientService() {
 	sr.logger.Debug(sr.module, "", "Initializing Client Service")
 	sr.clientService = LazyInit[client.ClientService]{
@@ -171,13 +185,14 @@ func (sr *ServiceRegistry) initClientService() {
 	}
 }
 
-func (sr *ServiceRegistry) initClientRequestAuthenticator() {
+func (sr *ServiceRegistry) initClientAuthenticator() {
 	sr.logger.Debug(sr.module, "", "Initializing Client Request Authenticator")
-	sr.clientAuthenticator = LazyInit[client.ClientRequestAuthenticator]{
-		initFunc: func() client.ClientRequestAuthenticator {
-			return clientService.NewClientRequestAuthenticator(
-				sr.ClientService(),
-				sr.TokenService(),
+	sr.clientAuthenticator = LazyInit[client.ClientAuthenticator]{
+		initFunc: func() client.ClientAuthenticator {
+			return clientService.NewClientAuthenticator(
+				sr.db.ClientRepository(),
+				sr.TokenValidator(),
+				sr.TokenParser(),
 			)
 		},
 	}
@@ -293,11 +308,50 @@ func (sr *ServiceRegistry) initOIDCService() {
 	}
 }
 
-func (sr *ServiceRegistry) initTokenManagementService() {
-	sr.logger.Debug(sr.module, "", "Initializing Token Management Service")
-	sr.tokenManagementService = LazyInit[token.TokenManagementService]{
-		initFunc: func() token.TokenManagementService {
-			return tokenService.NewTokenManagementService(sr.TokenService())
+func (sr *ServiceRegistry) initTokenManager() {
+	sr.logger.Debug(sr.module, "", "Initializing Token Manager")
+	sr.tokenManager = LazyInit[token.TokenManager]{
+		initFunc: func() token.TokenManager {
+			return tokenService.NewTokenManager(
+				sr.db.TokenRepository(),
+				sr.TokenParser(),
+				sr.TokenValidator(),
+			)
+		},
+	}
+}
+
+func (sr *ServiceRegistry) initTokenValidator() {
+	sr.logger.Debug(sr.module, "", "Initializing Token Validator")
+	sr.tokenValidator = LazyInit[token.TokenValidator]{
+		initFunc: func() token.TokenValidator {
+			return tokenService.NewTokenValidator(
+				sr.db.TokenRepository(),
+				sr.TokenParser(),
+			)
+		},
+	}
+}
+
+func (sr *ServiceRegistry) initTokenCreator() {
+	sr.logger.Debug(sr.module, "", "Initializing Token Creator")
+	sr.tokenCreator = LazyInit[token.TokenCreator]{
+		initFunc: func() token.TokenCreator {
+			return tokenService.NewTokenCreator(
+				sr.db.TokenRepository(),
+				sr.JWTService(),
+			)
+		},
+	}
+}
+
+func (sr *ServiceRegistry) initTokenParser() {
+	sr.logger.Debug(sr.module, "", "Initializing Token Parser")
+	sr.tokenParser = LazyInit[token.TokenParser]{
+		initFunc: func() token.TokenParser {
+			return tokenService.NewTokenParser(
+				sr.JWTService(),
+			)
 		},
 	}
 }
@@ -306,7 +360,21 @@ func (sr *ServiceRegistry) initTokenIssuer() {
 	sr.logger.Debug(sr.module, "", "Initializing Token Issuer")
 	sr.tokenIssuer = LazyInit[token.TokenIssuer]{
 		initFunc: func() token.TokenIssuer {
-			return tokenService.NewTokenIssuer(sr.TokenService())
+			return tokenService.NewTokenIssuer(
+				sr.TokenCreator(),
+			)
+		},
+	}
+}
+
+func (sr *ServiceRegistry) initTokenRequestProcessor() {
+	sr.logger.Debug(sr.module, "", "Initializing Token Issuer")
+	sr.tokenRequestProcessor = LazyInit[token.TokenRequestProcessor]{
+		initFunc: func() token.TokenRequestProcessor {
+			return tokenService.NewTokenRequestProcessor(
+				sr.TokenIssuer(),
+				sr.ClientAuthenticator(),
+			)
 		},
 	}
 }
@@ -316,17 +384,33 @@ func (sr *ServiceRegistry) TokenService() token.TokenService {
 	return sr.tokenService.Get()
 }
 
-func (sr *ServiceRegistry) TokenManagementService() token.TokenManagementService {
+func (sr *ServiceRegistry) TokenManager() token.TokenManager {
 	sr.logger.Debug(sr.module, "", "Getting Token Management Service")
-	return sr.tokenManagementService.Get()
+	return sr.tokenManager.Get()
 }
 
-func (sr *ServiceRegistry) TokenGrantService() token.TokenGrantService {
-	sr.logger.Debug(sr.module, "", "Getting Token Grant Service")
-	return sr.tokenGrantService.Get()
+func (sr *ServiceRegistry) TokenParser() token.TokenParser {
+	sr.logger.Debug(sr.module, "", "Getting Token Parser")
+	return sr.tokenParser.Get()
+}
+
+func (sr *ServiceRegistry) TokenValidator() token.TokenValidator {
+	sr.logger.Debug(sr.module, "", "Getting Token Validator")
+	return sr.tokenValidator.Get()
+}
+
+func (sr *ServiceRegistry) TokenCreator() token.TokenCreator {
+	sr.logger.Debug(sr.module, "", "Getting Token Creator")
+	return sr.tokenCreator.Get()
+}
+
+func (sr *ServiceRegistry) TokenRequestProcessor() token.TokenRequestProcessor {
+	sr.logger.Debug(sr.module, "", "Getting Token Request Processor")
+	return sr.tokenRequestProcessor.Get()
 }
 
 func (sr *ServiceRegistry) TokenIssuer() token.TokenIssuer {
+	sr.logger.Debug(sr.module, "", "Getting Token Issuer")
 	return sr.tokenIssuer.Get()
 }
 
@@ -340,12 +424,17 @@ func (sr *ServiceRegistry) UserService() user.UserService {
 	return sr.userService.Get()
 }
 
+func (sr *ServiceRegistry) UserAuthenticator() user.UserAuthenticator {
+	sr.logger.Debug(sr.module, "", "Getting User Authenticator")
+	return sr.userAuthenticator.Get()
+}
+
 func (sr *ServiceRegistry) ClientService() client.ClientService {
 	sr.logger.Debug(sr.module, "", "Getting Client Service")
 	return sr.clientService.Get()
 }
 
-func (sr *ServiceRegistry) ClientRequestAuthenticator() client.ClientRequestAuthenticator {
+func (sr *ServiceRegistry) ClientAuthenticator() client.ClientAuthenticator {
 	sr.logger.Debug(sr.module, "", "Getting Client Request Authenticator")
 	return sr.clientAuthenticator.Get()
 }

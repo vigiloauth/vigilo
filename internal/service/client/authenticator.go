@@ -15,24 +15,27 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
-var _ clients.ClientRequestAuthenticator = (*clientRequestAuthenticator)(nil)
+var _ clients.ClientAuthenticator = (*clientAuthenticator)(nil)
 
-type clientRequestAuthenticator struct {
-	clientService clients.ClientService
-	tokenService  tokens.TokenService
-	logger        *config.Logger
-	module        string
+type clientAuthenticator struct {
+	clientRepo     clients.ClientRepository
+	tokenValidator tokens.TokenValidator
+	tokenParser    tokens.TokenParser
+	logger         *config.Logger
+	module         string
 }
 
-func NewClientRequestAuthenticator(
-	clientService clients.ClientService,
-	tokenService tokens.TokenService,
-) clients.ClientRequestAuthenticator {
-	return &clientRequestAuthenticator{
-		clientService: clientService,
-		tokenService:  tokenService,
-		logger:        config.GetServerConfig().Logger(),
-		module:        "Client Request Authenticator",
+func NewClientAuthenticator(
+	clientRepo clients.ClientRepository,
+	tokenValidator tokens.TokenValidator,
+	tokenParser tokens.TokenParser,
+) clients.ClientAuthenticator {
+	return &clientAuthenticator{
+		clientRepo:     clientRepo,
+		tokenValidator: tokenValidator,
+		tokenParser:    tokenParser,
+		logger:         config.GetServerConfig().Logger(),
+		module:         "Client Request Authenticator",
 	}
 }
 
@@ -45,7 +48,7 @@ func NewClientRequestAuthenticator(
 //
 // Returns:
 //   - error: An error if authentication fails or the required scope is not met.
-func (c *clientRequestAuthenticator) AuthenticateRequest(
+func (c *clientAuthenticator) AuthenticateRequest(
 	ctx context.Context,
 	r *http.Request,
 	requiredScope types.Scope,
@@ -62,7 +65,58 @@ func (c *clientRequestAuthenticator) AuthenticateRequest(
 	}
 }
 
-func (c *clientRequestAuthenticator) authenticateWithBearerToken(
+// AuthenticateClient authenticates the client using provided credentials
+// and authorizes access by validating required grant types and scopes.
+//
+// Parameters:
+//   - ctx Context: The context for managing timeouts and cancellations.
+//   - clientID string: The ID of the client.
+//   - clientSecret string: The client secret.
+//   - requestedGrant string: The requested grant type to validate.
+//   - scopes string: The scopes to validate.
+//
+// Returns:
+//   - error: An error if authentication or authorization fails.
+func (c *clientAuthenticator) AuthenticateClient(
+	ctx context.Context,
+	clientID string,
+	clientSecret string,
+	requestedGrant string,
+	requestedScopes types.Scope,
+) error {
+	requestID := utils.GetRequestID(ctx)
+
+	existingClient, err := c.clientRepo.GetClientByID(ctx, clientID)
+	if err != nil {
+		c.logger.Error(c.module, requestID, "[AuthenticateClient]: Failed to retrieve client by ID: %v", err)
+		return errors.Wrap(err, "", "failed to retrieve client")
+	}
+
+	if clientSecret != "" {
+		if !existingClient.IsConfidential() {
+			return errors.New(errors.ErrCodeUnauthorizedClient, "client is not confidential")
+		} else if !existingClient.SecretsMatch(clientSecret) {
+			return errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
+		}
+	}
+
+	scopesArr := strings.Split(requestedScopes.String(), " ")
+	if !existingClient.CanRequestScopes {
+		for _, scope := range scopesArr {
+			if !existingClient.HasScope(types.Scope(scope)) {
+				return errors.New(errors.ErrCodeInsufficientScope, "client does not have the required scope(s)")
+			}
+		}
+	}
+
+	if requestedGrant != "" && !existingClient.HasGrantType(requestedGrant) {
+		return errors.New(errors.ErrCodeUnauthorizedClient, "client does not have the required grant type")
+	}
+
+	return nil
+}
+
+func (c *clientAuthenticator) authenticateWithBearerToken(
 	ctx context.Context,
 	r *http.Request,
 	requiredScope types.Scope,
@@ -75,19 +129,19 @@ func (c *clientRequestAuthenticator) authenticateWithBearerToken(
 		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "failed to extract bearer token from header")
 	}
 
-	if err := c.tokenService.ValidateToken(ctx, bearerToken); err != nil {
+	if err := c.tokenValidator.ValidateToken(ctx, bearerToken); err != nil {
 		c.logger.Error(c.module, requestID, "[authenticateWithBearerToken]: Failed to validate token: %v", err)
 		return errors.Wrap(err, "", "failed to validate bearer token")
 	}
 
-	claims, err := c.tokenService.ParseToken(ctx, bearerToken)
+	claims, err := c.tokenParser.ParseToken(ctx, bearerToken)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[authenticateWithBearerToken]: Failed to parse bearer token: %v", err)
-		return errors.New(errors.ErrCodeInternalServerError, "failed to parse bearer token")
+		return errors.Wrap(err, "", "failed to parse bearer token")
 	}
 
-	clientID := claims.Audience
-	if err := c.clientService.AuthenticateClient(ctx, clientID, "", "", requiredScope); err != nil {
+	clientID := claims.StandardClaims.Audience
+	if err := c.AuthenticateClient(ctx, clientID, "", "", requiredScope); err != nil {
 		c.logger.Error(c.module, requestID, "[authenticateWithBearerToken]: Failed to authenticate client: %v", err)
 		return errors.Wrap(err, "", "failed to authenticate client")
 	}
@@ -95,7 +149,7 @@ func (c *clientRequestAuthenticator) authenticateWithBearerToken(
 	return nil
 }
 
-func (c *clientRequestAuthenticator) authenticateWithBasicAuth(
+func (c *clientAuthenticator) authenticateWithBasicAuth(
 	ctx context.Context,
 	r *http.Request,
 	requiredScope types.Scope,
@@ -108,7 +162,7 @@ func (c *clientRequestAuthenticator) authenticateWithBasicAuth(
 		return errors.Wrap(err, "", "failed to extract client credentials from auth header")
 	}
 
-	if err := c.clientService.AuthenticateClient(ctx, clientID, clientSecret, "", requiredScope); err != nil {
+	if err := c.AuthenticateClient(ctx, clientID, clientSecret, "", requiredScope); err != nil {
 		c.logger.Error(c.module, requestID, "[authenticateWithBasicAuth]: Failed to authenticate client: %v", err)
 		return errors.Wrap(err, "", "failed to authenticate client")
 	}

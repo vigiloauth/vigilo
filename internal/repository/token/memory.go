@@ -118,7 +118,8 @@ func (b *InMemoryTokenRepository) BlacklistToken(ctx context.Context, token stri
 	requestID := utils.GetRequestID(ctx)
 
 	data, exists := b.tokens[token]
-	if !exists || time.Now().After(data.ExpiresAt) {
+	expirationTime := time.Unix(data.TokenClaims.StandardClaims.ExpiresAt, 0)
+	if !exists || time.Now().After(expirationTime) {
 		logger.Debug(module, requestID, "[BlacklistToken]: Token not found or expired")
 		return errors.New(errors.ErrCodeTokenNotFound, "token not found or expired")
 	}
@@ -126,7 +127,6 @@ func (b *InMemoryTokenRepository) BlacklistToken(ctx context.Context, token stri
 	tokenData := b.tokens[token]
 	delete(b.tokens, token)
 	b.blacklist[token] = tokenData
-	logger.Debug(module, "", "[BlacklistToken]: Token has been blacklisted")
 	return nil
 }
 
@@ -157,7 +157,8 @@ func (b *InMemoryTokenRepository) IsTokenBlacklisted(ctx context.Context, token 
 		return false, nil
 	}
 
-	if time.Now().After(data.ExpiresAt) {
+	expirationTime := time.Unix(data.TokenClaims.StandardClaims.ExpiresAt, 0)
+	if time.Now().After(expirationTime) {
 		logger.Debug(module, requestID, "[IsTokenBlacklisted]: Deleting expired token")
 		delete(b.tokens, token)
 		return true, nil
@@ -225,7 +226,8 @@ func (b *InMemoryTokenRepository) GetExpiredTokens(ctx context.Context) ([]*doma
 	tokens := []*domain.TokenData{}
 
 	for _, data := range b.tokens {
-		if now.After(data.ExpiresAt) {
+		expirationTime := time.Unix(data.TokenClaims.StandardClaims.ExpiresAt, 0)
+		if now.After(expirationTime) {
 			tokens = append(tokens, data)
 		}
 	}

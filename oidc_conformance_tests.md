@@ -48,8 +48,8 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ✅ `oidcc-server-client-secret-post`
 - ✅ `oidcc-ensure-request-object-with-redirect-uri`
 - ✅ `oidcc-refresh-token`
-- ✅ `oidcc-max-age-1` 
-- ✅ `oidcc-max-age-10000` 
+- ✅ `oidcc-max-age-1`
+- ✅ `oidcc-max-age-10000`
 
 - 🛠️ `oidcc-claims-essential` (name not found in response)
 
@@ -62,7 +62,7 @@ You can visit OpenID's official [GitLab](https://gitlab.com/openid/conformance-s
 - ❌ `oidcc-unsigned-request-object-supported-correctly-or-rejected-as-unsupported` (Nonce values mismatch, no state is returned, and 'request_parameter_supported' should be 'true', but is absent and the default value is 'false'.)
 
 
-TODO 
+TODO
 pass requested claims through to UI
     - authenticate
     - consent

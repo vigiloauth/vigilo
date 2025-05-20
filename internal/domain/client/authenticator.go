@@ -7,8 +7,8 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
-// ClientRequestAuthenticator defines an interface for authenticating HTTP client requests.
-type ClientRequestAuthenticator interface {
+// ClientAuthenticator defines an interface for authenticating HTTP client requests.
+type ClientAuthenticator interface {
 	// AuthenticateRequest validates the incoming HTTP request to ensure the client has the required scope.
 	//
 	// Parameters:
@@ -19,4 +19,18 @@ type ClientRequestAuthenticator interface {
 	// Returns:
 	//	- error: An error if authentication fails or the required scope is not met.
 	AuthenticateRequest(ctx context.Context, r *http.Request, requiredScope types.Scope) error
+
+	// AuthenticateClient authenticates the client using provided credentials
+	// and authorizes access by validating required grant types and scopes.
+	//
+	// Parameters:
+	//	- ctx Context: The context for managing timeouts and cancellations.
+	//	- clientID string: The ID of the client.
+	//	- clientSecret string: The client secret.
+	//	- requestedGrant string: The requested grant type to validate.
+	//	- scopes string: The scopes to validate.
+	//
+	// Returns:
+	//	- error: An error if authentication or authorization fails.
+	AuthenticateClient(ctx context.Context, clientID string, clientSecret string, requestedGrant string, requestedScopes types.Scope) error
 }

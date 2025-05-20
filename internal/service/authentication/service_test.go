@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
@@ -330,10 +329,9 @@ func TestAuthenticationService_IntrospectToken(t *testing.T) {
 		mockTokenService := &mTokenService.MockTokenService{
 			GetTokenDataFunc: func(ctx context.Context, token string) (*tokens.TokenData, error) {
 				return &tokens.TokenData{
-					Token:     testRefreshToken,
-					ID:        testClientID,
-					ExpiresAt: time.Now().Add(10),
-					TokenID:   testTokenID,
+					Token:   testRefreshToken,
+					ID:      testClientID,
+					TokenID: testTokenID,
 				}, nil
 			},
 			ParseTokenFunc: func(ctx context.Context, token string) (*tokens.TokenClaims, error) {

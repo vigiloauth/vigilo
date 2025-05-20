@@ -102,7 +102,7 @@ func (u *InMemoryUserRepository) GetUserByUsername(ctx context.Context, username
 	}
 
 	logger.Debug(module, requestID, "[GetUserByUsername]: User not found with the given username=[%s]", username)
-	return nil, nil
+	return nil, errors.New(errors.ErrCodeUserNotFound, "user not found by username")
 }
 
 // GetUserByID retrieves a user from the store using their ID.

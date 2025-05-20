@@ -116,7 +116,8 @@ type UserLoginResponse struct {
 	UserID           string
 	Username         string    `json:"username"`
 	Email            string    `json:"email"`
-	JWTToken         string    `json:"token"`
+	AccessToken      string    `json:"access_token,omitempty"`
+	RefreshToken     string    `json:"refresh_token,omitempty"`
 	OAuthRedirectURL string    `json:"oauth_redirect_url,omitempty"`
 	LastFailedLogin  time.Time `json:"last_failed_login"`
 	Scopes           []string  `json:"scopes,omitempty"`
@@ -290,17 +291,19 @@ func NewUserLoginRequest(username, password string) *UserLoginRequest {
 //
 // Parameters:
 //   - user *User: The authenticated User object.
-//   - jwtToken string: The JWT token for the authenticated user.
+//   - accessToken string: The Access token for the authenticated user.
+//   - refreshToken string: The refresh token for the authenticated user.
 //
 // Returns:
 //   - *UserLoginResponse: A new UserLoginResponse instance.
-func NewUserLoginResponse(user *User, jwtToken string) *UserLoginResponse {
+func NewUserLoginResponse(user *User, accessToken string, refreshToken string) *UserLoginResponse {
 	return &UserLoginResponse{
-		UserID:          user.ID,
-		Username:        user.PreferredUsername,
-		Email:           user.Email,
-		Roles:           user.Roles,
-		JWTToken:        jwtToken,
+		UserID:      user.ID,
+		Username:    user.PreferredUsername,
+		Email:       user.Email,
+		Roles:       user.Roles,
+		AccessToken: accessToken,
+
 		LastFailedLogin: user.LastFailedLogin,
 	}
 }

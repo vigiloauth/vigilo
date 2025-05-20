@@ -173,7 +173,7 @@ func (ts *tokenService) ParseToken(ctx context.Context, tokenString string) (*to
 	claims, err := ts.jwtService.ParseWithClaims(ctx, tokenString)
 	if err != nil {
 		ts.logger.Error(ts.module, requestID, "[ParseToken]: Failed to parse token: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to parse token")
+		return nil, errors.Wrap(err, errors.ErrCodeTokenParsing, "failed to parse token")
 	}
 
 	ts.logger.Debug(ts.module, requestID, "[ParseToken]: Token validation process completed successfully")
@@ -457,7 +457,7 @@ func (ts *tokenService) attemptTokenGeneration(
 	tokenData := &token.TokenData{
 		Token:       hashedToken,
 		ID:          subject,
-		ExpiresAt:   tokenExpiration,
+		ExpiresAt:   tokenExpiration.Unix(),
 		TokenID:     ts.keyID,
 		TokenClaims: standardClaims,
 	}

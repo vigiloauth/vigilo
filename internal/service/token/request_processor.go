@@ -4,28 +4,31 @@ import (
 	"context"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	code "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
-var _ tokens.TokenGrantService = (*tokenGrantService)(nil)
+var _ tokens.TokenRequestProcessor = (*tokenRequestProcessor)(nil)
 
-// Create a user authenticator class
-type tokenGrantService struct {
-	tokenIssuer tokens.TokenIssuer
-	logger      *config.Logger
-	module      string
+type tokenRequestProcessor struct {
+	issuer              tokens.TokenIssuer
+	clientAuthenticator client.ClientAuthenticator
+	logger              *config.Logger
+	module              string
 }
 
-func NewTokenGrantService(
-	tokenIssuer tokens.TokenIssuer,
-) tokens.TokenGrantService {
-	return &tokenGrantService{
-		tokenIssuer: tokenIssuer,
-		logger:      config.GetServerConfig().Logger(),
-		module:      "Token Grant Service",
+func NewTokenRequestProcessor(
+	issuer tokens.TokenIssuer,
+	clientAuthenticator client.ClientAuthenticator,
+) tokens.TokenRequestProcessor {
+	return &tokenRequestProcessor{
+		issuer:              issuer,
+		clientAuthenticator: clientAuthenticator,
+		logger:              config.GetServerConfig().Logger(),
+		module:              "Token Issuer",
 	}
 }
 
@@ -41,8 +44,14 @@ func NewTokenGrantService(
 // Returns:
 //   - *TokenResponse: The response containing the issued token.
 //   - error: An error if token issuance fails.
-func (s *tokenGrantService) IssueClientCredentialsToken(ctx context.Context, clientID, clientSecret, grantType string, scopes types.Scope) (*tokens.TokenResponse, error) {
-	return nil, nil
+func (s *tokenRequestProcessor) IssueClientCredentialsToken(
+	ctx context.Context,
+	clientID string,
+	clientSecret string,
+	grantType string,
+	scopes types.Scope,
+) (*tokens.TokenResponse, error) {
+	return &tokens.TokenResponse{}, nil
 }
 
 // IssueResourceOwnerToken issues a token using the Resource Owner Password Credentials grant type.
@@ -58,8 +67,16 @@ func (s *tokenGrantService) IssueClientCredentialsToken(ctx context.Context, cli
 // Returns:
 //   - *TokenResponse: The response containing the issued token.
 //   - error: An error if authentication or token issuance fails.
-func (s *tokenGrantService) IssueResourceOwnerToken(ctx context.Context, clientID, clientSecret, grantType string, scopes types.Scope, user *users.UserLoginAttempt) (*tokens.TokenResponse, error) {
-	return nil, nil
+func (s *tokenRequestProcessor) IssueResourceOwnerToken(
+	ctx context.Context,
+	clientID string,
+	clientSecret string,
+	grantType string,
+	scopes types.Scope,
+	user *users.UserLoginAttempt,
+) (*tokens.TokenResponse, error) {
+	return &tokens.TokenResponse{}, nil
+
 }
 
 // RefreshToken issues a new access token using a valid refresh token.
@@ -75,8 +92,15 @@ func (s *tokenGrantService) IssueResourceOwnerToken(ctx context.Context, clientI
 // Returns:
 //   - *TokenResponse: The response containing the new access token (and optionally a new refresh token).
 //   - error: An error if the refresh token is invalid or expired.
-func (s *tokenGrantService) RefreshToken(ctx context.Context, clientID, clientSecret, grantType, refreshToken string, scopes types.Scope) (*tokens.TokenResponse, error) {
-	return nil, nil
+func (s *tokenRequestProcessor) RefreshToken(
+	ctx context.Context,
+	clientID string,
+	clientSecret string,
+	grantType string,
+	refreshToken string,
+	scopes types.Scope,
+) (*tokens.TokenResponse, error) {
+	return &tokens.TokenResponse{}, nil
 }
 
 // ExchangeAuthorizationCodeForTokens creates access and refresh tokens based on a validated token exchange request.
@@ -88,6 +112,9 @@ func (s *tokenGrantService) RefreshToken(ctx context.Context, clientID, clientSe
 // Returns:
 //   - *token.TokenResponse: A fully formed token response with access and refresh tokens.
 //   - error: An error if token generation fails.
-func (s *tokenGrantService) ExchangeAuthorizationCodeForTokens(ctx context.Context, authCodeData *code.AuthorizationCodeData) (*tokens.TokenResponse, error) {
-	return nil, nil
+func (s *tokenRequestProcessor) ExchangeAuthorizationCodeForTokens(
+	ctx context.Context,
+	authCodeData *authz.AuthorizationCodeData,
+) (*tokens.TokenResponse, error) {
+	return &tokens.TokenResponse{}, nil
 }

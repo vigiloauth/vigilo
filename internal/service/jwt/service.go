@@ -15,16 +15,21 @@ import (
 var _ domain.JWTService = (*jwtService)(nil)
 
 type jwtService struct {
-	publicKey *rsa.PublicKey
-	logger    *config.Logger
-	module    string
+	publicKey  *rsa.PublicKey
+	privateKey *rsa.PrivateKey
+	keyID      string
+
+	logger *config.Logger
+	module string
 }
 
 func NewJWTService() domain.JWTService {
 	return &jwtService{
-		publicKey: config.GetServerConfig().TokenConfig().PublicKey(),
-		logger:    config.GetServerConfig().Logger(),
-		module:    "JWT Service",
+		publicKey:  config.GetServerConfig().TokenConfig().PublicKey(),
+		privateKey: config.GetServerConfig().TokenConfig().SecretKey(),
+		keyID:      config.GetServerConfig().TokenConfig().KeyID(),
+		logger:     config.GetServerConfig().Logger(),
+		module:     "JWT Service",
 	}
 }
 
@@ -49,4 +54,10 @@ func (s *jwtService) ParseWithClaims(ctx context.Context, tokenString string) (*
 	}
 
 	return nil, errors.New(errors.ErrCodeInvalidToken, "provided token is invalid")
+}
+
+func (s *jwtService) SignToken(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
+	jwtClaims := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	jwtClaims.Header["kid"] = s.keyID
+	return jwtClaims.SignedString(s.privateKey)
 }

@@ -8,8 +8,8 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
-// TokenGrantService defines an interface for issuing and refreshing tokens based on various OAuth2 grant types.
-type TokenGrantService interface {
+// TokenRequestProcessor defines an interface for issuing token pairs.
+type TokenRequestProcessor interface {
 	// IssueClientCredentialsToken issues a token using the Client Credentials grant type.
 	//
 	// Parameters:
@@ -65,11 +65,3 @@ type TokenGrantService interface {
 	//   - error: An error if token generation fails.
 	ExchangeAuthorizationCodeForTokens(ctx context.Context, authCodeData *authz.AuthorizationCodeData) (*TokenResponse, error)
 }
-
-// defer func() {
-// 	if r := recover(); r != nil {
-// 		s.logger.Error(s.module, requestID, "%s Recovered panic: %v. Attempting to blacklist refresh token %s", logPrefix, r, utils.TruncateString(refreshToken, 10))
-// 		s.blacklistToken(ctx, refreshToken) // Attempt blacklist even on panic
-// 		panic(r) // Re-panic after logging/cleanup
-// 	}
-// }()

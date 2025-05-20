@@ -41,6 +41,7 @@ const (
 	ErrCodeTokenParsing    string = "token_parsing"
 	ErrCodeTokenEncryption string = "token_encrypt_failed"
 	ErrCodeTokenDecryption string = "token_decrypt_failed"
+	ErrCodeDuplicateToken  string = "duplicate_token"
 
 	// Email errors
 	ErrCodeConnectionFailed    string = "connection_failed"
@@ -161,6 +162,7 @@ var HTTPStatusCodeMap = map[string]int{
 	ErrCodeSessionSave:         http.StatusInternalServerError,
 	ErrCodeTokenEncryption:     http.StatusInternalServerError,
 	ErrCodeTokenDecryption:     http.StatusInternalServerError,
+	ErrCodeDuplicateToken:      http.StatusInternalServerError,
 
 	// 502 Bad Gateway
 	ErrCodeConnectionFailed: http.StatusBadGateway,
@@ -223,6 +225,7 @@ var SystemErrorCodeMap = map[string]string{
 	ErrCodeTokenParsing:    prefix + tokenError + "0005",
 	ErrCodeTokenEncryption: prefix + tokenError + "0006",
 	ErrCodeTokenDecryption: prefix + tokenError + "0007",
+	ErrCodeDuplicateToken:  prefix + tokenError + "0008",
 
 	// Email Errors
 	ErrCodeConnectionFailed:    prefix + emailError + "0001",

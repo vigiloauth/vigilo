@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"time"
-
 	"github.com/golang-jwt/jwt"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
@@ -10,11 +8,11 @@ import (
 
 // TokenData represents the data associated with a token.
 type TokenData struct {
-	Token       string    // The token string.
-	ID          string    // The id associated with the token.
-	ExpiresAt   time.Time // The token's expiration time.
-	TokenID     string
-	TokenClaims *TokenClaims
+	Token       string       // The token string.
+	ID          string       // The id associated with the token.
+	ExpiresAt   int64        // The token's expiration time.
+	TokenID     string       // The ID of the token.
+	TokenClaims *TokenClaims // The claims associated with the token.
 }
 
 // TokenResponse represents the structure of an OAuth token response.
