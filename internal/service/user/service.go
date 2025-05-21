@@ -379,12 +379,12 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 		return nil, wrappedErr
 	}
 
-	roles := strings.Join(retrievedUser.Roles, " ")
-	accessToken, err := u.tokenService.GenerateToken(ctx, retrievedUser.Email, retrievedUser.ID, "", roles, "", types.AccessTokenType)
-	if err != nil {
-		u.logger.Error(u.module, requestID, "Failed to generate access token for user=[%s]: %v", utils.TruncateSensitive(retrievedUser.ID), err)
-		return nil, errors.NewInternalServerError()
-	}
+	// roles := strings.Join(retrievedUser.Roles, " ")
+	// accessToken, err := u.tokenService.GenerateToken(ctx, retrievedUser.Email, retrievedUser.ID, "", roles, "", types.AccessTokenType)
+	// if err != nil {
+	// 	u.logger.Error(u.module, requestID, "Failed to generate access token for user=[%s]: %v", utils.TruncateSensitive(retrievedUser.ID), err)
+	// 	return nil, errors.NewInternalServerError()
+	// }
 
 	retrievedUser.LastFailedLogin = time.Time{}
 	if err := u.updateAuthenticatedUser(ctx, retrievedUser); err != nil {
@@ -394,7 +394,7 @@ func (u *userService) authenticateUser(ctx context.Context, loginUser *users.Use
 	}
 
 	u.logLoginEvent(ctx, true, nil, retrievedUser.ID)
-	return users.NewUserLoginResponse(retrievedUser, accessToken, ""), nil
+	return users.NewUserLoginResponse(retrievedUser), nil
 }
 
 func (u *userService) updateAuthenticatedUser(ctx context.Context, user *users.User) error {

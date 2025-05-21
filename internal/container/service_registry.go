@@ -166,8 +166,7 @@ func (sr *ServiceRegistry) initUserAuthenticator() {
 			return userService.NewUserAuthenticator(
 				sr.db.UserRepository(),
 				sr.AuditLogger(),
-				sr.db.LoginAttemptRepository(),
-				sr.TokenIssuer(),
+				sr.LoginAttemptService(),
 			)
 		},
 	}
@@ -374,6 +373,7 @@ func (sr *ServiceRegistry) initTokenRequestProcessor() {
 			return tokenService.NewTokenRequestProcessor(
 				sr.TokenIssuer(),
 				sr.ClientAuthenticator(),
+				sr.UserAuthenticator(),
 			)
 		},
 	}

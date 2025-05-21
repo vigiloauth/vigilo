@@ -17,16 +17,4 @@ type UserAuthenticator interface {
 	//   - *UserLoginResponse: The response containing user information and a JWT token if authentication is successful.
 	//   - error: An error if authentication fails or if the input is invalid.
 	AuthenticateUser(ctx context.Context, request *UserLoginRequest) (*UserLoginResponse, error)
-
-	// HandleFailedAuthenticationAttempt handles a failed login attempt.
-	// It updates the user's last failed login time, saves the login attempt, and locks the account if necessary.
-	//
-	// Parameters:
-	//   - ctx Context: The context for managing timeouts and cancellations.
-	//   - user *User: The user who attempted to log in.
-	//   - attempt *UserLoginAttempt: The login attempt information.
-	//
-	// Returns:
-	//   - error: An error if an operation fails.
-	HandleFailedAuthenticationAttempt(ctx context.Context, user *User, attempt *UserLoginAttempt) error
 }

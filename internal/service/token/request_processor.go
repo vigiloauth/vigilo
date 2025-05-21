@@ -7,6 +7,7 @@ import (
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
@@ -16,6 +17,7 @@ var _ tokens.TokenRequestProcessor = (*tokenRequestProcessor)(nil)
 type tokenRequestProcessor struct {
 	issuer              tokens.TokenIssuer
 	clientAuthenticator client.ClientAuthenticator
+	userAuthenticator   domain.UserAuthenticator
 	logger              *config.Logger
 	module              string
 }
@@ -23,10 +25,12 @@ type tokenRequestProcessor struct {
 func NewTokenRequestProcessor(
 	issuer tokens.TokenIssuer,
 	clientAuthenticator client.ClientAuthenticator,
+	userAuthenticator domain.UserAuthenticator,
 ) tokens.TokenRequestProcessor {
 	return &tokenRequestProcessor{
 		issuer:              issuer,
 		clientAuthenticator: clientAuthenticator,
+		userAuthenticator:   userAuthenticator,
 		logger:              config.GetServerConfig().Logger(),
 		module:              "Token Issuer",
 	}

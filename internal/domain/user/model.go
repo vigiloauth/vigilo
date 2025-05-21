@@ -291,18 +291,15 @@ func NewUserLoginRequest(username, password string) *UserLoginRequest {
 //
 // Parameters:
 //   - user *User: The authenticated User object.
-//   - accessToken string: The Access token for the authenticated user.
-//   - refreshToken string: The refresh token for the authenticated user.
 //
 // Returns:
 //   - *UserLoginResponse: A new UserLoginResponse instance.
-func NewUserLoginResponse(user *User, accessToken string, refreshToken string) *UserLoginResponse {
+func NewUserLoginResponse(user *User) *UserLoginResponse {
 	return &UserLoginResponse{
-		UserID:      user.ID,
-		Username:    user.PreferredUsername,
-		Email:       user.Email,
-		Roles:       user.Roles,
-		AccessToken: accessToken,
+		UserID:   user.ID,
+		Username: user.PreferredUsername,
+		Email:    user.Email,
+		Roles:    user.Roles,
 
 		LastFailedLogin: user.LastFailedLogin,
 	}
