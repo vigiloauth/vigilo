@@ -35,8 +35,7 @@ func (di *DIContainer) Init() *DIContainer {
 	di.handlerRegistry = NewHandlerRegistry(di.serviceRegistry, di.logger)
 
 	di.exitCh = make(chan struct{})
-	di.schedulerRegistry = NewSchedulerRegistry(di.serviceRegistry, di.logger, di.exitCh)
-	di.serverConfigRegistry = NewServerConfigRegistry(di.logger, di.serviceRegistry)
+	di.serverConfigRegistry = NewServerConfigRegistry(di.serviceRegistry)
 	return di
 }
 
@@ -50,10 +49,6 @@ func (di *DIContainer) HandlerRegistry() *HandlerRegistry {
 
 func (di *DIContainer) RepositoryRegistry() *RepositoryRegistry {
 	return di.repoRegistry
-}
-
-func (di *DIContainer) SchedulerRegistry() *SchedulerRegistry {
-	return di.schedulerRegistry
 }
 
 func (di *DIContainer) ServerConfigRegistry() *ServerConfigRegistry {

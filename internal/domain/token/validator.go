@@ -8,7 +8,7 @@ type TokenValidator interface {
 	//
 	// Parameters:
 	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- token string: The token string to check.
+	//	- tokenStr string: The token string to check.
 	//
 	// Returns:
 	//	- error: An error if the token is blacklisted or expired.

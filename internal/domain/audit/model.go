@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
@@ -56,7 +55,7 @@ func (m MethodType) String() string { return string(m) }
 
 func NewAuditEvent(ctx context.Context, eventType EventType, success bool, action ActionType, method MethodType, errCode string) *AuditEvent {
 	event := &AuditEvent{
-		EventID:   constants.AuditEventIDPrefix + crypto.GenerateUUID(),
+		EventID:   constants.AuditEventIDPrefix + utils.GenerateUUID(),
 		Timestamp: time.Now().UTC(),
 		EventType: eventType,
 		Success:   success,

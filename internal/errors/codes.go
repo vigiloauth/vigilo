@@ -83,6 +83,12 @@ const (
 	ErrCodeInvalidAuthorizationCode  string = "invalid_authorization_code"
 	ErrCodeExpiredAuthorizationCode  string = "expired_authorization_code"
 	ErrCodeAuthorizationCodeNotFound string = "code_not_found"
+
+	// Encryption Errors
+	ErrCodeHashingFailed          string = "hashing_failed"
+	ErrCodeRandomGenerationFailed string = "random_generation_failed"
+	ErrCodeEncryptionFailed       string = "encryption_failed"
+	ErrCodeDecryptionFailed       string = "decryption_failed"
 )
 
 // HTTP status code mappings
@@ -155,14 +161,18 @@ var HTTPStatusCodeMap = map[string]int{
 	ErrCodeRequestCancelled: http.StatusRequestTimeout,
 
 	// 500 Internal Server Error
-	ErrCodeInternalServerError: http.StatusInternalServerError,
-	ErrCodeTokenCreation:       http.StatusInternalServerError,
-	ErrCodeEmailDeliveryFailed: http.StatusInternalServerError,
-	ErrCodeSessionCreation:     http.StatusInternalServerError,
-	ErrCodeSessionSave:         http.StatusInternalServerError,
-	ErrCodeTokenEncryption:     http.StatusInternalServerError,
-	ErrCodeTokenDecryption:     http.StatusInternalServerError,
-	ErrCodeDuplicateToken:      http.StatusInternalServerError,
+	ErrCodeInternalServerError:    http.StatusInternalServerError,
+	ErrCodeTokenCreation:          http.StatusInternalServerError,
+	ErrCodeEmailDeliveryFailed:    http.StatusInternalServerError,
+	ErrCodeSessionCreation:        http.StatusInternalServerError,
+	ErrCodeSessionSave:            http.StatusInternalServerError,
+	ErrCodeTokenEncryption:        http.StatusInternalServerError,
+	ErrCodeTokenDecryption:        http.StatusInternalServerError,
+	ErrCodeDuplicateToken:         http.StatusInternalServerError,
+	ErrCodeHashingFailed:          http.StatusInternalServerError,
+	ErrCodeRandomGenerationFailed: http.StatusInternalServerError,
+	ErrCodeEncryptionFailed:       http.StatusInternalServerError,
+	ErrCodeDecryptionFailed:       http.StatusInternalServerError,
 
 	// 502 Bad Gateway
 	ErrCodeConnectionFailed: http.StatusBadGateway,
@@ -185,6 +195,7 @@ const (
 	middlewareError string = "MDW"
 	systemError     string = "SYS"
 	authzCodeError  string = "AUTH"
+	cryptoError     string = "CRY"
 )
 
 var SystemErrorCodeMap = map[string]string{
@@ -267,6 +278,12 @@ var SystemErrorCodeMap = map[string]string{
 	ErrCodeInvalidAuthorizationCode:  prefix + authzCodeError + "0001",
 	ErrCodeExpiredAuthorizationCode:  prefix + authzCodeError + "0002",
 	ErrCodeAuthorizationCodeNotFound: prefix + authzCodeError + "0003",
+
+	// Crypto Errors
+	ErrCodeHashingFailed:          prefix + cryptoError + "0001",
+	ErrCodeRandomGenerationFailed: prefix + cryptoError + "0002",
+	ErrCodeEncryptionFailed:       prefix + cryptoError + "0003",
+	ErrCodeDecryptionFailed:       prefix + cryptoError + "0004",
 }
 
 // StatusCode returns the HTTP status code associated with the error code

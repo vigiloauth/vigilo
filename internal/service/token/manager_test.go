@@ -93,9 +93,9 @@ func TestTokenManager_Introspect(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := NewTokenManager(test.repo, test.parser, test.validator)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
-			actual := service.Introspect(ctx, testToken)
+			actual := service.Introspect(ctx, "token")
 			if test.wantErr {
 				assert.False(t, actual.Active, "Expected the token to not be active")
 			} else {
@@ -142,7 +142,7 @@ func TestTokenManager_Revoke(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := NewTokenManager(test.repo, nil, nil)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			err := service.Revoke(ctx, "token")
 
@@ -191,7 +191,7 @@ func TestTokenManager_GetTokenData(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := NewTokenManager(test.repo, nil, nil)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			result, err := service.GetTokenData(ctx, "token")
 
@@ -238,7 +238,7 @@ func TestTokenManager_BlacklistToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := NewTokenManager(test.repo, nil, nil)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			err := service.BlacklistToken(ctx, "token")
 
@@ -297,7 +297,7 @@ func TestTokenManager_DeleteExpiredTokens(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := NewTokenManager(test.repo, nil, nil)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			err := service.DeleteExpiredTokens(ctx)
 
@@ -339,7 +339,7 @@ func TestTokenManager_DeleteToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := NewTokenManager(test.repo, nil, nil)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			err := service.DeleteToken(ctx, "token")
 

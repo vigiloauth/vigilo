@@ -6,7 +6,6 @@ import (
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	login "github.com/vigiloauth/vigilo/v2/internal/domain/login"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -64,7 +63,7 @@ func NewUserAuthenticator(
 func (u *userAuthenticator) AuthenticateUser(
 	ctx context.Context,
 	request *users.UserLoginRequest,
-) (*users.UserLoginResponse, error) {
+) (res *users.UserLoginResponse, err error) {
 	requestID := utils.GetRequestID(ctx)
 	startTime := time.Now()
 	defer u.applyArtificialDelay(startTime)
@@ -87,6 +86,18 @@ func (u *userAuthenticator) AuthenticateUser(
 		u.logAuthenticationAttempt(ctx, false, err, "")
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidCredentials, "username or password are incorrect")
 	}
+
+	defer func() {
+		var userID string
+		if user != nil {
+			userID = user.ID
+		}
+		if err != nil {
+			u.logAuthenticationAttempt(ctx, false, err, userID)
+		} else {
+			u.logAuthenticationAttempt(ctx, true, err, userID)
+		}
+	}()
 
 	loginAttempt.UserID = user.ID
 
@@ -130,7 +141,7 @@ func (u *userAuthenticator) logAuthenticationAttempt(ctx context.Context, succes
 }
 
 func (u *userAuthenticator) comparePasswords(password string, hashedPassword string) error {
-	passwordsAreEqual := crypto.CompareHash(password, hashedPassword)
+	passwordsAreEqual := utils.CompareHash(password, hashedPassword)
 	if !passwordsAreEqual {
 		return errors.New(errors.ErrCodeInvalidCredentials, "invalid credentials")
 	}
@@ -143,14 +154,10 @@ func (u *userAuthenticator) extractMetadataFromContext(ctx context.Context) (Req
 
 	if IP := utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress); IP != "" {
 		requestMetadata.IPAddress, _ = IP.(string)
-	} else {
-		return requestMetadata, errors.New(errors.ErrCodeInvalidRequest, "missing IP address")
 	}
 
 	if userAgent := utils.GetValueFromContext(ctx, constants.ContextKeyUserAgent); userAgent != "" {
 		requestMetadata.UserAgent, _ = userAgent.(string)
-	} else {
-		return requestMetadata, errors.New(errors.ErrCodeInvalidRequest, "missing user agent")
 	}
 
 	return requestMetadata, nil

@@ -101,8 +101,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 		headers := map[string]string{constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken}
 		rr := testContext.SendHTTPRequest(http.MethodGet, web.OIDCEndpoints.UserInfo, nil, headers)
 
-		t.Logf("b: %v", rr.Body)
-		assert.Equal(t, http.StatusBadRequest, rr.Code, "Expected HTTP Status code 200 OK, got: %d", rr.Code)
+		assert.Equal(t, http.StatusOK, rr.Code, "Expected HTTP Status code 200 OK, got: %d", rr.Code)
 	})
 
 	t.Run("Success with individual scopes only", func(t *testing.T) {

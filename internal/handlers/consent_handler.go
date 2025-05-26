@@ -10,7 +10,6 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
-	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
@@ -20,7 +19,6 @@ import (
 
 // UserHandler handles HTTP requests related to OAuth operations.
 type ConsentHandler struct {
-	userService    users.UserService
 	sessionService session.SessionService
 	consentService consent.UserConsentService
 	jwtConfig      *config.TokenConfig
@@ -40,12 +38,12 @@ type ConsentHandler struct {
 // Returns:
 // *UserHandler: A new UserHandler instance.
 func NewConsentHandler(
-	userService users.UserService,
+
 	sessionService session.SessionService,
 	consentService consent.UserConsentService,
 ) *ConsentHandler {
 	return &ConsentHandler{
-		userService:    userService,
+
 		sessionService: sessionService,
 		consentService: consentService,
 		jwtConfig:      config.GetServerConfig().TokenConfig(),

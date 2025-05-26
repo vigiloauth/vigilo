@@ -9,13 +9,13 @@ import (
 )
 
 type TokenJobs struct {
-	tokenService domain.TokenService
+	tokenService domain.TokenManager
 	interval     time.Duration
 	logger       *config.Logger
 	module       string
 }
 
-func NewTokenJobs(tokenService domain.TokenService, interval time.Duration) *TokenJobs {
+func NewTokenJobs(tokenService domain.TokenManager, interval time.Duration) *TokenJobs {
 	return &TokenJobs{
 		tokenService: tokenService,
 		interval:     interval,

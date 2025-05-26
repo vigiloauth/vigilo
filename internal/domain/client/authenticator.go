@@ -25,12 +25,9 @@ type ClientAuthenticator interface {
 	//
 	// Parameters:
 	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- clientID string: The ID of the client.
-	//	- clientSecret string: The client secret.
-	//	- requestedGrant string: The requested grant type to validate.
-	//	- scopes string: The scopes to validate.
+	//	- req *ClientAuthenticationRequest: The request containing client credentials and required scopes.
 	//
 	// Returns:
 	//	- error: An error if authentication or authorization fails.
-	AuthenticateClient(ctx context.Context, clientID string, clientSecret string, requestedGrant string, requestedScopes types.Scope) error
+	AuthenticateClient(ctx context.Context, req *ClientAuthenticationRequest) error
 }

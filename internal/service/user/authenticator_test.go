@@ -6,18 +6,24 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	mockAudit "github.com/vigiloauth/vigilo/v2/internal/mocks/audit"
 	mockLogin "github.com/vigiloauth/vigilo/v2/internal/mocks/login"
 	mockUser "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
+	service "github.com/vigiloauth/vigilo/v2/internal/service/crypto"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 const (
 	testRequestID string = "req-1234"
+	testUsername  string = "username"
+	testPassword1 string = "pas$2W_Ord"
+	testEmail     string = "john.doe@mail.com"
+	testUserID    string = "user-1234"
+	testIPAddress string = "127.0.01"
+	testUserAgent string = "user-agent/1.1"
 )
 
 func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
@@ -37,6 +43,7 @@ func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
 			request:     &users.UserLoginRequest{Username: testUsername, Password: testPassword1},
 			repo: &mockUser.MockUserRepository{
 				GetUserByUsernameFunc: func(ctx context.Context, username string) (*users.User, error) {
+					crypto := service.NewCryptographer()
 					hashedPassword, _ := crypto.HashString(testPassword1)
 					return &users.User{
 						AccountLocked:     false,

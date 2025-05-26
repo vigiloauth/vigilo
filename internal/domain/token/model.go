@@ -19,11 +19,11 @@ type TokenData struct {
 // This is returned to the client after successful authentication.
 type TokenResponse struct {
 	AccessToken  string      `json:"access_token"`
+	RefreshToken string      `json:"refresh_token,omitempty"`
 	TokenType    string      `json:"token_type"`
 	IDToken      string      `json:"id_token"`
-	ExpiresIn    int         `json:"expires_in"`
-	RefreshToken string      `json:"refresh_token,omitempty"`
 	Scope        types.Scope `json:"scope,omitempty"`
+	ExpiresIn    int64       `json:"expires_in"`
 }
 
 type TokenIntrospectionResponse struct {

@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
@@ -13,7 +12,7 @@ import (
 
 // AuthorizationHandler handles HTTP requests related to authorization.
 type AuthorizationHandler struct {
-	authorizationService authz.AuthorizationService
+	clientAuthorization client.ClientAuthorization
 
 	logger *config.Logger
 	module string
@@ -21,11 +20,11 @@ type AuthorizationHandler struct {
 
 // NewAuthorizationHandler creates a new AuthorizationHandler instance.
 // It initializes the handler with the provided authorization and session services.
-func NewAuthorizationHandler(authorizationService authz.AuthorizationService) *AuthorizationHandler {
+func NewAuthorizationHandler(clientAuthorization client.ClientAuthorization) *AuthorizationHandler {
 	return &AuthorizationHandler{
-		authorizationService: authorizationService,
-		logger:               config.GetServerConfig().Logger(),
-		module:               "Authorization Handler",
+		clientAuthorization: clientAuthorization,
+		logger:              config.GetServerConfig().Logger(),
+		module:              "Authorization Handler",
 	}
 }
 
@@ -58,7 +57,7 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	req.HTTPWriter = w
 	req.HTTPRequest = r
 
-	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req)
+	redirectURL, err := h.clientAuthorization.Authorize(ctx, req)
 	if err != nil {
 		if errors.ErrorCode(err) == errors.ErrCodeInvalidRedirectURI {
 			web.RenderErrorPage(w, r, errors.ErrorCode(err), req.RedirectURI)

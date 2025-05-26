@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
@@ -32,7 +31,7 @@ func NewTokenManager(
 		validator: validator,
 
 		logger: config.GetServerConfig().Logger(),
-		module: "Token Management Service",
+		module: "Token Manager",
 	}
 }
 
@@ -77,7 +76,7 @@ func (m *tokenManager) Introspect(ctx context.Context, tokenStr string) *token.T
 //   - error: An error if revocation fails.
 func (m *tokenManager) Revoke(ctx context.Context, tokenStr string) error {
 	requestID := utils.GetRequestID(ctx)
-	hashedToken := crypto.EncodeSHA256(tokenStr)
+	hashedToken := utils.EncodeSHA256(tokenStr)
 
 	if err := m.repo.BlacklistToken(ctx, hashedToken); err != nil {
 		m.logger.Error(m.module, requestID, "[Revoke]: Failed to blacklist token: %v", err)
@@ -98,7 +97,7 @@ func (m *tokenManager) Revoke(ctx context.Context, tokenStr string) error {
 //   - error: An error if the token is not found, expired, or the subject doesn't match.
 func (m *tokenManager) GetTokenData(ctx context.Context, tokenStr string) (*token.TokenData, error) {
 	requestID := utils.GetRequestID(ctx)
-	hashedToken := crypto.EncodeSHA256(tokenStr)
+	hashedToken := utils.EncodeSHA256(tokenStr)
 
 	tokenData, err := m.repo.GetToken(ctx, hashedToken)
 	if err != nil {
@@ -121,7 +120,7 @@ func (m *tokenManager) GetTokenData(ctx context.Context, tokenStr string) (*toke
 //   - error: An error if the token is not found in the token store or if it has already expired, in which case it cannot be blacklisted.
 func (m *tokenManager) BlacklistToken(ctx context.Context, tokenStr string) error {
 	requestID := utils.GetRequestID(ctx)
-	hashedToken := crypto.EncodeSHA256(tokenStr)
+	hashedToken := utils.EncodeSHA256(tokenStr)
 
 	if err := m.repo.BlacklistToken(ctx, hashedToken); err != nil {
 		m.logger.Error(m.module, requestID, "[BlacklistToken]: An error occurred while attempting to blacklist token: %v", err)
@@ -167,7 +166,7 @@ func (m *tokenManager) DeleteExpiredTokens(ctx context.Context) error {
 //   - error: An error if the token deletion fails.
 func (m *tokenManager) DeleteToken(ctx context.Context, tokenStr string) error {
 	requestID := utils.GetRequestID(ctx)
-	hashedToken := crypto.EncodeSHA256(tokenStr)
+	hashedToken := utils.EncodeSHA256(tokenStr)
 
 	err := m.repo.DeleteToken(ctx, hashedToken)
 	if err != nil {

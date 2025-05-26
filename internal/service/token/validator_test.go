@@ -14,6 +14,8 @@ import (
 )
 
 func TestTokenValidator_ValidateToken(t *testing.T) {
+	requestID := "req-1234"
+
 	tests := []struct {
 		name            string
 		wantErr         bool
@@ -97,7 +99,7 @@ func TestTokenValidator_ValidateToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := NewTokenValidator(test.repo, test.parser)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			err := service.ValidateToken(ctx, "token")
 

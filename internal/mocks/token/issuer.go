@@ -12,8 +12,9 @@ import (
 var _ token.TokenIssuer = (*MockTokenIssuer)(nil)
 
 type MockTokenIssuer struct {
-	IssueTokenPairFunc func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, claims *claims.ClaimsRequest) (string, string, error)
-	IssueIDTokenFunc   func(ctx context.Context, subject string, audience string, scopes types.Scope, nonce string, authTime time.Time) (string, error)
+	IssueTokenPairFunc   func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, claims *claims.ClaimsRequest) (string, string, error)
+	IssueIDTokenFunc     func(ctx context.Context, subject string, audience string, scopes types.Scope, nonce string, authTime time.Time) (string, error)
+	IssueAccessTokenFunc func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error)
 }
 
 func (m *MockTokenIssuer) IssueTokenPair(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
@@ -22,4 +23,8 @@ func (m *MockTokenIssuer) IssueTokenPair(ctx context.Context, subject string, au
 
 func (m *MockTokenIssuer) IssueIDToken(ctx context.Context, subject string, audience string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
 	return m.IssueIDTokenFunc(ctx, subject, audience, scopes, nonce, authTime)
+}
+
+func (m *MockTokenIssuer) IssueAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
+	return m.IssueAccessTokenFunc(ctx, subject, audience, scopes, roles, nonce)
 }

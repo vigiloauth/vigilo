@@ -10,6 +10,7 @@ import (
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/crypto"
 	jwtMocks "github.com/vigiloauth/vigilo/v2/internal/mocks/jwt"
 	mockRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
@@ -21,6 +22,7 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 		wantErr bool
 		repo    *mockRepo.MockTokenRepository
 		jwt     *jwtMocks.MockJWTService
+		crypto  *mocks.MockCryptographer
 	}{
 		{
 			name: "Success",
@@ -35,6 +37,11 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 					return "signed-token", nil
+				},
+			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
 				},
 			},
 		},
@@ -54,6 +61,11 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 					return "signed-token", nil
 				},
 			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
+				},
+			},
 		},
 		{
 			name:    "Error is returned when the token exists by ID",
@@ -66,6 +78,11 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 					return "signed-token", nil
+				},
+			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
 				},
 			},
 		},
@@ -85,13 +102,18 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 					return "", errors.NewInternalServerError()
 				},
 			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
+				},
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			service := NewTokenCreator(test.repo, test.jwt)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			service := NewTokenCreator(test.repo, test.jwt, test.crypto)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			accessToken, err := service.CreateAccessToken(
 				ctx,
@@ -119,6 +141,7 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 		wantErr bool
 		repo    *mockRepo.MockTokenRepository
 		jwt     *jwtMocks.MockJWTService
+		crypto  *mocks.MockCryptographer
 	}{
 		{
 			name: "Success",
@@ -133,6 +156,11 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 					return "signed-token", nil
+				},
+			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
 				},
 			},
 		},
@@ -152,6 +180,11 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 					return "signed-token", nil
 				},
 			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
+				},
+			},
 		},
 		{
 			name:    "Error is returned when the token exists by ID",
@@ -164,6 +197,11 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 					return "signed-token", nil
+				},
+			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
 				},
 			},
 		},
@@ -183,13 +221,18 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 					return "", errors.NewInternalServerError()
 				},
 			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
+				},
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			service := NewTokenCreator(test.repo, test.jwt)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			service := NewTokenCreator(test.repo, test.jwt, test.crypto)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			refreshToken, err := service.CreateRefreshToken(
 				ctx,
@@ -217,6 +260,7 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 		wantErr bool
 		repo    *mockRepo.MockTokenRepository
 		jwt     *jwtMocks.MockJWTService
+		crypto  *mocks.MockCryptographer
 	}{
 		{
 			name: "Success",
@@ -226,6 +270,11 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 				},
 				SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *tokens.TokenData, expiration time.Time) error {
 					return nil
+				},
+			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
@@ -245,6 +294,11 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 					return errors.NewInternalServerError()
 				},
 			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
+				},
+			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 					return "signed-token", nil
@@ -257,6 +311,11 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 			repo: &mockRepo.MockTokenRepository{
 				ExistsByTokenIDFunc: func(ctx context.Context, tokenID string) (bool, error) {
 					return true, nil
+				},
+			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
@@ -276,6 +335,11 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 					return nil
 				},
 			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
+				},
+			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 					return "", errors.NewInternalServerError()
@@ -286,8 +350,8 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			service := NewTokenCreator(test.repo, test.jwt)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			service := NewTokenCreator(test.repo, test.jwt, test.crypto)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			accessToken, err := service.CreateAccessTokenWithClaims(
 				ctx,
@@ -322,6 +386,7 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 		wantErr bool
 		repo    *mockRepo.MockTokenRepository
 		jwt     *jwtMocks.MockJWTService
+		crypto  *mocks.MockCryptographer
 	}{
 		{
 			name: "Success",
@@ -331,6 +396,11 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 				},
 				SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *tokens.TokenData, expiration time.Time) error {
 					return nil
+				},
+			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
@@ -350,6 +420,11 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 					return errors.NewInternalServerError()
 				},
 			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
+				},
+			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 					return "signed-token", nil
@@ -362,6 +437,11 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 			repo: &mockRepo.MockTokenRepository{
 				ExistsByTokenIDFunc: func(ctx context.Context, tokenID string) (bool, error) {
 					return true, nil
+				},
+			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
@@ -381,6 +461,11 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 					return nil
 				},
 			},
+			crypto: &mocks.MockCryptographer{
+				GenerateRandomStringFunc: func(length int) (string, error) {
+					return "random-string", nil
+				},
+			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 					return "", errors.NewInternalServerError()
@@ -391,8 +476,8 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			service := NewTokenCreator(test.repo, test.jwt)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			service := NewTokenCreator(test.repo, test.jwt, test.crypto)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			IDToken, err := service.CreateIDToken(
 				ctx,

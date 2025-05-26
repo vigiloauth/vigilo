@@ -115,14 +115,6 @@ func (b *InMemoryTokenRepository) GetToken(ctx context.Context, token string) (*
 func (b *InMemoryTokenRepository) BlacklistToken(ctx context.Context, token string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	requestID := utils.GetRequestID(ctx)
-
-	data, exists := b.tokens[token]
-	expirationTime := time.Unix(data.TokenClaims.StandardClaims.ExpiresAt, 0)
-	if !exists || time.Now().After(expirationTime) {
-		logger.Debug(module, requestID, "[BlacklistToken]: Token not found or expired")
-		return errors.New(errors.ErrCodeTokenNotFound, "token not found or expired")
-	}
 
 	tokenData := b.tokens[token]
 	delete(b.tokens, token)

@@ -18,9 +18,11 @@ import (
 
 // UserHandler handles HTTP requests related to user operations.
 type UserHandler struct {
-	userService    users.UserService
+	creator        users.UserCreator
+	authenticator  users.UserAuthenticator
+	manager        users.UserManager
+	verifier       users.UserVerifier
 	sessionService session.SessionService
-	tokenConfig    *config.TokenConfig
 
 	logger *config.Logger
 	module string
@@ -37,11 +39,19 @@ type UserHandler struct {
 // Returns:
 //
 //	*UserHandler: A new UserHandler instance.
-func NewUserHandler(userService users.UserService, sessionService session.SessionService) *UserHandler {
+func NewUserHandler(
+	creator users.UserCreator,
+	authenticator users.UserAuthenticator,
+	manager users.UserManager,
+	verifier users.UserVerifier,
+	sessionService session.SessionService,
+) *UserHandler {
 	return &UserHandler{
-		userService:    userService,
+		creator:        creator,
+		authenticator:  authenticator,
+		manager:        manager,
+		verifier:       verifier,
 		sessionService: sessionService,
-		tokenConfig:    config.GetServerConfig().TokenConfig(),
 		logger:         config.GetServerConfig().Logger(),
 		module:         "User Handler",
 	}
@@ -65,7 +75,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := users.NewUserFromRegistrationRequest(request)
-	response, err := h.userService.CreateUser(ctx, user)
+	response, err := h.creator.CreateUser(ctx, user)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to create user")
 		web.WriteError(w, wrappedErr)
@@ -95,12 +105,13 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.userService.AuthenticateUserWithRequest(ctx, request)
+	response, err := h.authenticator.AuthenticateUser(ctx, request)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
 		web.WriteError(w, wrappedErr)
 		return
 	}
+
 	sessionData := &session.SessionData{
 		UserID:             response.UserID,
 		IPAddress:          r.RemoteAddr,
@@ -134,14 +145,12 @@ func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.userService.AuthenticateUser(ctx, request, clientID, redirectURI)
+	response, err := h.authenticator.AuthenticateUser(ctx, request)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to authenticate user")
 		web.WriteError(w, wrappedErr)
 		return
 	}
-
-	h.logger.Debug(h.module, requestID, "[OAuthLogin]: UserID: %s", response.UserID)
 
 	sessionData := &session.SessionData{
 		UserID:             response.UserID,
@@ -200,7 +209,7 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.userService.ResetPassword(
+	response, err := h.manager.ResetPassword(
 		ctx,
 		request.Email,
 		request.NewPassword,
@@ -224,7 +233,7 @@ func (h *UserHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
 
 	query := r.URL.Query()
 	verificationToken := query.Get(constants.TokenReqField)
-	if err := h.userService.ValidateVerificationCode(ctx, verificationToken); err != nil {
+	if err := h.verifier.VerifyEmailAddress(ctx, verificationToken); err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to validate user account")
 		web.WriteError(w, wrappedErr)
 		return

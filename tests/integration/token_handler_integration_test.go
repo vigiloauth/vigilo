@@ -69,7 +69,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 
 				assert.NotNil(t, tokenResponse.AccessToken)
 				assert.Equal(t, "bearer", tokenResponse.TokenType)
-				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
+				assert.Equal(t, int64(1800), tokenResponse.ExpiresIn)
 			})
 		}
 	})
@@ -250,7 +250,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 
 				assert.NotNil(t, tokenResponse.AccessToken)
 				assert.Equal(t, "bearer", tokenResponse.TokenType)
-				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
+				assert.Equal(t, int64(1800), tokenResponse.ExpiresIn)
 			})
 		}
 	})
@@ -300,7 +300,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 			headers,
 		)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 
 	t.Run("Error is returned when client secrets do not match", func(t *testing.T) {
@@ -526,7 +526,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 
 				assert.NotNil(t, tokenResponse.AccessToken)
 				assert.Equal(t, "bearer", tokenResponse.TokenType)
-				assert.Equal(t, 1800, tokenResponse.ExpiresIn)
+				assert.Equal(t, int64(1800), tokenResponse.ExpiresIn)
 			})
 		}
 	})

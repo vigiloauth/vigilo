@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
@@ -68,7 +67,7 @@ func (t *tokenValidator) isTokenExpired(ctx context.Context, tokenStr string) bo
 
 func (t *tokenValidator) isTokenBlacklisted(ctx context.Context, tokenStr string) bool {
 	requestID := utils.GetRequestID(ctx)
-	hashedToken := crypto.EncodeSHA256(tokenStr)
+	hashedToken := utils.EncodeSHA256(tokenStr)
 
 	isBlacklisted, err := t.repo.IsTokenBlacklisted(ctx, hashedToken)
 	if err != nil {

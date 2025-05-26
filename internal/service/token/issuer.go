@@ -97,3 +97,30 @@ func (t *tokenIssuer) IssueIDToken(
 
 	return IDToken, nil
 }
+
+func (t *tokenIssuer) IssueAccessToken(
+	ctx context.Context,
+	subject string,
+	audience string,
+	scopes types.Scope,
+	roles string,
+	nonce string,
+) (string, error) {
+	requestID := utils.GetRequestID(ctx)
+
+	accessToken, err := t.creator.CreateAccessToken(
+		ctx,
+		subject,
+		audience,
+		scopes,
+		roles,
+		nonce,
+	)
+
+	if err != nil {
+		t.logger.Error(t.module, requestID, "[IssueAccessToken]: Failed to issue access token: %v", err)
+		return "", errors.Wrap(err, "", "failed to issue access token")
+	}
+
+	return accessToken, nil
+}

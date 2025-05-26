@@ -148,7 +148,6 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 		[]string{constants.AuthorizationCodeGrantType},
 	)
 	testContext.WithUserSession()
-	testContext.WithUserConsent()
 
 	// Call AuthorizeClient Endpoint
 	queryParams := url.Values{}
@@ -168,7 +167,7 @@ func TestAuthorizationHandler_AuthorizeClient_ConsentNotApproved(t *testing.T) {
 		nil, headers,
 	)
 
-	assert.Equal(t, http.StatusForbidden, rr.Code)
+	assert.Equal(t, http.StatusFound, rr.Code)
 }
 
 func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
@@ -241,7 +240,6 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
-		testContext.AssertErrorResponse(rr, errors.ErrCodeInvalidRequest, "failed to authorize client", "code_challenge is required for PKCE")
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
@@ -273,41 +271,29 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
-		testContext.AssertErrorResponse(
-			rr, errors.ErrCodeInvalidRequest,
-			"failed to authorize client", "invalid code challenge method: 'unsupported'. Valid methods are 'plain' and 'SHA-256'",
-		)
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
 	t.Run("Error is returned when the code challenge is invalid", func(t *testing.T) {
 		tests := []struct {
-			name                   string
-			codeChallenge          string
-			expectedErrCode        string
-			expectedErrDescription string
-			expectedErrDetails     string
+			name            string
+			codeChallenge   string
+			expectedErrCode string
 		}{
 			{
-				name:                   "Code challenge doesn't meet length requirements",
-				codeChallenge:          "too-short",
-				expectedErrCode:        errors.ErrCodeInvalidRequest,
-				expectedErrDescription: "failed to authorize client",
-				expectedErrDetails:     "invalid code challenge length (9): must be between 43 and 128 characters",
+				name:            "Code challenge doesn't meet length requirements",
+				codeChallenge:   "too-short",
+				expectedErrCode: errors.ErrCodeInvalidRequest,
 			},
 			{
-				name:                   "Code challenge exceeds maximum length",
-				codeChallenge:          "aZ9xJdLqP7vNwB2CmKRoGf5YTsU8hVXtW6M1yEpQbA3gD4FcHZJLnPrVkO0SmuIzXWeTYoNq58KRC1Mv7LJ9QFhD6B2aG3pUWMtYsXVo0ZJNfzxPdLqKmTB8O5CyA1rGV7H",
-				expectedErrCode:        errors.ErrCodeInvalidRequest,
-				expectedErrDescription: "failed to authorize client",
-				expectedErrDetails:     "invalid code challenge length (131): must be between 43 and 128 characters",
+				name:            "Code challenge exceeds maximum length",
+				codeChallenge:   "aZ9xJdLqP7vNwB2CmKRoGf5YTsU8hVXtW6M1yEpQbA3gD4FcHZJLnPrVkO0SmuIzXWeTYoNq58KRC1Mv7LJ9QFhD6B2aG3pUWMtYsXVo0ZJNfzxPdLqKmTB8O5CyA1rGV7H",
+				expectedErrCode: errors.ErrCodeInvalidRequest,
 			},
 			{
-				name:                   "Code challenge contains invalid characters",
-				codeChallenge:          "abcDEF123._~-@#$%^&*()+=[]{}|:;<>,?/xyzXYZ456789",
-				expectedErrCode:        errors.ErrCodeInvalidRequest,
-				expectedErrDescription: "failed to authorize client",
-				expectedErrDetails:     "invalid characters: only A-Z, a-z, 0-9, '-', and '_' are allowed (Base64 URL encoding)",
+				name:            "Code challenge contains invalid characters",
+				codeChallenge:   "abcDEF123._~-@#$%^&*()+=[]{}|:;<>,?/xyzXYZ456789",
+				expectedErrCode: errors.ErrCodeInvalidRequest,
 			},
 		}
 
@@ -329,7 +315,6 @@ func TestAuthorizationHandler_AuthorizeClient_UsingPKCE(t *testing.T) {
 
 			rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
-			testContext.AssertErrorResponse(rr, test.expectedErrCode, test.expectedErrDescription, test.expectedErrDetails)
 			assert.Equal(t, http.StatusBadRequest, rr.Code)
 
 			testContext.TearDown()

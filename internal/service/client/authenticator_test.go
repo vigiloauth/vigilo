@@ -49,12 +49,12 @@ func TestClientAuthenticator_AuthenticateRequest(t *testing.T) {
 				},
 			},
 			{
-				name:            "Client not found error is returned when client does not exist",
+				name:            "Invalid client error is returned when client does not exist",
 				wantErr:         true,
-				expectedErrCode: errors.SystemErrorCodeMap[errors.ErrCodeClientNotFound],
+				expectedErrCode: errors.SystemErrorCodeMap[errors.ErrCodeInvalidClient],
 				clientRepo: &mockClient.MockClientRepository{
 					GetClientByIDFunc: func(ctx context.Context, clientID string) (*clients.Client, error) {
-						return nil, errors.New(errors.ErrCodeClientNotFound, "client not found")
+						return nil, errors.New(errors.ErrCodeInvalidClient, "client not found")
 					},
 				},
 			},
@@ -224,20 +224,6 @@ func TestClientAuthenticator_AuthenticateClient(t *testing.T) {
 			},
 		},
 		{
-			name:            "Client not found error is returned",
-			wantErr:         true,
-			expectedErrCode: errors.SystemErrorCodeMap[errors.ErrCodeClientNotFound],
-			clientID:        clientID,
-			clientSecret:    secret,
-			requestedGrant:  constants.AuthorizationCodeGrantType,
-			requestedScopes: types.OpenIDScope,
-			clientRepo: &mockClient.MockClientRepository{
-				GetClientByIDFunc: func(ctx context.Context, clientID string) (*clients.Client, error) {
-					return nil, errors.New(errors.ErrCodeClientNotFound, "not found")
-				},
-			},
-		},
-		{
 			name:            "Unauthorized client is returned when client is not confidential and a secret is provided",
 			wantErr:         true,
 			expectedErrCode: errors.SystemErrorCodeMap[errors.ErrCodeUnauthorizedClient],
@@ -316,13 +302,14 @@ func TestClientAuthenticator_AuthenticateClient(t *testing.T) {
 			service := NewClientAuthenticator(test.clientRepo, nil, nil)
 			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
 
-			err := service.AuthenticateClient(
-				ctx,
-				test.clientID,
-				test.clientSecret,
-				test.requestedGrant,
-				test.requestedScopes,
-			)
+			req := &clients.ClientAuthenticationRequest{
+				ClientID:        test.clientID,
+				ClientSecret:    test.clientSecret,
+				RequestedGrant:  test.requestedGrant,
+				RequestedScopes: test.requestedScopes,
+			}
+
+			err := service.AuthenticateClient(ctx, req)
 
 			if test.wantErr {
 				assert.Error(t, err, "Expected an error but got none")

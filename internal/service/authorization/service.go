@@ -2,13 +2,8 @@ package service
 
 import (
 	"context"
-	"net/http"
-	"net/url"
-	"strconv"
-	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
@@ -19,7 +14,6 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
-	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 // Compile-time interface implementation check
@@ -28,12 +22,13 @@ var _ authz.AuthorizationService = (*authorizationService)(nil)
 // authorizationService implements the AuthorizationService interface
 // and coordinates authorization-related operations across multiple services.
 type authorizationService struct {
-	authzCodeService   authzCode.AuthorizationCodeService
+	authzCodeService   authzCode.AuthorizationCodeManager
 	userConsentService consent.UserConsentService
-	tokenService       token.TokenService
-	clientService      client.ClientService
-	userService        user.UserService
+	clientManager      client.ClientManager
+	clientValidator    client.ClientValidator
+	userManager        user.UserManager
 	sessionService     session.SessionService
+	tokenManager       token.TokenManager
 
 	logger *config.Logger
 	module string
@@ -50,88 +45,25 @@ type authorizationService struct {
 // Returns:
 //   - A configured AuthorizationServiceImpl instance
 func NewAuthorizationService(
-	authzCodeService authzCode.AuthorizationCodeService,
+	authzCodeService authzCode.AuthorizationCodeManager,
 	userConsentService consent.UserConsentService,
-	tokenService token.TokenService,
-	clientService client.ClientService,
-	userService user.UserService,
+	tokenManager token.TokenManager,
+	clientManager client.ClientManager,
+	clientValidator client.ClientValidator,
+	userManager user.UserManager,
 	sessionService session.SessionService,
 ) authz.AuthorizationService {
 	return &authorizationService{
 		authzCodeService:   authzCodeService,
 		userConsentService: userConsentService,
-		tokenService:       tokenService,
-		clientService:      clientService,
-		userService:        userService,
+		tokenManager:       tokenManager,
+		clientManager:      clientManager,
+		clientValidator:    clientValidator,
+		userManager:        userManager,
 		sessionService:     sessionService,
 		logger:             config.GetServerConfig().Logger(),
 		module:             "Authorization Service",
 	}
-}
-
-// AuthorizeClient handles the authorization logic for a client request.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - authorizationRequest *ClientAuthorizationRequest: The client authorization request.
-//
-// Returns:
-//   - string: The redirect URL, or an empty string if authorization failed.
-//   - error: An error message, if any.
-//
-// Errors:
-//   - Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
-func (s *authorizationService) AuthorizeClient(ctx context.Context, request *client.ClientAuthorizationRequest) (string, error) {
-	requestID := utils.GetRequestID(ctx)
-	s.logger.Info(s.module, requestID, "[AuthorizeClient] Starting authorization process.")
-
-	client, err := s.clientService.GetClientByID(ctx, request.ClientID)
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Failed to retrieve client by ID: %v", err)
-		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
-	}
-
-	if !client.HasRedirectURI(request.RedirectURI) {
-		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Invalid redirect URI: %s", request.RedirectURI)
-		return "", errors.New(errors.ErrCodeInvalidRedirectURI, "invalid redirect URI")
-	}
-
-	if s.shouldForceLogin(request) {
-		return s.buildLoginRedirect(client.ID, request), nil
-	}
-
-	userID, isAuthenticated := s.isUserAuthenticated(requestID, request.HTTPRequest)
-	if s.shouldRejectUnauthenticatedUser(request, isAuthenticated) {
-		return s.buildLoginRequiredErrorURL(request), nil
-	}
-	if !isAuthenticated {
-		return s.buildLoginRedirect(client.ID, request), nil
-	}
-
-	request.UserID = userID
-	request.Client = client
-	request.UserAuthenticationTime = s.getUserAuthenticationTime(requestID, request.HTTPRequest)
-	if s.shouldRejectMissingConsent(ctx, request, isAuthenticated) {
-		return s.buildConsentRequiredErrorURL(request), nil
-	}
-
-	if err := request.Validate(); err != nil {
-		s.logger.Error(s.module, requestID, "[AuthorizeClient]: Validation failed: %v", err)
-		return "", err
-	}
-
-	if url := s.handleUserConsent(ctx, request); url != "" {
-		return url, nil
-	}
-
-	s.logger.Warn(s.module, requestID, "CLAIMS: %v", request.ClaimsRequest)
-	code, err := s.generateAuthorizationCode(ctx, request)
-	if err != nil {
-		return "", err
-	}
-
-	s.logger.Info(s.module, requestID, "[AuthorizeClient]: Client successfully authorized")
-	return s.buildRedirectURL(request.RedirectURI, code, request.State, request.Nonce), nil
 }
 
 // AuthorizeTokenExchange validates the token exchange request for an OAuth 2.0 authorization code grant.
@@ -143,111 +75,39 @@ func (s *authorizationService) AuthorizeClient(ctx context.Context, request *cli
 // Returns:
 //   - *AuthorizationCodeData: The authorization code data if authorization is successful.
 //   - error: An error if the token exchange request is invalid or fails authorization checks.
-func (s *authorizationService) AuthorizeTokenExchange(ctx context.Context, tokenRequest *token.TokenRequest) (*authzCode.AuthorizationCodeData, error) {
+func (s *authorizationService) AuthorizeTokenExchange(
+	ctx context.Context,
+	tokenRequest *token.TokenRequest,
+) (code *authzCode.AuthorizationCodeData, err error) {
 	requestID := utils.GetRequestID(ctx)
-	s.logger.Debug(s.module, requestID, "[AuthorizeTokenExchange]: Starting authorization process...")
-
 	authzCodeData, err := s.authzCodeService.GetAuthorizationCode(ctx, tokenRequest.AuthorizationCode)
 	if err != nil {
-		s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
 		return nil, err
 	}
+
+	defer func() {
+		if err != nil || authzCodeData != nil {
+			s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
+		}
+	}()
 
 	if authzCodeData.Used {
 		if authzCodeData.AccessTokenHash != "" {
 			s.revokeAccessToken(ctx, authzCodeData.AccessTokenHash)
 		}
-		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code already used")
+		return nil, errors.New(errors.ErrCodeInvalidGrant, "authorization code has already been used")
 	}
 
 	if err := s.validateClient(ctx, authzCodeData, tokenRequest); err != nil {
-		s.logger.Error(s.module, requestID, "[AuthorizeTokenExchange]: Failed to validate client=[%s]: %v", utils.TruncateSensitive(tokenRequest.ClientID), err)
-		s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
+		s.logger.Error(s.module, requestID, "[AuthorizeTokenExchange]: Failed to validate client=[%s]: %v", tokenRequest.ClientID, err)
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
 
 	if err := s.handlePKCEValidation(authzCodeData, tokenRequest); err != nil {
-		s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
 		return nil, err
 	}
 
-	s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
-	s.logger.Info(s.module, requestID, "[AuthorizeTokenExchange]: Client=[%s] successfully authorized", utils.TruncateSensitive(tokenRequest.ClientID))
 	return authzCodeData, nil
-}
-
-// GenerateTokens creates access and refresh tokens based on a validated token exchange request.
-//
-// Parameters:
-//   - ctx Context: The context for managing timeouts and cancellations.
-//   - authCodeData *authz.AuthorizationCodeData: The authorization code data.
-//
-// Returns:
-//   - *token.TokenResponse: A fully formed token response with access and refresh tokens.
-//   - error: An error if token generation fails.
-func (s *authorizationService) GenerateTokens(ctx context.Context, authCodeData *authzCode.AuthorizationCodeData) (*token.TokenResponse, error) {
-	requestID := utils.GetRequestID(ctx)
-
-	accessToken, err := s.tokenService.GenerateAccessTokenWithClaims(
-		ctx,
-		authCodeData.UserID,
-		authCodeData.ClientID,
-		authCodeData.Scope, "",
-		authCodeData.Nonce,
-		types.AccessTokenType,
-		authCodeData.ClaimsRequest,
-	)
-
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate access token: %v", err)
-		return nil, errors.NewInternalServerError()
-	}
-
-	refreshToken, err := s.tokenService.GenerateToken(
-		ctx,
-		authCodeData.UserID,
-		authCodeData.ClientID,
-		authCodeData.Scope, "",
-		authCodeData.Nonce,
-		types.RefreshTokenType,
-	)
-
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate refresh token: %v", err)
-		return nil, errors.NewInternalServerError()
-	}
-
-	idToken, err := s.tokenService.GenerateIDToken(
-		ctx,
-		authCodeData.UserID,
-		authCodeData.ClientID, "",
-		authCodeData.Nonce,
-		authCodeData.UserAuthenticationTime,
-	)
-
-	if err != nil {
-		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to generate ID token: %v", err)
-		return nil, errors.NewInternalServerError()
-	}
-
-	response := &token.TokenResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		IDToken:      idToken,
-		TokenType:    token.BearerToken,
-		ExpiresIn:    int(config.GetServerConfig().TokenConfig().AccessTokenDuration()),
-		Scope:        authCodeData.Scope,
-	}
-
-	authCodeData.Used = true
-	authCodeData.AccessTokenHash = accessToken
-	if err := s.authzCodeService.UpdateAuthorizationCode(ctx, authCodeData); err != nil {
-		s.logger.Error(s.module, requestID, "[GenerateTokens]: Failed to mark authorization code as used: %v", err)
-		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to update authorization code status")
-	}
-
-	s.logger.Info(s.module, requestID, "[GenerateTokens] Token generation complete. Returning TokenResponse")
-	return response, nil
 }
 
 // AuthorizeUserInfoRequest validates whether the provided access token claims grant sufficient
@@ -278,7 +138,7 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 	}
 
 	userID := claims.StandardClaims.Subject
-	retrievedUser, err := s.userService.GetUserByID(ctx, userID)
+	retrievedUser, err := s.userManager.GetUserByID(ctx, userID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: An error occurred retrieving the user: %v", err)
 		return nil, err
@@ -292,8 +152,20 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 	return retrievedUser, nil
 }
 
+// UpdateAuthorizationCode updates the authorization code data in the database.
+//
+// Parameters:
+//   - ctx context.Context: The context for managing timeouts and cancellations.
+//   - authData *AuthorizationCodeData: The authorization code data to update.
+//
+// Returns:
+//   - error: An error if the update fails, otherwise nil.
+func (s *authorizationService) UpdateAuthorizationCode(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
+	return s.authzCodeService.UpdateAuthorizationCode(ctx, authData)
+}
+
 func (s *authorizationService) validateClientScopes(ctx context.Context, clientID string, requestedScopes []types.Scope) error {
-	retrievedClient, err := s.clientService.GetClientByID(ctx, clientID)
+	retrievedClient, err := s.clientManager.GetClientByID(ctx, clientID)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrCodeUnauthorized, "invalid client credentials")
 	}
@@ -313,12 +185,9 @@ func (s *authorizationService) validateClient(ctx context.Context, code *authzCo
 	requestID := utils.GetRequestID(ctx)
 	s.logger.Debug(s.module, requestID, "Starting client validation process")
 
-	client, err := s.clientService.GetClientByID(ctx, tokenRequest.ClientID)
+	client, err := s.clientManager.GetClientByID(ctx, tokenRequest.ClientID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "An error occurred retrieving the client by ID: %v", err)
-		return err
-	} else if client == nil {
-		s.logger.Warn(s.module, requestID, "Client does not exist with the given ID: %v", tokenRequest.ClientID)
 		return errors.New(errors.ErrCodeInvalidClient, "invalid client")
 	}
 
@@ -349,180 +218,18 @@ func (s *authorizationService) handlePKCEValidation(authzCodeData *authzCode.Aut
 		return err
 	}
 
-	if err := s.authzCodeService.ValidatePKCE(authzCodeData, tokenRequest.CodeVerifier); err != nil {
-		s.logger.Error(s.module, "", "PKCE validation failed: %v", err)
-		return errors.Wrap(err, errors.ErrCodeInvalidGrant, "PKCE validation failed")
-	}
+	// if err := s.authzCodeService.ValidatePKCE(authzCodeData, tokenRequest.CodeVerifier); err != nil {
+	// 	s.logger.Error(s.module, "", "PKCE validation failed: %v", err)
+	// 	return errors.Wrap(err, errors.ErrCodeInvalidGrant, "PKCE validation failed")
+	// }
 
 	return nil
 }
 
 func (s *authorizationService) revokeAccessToken(ctx context.Context, token string) {
-	if err := s.tokenService.BlacklistToken(ctx, token); err != nil {
+	if err := s.tokenManager.BlacklistToken(ctx, token); err != nil {
 		s.logger.Error(s.module, utils.GetRequestID(ctx), "[revokeAccessToken]: Failed to blacklist token: %v", err)
 	}
-}
-
-func (s *authorizationService) handleUserConsent(ctx context.Context, request *client.ClientAuthorizationRequest) string {
-	requestID := utils.GetRequestID(ctx)
-	if !s.hasPreConfiguredConsent(ctx, request) {
-		if !request.ConsentApproved {
-			s.logger.Warn(s.module, requestID, "Consent required, redirecting to consent URL")
-			consentURL := web.BuildRedirectURL(
-				request.ClientID,
-				request.RedirectURI,
-				request.Scope.String(),
-				request.ResponseType,
-				request.State,
-				request.Nonce,
-				request.Prompt,
-				request.Display,
-				"consent",
-			)
-
-			return consentURL
-		}
-	}
-
-	return ""
-}
-
-func (s *authorizationService) generateAuthorizationCode(ctx context.Context, request *client.ClientAuthorizationRequest) (string, error) {
-	code, err := s.authzCodeService.GenerateAuthorizationCode(ctx, request)
-	if err != nil {
-		s.logger.Error(s.module, "", "Failed to generate authorization code: %v", err)
-		return "", errors.Wrap(err, "", "failed to generate authorization code")
-	}
-
-	return code, nil
-}
-
-func (s *authorizationService) isUserAuthenticated(requestID string, r *http.Request) (string, bool) {
-	userID, err := s.sessionService.GetUserIDFromSession(r)
-	if err != nil {
-		s.logger.Warn(s.module, requestID, "[isUserAuthenticated]: User is not authenticated: %v", err)
-		return "", false
-	}
-
-	if userID == "" {
-		return "", false
-	}
-
-	return userID, true
-}
-
-func (s *authorizationService) getUserAuthenticationTime(requestID string, r *http.Request) time.Time {
-	sessionData, err := s.sessionService.GetSessionData(r)
-	if err != nil {
-		s.logger.Warn(s.module, requestID, "[getUserAuthenticationTime]: Failed to get session data: %v", err)
-		return time.Time{}
-	}
-
-	if sessionData.AuthenticationTime.IsZero() {
-		return time.Time{}
-	}
-
-	return sessionData.AuthenticationTime.UTC()
-}
-
-func (s *authorizationService) hasPreConfiguredConsent(ctx context.Context, request *client.ClientAuthorizationRequest) bool {
-	requestID := utils.GetRequestID(ctx)
-	hasConsent, err := s.userConsentService.CheckUserConsent(ctx, request.UserID, request.ClientID, request.Scope)
-	if err != nil {
-		s.logger.Error(s.module, requestID, "Failed to check user consent, user=[%s]: %v", utils.TruncateSensitive(request.UserID), err)
-		return false
-	}
-
-	return hasConsent
-}
-
-func (s *authorizationService) buildRedirectURL(redirectURI, code, state, nonce string) string {
-	queryParams := url.Values{}
-	queryParams.Add(constants.CodeURLValue, code)
-
-	if state != "" {
-		queryParams.Add(constants.StateReqField, state)
-	}
-	if nonce != "" {
-		queryParams.Add(constants.NonceReqField, nonce)
-	}
-
-	return redirectURI + "?" + queryParams.Encode()
-}
-
-func (s *authorizationService) shouldForceLogin(request *client.ClientAuthorizationRequest) bool {
-	if request.Prompt == constants.PromptLogin {
-		return true
-	}
-
-	maxAge := request.MaxAge
-	if maxAge != "" {
-		if maxAge == "0" {
-			return true
-		}
-
-		maxAgeSeconds, err := strconv.ParseInt(maxAge, 10, 64)
-		if err != nil {
-			s.logger.Warn(s.module, "", "Failed to parse max_age: %v", err)
-			return true
-		}
-
-		sessionData, err := s.sessionService.GetSessionData(request.HTTPRequest)
-		if err != nil {
-			return true
-		}
-
-		var secondsSinceLastLogin float64
-		if sessionData == nil {
-			secondsSinceLastLogin = 0
-		} else {
-			secondsSinceLastLogin = time.Since(sessionData.AuthenticationTime).Seconds()
-		}
-
-		if secondsSinceLastLogin > float64(maxAgeSeconds) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (s *authorizationService) buildLoginRedirect(clientID string, request *client.ClientAuthorizationRequest) string {
-	return web.BuildRedirectURL(
-		clientID,
-		request.RedirectURI,
-		request.Scope.String(),
-		request.ResponseType,
-		request.State,
-		request.Nonce,
-		request.Prompt,
-		request.Display,
-		"authenticate",
-	)
-}
-
-func (s *authorizationService) shouldRejectUnauthenticatedUser(request *client.ClientAuthorizationRequest, isAuthenticated bool) bool {
-	return request.Prompt == constants.PromptNone && !isAuthenticated
-}
-
-func (s *authorizationService) shouldRejectMissingConsent(ctx context.Context, request *client.ClientAuthorizationRequest, isAuthenticated bool) bool {
-	return request.Prompt == constants.PromptNone && isAuthenticated && !s.hasPreConfiguredConsent(ctx, request)
-}
-
-func (s *authorizationService) buildLoginRequiredErrorURL(request *client.ClientAuthorizationRequest) string {
-	return web.BuildErrorURL(
-		errors.ErrCodeLoginRequired,
-		"authentication required to continue",
-		request.State, request.RedirectURI,
-	)
-}
-
-func (s *authorizationService) buildConsentRequiredErrorURL(request *client.ClientAuthorizationRequest) string {
-	return web.BuildErrorURL(
-		errors.ErrCodeInteractionRequired,
-		"user consent is required to continue",
-		request.State, request.RedirectURI,
-	)
 }
 
 func (s *authorizationService) markAuthorizationCodeAsUsed(ctx context.Context, authzCodeData *authzCode.AuthorizationCodeData) error {

@@ -46,7 +46,7 @@ func TestTokenParser_ParseToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			service := NewTokenParser(test.jwtService)
-			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, testRequestID)
+			ctx := context.WithValue(context.Background(), constants.ContextKeyRequestID, requestID)
 
 			claims, err := service.ParseToken(ctx, "token")
 

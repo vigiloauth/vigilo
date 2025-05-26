@@ -109,6 +109,9 @@ type UserRegistrationResponse struct {
 type UserLoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+
+	ClientID    string
+	RedirectURI string
 }
 
 // UserLoginResponse represents the login response payload.

@@ -6,8 +6,8 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	claims "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
+	crypto "github.com/vigiloauth/vigilo/v2/internal/domain/crypto"
 	jwtService "github.com/vigiloauth/vigilo/v2/internal/domain/jwt"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -18,8 +18,10 @@ import (
 var _ token.TokenCreator = (*tokenCreator)(nil)
 
 type tokenCreator struct {
-	repo                 token.TokenRepository
-	jwtService           jwtService.JWTService
+	repo          token.TokenRepository
+	jwtService    jwtService.JWTService
+	cryptographer crypto.Cryptographer
+
 	issuer               string
 	accessTokenDuration  int64
 	refreshTokenDuration int64
@@ -32,13 +34,16 @@ type tokenCreator struct {
 func NewTokenCreator(
 	repo token.TokenRepository,
 	jwtService jwtService.JWTService,
+	cryptographer crypto.Cryptographer,
 ) token.TokenCreator {
 	accessTokenDuration := time.Now().Add(config.GetServerConfig().TokenConfig().AccessTokenDuration()).Unix()
 	refreshTokenDuration := time.Now().Add(config.GetServerConfig().TokenConfig().RefreshTokenDuration()).Unix()
 
 	return &tokenCreator{
-		repo:                 repo,
-		jwtService:           jwtService,
+		repo:          repo,
+		jwtService:    jwtService,
+		cryptographer: cryptographer,
+
 		issuer:               config.GetServerConfig().URL() + "/oauth2",
 		accessTokenDuration:  accessTokenDuration,
 		refreshTokenDuration: refreshTokenDuration,
@@ -169,7 +174,7 @@ func (t *tokenCreator) CreateAccessTokenWithClaims(
 		nonce,
 		t.accessTokenDuration,
 		time.Time{},
-		nil,
+		requestedClaims,
 	)
 
 	if err != nil {
@@ -302,7 +307,7 @@ func (t *tokenCreator) attemptTokenGeneration(
 		return "", err
 	}
 
-	hashedToken := crypto.EncodeSHA256(signedToken)
+	hashedToken := utils.EncodeSHA256(signedToken)
 	tokenData := &token.TokenData{
 		Token:       hashedToken,
 		ID:          subject,
@@ -332,7 +337,7 @@ func (t *tokenCreator) generateStandardClaims(
 ) (*token.TokenClaims, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	tokenID, err := crypto.GenerateRandomString(32)
+	tokenID, err := t.cryptographer.GenerateRandomString(32)
 	if err != nil {
 		t.logger.Error(t.module, requestID, "[generateStandardClaims]: Failed to generate token ID: %v", err)
 		return nil, errors.NewInternalServerError()

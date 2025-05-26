@@ -7,7 +7,6 @@ import (
 	"net/url"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	clients "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -25,42 +24,30 @@ var _ consent.UserConsentService = (*userConsentService)(nil)
 // and manages user consent-related operations by coordinating
 // between consent and user repositories.
 type userConsentService struct {
-	consentRepo      consent.UserConsentRepository
-	userRepo         users.UserRepository
-	sessionService   session.SessionService
-	clientService    clients.ClientService
-	authzCodeService authz.AuthorizationCodeService
+	consentRepo    consent.UserConsentRepository
+	userRepo       users.UserRepository
+	sessionService session.SessionService
+	clientManager  clients.ClientManager
 
 	logger *config.Logger
 	module string
 }
 
-// NewUserConsentService creates a new instance of UserConsentServiceImpl.
-//
-// Parameters:
-//   - consentRepo UserConsentRepository: Repository for managing consent-related data
-//   - userRepo UserRepository: Repository for accessing user information
-//   - sessionService SessionService: Instance of the SessionService.
-//   - clientService ClientService: Instance of the ClientService.
-//   - authzCodeService AuthorizationCodeService: Instance of the AuthorizationCodeService.
-//
-// Returns:
-//   - A configured UserConsentService instance
 func NewUserConsentService(
 	consentRepo consent.UserConsentRepository,
 	userRepo users.UserRepository,
 	sessionService session.SessionService,
-	clientService clients.ClientService,
-	authzCodeService authz.AuthorizationCodeService,
+	clientManager clients.ClientManager,
+
 ) consent.UserConsentService {
 	return &userConsentService{
-		consentRepo:      consentRepo,
-		userRepo:         userRepo,
-		sessionService:   sessionService,
-		clientService:    clientService,
-		authzCodeService: authzCodeService,
-		logger:           config.GetServerConfig().Logger(),
-		module:           "User Consent Service",
+		consentRepo:    consentRepo,
+		userRepo:       userRepo,
+		sessionService: sessionService,
+		clientManager:  clientManager,
+
+		logger: config.GetServerConfig().Logger(),
+		module: "User Consent Service",
 	}
 }
 
@@ -171,7 +158,7 @@ func (c *userConsentService) GetConsentDetails(
 		return nil, wrappedErr
 	}
 
-	client, err := c.clientService.GetClientByID(ctx, clientID)
+	client, err := c.clientManager.GetClientByID(ctx, clientID)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[GetConsentDetails]: An error occurred retrieving client by ID: %v", err)
 		return nil, err

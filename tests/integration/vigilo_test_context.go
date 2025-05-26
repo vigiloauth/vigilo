@@ -18,9 +18,11 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/idp/server"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
+	service "github.com/vigiloauth/vigilo/v2/internal/service/crypto"
+	jwt "github.com/vigiloauth/vigilo/v2/internal/service/jwt"
+	tokenService "github.com/vigiloauth/vigilo/v2/internal/service/token"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
@@ -31,8 +33,6 @@ import (
 	sessionRepo "github.com/vigiloauth/vigilo/v2/internal/repository/session"
 	tokenRepo "github.com/vigiloauth/vigilo/v2/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/v2/internal/repository/userconsent"
-	jwt "github.com/vigiloauth/vigilo/v2/internal/service/jwt"
-	tokenService "github.com/vigiloauth/vigilo/v2/internal/service/token"
 
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 
@@ -100,7 +100,8 @@ func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
 	return &VigiloTestContext{
 		T:                  t,
 		VigiloServer:       server.NewVigiloIdentityServer(),
-		SH256CodeChallenge: crypto.EncodeSHA256(testClientSecret),
+		SH256CodeChallenge: utils.EncodeSHA256(testClientSecret),
+
 		PlainCodeChallenge: testClientSecret,
 	}
 }
@@ -141,6 +142,8 @@ func (tc *VigiloTestContext) WithUser(roles []string) *VigiloTestContext {
 			Country:       testCountry,
 		},
 	}
+
+	crypto := service.NewCryptographer()
 	hashedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(tc.T, err)
 
@@ -198,13 +201,18 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
-	token, err := tokenService.GenerateToken(
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwt.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	tokenService := tokenService.NewTokenIssuer(creator)
+	token, err := tokenService.IssueAccessToken(
 		context.Background(),
 		id,
 		testClientID,
 		types.CombineScopes(types.Scope(testScope)),
-		"", testNonce, types.AccessTokenType,
+		"", testNonce,
 	)
 
 	assert.NoError(tc.T, err)
@@ -218,13 +226,18 @@ func (tc *VigiloTestContext) WithAdminToken(id string, duration time.Duration) *
 		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
-	token, err := tokenService.GenerateToken(
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwt.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	tokenService := tokenService.NewTokenIssuer(creator)
+	token, err := tokenService.IssueAccessToken(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.CombineScopes(types.Scope(testScope)),
-		constants.AdminRole, testNonce, types.AccessTokenType,
+		constants.AdminRole, testNonce,
 	)
 
 	assert.NoError(tc.T, err)
@@ -242,13 +255,18 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 		scopes = append(scopes, types.OpenIDScope)
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
-	accessToken, err := tokenService.GenerateToken(
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwt.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	tokenService := tokenService.NewTokenIssuer(creator)
+	accessToken, err := tokenService.IssueAccessToken(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.NewScopeList(scopes...),
-		"", testNonce, types.AccessTokenType,
+		"", testNonce,
 	)
 	assert.NoError(tc.T, err)
 	tc.JWTToken = accessToken
@@ -261,13 +279,18 @@ func (tc *VigiloTestContext) WithJWTTokenWithClaims(subject, audience string, cl
 		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
-	accessToken, err := tokenService.GenerateAccessTokenWithClaims(
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwt.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	tokenService := tokenService.NewTokenIssuer(creator)
+	accessToken, _, err := tokenService.IssueTokenPair(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.OpenIDScope,
-		"", testNonce, types.AccessTokenType,
+		"", testNonce,
 		claims,
 	)
 
@@ -278,18 +301,28 @@ func (tc *VigiloTestContext) WithJWTTokenWithClaims(subject, audience string, cl
 }
 
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
-	token, err := tokenService.GenerateToken(
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwt.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	issuer := tokenService.NewTokenIssuer(creator)
+	token, err := issuer.IssueAccessToken(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.CombineScopes(types.Scope(testScope)),
-		"", testNonce, types.AccessTokenType,
+		"", testNonce,
 	)
 
 	assert.NoError(tc.T, err)
 	tc.JWTToken = token
-	tokenService.BlacklistToken(context.Background(), token)
+
+	parser := tokenService.NewTokenParser(jwt)
+	validator := tokenService.NewTokenValidator(repo, parser)
+
+	manager := tokenService.NewTokenManager(repo, parser, validator)
+	manager.BlacklistToken(context.Background(), token)
 
 	return tc
 }
@@ -348,13 +381,18 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository(), jwt.NewJWTService())
-	token, err := tokenService.GenerateToken(
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwt.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	issuer := tokenService.NewTokenIssuer(creator)
+	token, err := issuer.IssueAccessToken(
 		context.Background(),
 		testUserID,
 		testClientID,
 		types.CombineScopes(types.Scope(testScope)),
-		"", testNonce, types.AccessTokenType,
+		"", testNonce,
 	)
 
 	assert.NoError(tc.T, err)
@@ -391,8 +429,8 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	requestBody, err := json.Marshal(loginRequest)
 	assert.NoError(tc.T, err)
 
-	// state := tc.GetStateFromSession()
-	// tc.State = state
+	state := tc.GetStateFromSession()
+	tc.State = state
 
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, testClientID)
@@ -552,8 +590,8 @@ func (tc *VigiloTestContext) WithAuditEvents() {
 	ctx := context.Background()
 	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserID, testUserID)
 	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIP)
-	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyRequestID, "req-"+crypto.GenerateUUID())
-	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeySessionID, "sess-"+crypto.GenerateUUID())
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyRequestID, "req-"+utils.GenerateUUID())
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeySessionID, "sess-"+utils.GenerateUUID())
 	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyTokenClaims, tc.JWTToken)
 
 	eventCount := 100
@@ -591,7 +629,6 @@ func (tc *VigiloTestContext) TearDown() {
 	if tc.TestServer != nil {
 		tc.TestServer.Close()
 	}
-	tc.VigiloServer.Shutdown()
 	config.GetServerConfig().Logger().SetLevel("info")
 	resetInMemoryStores()
 }

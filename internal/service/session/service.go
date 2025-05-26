@@ -6,7 +6,6 @@ import (
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	cookie "github.com/vigiloauth/vigilo/v2/internal/domain/cookies"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
@@ -65,7 +64,7 @@ func (s *sessionService) CreateSession(w http.ResponseWriter, r *http.Request, s
 	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
 
-	sessionData.ID = constants.SessionIDPrefix + crypto.GenerateUUID()
+	sessionData.ID = constants.SessionIDPrefix + utils.GenerateUUID()
 	sessionData.ExpirationTime = time.Now().Add(s.sessionDuration)
 
 	if err := s.sessionRepo.SaveSession(ctx, sessionData); err != nil {

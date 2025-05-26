@@ -9,13 +9,13 @@ import (
 )
 
 type UserJobs struct {
-	userService domain.UserService
+	userService domain.UserManager
 	interval    time.Duration
 	logger      *config.Logger
 	module      string
 }
 
-func NewUserJobs(userService domain.UserService, interval time.Duration) *UserJobs {
+func NewUserJobs(userService domain.UserManager, interval time.Duration) *UserJobs {
 	return &UserJobs{
 		userService: userService,
 		interval:    interval,

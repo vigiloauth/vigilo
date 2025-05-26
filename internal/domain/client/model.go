@@ -164,6 +164,14 @@ type ClientInformationResponse struct {
 	RegistrationAccessToken string `json:"registration_access_token"`
 }
 
+type ClientAuthenticationRequest struct {
+	ClientID        string
+	ClientSecret    string
+	RequestedGrant  string
+	RequestedScopes types.Scope
+	RedirectURI     string
+}
+
 type ClientRequest interface {
 	GetType() types.ClientType
 	GetGrantTypes() []string
@@ -440,19 +448,4 @@ func (req *ClientUpdateRequest) SetScopes(scopes []types.Scope) {
 
 func (req *ClientUpdateRequest) HasGrantType(grantType string) bool {
 	return slices.Contains(req.GrantTypes, grantType)
-}
-
-// Validate checks if the ClientRegistrationRequest contains valid values.
-func (req *ClientRegistrationRequest) Validate() error {
-	return ValidateClientRegistrationRequest(req)
-}
-
-// Validate checks if the ClientUpdateRequest contains valid values.
-func (req *ClientUpdateRequest) Validate() error {
-	return ValidateClientUpdateRequest(req)
-}
-
-// Validate checks if the ClientAuthorizationRequest contains valid values.
-func (req *ClientAuthorizationRequest) Validate() error {
-	return ValidateClientAuthorizationRequest(req)
 }

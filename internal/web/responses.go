@@ -55,7 +55,17 @@ func BuildErrorURL(errCode, errDescription, state, redirectURI string) string {
 	return redirectURI + "?" + params.Encode()
 }
 
-func BuildRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, prompt, display, endpoint string) string {
+func BuildRedirectURL(
+	clientID string,
+	redirectURI string,
+	scope string,
+	responseType string,
+	state string,
+	nonce string,
+	prompt string,
+	display string,
+	endpoint string,
+) string {
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, clientID)
 	queryParams.Add(constants.RedirectURIReqField, redirectURI)

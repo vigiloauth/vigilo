@@ -70,37 +70,36 @@ func (c *clientAuthenticator) AuthenticateRequest(
 //
 // Parameters:
 //   - ctx Context: The context for managing timeouts and cancellations.
-//   - clientID string: The ID of the client.
-//   - clientSecret string: The client secret.
-//   - requestedGrant string: The requested grant type to validate.
-//   - scopes string: The scopes to validate.
+//   - req *ClientAuthenticationRequest: The request containing client credentials and required scopes.
 //
 // Returns:
 //   - error: An error if authentication or authorization fails.
 func (c *clientAuthenticator) AuthenticateClient(
 	ctx context.Context,
-	clientID string,
-	clientSecret string,
-	requestedGrant string,
-	requestedScopes types.Scope,
+	req *clients.ClientAuthenticationRequest,
 ) error {
 	requestID := utils.GetRequestID(ctx)
 
-	existingClient, err := c.clientRepo.GetClientByID(ctx, clientID)
+	existingClient, err := c.clientRepo.GetClientByID(ctx, req.ClientID)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[AuthenticateClient]: Failed to retrieve client by ID: %v", err)
-		return errors.Wrap(err, "", "failed to retrieve client")
+		return errors.Wrap(err, errors.ErrCodeInvalidClient, "failed to retrieve client")
 	}
 
-	if clientSecret != "" {
+	if req.RedirectURI != "" && !existingClient.HasRedirectURI(req.RedirectURI) {
+		c.logger.Error(c.module, requestID, "[AuthenticateClient]: Invalid redirect URI: %s", req.RedirectURI)
+		return errors.New(errors.ErrCodeInvalidRedirectURI, "invalid redirect URI")
+	}
+
+	if req.ClientSecret != "" {
 		if !existingClient.IsConfidential() {
 			return errors.New(errors.ErrCodeUnauthorizedClient, "client is not confidential")
-		} else if !existingClient.SecretsMatch(clientSecret) {
+		} else if !existingClient.SecretsMatch(req.ClientSecret) {
 			return errors.New(errors.ErrCodeInvalidClient, "invalid credentials")
 		}
 	}
 
-	scopesArr := strings.Split(requestedScopes.String(), " ")
+	scopesArr := strings.Split(req.RequestedScopes.String(), " ")
 	if !existingClient.CanRequestScopes {
 		for _, scope := range scopesArr {
 			if !existingClient.HasScope(types.Scope(scope)) {
@@ -109,7 +108,7 @@ func (c *clientAuthenticator) AuthenticateClient(
 		}
 	}
 
-	if requestedGrant != "" && !existingClient.HasGrantType(requestedGrant) {
+	if req.RequestedGrant != "" && !existingClient.HasGrantType(req.RequestedGrant) {
 		return errors.New(errors.ErrCodeUnauthorizedClient, "client does not have the required grant type")
 	}
 
@@ -141,7 +140,12 @@ func (c *clientAuthenticator) authenticateWithBearerToken(
 	}
 
 	clientID := claims.StandardClaims.Audience
-	if err := c.AuthenticateClient(ctx, clientID, "", "", requiredScope); err != nil {
+	req := &clients.ClientAuthenticationRequest{
+		ClientID:        clientID,
+		RequestedScopes: requiredScope,
+	}
+
+	if err := c.AuthenticateClient(ctx, req); err != nil {
 		c.logger.Error(c.module, requestID, "[authenticateWithBearerToken]: Failed to authenticate client: %v", err)
 		return errors.Wrap(err, "", "failed to authenticate client")
 	}
@@ -162,7 +166,13 @@ func (c *clientAuthenticator) authenticateWithBasicAuth(
 		return errors.Wrap(err, "", "failed to extract client credentials from auth header")
 	}
 
-	if err := c.AuthenticateClient(ctx, clientID, clientSecret, "", requiredScope); err != nil {
+	req := &clients.ClientAuthenticationRequest{
+		ClientID:        clientID,
+		ClientSecret:    clientSecret,
+		RequestedScopes: requiredScope,
+	}
+
+	if err := c.AuthenticateClient(ctx, req); err != nil {
 		c.logger.Error(c.module, requestID, "[authenticateWithBasicAuth]: Failed to authenticate client: %v", err)
 		return errors.Wrap(err, "", "failed to authenticate client")
 	}

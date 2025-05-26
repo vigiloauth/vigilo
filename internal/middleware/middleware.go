@@ -9,7 +9,6 @@ import (
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
@@ -20,9 +19,10 @@ const maxRequestsForStrictRateLimiting int = 3
 
 // Middleware encapsulates middleware functionalities.
 type Middleware struct {
-	serverConfig *config.ServerConfig
-	tokenService token.TokenService
-	rateLimiter  *RateLimiter
+	tokenParser    token.TokenParser
+	tokenValidator token.TokenValidator
+	serverConfig   *config.ServerConfig
+	rateLimiter    *RateLimiter
 
 	logger *config.Logger
 	module string
@@ -38,23 +38,18 @@ func (rw *responseWriter) WriteHeader(statusCode int) {
 	rw.ResponseWriter.WriteHeader(statusCode)
 }
 
-// NewMiddleware creates a new Middleware instance.
-//
-// Parameters:
-//
-//	tokenService TokenService: The token service interface.
-//
-// Returns:
-//
-//	*Middleware: A new Middleware instance.
-func NewMiddleware(tokenService token.TokenService) *Middleware {
+func NewMiddleware(
+	tokenParser token.TokenParser,
+	tokenValidator token.TokenValidator,
+) *Middleware {
 	serverConfig := config.GetServerConfig()
 	return &Middleware{
-		serverConfig: serverConfig,
-		tokenService: tokenService,
-		rateLimiter:  NewRateLimiter(serverConfig.MaxRequestsPerMinute()),
-		logger:       serverConfig.Logger(),
-		module:       "Middleware",
+		tokenParser:    tokenParser,
+		tokenValidator: tokenValidator,
+		serverConfig:   serverConfig,
+		rateLimiter:    NewRateLimiter(serverConfig.MaxRequestsPerMinute()),
+		logger:         serverConfig.Logger(),
+		module:         "Middleware",
 	}
 }
 
@@ -104,7 +99,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			claims, parseErr := m.tokenService.ParseToken(ctx, tokenString)
+			claims, parseErr := m.tokenParser.ParseToken(ctx, tokenString)
 			if parseErr != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse token: %s", parseErr)
 				wrappedErr := errors.Wrap(parseErr, errors.ErrCodeTokenParsing, "failed to parse token")
@@ -113,7 +108,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 			}
 
 			m.logger.Debug(m.module, requestID, "[AuthMiddleWare]: Attempting to validate token")
-			if validateErr := m.tokenService.ValidateToken(ctx, tokenString); validateErr != nil {
+			if validateErr := m.tokenValidator.ValidateToken(ctx, tokenString); validateErr != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to validate token: %s", validateErr)
 				wrappedErr := errors.Wrap(validateErr, errors.ErrCodeUnauthorized, "an error occurred validating the access token")
 				web.WriteError(w, wrappedErr)
@@ -265,7 +260,7 @@ func (m *Middleware) WithContextValues(next http.Handler) http.Handler {
 		ctx := r.Context()
 		requestID := r.Header.Get(constants.RequestIDHeader)
 		if requestID == "" {
-			requestID = constants.RequestIDPrefix + crypto.GenerateUUID()
+			requestID = constants.RequestIDPrefix + utils.GenerateUUID()
 		}
 		w.Header().Set(constants.RequestIDHeader, requestID)
 

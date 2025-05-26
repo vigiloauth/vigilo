@@ -32,7 +32,6 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - ✅ **User Registration**
 - ✅ **Basic User Authentication**
 - ✅ **OAuth User Authentication**
-- ✅ **User Email Verification**
 - ✅ **Authorization Code Flow**
 - ✅ **Authorization Code Flow With PKCE**
 - ✅ **Resource Owner Password Credentials Flow**
@@ -49,7 +48,8 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - ✅ **In Memory Storage**
 
 ### 2.2 Planned Features
-- 🛠️ **Phone Number Verification** 
+- 🛠️ **Phone Number Verification**
+- 🛠️ **User Email Verification**
 - 🛠️ **Password Recovery**
 - 🛠️ **User Profile Management**
 - 🛠️ **Role-Based Access Control (RBAC)**

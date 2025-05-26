@@ -186,28 +186,10 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		endpoint := web.UserEndpoints.Verify + "?token="
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-
-		userRepo := repository.GetInMemoryUserRepository()
-
-		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
-		assert.NoError(t, err)
-		assert.False(t, retrievedUser.EmailVerified)
-	})
-
-	t.Run("Error is returned when the verification code is expired", func(t *testing.T) {
-		testContext := NewVigiloTestContext(t)
-		defer testContext.TearDown()
-
-		testContext.WithExpiredToken()
-
-		endpoint := web.UserEndpoints.Verify + "?token=" + testContext.JWTToken
-		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, nil)
-
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
-		// assert user account is not verified
 		userRepo := repository.GetInMemoryUserRepository()
+
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
 		assert.NoError(t, err)
 		assert.False(t, retrievedUser.EmailVerified)

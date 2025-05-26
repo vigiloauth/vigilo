@@ -44,11 +44,13 @@ func (h *HandlerRegistry) initHandlers() {
 }
 
 func (h *HandlerRegistry) initUserHandler() {
-	h.logger.Debug(h.module, "", "Initializing User Handler")
 	h.userHandler = LazyInit[*handlers.UserHandler]{
 		initFunc: func() *handlers.UserHandler {
 			return handlers.NewUserHandler(
-				h.sr.UserService(),
+				h.sr.UserCreator(),
+				h.sr.UserAuthenticator(),
+				h.sr.UserManager(),
+				h.sr.UserVerifier(),
 				h.sr.SessionService(),
 			)
 		},
@@ -56,43 +58,40 @@ func (h *HandlerRegistry) initUserHandler() {
 }
 
 func (h *HandlerRegistry) initClientHandler() {
-	h.logger.Debug(h.module, "", "Initializing Client Handler")
 	h.clientHandler = LazyInit[*handlers.ClientHandler]{
 		initFunc: func() *handlers.ClientHandler {
-			return handlers.NewClientHandler(h.sr.ClientService())
+			return handlers.NewClientHandler(
+				h.sr.ClientCreator(),
+				h.sr.ClientManager(),
+			)
 		},
 	}
 }
 
 func (h *HandlerRegistry) initTokenHandler() {
-	h.logger.Debug(h.module, "", "Initializing Token Handler")
 	h.tokenHandler = LazyInit[*handlers.TokenHandler]{
 		initFunc: func() *handlers.TokenHandler {
 			return handlers.NewTokenHandler(
-				h.sr.AuthenticationService(),
-				h.sr.AuthorizationService(),
+				h.sr.TokenGrantProcessor(),
 			)
 		},
 	}
 }
 
 func (h *HandlerRegistry) initAuthzHandler() {
-	h.logger.Debug(h.module, "", "Initializing Authorization Handler")
 	h.authzHandler = LazyInit[*handlers.AuthorizationHandler]{
 		initFunc: func() *handlers.AuthorizationHandler {
 			return handlers.NewAuthorizationHandler(
-				h.sr.AuthorizationService(),
+				h.sr.ClientAuthorization(),
 			)
 		},
 	}
 }
 
 func (h *HandlerRegistry) initOAuthHandler() {
-	h.logger.Debug(h.module, "", "Initializing OAuth Handler")
 	h.oauthHandler = LazyInit[*handlers.ConsentHandler]{
 		initFunc: func() *handlers.ConsentHandler {
 			return handlers.NewConsentHandler(
-				h.sr.UserService(),
 				h.sr.SessionService(),
 				h.sr.UserConsentService(),
 			)
@@ -101,7 +100,6 @@ func (h *HandlerRegistry) initOAuthHandler() {
 }
 
 func (h *HandlerRegistry) initAdminHandler() {
-	h.logger.Debug(h.module, "", "Initializing Admin Handler")
 	h.adminHandler = LazyInit[*handlers.AdminHandler]{
 		initFunc: func() *handlers.AdminHandler {
 			return handlers.NewAdminHandler(h.sr.AuditLogger())
@@ -110,7 +108,6 @@ func (h *HandlerRegistry) initAdminHandler() {
 }
 
 func (h *HandlerRegistry) initOIDCHandler() {
-	h.logger.Debug(h.module, "", "Initializing OIDC Handler")
 	h.oidcHandler = LazyInit[*handlers.OIDCHandler]{
 		initFunc: func() *handlers.OIDCHandler {
 			return handlers.NewOIDCHandler(h.sr.OIDCService())
@@ -119,36 +116,29 @@ func (h *HandlerRegistry) initOIDCHandler() {
 }
 
 func (h *HandlerRegistry) UserHandler() *handlers.UserHandler {
-	h.logger.Debug(h.module, "", "Getting User Handler")
 	return h.userHandler.Get()
 }
 
 func (h *HandlerRegistry) ClientHandler() *handlers.ClientHandler {
-	h.logger.Debug(h.module, "", "Getting Client Handler")
 	return h.clientHandler.Get()
 }
 
 func (h *HandlerRegistry) TokenHandler() *handlers.TokenHandler {
-	h.logger.Debug(h.module, "", "Getting Token Handler")
 	return h.tokenHandler.Get()
 }
 
 func (h *HandlerRegistry) AuthorizationHandler() *handlers.AuthorizationHandler {
-	h.logger.Debug(h.module, "", "Getting Authorization Handler")
 	return h.authzHandler.Get()
 }
 
 func (h *HandlerRegistry) OAuthHandler() *handlers.ConsentHandler {
-	h.logger.Debug(h.module, "", "Getting OAuth Handler")
 	return h.oauthHandler.Get()
 }
 
 func (h *HandlerRegistry) AdminHandler() *handlers.AdminHandler {
-	h.logger.Debug(h.module, "", "Getting Admin Handler")
 	return h.adminHandler.Get()
 }
 
 func (h *HandlerRegistry) OIDCHandler() *handlers.OIDCHandler {
-	h.logger.Debug(h.module, "", "Getting OIDC Handler")
 	return h.oidcHandler.Get()
 }

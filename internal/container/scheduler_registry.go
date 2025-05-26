@@ -75,13 +75,13 @@ func (c *SchedulerRegistry) registerSMTPJobs() {
 
 func (c *SchedulerRegistry) registerTokenJobs() {
 	const tokenDeletionInterval time.Duration = 5 * time.Minute
-	tokenJobs := background.NewTokenJobs(c.services.TokenService(), tokenDeletionInterval)
+	tokenJobs := background.NewTokenJobs(c.services.TokenManager(), tokenDeletionInterval)
 	c.scheduler.RegisterJob("Expired Token Deletion", tokenJobs.DeleteExpiredTokens)
 }
 
 func (c *SchedulerRegistry) registerUserJobs() {
 	const userDeletionInterval time.Duration = 24 * time.Hour
-	userJobs := background.NewUserJobs(c.services.UserService(), userDeletionInterval)
+	userJobs := background.NewUserJobs(c.services.UserManager(), userDeletionInterval)
 	c.scheduler.RegisterJob("Unverified User Deletion", userJobs.DeleteUnverifiedUsers)
 }
 
