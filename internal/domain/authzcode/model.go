@@ -24,4 +24,5 @@ type AuthorizationCodeData struct {
 	UserAuthenticationTime time.Time
 	Request                *http.Request
 	ClaimsRequest          *domain.ClaimsRequest
+	ACRValues              string
 }

@@ -13,8 +13,7 @@
     - [3.2 Token Configuration](#32-token-configuration)
     - [3.3 Login Configuration](#33-login-configuration)
     - [3.4 Password Configuration](#34-password-configuration)
-    - [3.5 SMTP Configuration](#35-smtp-configuration)
-    - [3.6 Audit Log Configuration](#36-audit-log-configuration)
+    - [3.5 Audit Log Configuration](#35-audit-log-configuration)
   - [4. When to Use](#4-when-to-use)
   - [5. Next Steps](#5-next-steps)
 
@@ -68,9 +67,9 @@ Other non-sensitive configuration (like ports, timeouts, password policies) can 
 #### 2.1.1 Required Environment Variables (Secrets):
 You must provide the following environment variables when running the VigiloAuth container. The application uses these for sensitive operations like sending emails and signing tokens.
 
-- `SMTP_USERNAME`: Username for connecting to the SMTP server.
-- `SMTP_FROM_ADDRESS`: The 'From' email address for outgoing emails.
-- `SMTP_PASSWORD`: Password for the SMTP server.
+- `SMTP_USERNAME`: Username for connecting to the SMTP server. (optional)
+- `SMTP_FROM_ADDRESS`: The 'From' email address for outgoing emails. (optional)
+- `SMTP_PASSWORD`: Password for the SMTP server. (optional)
 - `TOKEN_ISSUER`: The issuer identifier for JWT tokens (e.g., your service URL).
 - `TOKEN_PRIVATE_KEY`: Your RSA private key used for signing tokens, encoded in Base64.
 - `TOKEN_PUBLIC_KEY`: Your RSA public key used for verifying tokens, encoded in Base64.
@@ -84,7 +83,7 @@ When using docker-compose, the simplest and recommended way to provide these sec
 SMTP_USERNAME=your_smtp_user
 SMTP_FROM_ADDRESS=auth@yourdomain.com
 SMTP_PASSWORD=your_smtp_password_here
-TOKEN_ISSUER=[https://auth.yourdomain.com](https://auth.yourdomain.com)
+TOKEN_ISSUER=auth.yourdomain.com
 TOKEN_PRIVATE_KEY=base64_encoded_private_key_string_here
 TOKEN_PUBLIC_KEY=base64_encoded_public_key_string_here
 ```
@@ -101,7 +100,6 @@ log_level: debug # default log level is INFO
 server_config:
   port: 8080
   session_cookie_name: test-session-cookie
-  base_url: /identity
   domain: auth.example.com
   force_https: true
   read_timeout: 30 # in seconds
@@ -125,7 +123,6 @@ log_level: debug
 server_config:
   port: 8080
   session_cookie_name: test-session-cookie
-  base_url: /identity
   domain: auth.example.com
   force_https: true
   read_timeout: 30
@@ -171,21 +168,7 @@ password_config:
 
 ---
 
-### 3.5 SMTP Configuration
-Here is an example on how to configure the SMTP configuration to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
-```yaml
-smtp_config:
-  host: smtp.gmail.com
-  port: 587
-  username: vigiloauth@no-reply.com
-  password: 12345
-  from_address: vigiloauth@no-reply.com
-  encryption: tls
-```
-
----
-
-### 3.6 Audit Log Configuration
+### 3.5 Audit Log Configuration
 Here is an example on how to configure the Audit Log configuration to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 ```yaml
 audit_config:

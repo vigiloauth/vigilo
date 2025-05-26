@@ -13,5 +13,5 @@ type SessionData struct {
 	UserAgent          string    // User agent string of the user's browser or device.
 	RedirectURI        string    // Redirect URI from OAuth 2.0 client application.
 	ExpirationTime     time.Time // The timestamp when the session expires.
-	AuthenticationTime time.Time // The timestamp of when the user was last authenticated
+	AuthenticationTime int64     // The timestamp of when the user was last authenticated
 }

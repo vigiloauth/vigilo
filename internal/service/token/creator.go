@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -85,6 +87,7 @@ func (t *tokenCreator) CreateAccessToken(
 		roles,
 		nonce,
 		t.accessTokenDuration,
+		"",
 		time.Time{},
 		nil,
 	)
@@ -128,6 +131,7 @@ func (t *tokenCreator) CreateRefreshToken(
 		roles,
 		nonce,
 		t.refreshTokenDuration,
+		"",
 		time.Time{},
 		nil,
 	)
@@ -173,6 +177,7 @@ func (t *tokenCreator) CreateAccessTokenWithClaims(
 		roles,
 		nonce,
 		t.accessTokenDuration,
+		"",
 		time.Time{},
 		requestedClaims,
 	)
@@ -197,6 +202,7 @@ func (t *tokenCreator) CreateAccessTokenWithClaims(
 //   - clientID string: The client application identifier requesting the token.
 //   - scopes string: Space-separated list of requested scopes.
 //   - nonce string: A random string used to prevent replay attacks.
+
 //   - authTime *Time: Time at which the user was authenticated. The value of time can be nil as it only applies when a request with "max_age" was given
 //
 // Returns:
@@ -208,6 +214,7 @@ func (t *tokenCreator) CreateIDToken(
 	clientID string,
 	scopes types.Scope,
 	nonce string,
+	acrValues string,
 	authTime time.Time,
 ) (string, error) {
 	requestID := utils.GetRequestID(ctx)
@@ -220,6 +227,7 @@ func (t *tokenCreator) CreateIDToken(
 		"",
 		nonce,
 		t.accessTokenDuration,
+		acrValues,
 		authTime,
 		nil,
 	)
@@ -240,6 +248,7 @@ func (t *tokenCreator) generateAndStoreToken(
 	roles string,
 	nonce string,
 	duration int64,
+	acrValues string,
 	authTime time.Time,
 	claims *claims.ClaimsRequest,
 ) (string, error) {
@@ -256,6 +265,7 @@ func (t *tokenCreator) generateAndStoreToken(
 			roles,
 			nonce,
 			duration,
+			acrValues,
 			authTime,
 			claims,
 		)
@@ -279,6 +289,7 @@ func (t *tokenCreator) attemptTokenGeneration(
 	roles string,
 	nonce string,
 	duration int64,
+	acrValues string,
 	authTime time.Time,
 	claims *claims.ClaimsRequest,
 ) (string, error) {
@@ -292,6 +303,7 @@ func (t *tokenCreator) attemptTokenGeneration(
 		roles,
 		nonce,
 		duration,
+		acrValues,
 		authTime,
 		claims,
 	)
@@ -332,6 +344,7 @@ func (t *tokenCreator) generateStandardClaims(
 	roles string,
 	nonce string,
 	duration int64,
+	acrValues string,
 	authTime time.Time,
 	claims *claims.ClaimsRequest,
 ) (*token.TokenClaims, error) {
@@ -367,6 +380,16 @@ func (t *tokenCreator) generateStandardClaims(
 	if audience != "" {
 		tokenClaims.StandardClaims.Audience = audience
 	}
+
+	// VigiloAuth only supports password-based auth at the moment.
+	// This will be refactored in the future to support multiple ACRs.
+	if acrValues != "" {
+		acrValsArr := strings.Split(acrValues, " ")
+		if slices.Contains(acrValsArr, "1") {
+			tokenClaims.ACRValues = "1"
+		}
+	}
+
 	if nonce != "" {
 		tokenClaims.Nonce = nonce
 	}

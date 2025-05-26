@@ -86,5 +86,5 @@ func (s *sessionManager) GetUserAuthenticationTime(ctx context.Context, r *http.
 		return int64(0), errors.Wrap(err, "", "failed to retrieve session")
 	}
 
-	return sessionData.AuthenticationTime.UTC().Unix(), nil
+	return sessionData.AuthenticationTime, nil
 }

@@ -184,8 +184,8 @@ func (rc *RouterConfig) getAuthorizationRoutes() RouteGroup {
 		Name: "Authorization Handler",
 		Routes: []Route{
 			NewRoute().
-				SetMiddleware(rc.middleware.RequiresContentType(constants.ContentTypeJSON)).
-				SetMethods(http.MethodGet).
+				SetMiddleware(rc.middleware.RequiresContentType(constants.ContentTypeFormURLEncoded)).
+				SetMethods(http.MethodGet, http.MethodPost).
 				SetPattern(web.OAuthEndpoints.Authorize).
 				SetHandler(handler.AuthorizeClient).
 				SetDescription("Client authorization").

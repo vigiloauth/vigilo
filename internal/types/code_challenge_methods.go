@@ -4,7 +4,7 @@ type CodeChallengeMethod string
 
 const (
 	PlainCodeChallengeMethod  CodeChallengeMethod = "plain"
-	SHA256CodeChallengeMethod CodeChallengeMethod = "SHA-256"
+	SHA256CodeChallengeMethod CodeChallengeMethod = "S256"
 )
 
 var SupportedCodeChallengeMethods = map[CodeChallengeMethod]bool{

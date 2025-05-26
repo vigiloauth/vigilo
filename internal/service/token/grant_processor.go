@@ -279,6 +279,7 @@ func (s *tokenGrantProcessor) ExchangeAuthorizationCode(
 		authzCodeData.ClientID,
 		authzCodeData.Scope,
 		authzCodeData.Nonce,
+		authzCodeData.ACRValues,
 		authzCodeData.UserAuthenticationTime,
 	)
 

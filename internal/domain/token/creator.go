@@ -67,10 +67,11 @@ type TokenCreator interface {
 	//   - clientID string: The client application identifier requesting the token.
 	//   - scopes string: Space-separated list of requested scopes.
 	//   - nonce string: A random string used to prevent replay attacks.
+	// 	 - acrValues string: ACR Values requested.
 	//   - authTime *Time: Time at which the user was authenticated. The value of time can be nil as it only applies when a request with "max_age" was given
 	//
 	// Returns:
 	//   - string: The signed ID token as a JWT string.
 	//   - error: An error if token generation fails.
-	CreateIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error)
+	CreateIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error)
 }

@@ -378,7 +378,6 @@ func (sr *ServiceRegistry) initAuthorizationService() {
 				sr.ClientManager(),
 				sr.ClientValidator(),
 				sr.UserManager(),
-				sr.SessionService(),
 			)
 		},
 	}

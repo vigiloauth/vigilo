@@ -65,7 +65,7 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 
 			tokenString, authHeaderErr = web.ExtractBearerToken(r)
 
-			if authHeaderErr != nil && r.Method == http.MethodPost && r.Header.Get("Content-Type") == "application/x-www-form-urlencoded;charset=UTF-8" {
+			if r.Method == http.MethodPost && r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
 				m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Bearer token not found in header, attempting to check POST body for access_token parameter.")
 				parseErr := r.ParseForm()
 				if parseErr != nil {

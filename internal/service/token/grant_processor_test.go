@@ -681,7 +681,7 @@ func TestTokenGrantProcessor_ExchangeAuthorizationCode(t *testing.T) {
 				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
 					return accessToken, refreshToken, nil
 				},
-				IssueIDTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
+				IssueIDTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error) {
 					return IDToken, nil
 				},
 			},
@@ -772,7 +772,7 @@ func TestTokenGrantProcessor_ExchangeAuthorizationCode(t *testing.T) {
 				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
 					return accessToken, redirectURI, nil
 				},
-				IssueIDTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
+				IssueIDTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error) {
 					return "", errors.NewInternalServerError()
 				},
 			},

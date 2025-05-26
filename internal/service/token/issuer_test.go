@@ -97,7 +97,7 @@ func TestTokenIssuer_IssueIDToken(t *testing.T) {
 			wantErr:     false,
 			expectedErr: "",
 			creator: &mocks.MockTokenCreator{
-				CreateIDTokenFunc: func(ctx context.Context, userID, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
+				CreateIDTokenFunc: func(ctx context.Context, userID, clientID string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error) {
 					return "idToken", nil
 				},
 			},
@@ -107,7 +107,7 @@ func TestTokenIssuer_IssueIDToken(t *testing.T) {
 			wantErr:     true,
 			expectedErr: errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError],
 			creator: &mocks.MockTokenCreator{
-				CreateIDTokenFunc: func(ctx context.Context, userID, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
+				CreateIDTokenFunc: func(ctx context.Context, userID, clientID string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error) {
 					return "", errors.NewInternalServerError()
 				},
 			},
@@ -125,6 +125,7 @@ func TestTokenIssuer_IssueIDToken(t *testing.T) {
 				"audience",
 				types.OpenIDScope,
 				"nonce",
+				"1 2",
 				time.Now(),
 			)
 

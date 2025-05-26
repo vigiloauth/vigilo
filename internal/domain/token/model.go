@@ -53,6 +53,10 @@ type TokenClaims struct {
 	Nonce           string                `json:"nonce,omitempty"`
 	AuthTime        int64                 `json:"auth_time,omitempty"`
 	RequestedClaims *domain.ClaimsRequest `json:"claims,omitempty"`
+	ACRValues       string                `json:"acr,omitempty"`
+	ClientID        string                `json:"client_id,omitempty"`
+	RedirectURI     string                `json:"redirect_uri,omitempty"`
+	State           string                `json:"state,omitempty"`
 	*jwt.StandardClaims
 }
 

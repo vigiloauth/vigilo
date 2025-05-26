@@ -18,14 +18,27 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 	tests := []struct {
 		name   string
 		scopes []types.Scope
+		method string
 	}{
 		{
-			name:   "Success when client registered with scopes",
+			name:   "Success using GET when client registered with scopes",
 			scopes: []types.Scope{types.OpenIDScope, types.UserProfileScope, types.UserAddressScope},
+			method: http.MethodGet,
 		},
 		{
-			name:   "Success when client didn't register with scopes",
+			name:   "Success using GET when client didn't register with scopes",
 			scopes: []types.Scope{},
+			method: http.MethodGet,
+		},
+		{
+			name:   "Success using POST when client registered with scopes",
+			scopes: []types.Scope{types.OpenIDScope, types.UserProfileScope, types.UserAddressScope},
+			method: http.MethodPost,
+		},
+		{
+			name:   "Success using POST when client didn't register with scopes",
+			scopes: []types.Scope{},
+			method: http.MethodPost,
 		},
 	}
 
@@ -50,6 +63,7 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 			queryParams.Add(constants.ScopeReqField, testScope)
 			queryParams.Add(constants.ResponseTypeReqField, constants.CodeResponseType)
 			queryParams.Add(constants.ConsentApprovedURLValue, fmt.Sprintf("%v", testConsentApproved))
+			queryParams.Add(constants.ACRReqField, "1 2")
 
 			claimsMap := map[string]any{
 				"userinfo": map[string]any{
@@ -66,8 +80,12 @@ func TestAuthorizationHandler_AuthorizeClient_Success(t *testing.T) {
 			headers := map[string]string{"Cookie": sessionCookie.Name + "=" + sessionCookie.Value}
 			endpoint := web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()
 
+			if test.method == http.MethodPost {
+				headers["Content-Type"] = constants.ContentTypeFormURLEncoded
+			}
+
 			rr := testContext.SendHTTPRequest(
-				http.MethodGet,
+				test.method,
 				endpoint,
 				nil, headers,
 			)

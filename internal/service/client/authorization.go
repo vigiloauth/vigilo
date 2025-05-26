@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
@@ -68,15 +70,42 @@ func (c *clientAuthorization) Authorize(
 ) (string, error) {
 	requestID := utils.GetRequestID(ctx)
 
+	if req.RequestURI != "" {
+		return web.BuildErrorURL(
+			errors.ErrCodeRequestURINotSupported,
+			"request URIs are not currently supported",
+			req.State,
+			req.RedirectURI,
+		), nil
+	}
+
+	if req.RequestObject != "" {
+		return web.BuildErrorURL(
+			errors.ErrCodeRequestObjectNotSupported,
+			"request objects are not currently supported",
+			req.State,
+			req.RedirectURI,
+		), nil
+	}
+
+	if req.ResponseType == "" {
+		return web.BuildErrorURL(
+			errors.ErrCodeInvalidRequest,
+			"response_type is required",
+			req.State,
+			req.RedirectURI,
+		), nil
+	}
+
 	client, err := c.manager.GetClientByID(ctx, req.ClientID)
 	if err != nil {
-		c.logger.Error(requestID, c.module, "[Authorize]: Failed to get client by ID: %v", err)
+		c.logger.Error(c.module, requestID, "[Authorize]: Failed to get client by ID: %v", err)
 		return "", errors.New(errors.ErrCodeUnauthorizedClient, "invalid client credentials")
 	}
 
 	req.Client = client
 	if err := c.validator.ValidateAuthorizationRequest(ctx, req); err != nil {
-		c.logger.Error(requestID, c.module, "[Authorize]: Authorization request validation failed: %v", err)
+		c.logger.Error(c.module, requestID, "[Authorize]: Authorization request validation failed: %v", err)
 		return "", errors.Wrap(err, "", "failed to authorize request")
 	}
 
@@ -98,7 +127,6 @@ func (c *clientAuthorization) Authorize(
 	if c.shouldRejectMissingConsent(ctx, req, isAuthenticated) {
 		return c.buildConsentRequiredErrorURL(req), nil
 	}
-
 	if url := c.handleUserConsent(ctx, req); url != "" {
 		return url, nil
 	}
@@ -112,12 +140,12 @@ func (c *clientAuthorization) Authorize(
 	return c.buildRedirectURL(req.RedirectURI, authCode, req.State, req.Nonce), nil
 }
 
-func (c *clientAuthorization) shouldForceLogin(ctx context.Context, request *client.ClientAuthorizationRequest) bool {
-	if request.Prompt == constants.PromptLogin {
+func (c *clientAuthorization) shouldForceLogin(ctx context.Context, req *client.ClientAuthorizationRequest) bool {
+	if req.Prompt == constants.PromptLogin {
 		return true
 	}
 
-	maxAge := request.MaxAge
+	maxAge := req.MaxAge
 	if maxAge != "" {
 		if maxAge == "0" {
 			return true
@@ -125,14 +153,18 @@ func (c *clientAuthorization) shouldForceLogin(ctx context.Context, request *cli
 
 		maxAgeSeconds, err := strconv.ParseInt(maxAge, 10, 64)
 		if err != nil {
-			c.logger.Warn(c.module, "", "Failed to parse max_age: %v", err)
+			c.logger.Warn(c.module, utils.GetRequestID(ctx), "[shouldForceLogin]: Failed to parse max_age: %v", err)
 			return true
 		}
 
-		secondsSinceLastLogin, err := c.session.GetUserAuthenticationTime(ctx, request.HTTPRequest)
+		lastAuthTime, err := c.session.GetUserAuthenticationTime(ctx, req.HTTPRequest)
 		if err != nil {
 			return true
 		}
+
+		currentTime := time.Now().Unix()
+		secondsSinceLastLogin := currentTime - lastAuthTime
+		c.logger.Debug(c.module, utils.GetRequestID(ctx), "[shouldForceLogin]: seconds since last login: %d", secondsSinceLastLogin)
 
 		if secondsSinceLastLogin > maxAgeSeconds {
 			return true
@@ -152,15 +184,17 @@ func (c *clientAuthorization) buildLoginRedirectURL(req *client.ClientAuthorizat
 		req.Nonce,
 		req.Prompt,
 		req.Display,
+		req.ACRValues,
+		domain.SerializeClaims(req.ClaimsRequest),
 		"authenticate",
 	)
 }
 
-func (c *clientAuthorization) buildLoginRequiredErrorURL(request *client.ClientAuthorizationRequest) string {
+func (c *clientAuthorization) buildLoginRequiredErrorURL(req *client.ClientAuthorizationRequest) string {
 	return web.BuildErrorURL(
 		errors.ErrCodeLoginRequired,
 		"authentication required to continue",
-		request.State, request.RedirectURI,
+		req.State, req.RedirectURI,
 	)
 }
 
@@ -196,43 +230,45 @@ func (c *clientAuthorization) getUserAuthenticationTime(ctx context.Context, req
 	return time.Unix(authTime, 0)
 }
 
-func (c *clientAuthorization) shouldRejectMissingConsent(ctx context.Context, request *client.ClientAuthorizationRequest, isAuthenticated bool) bool {
-	return request.Prompt == constants.PromptNone && isAuthenticated && !c.hasPreConfiguredConsent(ctx, request)
+func (c *clientAuthorization) shouldRejectMissingConsent(ctx context.Context, req *client.ClientAuthorizationRequest, isAuthenticated bool) bool {
+	return req.Prompt == constants.PromptNone && isAuthenticated && !c.hasPreConfiguredConsent(ctx, req)
 }
 
-func (c *clientAuthorization) hasPreConfiguredConsent(ctx context.Context, request *client.ClientAuthorizationRequest) bool {
+func (c *clientAuthorization) hasPreConfiguredConsent(ctx context.Context, req *client.ClientAuthorizationRequest) bool {
 	requestID := utils.GetRequestID(ctx)
-	hasConsent, err := c.consent.CheckUserConsent(ctx, request.UserID, request.ClientID, request.Scope)
+	hasConsent, err := c.consent.CheckUserConsent(ctx, req.UserID, req.ClientID, req.Scope)
 	if err != nil {
-		c.logger.Error(c.module, requestID, "Failed to check user consent, user=[%s]: %v", utils.TruncateSensitive(request.UserID), err)
+		c.logger.Error(c.module, requestID, "Failed to check user consent, user=[%s]: %v", utils.TruncateSensitive(req.UserID), err)
 		return false
 	}
 
 	return hasConsent
 }
 
-func (c *clientAuthorization) buildConsentRequiredErrorURL(request *client.ClientAuthorizationRequest) string {
+func (c *clientAuthorization) buildConsentRequiredErrorURL(req *client.ClientAuthorizationRequest) string {
 	return web.BuildErrorURL(
 		errors.ErrCodeConsentRequired,
 		"consent required to continue",
-		request.State, request.RedirectURI,
+		req.State, req.RedirectURI,
 	)
 }
 
-func (c *clientAuthorization) handleUserConsent(ctx context.Context, request *client.ClientAuthorizationRequest) string {
+func (c *clientAuthorization) handleUserConsent(ctx context.Context, req *client.ClientAuthorizationRequest) string {
 	requestID := utils.GetRequestID(ctx)
-	if !c.hasPreConfiguredConsent(ctx, request) {
-		if !request.ConsentApproved {
+	if !c.hasPreConfiguredConsent(ctx, req) {
+		if !req.ConsentApproved {
 			c.logger.Warn(c.module, requestID, "Consent required, redirecting to consent URL")
 			consentURL := web.BuildRedirectURL(
-				request.ClientID,
-				request.RedirectURI,
-				request.Scope.String(),
-				request.ResponseType,
-				request.State,
-				request.Nonce,
-				request.Prompt,
-				request.Display,
+				req.ClientID,
+				req.RedirectURI,
+				req.Scope.String(),
+				req.ResponseType,
+				req.State,
+				req.Nonce,
+				req.Prompt,
+				req.Display,
+				req.ACRValues,
+				domain.SerializeClaims(req.ClaimsRequest),
 				"consent",
 			)
 

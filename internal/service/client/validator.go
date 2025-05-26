@@ -108,22 +108,22 @@ func (c *clientValidator) ValidateUpdateRequest(ctx context.Context, req *client
 func (c *clientValidator) ValidateAuthorizationRequest(ctx context.Context, req *clients.ClientAuthorizationRequest) error {
 	requestID := utils.GetRequestID(ctx)
 
+	if !req.Client.HasRedirectURI(req.RedirectURI) {
+		return errors.New(errors.ErrCodeInvalidRedirectURI, "the client provided an unregistered redirect URI")
+	}
+
 	if !req.Client.HasGrantType(constants.AuthorizationCodeGrantType) {
 		c.logger.Error(c.module, requestID, "Failed to validate client authorization: client does not have the required grant types")
 		return errors.New(errors.ErrCodeInvalidGrant, "authorization code grant is required for this request")
 	}
 
-	if req.Client.RequiresPKCE && req.CodeChallenge == "" {
-		c.logger.Error(c.module, requestID, "Failed to validate client authorization request: client did not provide a code challenge for the PKCE grant type")
-		return errors.New(errors.ErrCodeInvalidRequest, "code_challenge is required for PKCE")
-	} else if !req.Client.RequiresPKCE && req.CodeChallenge != "" {
-		c.logger.Error(c.module, requestID, "Failed to validate request: client provided a code challenge but does not have the PKCE grant type")
-		return errors.New(errors.ErrCodeInvalidRequest, "PKCE is required when providing a code challenge")
-	}
-
 	if !req.Client.HasResponseType(constants.CodeResponseType) || !req.Client.HasResponseType(req.ResponseType) {
 		c.logger.Error(c.module, requestID, "Failed to validate client authorization request: client does not have the code response type")
 		return errors.New(errors.ErrCodeInvalidClient, "code response type is required to receive an authorization code")
+	}
+
+	if req.Client.Type == types.PublicClient && req.CodeChallenge == "" {
+		return errors.New(errors.ErrCodeInvalidRequest, "public clients are required to use PKCE")
 	}
 
 	if req.CodeChallenge != "" {

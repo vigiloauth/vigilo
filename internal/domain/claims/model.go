@@ -22,3 +22,15 @@ func ParseClaimsParameter(claimsParam string) (*ClaimsRequest, error) {
 	_ = json.Unmarshal([]byte(decodedClaims), &claimsRequest)
 	return &claimsRequest, nil
 }
+
+func SerializeClaims(claims *ClaimsRequest) string {
+	if claims != nil {
+		claimsJSON, err := json.Marshal(claims)
+		if err != nil {
+			claimsJSON = nil
+		}
+		return string(claimsJSON)
+	}
+
+	return ""
+}

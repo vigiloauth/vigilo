@@ -21,7 +21,7 @@ import (
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	service "github.com/vigiloauth/vigilo/v2/internal/service/crypto"
-	jwt "github.com/vigiloauth/vigilo/v2/internal/service/jwt"
+	jwtService "github.com/vigiloauth/vigilo/v2/internal/service/jwt"
 	tokenService "github.com/vigiloauth/vigilo/v2/internal/service/token"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
 
@@ -73,6 +73,7 @@ const (
 	testAuthzCode       string = "valid-auth-code"
 	testIP              string = "192.168.1.10"
 	testNonce           string = "123na"
+	testState           string = "12345State"
 )
 
 // VigiloTestContext encapsulates constants testing functionality across all test types
@@ -90,6 +91,7 @@ type VigiloTestContext struct {
 	State              string
 	SH256CodeChallenge string
 	PlainCodeChallenge string
+	RequestURI         string
 }
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
@@ -203,7 +205,7 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 
 	repo := tokenRepo.GetInMemoryTokenRepository()
 	cryptoService := service.NewCryptographer()
-	jwt := jwt.NewJWTService()
+	jwt := jwtService.NewJWTService()
 
 	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
 	tokenService := tokenService.NewTokenIssuer(creator)
@@ -228,7 +230,7 @@ func (tc *VigiloTestContext) WithAdminToken(id string, duration time.Duration) *
 
 	repo := tokenRepo.GetInMemoryTokenRepository()
 	cryptoService := service.NewCryptographer()
-	jwt := jwt.NewJWTService()
+	jwt := jwtService.NewJWTService()
 
 	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
 	tokenService := tokenService.NewTokenIssuer(creator)
@@ -257,7 +259,7 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 
 	repo := tokenRepo.GetInMemoryTokenRepository()
 	cryptoService := service.NewCryptographer()
-	jwt := jwt.NewJWTService()
+	jwt := jwtService.NewJWTService()
 
 	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
 	tokenService := tokenService.NewTokenIssuer(creator)
@@ -281,7 +283,7 @@ func (tc *VigiloTestContext) WithJWTTokenWithClaims(subject, audience string, cl
 
 	repo := tokenRepo.GetInMemoryTokenRepository()
 	cryptoService := service.NewCryptographer()
-	jwt := jwt.NewJWTService()
+	jwt := jwtService.NewJWTService()
 
 	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
 	tokenService := tokenService.NewTokenIssuer(creator)
@@ -303,7 +305,7 @@ func (tc *VigiloTestContext) WithJWTTokenWithClaims(subject, audience string, cl
 func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
 	repo := tokenRepo.GetInMemoryTokenRepository()
 	cryptoService := service.NewCryptographer()
-	jwt := jwt.NewJWTService()
+	jwt := jwtService.NewJWTService()
 
 	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
 	issuer := tokenService.NewTokenIssuer(creator)
@@ -383,7 +385,7 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 
 	repo := tokenRepo.GetInMemoryTokenRepository()
 	cryptoService := service.NewCryptographer()
-	jwt := jwt.NewJWTService()
+	jwt := jwtService.NewJWTService()
 
 	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
 	issuer := tokenService.NewTokenIssuer(creator)
@@ -532,6 +534,7 @@ func (tc *VigiloTestContext) CreateAuthorizationCodeRequestQueryParams(codeChall
 	queryParams.Add(constants.StateReqField, tc.State)
 	queryParams.Add(constants.ConsentApprovedURLValue, "true")
 	queryParams.Add(constants.NonceReqField, testNonce)
+	queryParams.Add("acr_values", "1 2")
 
 	if codeChallenge != "" {
 		queryParams.Add(constants.CodeChallengeReqField, codeChallenge)
@@ -657,12 +660,6 @@ func (tc *VigiloTestContext) addHeaderAuth(req *http.Request, headers map[string
 	// Add all headers
 	for key, value := range headers {
 		req.Header.Set(key, value)
-	}
-
-	if tc.JWTToken != "" && headers["Authorization"] == "" {
-		req.Header.Set("Authorization", "Bearer "+tc.JWTToken)
-	} else if tc.ClientAuthToken != "" && headers["Authorization"] == "" {
-		req.Header.Set("Authorization", "Bearer "+tc.ClientAuthToken)
 	}
 }
 

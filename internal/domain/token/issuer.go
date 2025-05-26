@@ -11,5 +11,5 @@ import (
 type TokenIssuer interface {
 	IssueAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error)
 	IssueTokenPair(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, claims *domain.ClaimsRequest) (string, string, error)
-	IssueIDToken(ctx context.Context, subject string, audience string, scopes types.Scope, nonce string, authTime time.Time) (string, error)
+	IssueIDToken(ctx context.Context, subject string, audience string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error)
 }

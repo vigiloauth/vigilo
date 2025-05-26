@@ -485,6 +485,7 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 				"clientID",
 				types.OpenIDScope,
 				"nonce",
+				"1 2",
 				time.Now(),
 			)
 

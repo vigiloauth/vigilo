@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
@@ -43,14 +44,18 @@ func NewAuthorizationHandler(clientAuthorization client.ClientAuthorization) *Au
 func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
-
-	query := r.URL.Query()
 	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request")
 
-	if errorURL := web.ValidateClientAuthorizationParameters(query); errorURL != "" {
-		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Invalid parameters in the request: %s", utils.SanitizeURL(errorURL))
-		http.Redirect(w, r, errorURL, http.StatusFound)
-		return
+	var query url.Values
+	if r.Method == http.MethodGet {
+		query = r.URL.Query()
+	} else if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			h.logger.Error(h.module, requestID, "[AuthorizeClient]: Failed to parse form: %v", err)
+			web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "invalid form data"))
+			return
+		}
+		query = r.Form
 	}
 
 	req := client.NewClientAuthorizationRequest(query)

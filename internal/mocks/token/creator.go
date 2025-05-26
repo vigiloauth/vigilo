@@ -15,7 +15,7 @@ type MockTokenCreator struct {
 	CreateAccessTokenFunc           func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error)
 	CreateRefreshTokenFunc          func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error)
 	CreateAccessTokenWithClaimsFunc func(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string, claims *claims.ClaimsRequest) (string, error)
-	CreateIDTokenFunc               func(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error)
+	CreateIDTokenFunc               func(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error)
 }
 
 func (m *MockTokenCreator) CreateAccessToken(ctx context.Context, subject string, audience string, scopes types.Scope, roles string, nonce string) (string, error) {
@@ -30,6 +30,6 @@ func (m *MockTokenCreator) CreateAccessTokenWithClaims(ctx context.Context, subj
 	return m.CreateAccessTokenWithClaimsFunc(ctx, subject, audience, scopes, roles, nonce, claims)
 }
 
-func (m *MockTokenCreator) CreateIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, authTime time.Time) (string, error) {
-	return m.CreateIDTokenFunc(ctx, userID, clientID, scopes, nonce, authTime)
+func (m *MockTokenCreator) CreateIDToken(ctx context.Context, userID string, clientID string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error) {
+	return m.CreateIDTokenFunc(ctx, userID, clientID, scopes, nonce, acrValues, authTime)
 }

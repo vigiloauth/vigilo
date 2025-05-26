@@ -10,12 +10,16 @@ export async function authenticateUser({
   scope,
   responseType,
   nonce,
+  acrValues,
   display,
+  claims,
 }) {
   const urlParams = new URLSearchParams();
   urlParams.set(URL_PARAMS.CLIENT_ID, clientID);
   urlParams.set(URL_PARAMS.REDIRECT_URI, redirectURI);
 
+  if (claims !== "") urlParams.set(URL_PARAMS.CLAIMS, claims);
+  if (acrValues !== "") urlParams.set(URL_PARAMS.ACR, acrValues);
   if (state !== "") urlParams.set(URL_PARAMS.STATE, state);
   if (scope !== "") urlParams.set(URL_PARAMS.SCOPE, scope);
   if (responseType !== "")
@@ -68,12 +72,16 @@ export async function handleUserConsent({
   display,
   approved,
   scopes,
+  acrValues,
+  claims,
   method = "POST",
 }) {
   const urlParams = new URLSearchParams();
   urlParams.set(URL_PARAMS.CLIENT_ID, clientID);
   urlParams.set(URL_PARAMS.REDIRECT_URI, redirectURI);
 
+  if (claims !== "") urlParams.set(URL_PARAMS.CLAIMS, claims);
+  if (acrValues !== "") urlParams.set(URL_PARAMS.ACR, acrValues);
   if (state !== "") urlParams.set(URL_PARAMS.STATE, state);
   if (scope !== "") urlParams.set(URL_PARAMS.SCOPE, scope);
   if (responseType !== "")

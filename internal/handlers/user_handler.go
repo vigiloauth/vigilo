@@ -116,7 +116,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		UserID:             response.UserID,
 		IPAddress:          r.RemoteAddr,
 		UserAgent:          r.UserAgent(),
-		AuthenticationTime: time.Now(),
+		AuthenticationTime: time.Now().Unix(),
 	}
 
 	if err := h.sessionService.CreateSession(w, r, sessionData); err != nil {
@@ -156,7 +156,7 @@ func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 		UserID:             response.UserID,
 		IPAddress:          r.RemoteAddr,
 		UserAgent:          r.UserAgent(),
-		AuthenticationTime: time.Now(),
+		AuthenticationTime: time.Now().Unix(),
 	}
 
 	if err := h.sessionService.CreateSession(w, r, sessionData); err != nil {
@@ -261,6 +261,12 @@ func (h *UserHandler) buildOAuthRedirectURL(query url.Values, clientID, redirect
 	}
 	if approved := query.Get(constants.ConsentApprovedURLValue); approved != "" {
 		queryParams.Add(constants.ConsentApprovedURLValue, approved)
+	}
+	if acrValues := query.Get(constants.ACRReqField); acrValues != "" {
+		queryParams.Add(constants.ACRReqField, acrValues)
+	}
+	if claims := query.Get(constants.ClaimsReqField); claims != "" {
+		queryParams.Add(constants.ClaimsReqField, claims)
 	}
 
 	return "/identity" + web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()

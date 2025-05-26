@@ -7,7 +7,6 @@ import (
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
-	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
@@ -27,23 +26,12 @@ type authorizationService struct {
 	clientManager      client.ClientManager
 	clientValidator    client.ClientValidator
 	userManager        user.UserManager
-	sessionService     session.SessionService
 	tokenManager       token.TokenManager
 
 	logger *config.Logger
 	module string
 }
 
-// NewAuthorizationService creates a new instance of AuthorizationServiceImpl.
-//
-// Parameters:
-//   - codeService AuthorizationCodeService: Handles authorization code-related operations
-//   - consentService UserConsentService: Manages user consent for authorization requests
-//   - tokenService TokenService: Responsible for token generation and management
-//   - clientService ClientService: Provides client-related functionality
-//
-// Returns:
-//   - A configured AuthorizationServiceImpl instance
 func NewAuthorizationService(
 	authzCodeService authzCode.AuthorizationCodeManager,
 	userConsentService consent.UserConsentService,
@@ -51,7 +39,6 @@ func NewAuthorizationService(
 	clientManager client.ClientManager,
 	clientValidator client.ClientValidator,
 	userManager user.UserManager,
-	sessionService session.SessionService,
 ) authz.AuthorizationService {
 	return &authorizationService{
 		authzCodeService:   authzCodeService,
@@ -60,7 +47,6 @@ func NewAuthorizationService(
 		clientManager:      clientManager,
 		clientValidator:    clientValidator,
 		userManager:        userManager,
-		sessionService:     sessionService,
 		logger:             config.GetServerConfig().Logger(),
 		module:             "Authorization Service",
 	}
@@ -217,11 +203,6 @@ func (s *authorizationService) handlePKCEValidation(authzCodeData *authzCode.Aut
 		s.logger.Error(s.module, "", "Failed to validate code verifier: %v", err)
 		return err
 	}
-
-	// if err := s.authzCodeService.ValidatePKCE(authzCodeData, tokenRequest.CodeVerifier); err != nil {
-	// 	s.logger.Error(s.module, "", "PKCE validation failed: %v", err)
-	// 	return errors.Wrap(err, errors.ErrCodeInvalidGrant, "PKCE validation failed")
-	// }
 
 	return nil
 }

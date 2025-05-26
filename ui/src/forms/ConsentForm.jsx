@@ -78,8 +78,17 @@ export default function ConsentForm({ policyURI }) {
   const [loading, setLoading] = useState(false);
   const [clientName, setClientName] = useState("An external application");
   const [scopes, setScopes] = useState(defaultScopes);
-  const { clientID, redirectURI, scope, responseType, state, nonce, display } =
-    useApplicationContext();
+  const {
+    clientID,
+    redirectURI,
+    scope,
+    responseType,
+    state,
+    nonce,
+    display,
+    acrValues,
+    claims,
+  } = useApplicationContext();
 
   const handleGetConsent = useCallback(async () => {
     try {
@@ -92,6 +101,8 @@ export default function ConsentForm({ policyURI }) {
         nonce,
         display,
         scopes,
+        acrValues,
+        claims,
         method: "GET",
       });
 
@@ -137,6 +148,8 @@ export default function ConsentForm({ policyURI }) {
         display,
         approved: approved,
         scopes,
+        acrValues,
+        claims,
       });
 
       if (data.redirect_uri) {

@@ -8,7 +8,7 @@ import (
 
 // VigiloAuthError represents a standardized error structure
 type VigiloAuthError struct {
-	SystemCode       string   `json:"system_code"`
+	SystemCode       string   `json:"error_code"`
 	ErrorCode        string   `json:"error"`
 	ErrorDescription string   `json:"error_description"`
 	ErrorDetails     string   `json:"error_details,omitempty"`

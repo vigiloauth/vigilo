@@ -7,6 +7,8 @@ const URL_PARAMS = {
   NONCE: "nonce",
   DISPLAY: "display",
   TYPE: "type",
+  ACR: "acr_values",
+  CLAIMS: "claims",
 };
 
 export default URL_PARAMS;

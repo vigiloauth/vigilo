@@ -547,6 +547,7 @@ func defaultServerConfig() *ServerConfig {
 		authorizationCodeDuration: defaultAuthorizationCodeDuration,
 		logger:                    logger,
 		module:                    module,
+		baseURL:                   "/identity",
 	}
 
 	sc.loadEnvFiles()

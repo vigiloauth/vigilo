@@ -66,6 +66,10 @@ func (c *authorizationCodeCreator) GenerateAuthorizationCode(ctx context.Context
 		codeData.ClaimsRequest = req.ClaimsRequest
 	}
 
+	if req.ACRValues != "" {
+		codeData.ACRValues = req.ACRValues
+	}
+
 	if err := c.handlePKCECreation(requestID, codeData, req); err != nil {
 		c.logger.Error(c.module, requestID, "[GenerateAuthorizationCode] Error handling PKCE creation: %v", err)
 		return "", errors.Wrap(err, "", "Failed to handle PKCE creation")

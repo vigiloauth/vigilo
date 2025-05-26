@@ -153,7 +153,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, web.UserEndpoints.Logout, nil, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 }
 

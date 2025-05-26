@@ -77,6 +77,7 @@ func (t *tokenIssuer) IssueIDToken(
 	audience string,
 	scopes types.Scope,
 	nonce string,
+	acrValues string,
 	authTime time.Time,
 ) (string, error) {
 	requestID := utils.GetRequestID(ctx)
@@ -85,8 +86,9 @@ func (t *tokenIssuer) IssueIDToken(
 		ctx,
 		subject,
 		audience,
-		scopes,
+		"", // scopes are not included in ID token
 		nonce,
+		acrValues,
 		authTime,
 	)
 

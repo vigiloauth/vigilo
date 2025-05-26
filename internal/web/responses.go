@@ -64,6 +64,8 @@ func BuildRedirectURL(
 	nonce string,
 	prompt string,
 	display string,
+	acrValues string,
+	claims string,
 	endpoint string,
 ) string {
 	queryParams := url.Values{}
@@ -80,6 +82,12 @@ func BuildRedirectURL(
 	}
 	if prompt != "" {
 		queryParams.Add(constants.PromptReqField, prompt)
+	}
+	if acrValues != "" {
+		queryParams.Add(constants.ACRReqField, acrValues)
+	}
+	if claims != "" {
+		queryParams.Add(constants.ClaimsReqField, claims)
 	}
 
 	if display != "" && constants.ValidAuthenticationDisplays[display] {

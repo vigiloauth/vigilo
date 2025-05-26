@@ -32,7 +32,7 @@ func TestSessionManager_GetUserAuthenticationTime(t *testing.T) {
 				GetSessionByIDFunc: func(ctx context.Context, sessionID string) (*domain.SessionData, error) {
 					return &domain.SessionData{
 						UserID:             "user123",
-						AuthenticationTime: time.Now(), // Example timestamp
+						AuthenticationTime: time.Now().Unix(), // Example timestamp
 					}, nil
 				},
 			},

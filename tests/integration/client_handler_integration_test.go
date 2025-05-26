@@ -216,7 +216,9 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 	testContext.WithClientCredentialsToken()
 
 	endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.RegenerateSecret, testClientID)
-	headers := map[string]string{constants.BearerAuthHeader: testContext.ClientAuthToken}
+	headers := map[string]string{
+		constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.ClientAuthToken,
+	}
 
 	rr := testContext.SendHTTPRequest(http.MethodPost, endpoint, nil, headers)
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -261,7 +263,9 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 		assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -284,7 +288,9 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -309,7 +315,9 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/invalid-id", web.ClientEndpoints.ClientConfiguration)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeUnauthorized, "failed to validate and retrieve client information")
@@ -328,7 +336,9 @@ func TestClientHandler_GetClient(t *testing.T) {
 		testContext.WithJWTToken("invalid-ID", 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 		rr := testContext.SendHTTPRequest(http.MethodGet, endpoint, nil, headers)
 
 		t.Log(rr.Body.String())
@@ -353,7 +363,9 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 
 		// Update client name
 		request.Name = testClientName2
@@ -398,8 +410,9 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
-
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 		// Update client name
 		request.Name = testClientName2
 		requestBody, err := json.Marshal(request)
@@ -443,7 +456,9 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 		rr := testContext.SendHTTPRequest(http.MethodPut, endpoint, nil, headers)
 
 		testContext.AssertErrorResponseDescription(rr, errors.ErrCodeInvalidRequest, "missing one or more required fields in the request")
@@ -464,7 +479,9 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 
 		// Attempt to update with invalid redirect URIs
 		request.RedirectURIs = append(request.RedirectURIs, "http://test.com/callback", "https://example.com/*")
@@ -495,7 +512,9 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		testContext.WithJWTToken("invalid-id", 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -524,7 +543,9 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, "invalid-client-id")
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -554,7 +575,9 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		headers := map[string]string{constants.BearerAuthHeader: testContext.JWTToken}
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 
 		requestBody, err := json.Marshal(request)
 		assert.NoError(t, err)
@@ -581,9 +604,12 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
+		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, headers)
 
 		assert.Equal(t, http.StatusNoContent, rr.Code)
 	})
@@ -598,9 +624,11 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken("invalid-id", 1*time.Hour)
-
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, testClientID)
-		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
+		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, headers)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
@@ -615,9 +643,12 @@ func TestClientHandler_DeleteClient(t *testing.T) {
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 		testContext.WithJWTToken(testClientID, 1*time.Hour)
+		headers := map[string]string{
+			constants.AuthorizationHeader: constants.BearerAuthHeader + testContext.JWTToken,
+		}
 
 		endpoint := fmt.Sprintf("%s/%s", web.ClientEndpoints.ClientConfiguration, "invalid-id")
-		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, nil)
+		rr := testContext.SendHTTPRequest(http.MethodDelete, endpoint, nil, headers)
 
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})

@@ -53,7 +53,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		expected := getTestAuthzCodeData()
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -77,7 +77,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil, nil, nil, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil, nil, nil)
 		expected := "authorization code has already been used"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -101,7 +101,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		expected := "failed to validate client: invalid client"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
@@ -134,7 +134,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		tokenRequest := getTestTokenRequest()
 		tokenRequest.CodeVerifier = codeVerifier
 
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
 		assert.NoError(t, err)
@@ -159,7 +159,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		}
 
 		tokenRequest := getTestTokenRequest()
-		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil, nil)
+		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 
 		expectedErr := "missing code verifier for PKCE"
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
@@ -194,7 +194,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager, nil)
+		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.NoError(t, err)
@@ -224,7 +224,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager, nil)
+		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.NoError(t, err)
@@ -252,7 +252,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientManager, nil, userManager, nil)
+		service := NewAuthorizationService(nil, nil, nil, clientManager, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.Error(t, err)
@@ -280,7 +280,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager, nil)
+		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.Error(t, err)
@@ -308,7 +308,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 			},
 		}
 
-		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager, nil)
+		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
 		assert.Error(t, err)

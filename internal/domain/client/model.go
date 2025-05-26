@@ -137,18 +137,22 @@ type ClientSecretRegenerationResponse struct {
 
 // ClientAuthorizationRequest represents the incoming request to the /authorize endpoint.
 type ClientAuthorizationRequest struct {
-	ClientID               string                    `schema:"client_id"`
-	ResponseType           string                    `schema:"response_type"`
-	RedirectURI            string                    `schema:"redirect_uri"`
-	Scope                  types.Scope               `schema:"scope,omitempty"`
-	State                  string                    `schema:"state,omitempty"`
-	Nonce                  string                    `schema:"nonce,omitempty"`
-	CodeChallenge          string                    `schema:"code_challenge,omitempty"`
-	CodeChallengeMethod    types.CodeChallengeMethod `schema:"code_challenge_method,omitempty"`
-	Display                string                    `schema:"display,omitempty"`
-	Prompt                 string                    `schema:"prompt,omitempty"`
-	MaxAge                 string                    `schema:"max_age,omitempty"`
-	ClaimsRequest          *claims.ClaimsRequest     `schema:"-"`
+	ClientID            string                    `schema:"client_id"`
+	ResponseType        string                    `schema:"response_type"`
+	RedirectURI         string                    `schema:"redirect_uri"`
+	Scope               types.Scope               `schema:"scope,omitempty"`
+	State               string                    `schema:"state,omitempty"`
+	Nonce               string                    `schema:"nonce,omitempty"`
+	CodeChallenge       string                    `schema:"code_challenge,omitempty"`
+	CodeChallengeMethod types.CodeChallengeMethod `schema:"code_challenge_method,omitempty"`
+	Display             string                    `schema:"display,omitempty"`
+	Prompt              string                    `schema:"prompt,omitempty"`
+	MaxAge              string                    `schema:"max_age,omitempty"`
+	ClaimsRequest       *claims.ClaimsRequest     `schema:"-"`
+	ACRValues           string                    `schema:"acr_values,omitempty"`
+	RequestURI          string                    `schema:"request_uri,omitempty"`
+	RequestObject       string                    `schema:"request,omitempty"`
+
 	UserID                 string
 	ConsentApproved        bool
 	Client                 *Client
@@ -295,9 +299,12 @@ func NewClientAuthorizationRequest(query url.Values) *ClientAuthorizationRequest
 		ConsentApproved:     query.Get(constants.ConsentApprovedURLValue) == "true",
 		Prompt:              query.Get(constants.PromptReqField),
 		MaxAge:              query.Get(constants.MaxAgeReqField),
+		ACRValues:           query.Get(constants.ACRReqField),
+		RequestURI:          query.Get(constants.RequestURIReqField),
+		RequestObject:       query.Get(constants.RequestObjectReqField),
 	}
 
-	claimsParam := query.Get("claims")
+	claimsParam := query.Get(constants.ClaimsReqField)
 	if claimsParam != "" {
 		claimsRequest, err := claims.ParseClaimsParameter(claimsParam)
 		if err == nil {
