@@ -22,6 +22,8 @@
 
 ## 1. Introduction
 
+>License: MIT This server is free and open source, developed for community use and OIDF certification.
+
 >⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
 
 VigiloAuth is designed to simplify the implementation of OAuth 2.0 and OpenID Connect (OIDC) authentication servers. Whether you need a full-fledged **authentication server**, an **identity server**, or both, VigiloAuth provides compliant endpoints that you can easily integrate into your application without writing any complex code.
