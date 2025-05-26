@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-PUT /oauth2/clients/register/{client_id}
+PUT /identity/oauth2/clients/register/{client_id}
 ```
 
 **Description:**
@@ -46,7 +46,7 @@ This endpoint is a protected route which is responsible for updating the current
 
 ## Example Request
 ```http
-PUT /oauth/client/register/s6BhdRkqt3 HTTP/1.1
+PUT /identity/oauth2/clients/register/s6BhdRkqt3 HTTP/1.1
 Accept: application/json
 Authorization: Bearer reg-23410913-abewfq.123483
 ```

@@ -1,10 +1,11 @@
 # Password Reset
 ## Endpoint
 ```
-PATCH /auth/reset-password/confirm
+PATCH /identity/auth/reset-password/confirm
 ```
+
 ---
-**Description:** This endpoint is used to confirm a password reset request and set a new password for the user's account.
+
 ### Headers
 | Key             | Value                         | Description                              |
 | :-------------- | :---------------------------- | :----------------------------------------|
@@ -13,20 +14,30 @@ PATCH /auth/reset-password/confirm
 | Content-Length  | [Content-Length]              | The length of the request body in bytes. |
 
 ---
+
 ### Request Body
 | Field       | Type    | Required  | Description                       |
 |:------------|:--------|:----------|:----------------------------------|
 | `email`       | `string`  | Yes       | The user's email address.         |
 | `new_password` | `string`  | Yes       | The new password for the account. |
+
 ---
-### Example Request
+
+## Example Request
+```http
+POST /identity/auth/reset-password/confirm HTTP/1.1
+Authorization: Bearer reg-23410913-abewfq.123483
+```
+
 ```json
 {
     "email": "john.doe@gmail.com",
     "new_password": "Pas$_w0rds"
 }
 ```
+
 ---
+
 ## Responses
 #### HTTP Status Code: `200 OK`
 #### Response Body:
@@ -35,7 +46,9 @@ PATCH /auth/reset-password/confirm
     "message": "password has been reset successfully"
 }
 ```
+
 ---
+
 ## Error Responses
 ### 1. Missing new password Field
 #### HTTP Status Code: `404 Not Found`

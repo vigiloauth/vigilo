@@ -30,7 +30,6 @@ The `VigiloIdentityServer` can be configured using various options to suit your 
 |-----------------------------------|---------------------------------------------------------|-----------------------------|
 | **SSL Cert File Path**            | Path to the SSL Certificate when using HTTPS.           | N/A                         |
 | **Key File Path**                 | Path to the SSL Key file when using HTTPS.              | N/A                         |
-| **Base URL**                      | Base URL that the endpoints will be available on.       | `/identity`                 |
 | **Domain**                        | Server's domain.                                        | `localhost`                 |
 | **Session Cookie Name**           | The name of the session cookie.                         | `vigilo-auth-session-cookie`|
 | **Force HTTPS**                   | Whether to force HTTPS connections.                     | `false`                     |
@@ -79,10 +78,10 @@ ___
 | **Use SSL**                       | Whether or not the config should use SSL.             | `false`                |
 | **Use TLS**                       | Whether or not the config should use TLS.             | `true`                 |
 | **Credentials**                   | The username and password to use to authenticate.     | N/A                    |
-| **From Address**                  | The address to use to send emails from.               | `vigiloauth@gmail.com` |
+| **From Address**                  | The address to use to send emails from.               | N/A                    |
 | **Encryption**                    | The type of encryption to use.                        | `tls`                  |
 
-**Note:** If no configuration is provided, VigiloAuth will use their own SMTP configuration to handle any emails in the system. It is also important to note that if one configuration option is provided, all the rest are required as well.
+>**Note:** If no configuration is provided, email functionality will not be available.
 
 ---
 

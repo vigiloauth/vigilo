@@ -2,23 +2,28 @@
 
 ## Endpoint
 ```
-POST /auth/login
+POST /identity/auth/login
 ```
+
 ---
-**Description:** This endpoint is used for a user to login.
+
 ### Headers
 | Key             | Value                         | Description                               |
 | :-------------- | :---------------------------- | :-----------------------------------------|
 | Content-Type    | application/json              | Indicates that the request body is JSON.  |
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.   |
 | Content-Length  | [Content-Length]              | The length of the request body in bytes.  |
+
 ---
+
 ### Request Body
 | Field     | Type    | Required  | Description                    |
 |:----------|:--------|:----------|:-------------------------------|
 | `email`     | `string`  | Yes       | The user's email address.      |
 | `password`  | `string`  | Yes       | The password for the account.  |
+
 ---
+
 ### Example Request
 ```json
 {
@@ -26,7 +31,9 @@ POST /auth/login
     "password": "Pas$_w0rds"
 }
 ```
+
 ---
+
 ## Responses
 #### HTTP Status Code: `200 OK`
 #### Response Body:
@@ -35,7 +42,9 @@ POST /auth/login
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
 }
 ```
+
 ---
+
 ## Error Responses
 ### 1. Missing Email Field
 #### HTTP Status Code: `404 Not Found`

@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-GET /oauth2/clients/register/{client_id}
+GET /identity/oauth2/clients/register/{client_id}
 ```
 ---
 
@@ -27,7 +27,7 @@ This endpoint is a protected route which is responsible for retrieving the curre
 
 ## Example Request
 ```http
-GET /oauth/client/register/s6BhdRkqt3 HTTP/1.1
+GET /identity/oauth2/clients/register/s6BhdRkqt3 HTTP/1.1
 Accept: application/json
 Authorization: Bearer reg-23410913-abewfq.123483
 ```
@@ -46,7 +46,7 @@ Authorization: Bearer reg-23410913-abewfq.123483
     "registration_access_token": "reg-23410913-abewfq.123483",
 }
 ```
-**Note:** If the request is for a confidential client, the `client_secret` will be included in the response.
+>**Note:** If the request is for a confidential client, the `client_secret` will be included in the response.
 
 ---
 

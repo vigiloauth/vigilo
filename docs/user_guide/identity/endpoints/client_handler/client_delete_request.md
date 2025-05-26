@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-DELETE /oauth2/clients/register/{client_id}
+DELETE /identity/oauth2/clients/register/{client_id}
 ```
 
 --- 
@@ -30,7 +30,7 @@ Upon deletion, the `client_id`, `client_secret` (if applicable), and the `regist
 
 ## Example Request
 ```http
-DELETE /oauth/client/register/s6BhdRkqt3 HTTP/1.1
+DELETE /identity/oauth2/client2/register/s6BhdRkqt3 HTTP/1.1
 Host: server.example.com
 Authorization: Bearer reg-23410913-abewfq.123483
 ```

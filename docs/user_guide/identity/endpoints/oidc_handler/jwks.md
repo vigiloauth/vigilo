@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-GET /oauth2/.well-known/jwks.json
+GET /identity/oauth2/.well-known/jwks.json
 ```
 
 ## Headers
@@ -16,7 +16,7 @@ GET /oauth2/.well-known/jwks.json
 
 ## Example Request
 ```http
-GET /oauth2/.well-known/jwks.json HTTP/1.1
+GET /identity/oauth2/.well-known/jwks.json HTTP/1.1
 ```
 
 ## Responses

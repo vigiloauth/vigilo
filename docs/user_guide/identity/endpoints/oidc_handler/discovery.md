@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-GET /oauth2/.well-known/openid-configuration
+GET /identity/oauth2/.well-known/openid-configuration
 ```
 
 ## Headers
@@ -16,7 +16,7 @@ GET /oauth2/.well-known/openid-configuration
 
 ## Example Request
 ```http
-GET /oauth2/.well-known/openid-configuration HTTP/1.1
+GET /identity/oauth2/.well-known/openid-configuration HTTP/1.1
 ```
 
 ## Responses

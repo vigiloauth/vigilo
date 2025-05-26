@@ -12,11 +12,7 @@ Welcome to the **VigiloAuth** User Guide! This guide will help you get started w
 	- [3. Getting Started](#3-getting-started)
 		- [3.1 Installation](#31-installation)
 		- [3.2 Configuration](#32-configuration)
-	- [4. Contributing](#4-contributing)
-		- [4.1 How to Contribute](#41-how-to-contribute)
-		- [4.2 Commit Standards](#42-commit-standards)
-		- [5.3 Commit Types](#53-commit-types)
-	- [5. License](#5-license)
+	- [4. License](#4-license)
 
 ---
 
@@ -44,49 +40,13 @@ Whether you're building a web application, API, or microservices architecture, *
 VigiloAuth will run as a Docker instance in your application. For more information, refer to the installation guide below: 
 - [Docker Installation Guide](./configuration/docker.md)
 
-Ensure you have the following prerequisites:
-
-- **Go**: Version 1.18 or higher.
-- **Dependencies**: See our `go.mod` file for required dependencies.
-
 ### 3.2 Configuration
 For a deeper understanding of how our configurations work, refer to the following guide:
 - [VigiloAuth Configuration Guide](./configuration/configuration_guide.md)
 
 ---
 
-## 4. Contributing
-We welcome contributions to improve VigiloAuth! Follow the steps below to ensure a smooth contribution process.
-
-### 4.1 How to Contribute
-1. **Fork the Repository:** Create your own fork of the repository on GitHub.
-2. **Clone Your Fork:** Clone your fork locally.
-3. **Create a Branch:** Create a feature or a bug fix branch from master.
-4. **Make Your Changes:** Implement your changes and ensure they align with the project goals.
-5. **Write Tests:** Add or update tests to validate your changes.
-6. **Commit Your Changes:** Use **_Conventional Commits_** for all commit messages (see standards below).
-7. **Push Your Changes:** Push your branch to your forked repository.
-8. **Open a Pull Request (PR):** Submit a PR to the main repository with a clear description of your changes.
-
-### 4.2 Commit Standards
-We follow the **_Conventional Commit_** standards to ensure clear and meaningful commit messages. Use the format:
-```azure
-<type>[optional scope]: <description>
-[optional body]
-[optional footer(s)]
-```
-### 5.3 Commit Types
-- `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
-- `feat`: Add a new feature that enhances the functionality of the project.
-- `fix`: Apply a bug fix that resolves an issue without affecting functionality. 
-- `task`: Add or modify internal functionality that supports the codebase but doesn't introduce a new feature or fix a bug (e.g., utility methods, service logic, or internal improvements).
-- `chore`: Miscellaneous or updates that aren't features or fixes (e.g., updating build tools, dependencies, or configuration files).
-- `docs`: Modify documentation, such as fixing typos or adding new content. 
-- `style`: Apply code style or formatting changes that do not affect behavior.
-- `refactor`: Restructure existing code without changing its external behavior. 
-- `test`: Add or modify tests without affecting functionality. 
-
-## 5. License
+## 4. License
 Copyright 2024 Olivier Pimparé-Charbonneau
 
 Licensed under the Apache License, Version 2.0 (the "License");

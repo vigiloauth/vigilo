@@ -2,8 +2,8 @@
 
 ## Endpoint
 ```http
-GET /oauth2/consent
-POST /oauth2/consent
+GET /identity/oauth2/consent
+POST /identity/oauth2/consent
 ```
 
 ---
@@ -59,7 +59,7 @@ This endpoint facilitates the OAuth authorization process by allowing users to r
 
 ### Example GET Request
 ```http
-GET /oauth/consent HTTP/1.1
+GET /identity/oauth2/consent HTTP/1.1
 Accept: application/json
 Authorization: Bearer reg-23410913-abewfq.123483
 
@@ -71,7 +71,7 @@ Authorization: Bearer reg-23410913-abewfq.123483
 
 ### Example POST Request
 ```http
-POST /oauth/consent HTTP/1.1
+POST /identity/oauth2/consent HTTP/1.1
 Accept: application/json
 Authorization: Bearer reg-23410913-abewfq.123483
 ```

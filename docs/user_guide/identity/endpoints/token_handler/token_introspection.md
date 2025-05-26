@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /oauth2/tokens/introspect
+POST /identity/oauth2/token/introspect
 
 ```
 
@@ -29,7 +29,7 @@ POST /oauth2/tokens/introspect
 
 #### Example request for confidential clients:
 ```http
-POST /oauth/token/introspect HTTP/1.1
+POST /identity/oauth2/token/introspect HTTP/1.1
 Authorization: Basic dGVzdGNsaWVudDpzZWNyZXQ
 Content-Type: application/x-www-form-urlencoded
 
@@ -38,7 +38,7 @@ token=1FF3ZcYmriDTmziexguayay90HCgHJYR2UUGNcEwvC0
 
 #### Example request for public clients:
 ```http
-POST /oauth/token/introspect HTTP/1.1
+POST /identity/oauth2/token/introspect HTTP/1.1
 Authorization: Bearer dGVzdGNsaWVudDpzZWNyZXQ
 Content-Type: application/x-www-form-urlencoded
 

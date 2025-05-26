@@ -1,7 +1,7 @@
 # Password Reset Email Request
 ## Endpoint
 ```
-POST /auth/reset-password
+POST /identity/auth/reset-password
 ```
 ---
 
@@ -39,11 +39,14 @@ POST /auth/reset-password
     "message": "Password reset instructions have been sent to your email if an account exists."
 }
 ```
+
 #### Note: 
+
 This response is returned even if the user does not exist to prevent user enumeration. The email sent to the user will contain a reset URL with a requestId query parameter containing the reset token.
 
 #### Email Content:
-The email will include a link with the format: [Base URL]?requestId=[Reset Token]. This link will redirect the user to a page where they can reset their password. The reset token will expire after a set period of time.
+
+The email will include a link with the format: `[Base URL]?requestId=[Reset Token]`. This link will redirect the user to a page where they can reset their password. The reset token will expire after a set period of time.
 
 ---
 

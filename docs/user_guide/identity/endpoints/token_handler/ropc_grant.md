@@ -2,12 +2,13 @@
 
 ## Endpoint
 ```http
-POST /oauth2/tokens
+POST /identity/oauth2/tokens
 ```
 
 ---
 
-**Description:** 
+**Description:**
+
 This endpoint implements the OAuth 2.0 resource owner password credentials flow, allowing authenticated clients to obtain an access token for machine-to-machine communication.
 
 ---
@@ -27,7 +28,9 @@ This endpoint implements the OAuth 2.0 resource owner password credentials flow,
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT           | The date and time the request was made.                                    |
 | Content-Length  | [Content-Length]                        | The length of the request body in bytes.                                   |
 
+
 ---
+
 
 ## Request Body
 | Field        | Type       | Required  | Description                                                                     |
@@ -41,7 +44,7 @@ This endpoint implements the OAuth 2.0 resource owner password credentials flow,
 
 ## Example Request
 ```http
-POST /oauth/client/token HTTP/1.1
+POST /identity/oauth2/token HTTP/1.1
 Authorization: Basic dGVzdGNsaWVudDpzZWNyZXQ
 Content-Type: application/x-www-form-urlencoded
 

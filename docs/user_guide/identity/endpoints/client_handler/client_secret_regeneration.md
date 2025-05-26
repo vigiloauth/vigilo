@@ -2,8 +2,9 @@
 
 ## Endpoint
 ```http
-POST /clients/regenerate-secret
+POST /identity/clients/regenerate-secret/{client_id}
 ```
+
 ---
 
 ## Notes for Developers
@@ -31,7 +32,7 @@ POST /clients/regenerate-secret
 
 ## Example Request
 ```http
-POST https://localhost:8080/client/regenerate-secret/abc12345def HTTP/1.1
+POST /identity/clients/regenerate-secret/abc12345def HTTP/1.1
 Accept: application/json
 ```
 

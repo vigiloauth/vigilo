@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-GET /auth/verify
+GET /identity/auth/verify
 ```
 
 ---
@@ -21,8 +21,7 @@ This endpoint is used when a new user needs to verify their email. During the re
 
 ## Example Request
 ```http
-GET /auth/verify HTTP/1.1
-
+GET /identity/auth/verify HTTP/1.1
 token=czZCaGRSa3F0MzpnWDFmQmF0M2JW
 ```
 
@@ -32,7 +31,7 @@ token=czZCaGRSa3F0MzpnWDFmQmF0M2JW
 
 ### Success Response
 #### HTTP Status Code: `200 OK`
-- *Note:* There is no response body for successful validation.
+>*Note:* There is no response body for successful validation.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-GET /admins/audit-events
+GET /identity/admins/audit-events
 ```
 
 ---
@@ -10,7 +10,7 @@ GET /admins/audit-events
 **Description:**
 This endpoint is responsible for retrieving the servers audit events.
 
-**Note:** To access this endpoint, users must be have the `ADMIN` role associated to them.
+>**Note:** To access this endpoint, users must have the `ADMIN` role associated to them.
 
 ---
 
@@ -56,7 +56,7 @@ This endpoint is responsible for retrieving the servers audit events.
 
 ## Example Request
 ```http
-GET /admin/audit-events HTTP/1.1
+GET /identity/admin/audit-events HTTP/1.1
 Accept: application/json
 Authorization: Bearer reg-23410913-abewfq.123483
 

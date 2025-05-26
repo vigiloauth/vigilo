@@ -1,7 +1,7 @@
 # User Registration
 ## Endpoint
 ```
-POST /auth/signup
+POST /identity/auth/signup
 ```
 ---
 
@@ -37,6 +37,7 @@ POST /auth/signup
 ---
 
 ### Example Request
+
 ```json
 {
     "username": "john.doe",

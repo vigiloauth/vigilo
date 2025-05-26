@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /oauth2/tokens
+POST /identity/oauth2/token
 ```
 
 ---
@@ -28,7 +28,7 @@ POST /oauth2/tokens
 
 ## Example Request
 ```http
-POST /oauth/client/token HTTP/1.1
+POST /identity/oauth2/token HTTP/1.1
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=client_credentials

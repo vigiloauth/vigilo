@@ -1,16 +1,25 @@
 # User Logout
 ## Endpoint
 ```
-POST /auth/logout
+POST /identity/auth/logout
 ```
 ---
-**Description:** This is a protect endpoint used for users to logout.
+
 ### Headers
 | Key             | Value                         | Description                                |
 | :-------------- | :---------------------------- | :----------------------------------------- |
 | Content-Type    | application/json              | Indicates that the request body is JSON. |
 | Date            | Tue, 03 Dec 2024 19:38:16 GMT | The date and time the request was made.     |
 | Content-Length  | [Content-Length]              | The length of the request body in bytes.  |
+
+---
+
+## Example Request
+```http
+POST /identity/auth/logout HTTP/1.1
+Authorization: Bearer reg-23410913-abewfq.123483
+```
+
 ---
 
 ## Responses

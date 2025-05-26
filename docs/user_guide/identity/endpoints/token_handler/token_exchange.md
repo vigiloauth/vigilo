@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /oauth2/tokens
+POST /identity/oauth2/token
 ```
 
 ---
@@ -42,7 +42,7 @@ This endpoint handles the token exchange for the OAuth 2.0 Authorization Code Fl
 
 ## Example Request
 ```http
-POST /oauth/token HTTP/1.1
+POST /identity/oauth2/token HTTP/1.1
 Content-Type: application/x-www-form-urlencoded
 Authorization: Basic base64(client_id:client_secret)
 
@@ -54,7 +54,7 @@ grant_type=authorization_code
 
 ### Example Request with PKCE
 ```http
-POST /oauth/token HTTP/1.1
+POST /identity/oauth2/token HTTP/1.1
 Content-Type: application/x-www-form-urlencoded
 Authorization: Basic base64(client_id:client_secret)
 

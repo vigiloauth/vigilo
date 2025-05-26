@@ -2,7 +2,7 @@
 
 ## Endpoint
 ```http
-POST /clients/register
+POST /identity/clients/register
 ```
 
 ---
@@ -45,7 +45,7 @@ For information on how to use `client_configuration_endpoint` and `registration_
 
 ## Example Request
 ```http
-POST /client/register HTTP/1.1
+POST /identity/clients/register HTTP/1.1
 Accept: application/json
 ```
 ```json
@@ -74,7 +74,7 @@ Accept: application/json
   }
 }
 ```
-**Note:** If the client registers with scopes, they are REQUIRED to use those scopes in subsequent requests.
+>**Note:** If the client registers with scopes, they are REQUIRED to use those scopes in subsequent requests.
 
 ---
 

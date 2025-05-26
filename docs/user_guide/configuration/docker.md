@@ -14,8 +14,7 @@
     - [3.3 Login Configuration](#33-login-configuration)
     - [3.4 Password Configuration](#34-password-configuration)
     - [3.5 Audit Log Configuration](#35-audit-log-configuration)
-  - [4. When to Use](#4-when-to-use)
-  - [5. Next Steps](#5-next-steps)
+  - [4. Next Steps](#4-next-steps)
 
 ---
 
@@ -28,6 +27,7 @@ To add **VigiloAuth** to your project, simply create a `yaml` configuration file
 ## 2. Import the Library
 
 In your `docker-compose.yaml` file, add **VigiloAuth** as a service:
+
 ```yaml
 services:
     vigilo-auth:
@@ -60,11 +60,13 @@ services:
 ```
 
 ## 2.1 Providing Required Secrets and Configuration
-**VigiloAuth** requires configuration to run correctly. For security, sensitive information (secrets) is not included in the Docker image or the main YAML configuration file. These secrets must be provided to the container at runtime via environment variables.
+
+**VigiloAuth** requires configuration to run correctly. For security, sensitive information (secrets) are not included in the Docker image or the main YAML configuration file. These secrets must be provided to the container at runtime via environment variables.
 
 Other non-sensitive configuration (like ports, timeouts, password policies) can be provided through the YAML configuration file mounted into the container.
 
 #### 2.1.1 Required Environment Variables (Secrets):
+
 You must provide the following environment variables when running the VigiloAuth container. The application uses these for sensitive operations like sending emails and signing tokens.
 
 - `SMTP_USERNAME`: Username for connecting to the SMTP server. (optional)
@@ -76,6 +78,7 @@ You must provide the following environment variables when running the VigiloAuth
 
 
 #### 2.1.2 How to Provide Environment Variables:
+
 When using docker-compose, the simplest and recommended way to provide these secrets without putting them directly in the docker-compose.yaml file is to create a .env file in the same directory as your docker-compose.yaml file. Docker Compose will automatically read variables from this file.
 
 ```
@@ -117,6 +120,7 @@ docker-compose up
 
 ### 3.1 Configuring The Server
 Here is an example on how to configure the server to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
+
 ```yaml
 log_level: debug
 
@@ -137,6 +141,7 @@ server_config:
 
 ### 3.2 Token Configuration
 Here is an example on how to configure the token requirements to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
+
 ```yaml
 token_config:
   expiration_time: 30 # in minutes
@@ -148,6 +153,7 @@ token_config:
 
 ### 3.3 Login Configuration
 Here is an example on how to configure the login functionality to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
+
 ```yaml
 login_config:
   max_failed_attempts: 10
@@ -158,6 +164,7 @@ login_config:
 
 ### 3.4 Password Configuration
 Here is an example on how to configure the password requirements to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
+
 ```yaml
 password_config:
   require_uppercase: true
@@ -170,23 +177,13 @@ password_config:
 
 ### 3.5 Audit Log Configuration
 Here is an example on how to configure the Audit Log configuration to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
+
 ```yaml
 audit_config:
   retention_period: 90 # in days
 ```
 ---
 
-## 4. When to Use
-The decision to use **VigiloAuth** as a Docker instance depends on your specific needs and the environment in which you are operating. Here's a breakdown of when to use **VigiloAuth** as a docker instance:
-1. **Ease of Deployment:** You want a quick, easy way to deploy the authentication service without worrying about integrating it directly into your application code.
-2. **Isolation:** You want to isolate the authentication service from the rest of your application, either for security, scalability, or management purposes.
-3. **No Dependency on Go Environment:** If your application isn't written in Go or you don't want to set up the Go environment, running VigiloAuth as a Docker container allows you to use the authentication service in a language-agnostic way.
-4. **Simplified Maintenance:** If you need to quickly deploy or scale the authentication service independently of your application, Docker makes it easy to manage, update, or replace the service with minimal impact on your main application.
-5. **Multi-Environment Deployment:** If you are running the service in different environments (e.g., development, staging, production) and want consistency across those environments, Docker can help provide a stable and reproducible configuration.
+## 4. Next Steps
 
-Use the Docker instance if you want a fast, isolated, and easy-to-deploy solution without the need to integrate the code directly into your application.
-
----
-
-## 5. Next Steps
-After setting up **VigiloAuth**, refer to the [Identity API Endpoints documentation](endpoints/identity/README.md) to learn how to interact with the identity server.
+After setting up **VigiloAuth**, refer to the [Identity API Endpoints documentation](../identity/README.md) to learn how to interact with the identity server.

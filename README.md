@@ -1,7 +1,7 @@
 # VigiloAuth
 
-![Docker Release](https://img.shields.io/github/v/release/vigiloauth/vigilo?label=latest%20release)
-![Github Repo Starts](https://img.shields.io/github/stars/vigiloauth/vigilo?style=flat)
+![Latest Version](https://img.shields.io/github/tag/vigiloauth/vigilo?label=latest%20version)
+![Github Repo Stars](https://img.shields.io/github/stars/vigiloauth/vigilo?style=flat)
 
 ## Table of Contents
 - [VigiloAuth](#vigiloauth)
@@ -15,19 +15,25 @@
 	- [4. Contributing](#4-contributing)
 		- [4.1 How to Contribute](#41-how-to-contribute)
 		- [4.2 Commit Standards](#42-commit-standards)
-		- [5.3 Commit Types](#53-commit-types)
+		- [4.3 Commit Types](#43-commit-types)
 	- [5. License](#5-license)
 
+---
+
 ## 1. Introduction
-⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
 
-VigiloAuth is designed to simplify the implementation of OAuth 2.0 and OpenID Connect (OIDC) authentication servers. Whether you need a full-fledged **authentication server**, an **identity server**, or both, Vigilo provides compliant endpoints that you can easily integrate into your application without writing complex authentication code.
+>⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
 
-With VigiloAuth, you can quickly set up secure authentication and identity management solutions for you application, allowing users to authenticate and easily manage their identities. The library comes pre-configured with common authentication flows and identity management endpoints, saving you time and effort while making sure that your system complies with industry standards
+VigiloAuth is designed to simplify the implementation of OAuth 2.0 and OpenID Connect (OIDC) authentication servers. Whether you need a full-fledged **authentication server**, an **identity server**, or both, VigiloAuth provides compliant endpoints that you can easily integrate into your application without writing any complex code.
+
+With VigiloAuth, you can quickly set up secure authentication and identity management solutions for your application, allowing users to authenticate and easily manage their identities. VigiloAuth comes pre-configured with common authentication flows and identity management endpoints, saving you time and effort while making sure that your system complies with industry standards.
 
 Whether you are building a simple app or a complex enterprise system, **VigiloAuth** provides a solid foundation for handling authentication and identity management with minimal effort.
 
+---
+
 ## 2. Features
+
 ### 2.1 Currently Implemented
 - ✅ **User Registration**
 - ✅ **Basic User Authentication**
@@ -48,6 +54,7 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - ✅ **In Memory Storage**
 
 ### 2.2 Planned Features
+
 - 🛠️ **Phone Number Verification**
 - 🛠️ **User Email Verification**
 - 🛠️ **Password Recovery**
@@ -65,45 +72,66 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - 🛠️ **Dynamic Database Configuration**
 - 🛠️ **UI for User Authentication**
 
+---
+
 ### 2.3 Open ID Conformance Tests
-You can find the list of our currently passing conformance tests [here](./oidc_conformance_tests.md).
+
+You can find the list of our currently passing conformance tests [here](https://www.certification.openid.net/plan-detail.html?public=true&plan=ZbxeUWhH8Vldh).
+
+---
 
 ## 3. Documentation
+
 Comprehensive documentation is available in the [User Guide](./docs/user_guide/README.md).
 - [Configuration Guide](./docs/user_guide/configuration/configuration_guide.md)
-- [Identity API Endpoints](./docs/user_guide/identity/README.md)
+- [API Endpoints](./docs/user_guide/identity/README.md)
+
+---
 
 ## 4. Contributing
+
 We welcome contributions to improve VigiloAuth! Follow the steps below to ensure a smooth contribution process.
 
 ### 4.1 How to Contribute
-1. **Fork the Repository:** Create your own fork of the repository on GitHub.
-2. **Clone Your Fork:** Clone your fork locally.
-3. **Create a Branch:** Create a feature or a bug fix branch from master.
-4. **Make Your Changes:** Implement your changes and ensure they align with the project goals.
-5. **Write Tests:** Add or update tests to validate your changes.
-6. **Commit Your Changes:** Use **_Conventional Commits_** for all commit messages (see standards below).
-7. **Push Your Changes:** Push your branch to your forked repository.
-8. **Open a Pull Request (PR):** Submit a PR to the main repository with a clear description of your changes.
+
+1. **Fork the Repository**: Create your own fork on GitHub.
+2. **Clone Your Fork**: Clone it to your local development environment.
+3. **Create a Branch**: Create a new branch from `main` (e.g., `feature/my-feature`).
+4. **Make Your Changes**: Implement your changes in alignment with project goals.
+5. **Write Tests**: Add or update tests to cover your changes.
+6. **Commit Your Changes**: Use **Conventional Commits** (see below).
+7. **Push Your Changes**: Push your branch to your GitHub fork.
+8. **Open a Pull Request**: Submit a PR to the main repository and clearly describe your changes.
+
+_If you're a first-time contributor, check out our [Good First Issues](#)._
 
 ### 4.2 Commit Standards
+
 We follow the **_Conventional Commit_** standards to ensure clear and meaningful commit messages. Use the format:
 ```azure
 <type>[optional scope]: <description>
 [optional body]
 [optional footer(s)]
 ```
-### 5.3 Commit Types
+
+### 4.3 Commit Types
+
 - `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
 - `feat`: Add a new feature that enhances the functionality of the project.
-- `fix`: Apply a bug fix that resolves an issue without affecting functionality. 
-- `docs`: Update documentation, such as fixing typos or adding new information. 
-- `style`: Changes that don’t affect the code’s behavior, like formatting or code style adjustments. 
-- `refactor`: Refactor code without adding features or fixing bugs. 
-- `test`: Add or modify tests. 
+- `fix`: Apply a bug fix that resolves an issue without affecting functionality.
+- `task`: Add or modify internal functionality that supports the codebase but doesn't introduce a new feature or fix a bug (e.g., utility methods, service logic, or internal improvements).
+- `docs`: Update documentation, such as fixing typos or adding new information.
+- `style`: Changes that don’t affect the code’s behavior, like formatting or code style adjustments.
+- `refactor`: Refactor code without adding features or fixing bugs.
+- `test`: Add or modify tests.
 - `chore`: Miscellaneous changes like updates to build tools or dependencies.
 
+For more information about contributing, please read our [contribution guide](./docs/contributing/README.md)
+
+---
+
 ## 5. License
+
 Copyright 2024 Olivier Pimparé-Charbonneau, Zachary Sexton
 
 Licensed under the Apache License, Version 2.0 (the "License");

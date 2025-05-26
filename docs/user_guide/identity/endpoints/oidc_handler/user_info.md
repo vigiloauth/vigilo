@@ -2,8 +2,8 @@
 
 ## Endpoint
 ```http
-GET /oauth2/userinfo
-POST /oauth2/userinfo
+GET /identity/oauth2/userinfo
+POST /identity/oauth2/userinfo
 ```
 
 **Description:**
@@ -49,7 +49,7 @@ When using the `POST` method with `Content-Type: application/x-www-form-urlencod
 
 ### Example GET Request (Recommended)
 ```http
-GET /oauth2/userinfo HTTP/1.1
+GET /identity/oauth2/userinfo HTTP/1.1
 Host: your.auth.server.com
 Authorization: Bearer Gp7b5hiURKpWzEXgMJP38En
 Accept: application/json
@@ -57,7 +57,7 @@ Accept: application/json
 
 ### Example POST Request (Token in Body)
 ```http
-POST /oauth2/userinfo HTTP/1.1
+POST /identity/oauth2/userinfo HTTP/1.1
 Host: your.auth.server.com
 Content-Type: application/x-www-form-urlencoded
 Content-Length: 30 // Example length
@@ -67,7 +67,7 @@ access_token=Gp7b5hiURKpWzEXgMJP38En
 
 ### Example POST Request (Token in Header)
 ```http
-POST /oauth2/userinfo HTTP/1.1
+POST /identity/oauth2/userinfo HTTP/1.1
 Host: your.auth.server.com
 Authorization: Bearer Gp7b5hiURKpWzEXgMJP38En
 Accept: application/json

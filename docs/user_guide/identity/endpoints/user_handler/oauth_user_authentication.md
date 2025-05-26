@@ -2,12 +2,12 @@
 
 ## Endpoint
 ```http
-POST /oauth2/authenticate
+POST /identity/oauth2/authenticate
 ```
 
 ---
 
-**Description:**  
+**Description:**
 This endpoint handles user authentication for the OAuth authorization code flow. It validates user credentials and preserves the original OAuth request context, redirecting the user to the consent or authorization endpoint upon successful authentication.
 
 ---
@@ -49,7 +49,7 @@ This endpoint handles user authentication for the OAuth authorization code flow.
 
 ## Example Request
 ```http
-POST /oauth/login HTTP/1.1
+POST /identity/oauth2/authenticate HTTP/1.1
 Accept: application/json
 
 client_id=abc123
@@ -71,11 +71,14 @@ client_id=abc123
 #### Response Body:
 ```json
 {
-    "username": "johndoe",
-    "email": "john.doe@example.com",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5c...",
-    "oauth_redirect_url": "https://localhost?client_id=abc123&redirect_uri=https://client.example.com/callback&scope=user:manage&state=xyz123",
-    "last_failed_login": "2024-03-15T14:30:22.843541-07:00"
+    "username": "john",
+    "name": "John Mary Doe",
+    "gender": "male",
+    "birthdate": "2000-12-06",
+    "email": "john.doe@mail.com",
+    "phone_number": "+919367788755",
+    "address": "123 Main St\nSpringfield, IL 62704\nUSA",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Im5nV0ZSLThrNnpSSD..."
 }
 ```
 
