@@ -2,6 +2,7 @@ package domain
 
 import (
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
@@ -17,14 +18,14 @@ type DiscoveryJSON struct {
 	JwksURI               string `json:"jwks_uri"`               // The URL for the JSON Web Key Set (JWKS).
 	RegistrationEndpoint  string `json:"registration_endpoint"`  // The endpoint for client registration.
 
-	SupportedClaims                   []string `json:"claims_supported"`                         // List of supported claims.
-	SupportedScopes                   []string `json:"scopes_supported"`                         // List of supported scopes.
-	SupportedResponseTypes            []string `json:"response_types_supported"`                 // List of supported response types.
-	SupportedGrantTypes               []string `json:"grant_types_supported"`                    // List of supported grant types.
-	SupportedSubjectTypes             []string `json:"subject_types_supported"`                  // List of supported subject types (e.g., "public").
-	SupportedIDTokenSigningAlg        []string `json:"id_token_signing_alg_values_supported"`    // List of supported algorithms for ID token signing.
-	SupportedIDTokenEncryptionAlg     []string `json:"id_token_encryption_alg_values_supported"` // List of supported algorithms for ID token encryption.
-	SupportedTokenEndpointAuthMethods []string `json:"token_endpoint_auth_methods_supported"`    // List of supported token endpoint authentication methods.
+	SupportedClaims                   []string      `json:"claims_supported"`                         // List of supported claims.
+	SupportedScopes                   []types.Scope `json:"scopes_supported"`                         // List of supported scopes.
+	SupportedResponseTypes            []string      `json:"response_types_supported"`                 // List of supported response types.
+	SupportedGrantTypes               []string      `json:"grant_types_supported"`                    // List of supported grant types.
+	SupportedSubjectTypes             []string      `json:"subject_types_supported"`                  // List of supported subject types (e.g., "public").
+	SupportedIDTokenSigningAlg        []string      `json:"id_token_signing_alg_values_supported"`    // List of supported algorithms for ID token signing.
+	SupportedIDTokenEncryptionAlg     []string      `json:"id_token_encryption_alg_values_supported"` // List of supported algorithms for ID token encryption.
+	SupportedTokenEndpointAuthMethods []string      `json:"token_endpoint_auth_methods_supported"`    // List of supported token endpoint authentication methods.
 }
 
 // NewDiscoveryJSON creates a new instance of DiscoveryJSON with the provided base URL.
@@ -43,7 +44,7 @@ func NewDiscoveryJSON(baseURL string) *DiscoveryJSON {
 		UserInfoEndpoint:              baseURL + web.OIDCEndpoints.UserInfo,
 		JwksURI:                       baseURL + web.OIDCEndpoints.JWKS,
 		RegistrationEndpoint:          baseURL + web.ClientEndpoints.Register,
-		SupportedScopes:               utils.KeysToSlice(constants.SupportedScopes),
+		SupportedScopes:               utils.KeysToSlice(types.SupportedScopes),
 		SupportedResponseTypes:        utils.KeysToSlice(constants.SupportedResponseTypes),
 		SupportedGrantTypes:           utils.KeysToSlice(constants.SupportedGrantTypes),
 		SupportedClaims:               utils.KeysToSlice(constants.SupportedClaims),

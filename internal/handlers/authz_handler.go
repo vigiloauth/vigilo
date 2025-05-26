@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
-	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authorization"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
@@ -13,7 +13,7 @@ import (
 
 // AuthorizationHandler handles HTTP requests related to authorization.
 type AuthorizationHandler struct {
-	authorizationService authz.AuthorizationService
+	clientAuthorization client.ClientAuthorization
 
 	logger *config.Logger
 	module string
@@ -21,11 +21,11 @@ type AuthorizationHandler struct {
 
 // NewAuthorizationHandler creates a new AuthorizationHandler instance.
 // It initializes the handler with the provided authorization and session services.
-func NewAuthorizationHandler(authorizationService authz.AuthorizationService) *AuthorizationHandler {
+func NewAuthorizationHandler(clientAuthorization client.ClientAuthorization) *AuthorizationHandler {
 	return &AuthorizationHandler{
-		authorizationService: authorizationService,
-		logger:               config.GetServerConfig().Logger(),
-		module:               "Authorization Handler",
+		clientAuthorization: clientAuthorization,
+		logger:              config.GetServerConfig().Logger(),
+		module:              "Authorization Handler",
 	}
 }
 
@@ -44,24 +44,28 @@ func NewAuthorizationHandler(authorizationService authz.AuthorizationService) *A
 func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	requestID := utils.GetRequestID(ctx)
-
-	query := r.URL.Query()
 	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request")
 
-	if errorURL := web.ValidateClientAuthorizationParameters(query); errorURL != "" {
-		h.logger.Error(h.module, requestID, "[AuthorizeClient]: Invalid parameters in the request: %s", utils.SanitizeURL(errorURL))
-		http.Redirect(w, r, errorURL, http.StatusFound)
-		return
+	var query url.Values
+	if r.Method == http.MethodGet {
+		query = r.URL.Query()
+	} else if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			h.logger.Error(h.module, requestID, "[AuthorizeClient]: Failed to parse form: %v", err)
+			web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "invalid form data"))
+			return
+		}
+		query = r.Form
 	}
 
 	req := client.NewClientAuthorizationRequest(query)
 	req.HTTPWriter = w
 	req.HTTPRequest = r
 
-	redirectURL, err := h.authorizationService.AuthorizeClient(ctx, req)
+	redirectURL, err := h.clientAuthorization.Authorize(ctx, req)
 	if err != nil {
-		if errors.Code(err) == errors.ErrCodeInvalidRedirectURI {
-			web.RenderErrorPage(w, r, errors.Code(err), req.RedirectURI)
+		if errors.ErrorCode(err) == errors.ErrCodeInvalidRedirectURI {
+			web.RenderErrorPage(w, r, errors.ErrorCode(err), req.RedirectURI)
 			return
 		}
 

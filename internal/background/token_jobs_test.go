@@ -14,7 +14,7 @@ func TestTokenJobs_DeleteExpiredTokens(t *testing.T) {
 	var mu sync.Mutex
 	deleteCalls := 0
 
-	tokenService := &mocks.MockTokenService{
+	tokenService := &mocks.MockTokenManager{
 		DeleteExpiredTokensFunc: func(ctx context.Context) error {
 			mu.Lock()
 			defer mu.Unlock()

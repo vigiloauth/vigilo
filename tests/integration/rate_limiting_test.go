@@ -28,7 +28,7 @@ func TestRateLimiting(t *testing.T) {
 	testContext.WithCustomConfig(config.WithMaxRequestsPerMinute(requestsPerMinute))
 
 	for range requestsPerMinute {
-		testContext.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		testContext.WithUser([]string{constants.AdminRole})
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
 			web.UserEndpoints.Login,

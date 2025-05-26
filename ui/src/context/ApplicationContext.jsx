@@ -16,6 +16,8 @@ export const ApplicationContextProvider = ({ children }) => {
     responseType: queryParams.get(URL_PARAMS.RESPONSE_TYPE) || "",
     nonce: queryParams.get(URL_PARAMS.NONCE) || "",
     display: queryParams.get(URL_PARAMS.DISPLAY) || "",
+    acrValues: queryParams.get(URL_PARAMS.ACR) || "",
+    claims: queryParams.get(URL_PARAMS.CLAIMS) || "",
   });
 
   const [clientInfo, setClientInfo] = useState(null);

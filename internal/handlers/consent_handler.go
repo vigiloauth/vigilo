@@ -10,16 +10,15 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
-	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
 // UserHandler handles HTTP requests related to OAuth operations.
 type ConsentHandler struct {
-	userService    users.UserService
 	sessionService session.SessionService
 	consentService consent.UserConsentService
 	jwtConfig      *config.TokenConfig
@@ -39,12 +38,12 @@ type ConsentHandler struct {
 // Returns:
 // *UserHandler: A new UserHandler instance.
 func NewConsentHandler(
-	userService users.UserService,
+
 	sessionService session.SessionService,
 	consentService consent.UserConsentService,
 ) *ConsentHandler {
 	return &ConsentHandler{
-		userService:    userService,
+
 		sessionService: sessionService,
 		consentService: consentService,
 		jwtConfig:      config.GetServerConfig().TokenConfig(),
@@ -64,11 +63,13 @@ func (h *ConsentHandler) HandleUserConsent(w http.ResponseWriter, r *http.Reques
 	query := r.URL.Query()
 	clientID := query.Get(constants.ClientIDReqField)
 	redirectURI := query.Get(constants.RedirectURIReqField)
-	scope := query.Get(constants.ScopeReqField)
+	scope := types.Scope(query.Get(constants.ScopeReqField))
 	responseType := query.Get(constants.ResponseTypeReqField)
 	state := query.Get(constants.StateReqField)
 	nonce := query.Get(constants.NonceReqField)
 	display := query.Get(constants.DisplayReqField)
+	acrValues := query.Get(constants.ACRReqField)
+	claims := query.Get(constants.ClaimsReqField)
 
 	if clientID == "" || redirectURI == "" || scope == "" {
 		web.WriteError(w, errors.New(errors.ErrCodeBadRequest, "missing required parameters"))
@@ -79,7 +80,7 @@ func (h *ConsentHandler) HandleUserConsent(w http.ResponseWriter, r *http.Reques
 	userID, err := h.sessionService.GetUserIDFromSession(r)
 	if err != nil {
 		h.logger.Error(h.module, requestID, "[UserConsent]: Failed to retrieve user ID from session: %v", err)
-		oauthLoginURL := h.buildLoginURL(clientID, redirectURI, scope, responseType, state, nonce, display)
+		oauthLoginURL := h.buildLoginURL(clientID, redirectURI, scope.String(), responseType, state, nonce, display)
 		http.Redirect(w, r, oauthLoginURL, http.StatusFound)
 		return
 	}
@@ -88,14 +89,25 @@ func (h *ConsentHandler) HandleUserConsent(w http.ResponseWriter, r *http.Reques
 	case http.MethodGet:
 		h.handleGetConsent(w, r, userID, clientID, redirectURI, scope, responseType, state, nonce, display)
 	case http.MethodPost:
-		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope, responseType, state, nonce, display)
+		h.handlePostConsent(w, r, userID, clientID, redirectURI, scope, responseType, state, nonce, display, acrValues, claims)
 	default:
 		web.WriteError(w, errors.NewMethodNotAllowedError(r.Method))
 	}
 }
 
 // handleGetConsent handles GET requests for user consent
-func (h *ConsentHandler) handleGetConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope, responseType, state, nonce, display string) {
+func (h *ConsentHandler) handleGetConsent(
+	w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+	clientID string,
+	redirectURI string,
+	scope types.Scope,
+	responseType string,
+	state string,
+	nonce string,
+	display string,
+) {
 	response, err := h.consentService.GetConsentDetails(userID, clientID, redirectURI, state, scope, responseType, nonce, display, r)
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to retrieve user consent details")
@@ -107,7 +119,19 @@ func (h *ConsentHandler) handleGetConsent(w http.ResponseWriter, r *http.Request
 }
 
 // handlePostConsent handles POST requests for user consent
-func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter, r *http.Request, userID, clientID, redirectURI, scope, responseType, state, nonce, display string) {
+func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter,
+	r *http.Request,
+	userID string,
+	clientID string,
+	redirectURI string,
+	scope types.Scope,
+	responseType string,
+	state string,
+	nonce string,
+	display string,
+	acrValues string,
+	claims string,
+) {
 	consentRequest, err := web.DecodeJSONRequest[consent.UserConsentRequest](w, r)
 	if err != nil {
 		web.WriteError(w, errors.NewRequestBodyDecodingError(err))
@@ -120,18 +144,45 @@ func (h *ConsentHandler) handlePostConsent(w http.ResponseWriter, r *http.Reques
 	consentRequest.Nonce = nonce
 	consentRequest.Display = display
 
-	response, err := h.consentService.ProcessUserConsent(userID, clientID, redirectURI, scope, consentRequest, r)
+	response, err := h.consentService.ProcessUserConsent(
+		userID,
+		clientID,
+		redirectURI,
+		scope,
+		consentRequest,
+		r,
+	)
+
 	if err != nil {
 		wrappedErr := errors.Wrap(err, "", "failed to process user consent")
 		web.WriteError(w, wrappedErr)
 		return
 	}
 
-	response.RedirectURI = h.buildOAuthRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, display, response.Approved)
+	response.RedirectURI = h.buildOAuthRedirectURL(
+		clientID,
+		redirectURI,
+		scope.String(),
+		responseType,
+		state,
+		nonce,
+		display,
+		acrValues,
+		claims,
+		response.Approved,
+	)
 	web.WriteJSON(w, http.StatusOK, response)
 }
 
-func (h *ConsentHandler) buildLoginURL(clientID, redirectURI, scope, responseType, state, nonce, display string) string {
+func (h *ConsentHandler) buildLoginURL(
+	clientID string,
+	redirectURI string,
+	scope string,
+	responseType string,
+	state string,
+	nonce string,
+	display string,
+) string {
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, clientID)
 	queryParams.Add(constants.RedirectURIReqField, redirectURI)
@@ -154,7 +205,18 @@ func (h *ConsentHandler) buildLoginURL(clientID, redirectURI, scope, responseTyp
 	return "/authenticate?" + queryParams.Encode()
 }
 
-func (h *ConsentHandler) buildOAuthRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, display string, approved bool) string {
+func (h *ConsentHandler) buildOAuthRedirectURL(
+	clientID string,
+	redirectURI string,
+	scope string,
+	responseType string,
+	state string,
+	nonce string,
+	display string,
+	acrValues string,
+	claims string,
+	approved bool,
+) string {
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, clientID)
 	queryParams.Add(constants.RedirectURIReqField, redirectURI)
@@ -174,6 +236,12 @@ func (h *ConsentHandler) buildOAuthRedirectURL(clientID, redirectURI, scope, res
 	}
 	if display != "" {
 		queryParams.Add(constants.DisplayReqField, display)
+	}
+	if acrValues != "" {
+		queryParams.Add(constants.ACRReqField, acrValues)
+	}
+	if claims != "" {
+		queryParams.Add(constants.ClaimsReqField, claims)
 	}
 
 	return "/identity" + web.OAuthEndpoints.Authorize + "?" + queryParams.Encode()

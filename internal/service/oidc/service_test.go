@@ -3,15 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/authorization"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 func TestOIDCService_GetUserInfo(t *testing.T) {
@@ -22,29 +21,29 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 		}{
 			{
 				name:   "Test with all requested scopes",
-				scopes: fmt.Sprintf("%s %s %s %s %s %s", constants.OpenIDScope, constants.UserProfileScope, constants.UserEmailScope, constants.UserPhoneScope, constants.UserAddressScope, constants.UserOfflineAccessScope),
+				scopes: fmt.Sprintf("%s %s %s %s %s %s", types.OpenIDScope, types.UserProfileScope, types.UserEmailScope, types.UserPhoneScope, types.UserAddressScope, types.UserOfflineAccessScope),
 			},
 			{
 				name:   "Test with profile scope only",
-				scopes: fmt.Sprintf("%s %s", constants.OpenIDScope, constants.UserProfileScope),
+				scopes: fmt.Sprintf("%s %s", types.OpenIDScope, types.UserProfileScope),
 			},
 			{
 				name:   "Test with email scope only",
-				scopes: fmt.Sprintf("%s %s", constants.OpenIDScope, constants.UserEmailScope),
+				scopes: fmt.Sprintf("%s %s", types.OpenIDScope, types.UserEmailScope),
 			},
 			{
 				name:   "Test with phone scope only",
-				scopes: fmt.Sprintf("%s %s", constants.OpenIDScope, constants.UserPhoneScope),
+				scopes: fmt.Sprintf("%s %s", types.OpenIDScope, types.UserPhoneScope),
 			},
 			{
 				name:   "Test with address scope only",
-				scopes: fmt.Sprintf("%s %s", constants.OpenIDScope, constants.UserAddressScope),
+				scopes: fmt.Sprintf("%s %s", types.OpenIDScope, types.UserAddressScope),
 			},
 		}
 
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				expectedUser := getUser(test.scopes)
+				expectedUser := getUser()
 				authzService := &mocks.MockAuthorizationService{
 					AuthorizeUserInfoRequestFunc: func(ctx context.Context, accessTokenClaims *token.TokenClaims) (*user.User, error) {
 						return expectedUser, nil
@@ -53,7 +52,7 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 
 				service := NewOIDCService(authzService)
 				accessTokenClaims := &token.TokenClaims{
-					Scopes: test.scopes,
+					Scopes: types.CombineScopes(types.Scope(test.scopes)),
 				}
 
 				userInfoResponse, err := service.GetUserInfo(context.Background(), accessTokenClaims)
@@ -61,8 +60,6 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 				assert.NoError(t, err, "Expected no error when retrieving user info")
 				assert.NotNil(t, userInfoResponse, "Expected user info response to be non-nil")
 
-				expectedScopes := strings.Split(test.scopes, " ")
-				assert.Equal(t, expectedUser.Scopes, expectedScopes, "Expected scopes in user info response to match requested scopes")
 				assert.Equal(t, expectedUser.ID, userInfoResponse.Sub, "Expected user ID in response to match expected user ID")
 			})
 		}
@@ -85,7 +82,7 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 	})
 }
 
-func getUser(scopes string) *user.User {
+func getUser() *user.User {
 	return &user.User{
 		ID:                "12345",
 		PreferredUsername: "john.doe",
@@ -106,7 +103,6 @@ func getUser(scopes string) *user.User {
 			Country:       "Countryland",
 		},
 		UpdatedAt:           time.Now(),
-		Scopes:              strings.Split(scopes, " "),
 		EmailVerified:       true,
 		PhoneNumberVerified: true,
 		AccountLocked:       false,

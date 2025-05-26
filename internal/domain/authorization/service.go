@@ -4,26 +4,12 @@ import (
 	"context"
 
 	authz "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
-	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 )
 
 // AuthorizationService defines the interface for handling client authorization requests.
 type AuthorizationService interface {
-	// AuthorizeClient handles the authorization logic for a client request.
-	//
-	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- authorizationRequest *ClientAuthorizationRequest: The client authorization request.
-	//
-	// Returns:
-	//   - string: The redirect URL, or an empty string if authorization failed.
-	//   - error: An error message, if any.
-	//
-	// Errors:
-	//	- Returns an error message if the user is not authenticated, consent is denied, or authorization code generation fails.
-	AuthorizeClient(ctx context.Context, authorizationRequest *client.ClientAuthorizationRequest) (string, error)
 
 	// AuthorizeTokenExchange validates the token exchange request for an OAuth 2.0 authorization code grant.
 	//
@@ -35,17 +21,6 @@ type AuthorizationService interface {
 	//	- *AuthorizationCodeData: The authorization code data if authorization is successful.
 	//	- error: An error if the token exchange request is invalid or fails authorization checks.
 	AuthorizeTokenExchange(ctx context.Context, tokenRequest *token.TokenRequest) (*authz.AuthorizationCodeData, error)
-
-	// GenerateTokens creates access and refresh tokens based on a validated token exchange request.
-	//
-	// Parameters:
-	//	- ctx Context: The context for managing timeouts and cancellations.
-	//	- authCodeData *authz.AuthorizationCodeData: The authorization code data.
-	//
-	// Returns:
-	//	- *token.TokenResponse: A fully formed token response with access and refresh tokens.
-	//	- error: An error if token generation fails.
-	GenerateTokens(ctx context.Context, authCodeData *authz.AuthorizationCodeData) (*token.TokenResponse, error)
 
 	// AuthorizeUserInfoRequest validates whether the provided access token claims grant sufficient
 	// permission to access the /userinfo endpoint.
@@ -62,4 +37,14 @@ type AuthorizationService interface {
 	//	- *User: The retrieved user if authorization succeeds, otherwise nil.
 	//	- error: An error if authorization fails, otherwise nil.
 	AuthorizeUserInfoRequest(ctx context.Context, claims *token.TokenClaims) (*users.User, error)
+
+	// UpdateAuthorizationCode updates the authorization code data in the database.
+	//
+	// Parameters:
+	//	- ctx context.Context: The context for managing timeouts and cancellations.
+	//	- authData *AuthorizationCodeData: The authorization code data to update.
+	//
+	// Returns:
+	//	- error: An error if the update fails, otherwise nil.
+	UpdateAuthorizationCode(ctx context.Context, authData *authz.AuthorizationCodeData) error
 }

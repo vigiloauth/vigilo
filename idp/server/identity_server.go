@@ -29,7 +29,7 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 		chi.NewRouter(), logger,
 		config.GetServerConfig().ForceHTTPS(),
 		config.GetServerConfig().EnableRequestLogging(),
-		container.ServerConfigRegistry().Middleware(),
+		container.ServiceRegistry().Middleware(),
 		container.HandlerRegistry(),
 	).Init()
 

@@ -27,8 +27,17 @@ const AuthenticationForm = ({ policyURI }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { clientID, redirectURI, state, scope, responseType, nonce, display } =
-    useApplicationContext();
+  const {
+    clientID,
+    redirectURI,
+    state,
+    scope,
+    responseType,
+    nonce,
+    display,
+    acrValues,
+    claims,
+  } = useApplicationContext();
 
   const onFinish = async () => {
     setLoading(true);
@@ -42,7 +51,9 @@ const AuthenticationForm = ({ policyURI }) => {
         scope,
         responseType,
         nonce,
+        acrValues,
         display,
+        claims,
       });
 
       console.log(data.oauth_redirect_url);

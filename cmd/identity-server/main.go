@@ -35,9 +35,6 @@ func main() {
 			if cfg.Port != nil {
 				port = fmt.Sprintf(":%s", *cfg.Port)
 			}
-			if cfg.ServerConfig.BaseURL != nil {
-				baseURL = *cfg.ServerConfig.BaseURL
-			}
 			if cfg.ServerConfig.ForceHTTPS != nil {
 				forceHTTPs = *cfg.ServerConfig.ForceHTTPS
 			}

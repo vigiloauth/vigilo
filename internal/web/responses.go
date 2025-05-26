@@ -33,7 +33,7 @@ func WriteError(w http.ResponseWriter, err error) {
 		}
 		WriteJSON(w, http.StatusBadRequest, err)
 	} else {
-		WriteJSON(w, errors.HTTPStatusCodeMap[errors.Code(err)], err)
+		WriteJSON(w, errors.HTTPStatusCodeMap[errors.ErrorCode(err)], err)
 	}
 }
 
@@ -55,7 +55,19 @@ func BuildErrorURL(errCode, errDescription, state, redirectURI string) string {
 	return redirectURI + "?" + params.Encode()
 }
 
-func BuildRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, prompt, display, endpoint string) string {
+func BuildRedirectURL(
+	clientID string,
+	redirectURI string,
+	scope string,
+	responseType string,
+	state string,
+	nonce string,
+	prompt string,
+	display string,
+	acrValues string,
+	claims string,
+	endpoint string,
+) string {
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, clientID)
 	queryParams.Add(constants.RedirectURIReqField, redirectURI)
@@ -70,6 +82,12 @@ func BuildRedirectURL(clientID, redirectURI, scope, responseType, state, nonce, 
 	}
 	if prompt != "" {
 		queryParams.Add(constants.PromptReqField, prompt)
+	}
+	if acrValues != "" {
+		queryParams.Add(constants.ACRReqField, acrValues)
+	}
+	if claims != "" {
+		queryParams.Add(constants.ClaimsReqField, claims)
 	}
 
 	if display != "" && constants.ValidAuthenticationDisplays[display] {

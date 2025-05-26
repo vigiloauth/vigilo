@@ -9,9 +9,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
@@ -22,8 +22,8 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		testContext.WithUserSession()
 		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
+			types.ConfidentialClient,
+			[]types.Scope{types.OpenIDScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -46,8 +46,8 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		testContext.WithUserSession()
 		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope, constants.UserManageScope},
+			types.ConfidentialClient,
+			[]types.Scope{types.OpenIDScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 
@@ -62,7 +62,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		userConsentRequest := &consent.UserConsentRequest{
 			Approved: true,
-			Scopes:   []string{constants.ClientManageScope, constants.UserManageScope},
+			Scopes:   []types.Scope{types.OpenIDScope},
 		}
 
 		requestBody, err := json.Marshal(userConsentRequest)
@@ -99,8 +99,8 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 				testContext.WithUserSession()
 				testContext.WithClient(
-					client.Confidential,
-					[]string{constants.ClientManageScope, constants.UserManageScope},
+					types.ConfidentialClient,
+					[]types.Scope{types.OpenIDScope},
 					[]string{constants.AuthorizationCodeGrantType},
 				)
 
@@ -117,8 +117,8 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 
 		testContext.WithUserSession()
 		testContext.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope},
+			types.ConfidentialClient,
+			[]types.Scope{types.OpenIDScope},
 			[]string{constants.AuthorizationCodeGrantType},
 		)
 

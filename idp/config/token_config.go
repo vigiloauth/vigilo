@@ -9,7 +9,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 // TokenConfig holds the configuration for JWT token generation and validation.
@@ -209,7 +209,7 @@ func defaultTokenConfig() *TokenConfig {
 	return &TokenConfig{
 		privateKey:           privateKeyParsed,
 		publicKey:            publicKeyParsed,
-		keyID:                crypto.GenerateJWKKeyID(publicKeyBase64),
+		keyID:                utils.GenerateJWKKeyID(publicKeyBase64),
 		expirationTime:       defaultExpirationTime,
 		accessTokenDuration:  defaultAccessTokenDuration,
 		refreshTokenDuration: defaultRefreshTokenDuration,

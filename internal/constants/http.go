@@ -45,4 +45,8 @@ const (
 	DisplayReqField             string = "display"               // Field for the display query
 	PromptReqField              string = "prompt"
 	MaxAgeReqField              string = "max_age"
+	ACRReqField                 string = "acr_values"
+	ClaimsReqField              string = "claims"
+	RequestURIReqField          string = "request_uri"
+	RequestObjectReqField       string = "request"
 )

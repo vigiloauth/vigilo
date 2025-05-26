@@ -26,7 +26,7 @@ var (
 )
 
 const (
-	maxRetries int = 5
+	maxRetries int = 2
 )
 
 type emailService struct {

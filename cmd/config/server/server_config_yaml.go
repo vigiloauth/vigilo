@@ -11,7 +11,6 @@ type ServerConfigYAML struct {
 	CertFilePath         *string `yaml:"cert_file_path,omitempty"`
 	KeyFilePath          *string `yaml:"key_file_path,omitempty"`
 	SessionCookieName    *string `yaml:"session_cookie_name,omitempty"`
-	BaseURL              *string `yaml:"base_url,omitempty"`
 	ForceHTTPS           *bool   `yaml:"force_https,omitempty"`
 	Domain               *string `yaml:"domain,omitempty"`
 	EnableRequestLogging *bool   `yaml:"enable_request_logging,omitempty"`
@@ -35,9 +34,6 @@ func (sc *ServerConfigYAML) ToOptions() []config.ServerConfigOptions {
 	}
 	if sc.SessionCookieName != nil {
 		options = append(options, config.WithSessionCookieName(*sc.SessionCookieName))
-	}
-	if sc.BaseURL != nil {
-		options = append(options, config.WithBaseURL(*sc.BaseURL))
 	}
 	if sc.ForceHTTPS != nil {
 		options = append(options, config.WithForceHTTPS())

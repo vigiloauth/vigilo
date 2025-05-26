@@ -63,6 +63,13 @@ func (u *InMemoryUserRepository) AddUser(ctx context.Context, user *user.User) e
 		return err
 	}
 
+	u.mu.RLock()
+	if existingUser, _ := u.GetUserByEmail(ctx, user.Email); existingUser != nil {
+		u.mu.RUnlock()
+		return errors.New(errors.ErrCodeDuplicateUser, "user already exists with the provided email")
+	}
+	u.mu.RUnlock()
+
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
@@ -102,7 +109,7 @@ func (u *InMemoryUserRepository) GetUserByUsername(ctx context.Context, username
 	}
 
 	logger.Debug(module, requestID, "[GetUserByUsername]: User not found with the given username=[%s]", username)
-	return nil, nil
+	return nil, errors.New(errors.ErrCodeUserNotFound, "user not found by username")
 }
 
 // GetUserByID retrieves a user from the store using their ID.
@@ -204,7 +211,7 @@ func (u *InMemoryUserRepository) UpdateUser(ctx context.Context, user *user.User
 		)
 	}
 
-	u.users[user.Email] = user
+	u.users[user.ID] = user
 	return nil
 }
 

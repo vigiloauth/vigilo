@@ -132,6 +132,6 @@ func defaultSMTPConfig() *SMTPConfig {
 		module:      "SMTP Config",
 		username:    username,
 		password:    password,
-		isHealthy:   true,
+		isHealthy:   false,
 	}
 }

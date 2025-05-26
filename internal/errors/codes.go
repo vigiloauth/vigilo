@@ -41,24 +41,27 @@ const (
 	ErrCodeTokenParsing    string = "token_parsing"
 	ErrCodeTokenEncryption string = "token_encrypt_failed"
 	ErrCodeTokenDecryption string = "token_decrypt_failed"
+	ErrCodeDuplicateToken  string = "duplicate_token"
 
 	// Email errors
 	ErrCodeConnectionFailed    string = "connection_failed"
 	ErrCodeEmailDeliveryFailed string = "delivery_failed"
 
 	// Client errors
-	ErrCodeInvalidClient          string = "invalid_client"
-	ErrCodeInvalidGrant           string = "invalid_grant"
-	ErrCodeInvalidRedirectURI     string = "invalid_redirect_uri"
-	ErrCodeInsufficientScope      string = "insufficient_scope"
-	ErrCodeClientSecretNotAllowed string = "client_secret_not_allowed"
-	ErrCodeClientNotFound         string = "client_not_found"
-	ErrCodeDuplicateClient        string = "duplicate_client"
-	ErrCodeInvalidResponseType    string = "invalid_response_type"
-	ErrCodeUnauthorizedClient     string = "unauthorized_client"
-	ErrCodeUnsupportedGrantType   string = "unsupported_grant_type"
-	ErrCodeAccessDenied           string = "access_denied"
-	ErrCodeInvalidClientMetadata  string = "invalid_client_metadata"
+	ErrCodeInvalidClient             string = "invalid_client"
+	ErrCodeInvalidGrant              string = "invalid_grant"
+	ErrCodeInvalidRedirectURI        string = "invalid_redirect_uri"
+	ErrCodeInsufficientScope         string = "insufficient_scope"
+	ErrCodeClientSecretNotAllowed    string = "client_secret_not_allowed"
+	ErrCodeClientNotFound            string = "client_not_found"
+	ErrCodeDuplicateClient           string = "duplicate_client"
+	ErrCodeInvalidResponseType       string = "invalid_response_type"
+	ErrCodeUnauthorizedClient        string = "unauthorized_client"
+	ErrCodeUnsupportedGrantType      string = "unsupported_grant_type"
+	ErrCodeAccessDenied              string = "access_denied"
+	ErrCodeInvalidClientMetadata     string = "invalid_client_metadata"
+	ErrCodeRequestURINotSupported    string = "request_uri_not_supported"
+	ErrCodeRequestObjectNotSupported string = "request_not_supported"
 
 	// Session errors
 	ErrCodeDuplicateSession string = "duplicate_session"
@@ -82,34 +85,42 @@ const (
 	ErrCodeInvalidAuthorizationCode  string = "invalid_authorization_code"
 	ErrCodeExpiredAuthorizationCode  string = "expired_authorization_code"
 	ErrCodeAuthorizationCodeNotFound string = "code_not_found"
+
+	// Encryption Errors
+	ErrCodeHashingFailed          string = "hashing_failed"
+	ErrCodeRandomGenerationFailed string = "random_generation_failed"
+	ErrCodeEncryptionFailed       string = "encryption_failed"
+	ErrCodeDecryptionFailed       string = "decryption_failed"
 )
 
 // HTTP status code mappings
 var HTTPStatusCodeMap = map[string]int{
 	// 400 Bad Request
-	ErrCodeEmptyInput:             http.StatusBadRequest,
-	ErrCodeMissingNumber:          http.StatusBadRequest,
-	ErrCodeMissingSymbol:          http.StatusBadRequest,
-	ErrCodeMissingUppercase:       http.StatusBadRequest,
-	ErrCodeInvalidPasswordFormat:  http.StatusBadRequest,
-	ErrCodePasswordLength:         http.StatusBadRequest,
-	ErrCodeInvalidEmail:           http.StatusBadRequest,
-	ErrCodeValidationError:        http.StatusBadRequest,
-	ErrCodeMissingHeader:          http.StatusBadRequest,
-	ErrCodeUnauthorizedClient:     http.StatusBadRequest,
-	ErrCodeClientSecretNotAllowed: http.StatusBadRequest,
-	ErrCodeInvalidResponseType:    http.StatusBadRequest,
-	ErrCodeInvalidContentType:     http.StatusBadRequest,
-	ErrCodeUnsupportedGrantType:   http.StatusBadRequest,
-	ErrCodeInvalidRequest:         http.StatusBadRequest,
-	ErrCodeBadRequest:             http.StatusBadRequest,
-	ErrCodeInvalidClientMetadata:  http.StatusBadRequest,
-	ErrCodeInvalidGrant:           http.StatusBadRequest,
-	ErrCodeInvalidInput:           http.StatusBadRequest,
-	ErrCodeInvalidDate:            http.StatusBadRequest,
-	ErrCodeInteractionRequired:    http.StatusBadRequest,
-	ErrCodeLoginRequired:          http.StatusBadRequest,
-	ErrCodeInvalidRedirectURI:     http.StatusBadRequest,
+	ErrCodeEmptyInput:                http.StatusBadRequest,
+	ErrCodeMissingNumber:             http.StatusBadRequest,
+	ErrCodeMissingSymbol:             http.StatusBadRequest,
+	ErrCodeMissingUppercase:          http.StatusBadRequest,
+	ErrCodeInvalidPasswordFormat:     http.StatusBadRequest,
+	ErrCodePasswordLength:            http.StatusBadRequest,
+	ErrCodeInvalidEmail:              http.StatusBadRequest,
+	ErrCodeValidationError:           http.StatusBadRequest,
+	ErrCodeMissingHeader:             http.StatusBadRequest,
+	ErrCodeUnauthorizedClient:        http.StatusBadRequest,
+	ErrCodeClientSecretNotAllowed:    http.StatusBadRequest,
+	ErrCodeInvalidResponseType:       http.StatusBadRequest,
+	ErrCodeInvalidContentType:        http.StatusBadRequest,
+	ErrCodeUnsupportedGrantType:      http.StatusBadRequest,
+	ErrCodeInvalidRequest:            http.StatusBadRequest,
+	ErrCodeBadRequest:                http.StatusBadRequest,
+	ErrCodeInvalidClientMetadata:     http.StatusBadRequest,
+	ErrCodeInvalidGrant:              http.StatusBadRequest,
+	ErrCodeInvalidInput:              http.StatusBadRequest,
+	ErrCodeInvalidDate:               http.StatusBadRequest,
+	ErrCodeInteractionRequired:       http.StatusBadRequest,
+	ErrCodeLoginRequired:             http.StatusBadRequest,
+	ErrCodeInvalidRedirectURI:        http.StatusBadRequest,
+	ErrCodeRequestURINotSupported:    http.StatusBadRequest,
+	ErrCodeRequestObjectNotSupported: http.StatusBadRequest,
 
 	// 401 Unauthorized
 	ErrCodeInvalidCredentials:       http.StatusUnauthorized,
@@ -154,13 +165,18 @@ var HTTPStatusCodeMap = map[string]int{
 	ErrCodeRequestCancelled: http.StatusRequestTimeout,
 
 	// 500 Internal Server Error
-	ErrCodeInternalServerError: http.StatusInternalServerError,
-	ErrCodeTokenCreation:       http.StatusInternalServerError,
-	ErrCodeEmailDeliveryFailed: http.StatusInternalServerError,
-	ErrCodeSessionCreation:     http.StatusInternalServerError,
-	ErrCodeSessionSave:         http.StatusInternalServerError,
-	ErrCodeTokenEncryption:     http.StatusInternalServerError,
-	ErrCodeTokenDecryption:     http.StatusInternalServerError,
+	ErrCodeInternalServerError:    http.StatusInternalServerError,
+	ErrCodeTokenCreation:          http.StatusInternalServerError,
+	ErrCodeEmailDeliveryFailed:    http.StatusInternalServerError,
+	ErrCodeSessionCreation:        http.StatusInternalServerError,
+	ErrCodeSessionSave:            http.StatusInternalServerError,
+	ErrCodeTokenEncryption:        http.StatusInternalServerError,
+	ErrCodeTokenDecryption:        http.StatusInternalServerError,
+	ErrCodeDuplicateToken:         http.StatusInternalServerError,
+	ErrCodeHashingFailed:          http.StatusInternalServerError,
+	ErrCodeRandomGenerationFailed: http.StatusInternalServerError,
+	ErrCodeEncryptionFailed:       http.StatusInternalServerError,
+	ErrCodeDecryptionFailed:       http.StatusInternalServerError,
 
 	// 502 Bad Gateway
 	ErrCodeConnectionFailed: http.StatusBadGateway,
@@ -183,6 +199,7 @@ const (
 	middlewareError string = "MDW"
 	systemError     string = "SYS"
 	authzCodeError  string = "AUTH"
+	cryptoError     string = "CRY"
 )
 
 var SystemErrorCodeMap = map[string]string{
@@ -223,24 +240,27 @@ var SystemErrorCodeMap = map[string]string{
 	ErrCodeTokenParsing:    prefix + tokenError + "0005",
 	ErrCodeTokenEncryption: prefix + tokenError + "0006",
 	ErrCodeTokenDecryption: prefix + tokenError + "0007",
+	ErrCodeDuplicateToken:  prefix + tokenError + "0008",
 
 	// Email Errors
 	ErrCodeConnectionFailed:    prefix + emailError + "0001",
 	ErrCodeEmailDeliveryFailed: prefix + emailError + "0002",
 
 	// Client Errors
-	ErrCodeInvalidClient:          prefix + clientError + "0001",
-	ErrCodeInvalidGrant:           prefix + clientError + "0002",
-	ErrCodeInvalidRedirectURI:     prefix + clientError + "0003",
-	ErrCodeInsufficientScope:      prefix + clientError + "0004",
-	ErrCodeClientSecretNotAllowed: prefix + clientError + "0005",
-	ErrCodeClientNotFound:         prefix + clientError + "0006",
-	ErrCodeDuplicateClient:        prefix + clientError + "0007",
-	ErrCodeInvalidResponseType:    prefix + clientError + "0008",
-	ErrCodeUnauthorizedClient:     prefix + clientError + "0009",
-	ErrCodeUnsupportedGrantType:   prefix + clientError + "0010",
-	ErrCodeAccessDenied:           prefix + clientError + "0011",
-	ErrCodeInvalidClientMetadata:  prefix + clientError + "0012",
+	ErrCodeInvalidClient:             prefix + clientError + "0001",
+	ErrCodeInvalidGrant:              prefix + clientError + "0002",
+	ErrCodeInvalidRedirectURI:        prefix + clientError + "0003",
+	ErrCodeInsufficientScope:         prefix + clientError + "0004",
+	ErrCodeClientSecretNotAllowed:    prefix + clientError + "0005",
+	ErrCodeClientNotFound:            prefix + clientError + "0006",
+	ErrCodeDuplicateClient:           prefix + clientError + "0007",
+	ErrCodeInvalidResponseType:       prefix + clientError + "0008",
+	ErrCodeUnauthorizedClient:        prefix + clientError + "0009",
+	ErrCodeUnsupportedGrantType:      prefix + clientError + "0010",
+	ErrCodeAccessDenied:              prefix + clientError + "0011",
+	ErrCodeInvalidClientMetadata:     prefix + clientError + "0012",
+	ErrCodeRequestURINotSupported:    prefix + clientError + "0013",
+	ErrCodeRequestObjectNotSupported: prefix + clientError + "0014",
 
 	// Session Errors
 	ErrCodeDuplicateSession: prefix + sessionError + "0001",
@@ -264,6 +284,12 @@ var SystemErrorCodeMap = map[string]string{
 	ErrCodeInvalidAuthorizationCode:  prefix + authzCodeError + "0001",
 	ErrCodeExpiredAuthorizationCode:  prefix + authzCodeError + "0002",
 	ErrCodeAuthorizationCodeNotFound: prefix + authzCodeError + "0003",
+
+	// Crypto Errors
+	ErrCodeHashingFailed:          prefix + cryptoError + "0001",
+	ErrCodeRandomGenerationFailed: prefix + cryptoError + "0002",
+	ErrCodeEncryptionFailed:       prefix + cryptoError + "0003",
+	ErrCodeDecryptionFailed:       prefix + cryptoError + "0004",
 }
 
 // StatusCode returns the HTTP status code associated with the error code

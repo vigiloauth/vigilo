@@ -18,8 +18,12 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/idp/server"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
+	service "github.com/vigiloauth/vigilo/v2/internal/service/crypto"
+	jwtService "github.com/vigiloauth/vigilo/v2/internal/service/jwt"
+	tokenService "github.com/vigiloauth/vigilo/v2/internal/service/token"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
@@ -29,7 +33,7 @@ import (
 	sessionRepo "github.com/vigiloauth/vigilo/v2/internal/repository/session"
 	tokenRepo "github.com/vigiloauth/vigilo/v2/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/v2/internal/repository/userconsent"
-	tokenService "github.com/vigiloauth/vigilo/v2/internal/service/token"
+
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 
 	"github.com/vigiloauth/vigilo/v2/internal/web"
@@ -69,6 +73,7 @@ const (
 	testAuthzCode       string = "valid-auth-code"
 	testIP              string = "192.168.1.10"
 	testNonce           string = "123na"
+	testState           string = "12345State"
 )
 
 // VigiloTestContext encapsulates constants testing functionality across all test types
@@ -86,6 +91,7 @@ type VigiloTestContext struct {
 	State              string
 	SH256CodeChallenge string
 	PlainCodeChallenge string
+	RequestURI         string
 }
 
 // NewVigiloTestContext creates a basic test context with default server configurations.
@@ -96,7 +102,8 @@ func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
 	return &VigiloTestContext{
 		T:                  t,
 		VigiloServer:       server.NewVigiloIdentityServer(),
-		SH256CodeChallenge: crypto.EncodeSHA256(testClientSecret),
+		SH256CodeChallenge: utils.EncodeSHA256(testClientSecret),
+
 		PlainCodeChallenge: testClientSecret,
 	}
 }
@@ -108,7 +115,7 @@ func (tc *VigiloTestContext) WithLiveHTTPServer() *VigiloTestContext {
 }
 
 // WithUser creates and adds a user to the system.
-func (tc *VigiloTestContext) WithUser(scopes, roles []string) *VigiloTestContext {
+func (tc *VigiloTestContext) WithUser(roles []string) *VigiloTestContext {
 	user := &users.User{
 		ID:                  testUserID,
 		PreferredUsername:   testUsername,
@@ -121,7 +128,6 @@ func (tc *VigiloTestContext) WithUser(scopes, roles []string) *VigiloTestContext
 		Password:            testPassword1,
 		Birthdate:           testBirthdate,
 		Gender:              testGender,
-		Scopes:              scopes,
 		Roles:               roles,
 		LastFailedLogin:     time.Time{},
 		CreatedAt:           time.Now(),
@@ -138,6 +144,8 @@ func (tc *VigiloTestContext) WithUser(scopes, roles []string) *VigiloTestContext
 			Country:       testCountry,
 		},
 	}
+
+	crypto := service.NewCryptographer()
 	hashedPassword, err := crypto.HashString(user.Password)
 	assert.NoError(tc.T, err)
 
@@ -149,7 +157,7 @@ func (tc *VigiloTestContext) WithUser(scopes, roles []string) *VigiloTestContext
 }
 
 func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
-	consentRepo.GetInMemoryUserConsentRepository().SaveConsent(context.Background(), testUserID, testClientID, testScope)
+	consentRepo.GetInMemoryUserConsentRepository().SaveConsent(context.Background(), testUserID, testClientID, types.CombineScopes(types.Scope(testScope)))
 	return tc
 }
 
@@ -160,14 +168,14 @@ func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 // clientType client.ClientType: The type of client (public or confidential).
 // scopes []client.Scope: An array of scopes.
 // grantTypes []client.GrantType: An array of grantTypes.
-func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, grantTypes []string) {
+func (tc *VigiloTestContext) WithClient(clientType types.ClientType, scopes []types.Scope, grantTypes []string) {
 	c := &client.Client{
 		Name:          testClientName1,
 		ID:            testClientID,
 		Type:          clientType,
 		GrantTypes:    grantTypes,
 		ResponseTypes: []string{constants.CodeResponseType},
-		RedirectURIS:  []string{testRedirectURI},
+		RedirectURIs:  []string{testRedirectURI},
 	}
 
 	if len(scopes) == 0 {
@@ -176,14 +184,14 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 		c.Scopes = scopes
 	}
 
-	if clientType == client.Confidential {
+	if clientType == types.ConfidentialClient {
 		c.Secret = testClientSecret
 		c.ApplicationType = constants.WebApplicationType
-		c.TokenEndpointAuthMethod = constants.ClientSecretBasicTokenAuth
+		c.TokenEndpointAuthMethod = types.ClientSecretBasicTokenAuth
 	} else if slices.Contains(grantTypes, constants.AuthorizationCodeGrantType) {
 		c.RequiresPKCE = true
 		c.ApplicationType = constants.NativeApplicationType
-		c.TokenEndpointAuthMethod = constants.NoTokenAuth
+		c.TokenEndpointAuthMethod = types.NoTokenAuth
 	}
 
 	clientRepo.GetInMemoryClientRepository().SaveClient(context.Background(), c)
@@ -192,17 +200,21 @@ func (tc *VigiloTestContext) WithClient(clientType string, scopes []string, gran
 // WithJWTToken creates and adds a user JWT token to the system.
 func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *VigiloTestContext {
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateAccessToken(
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwtService.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	tokenService := tokenService.NewTokenIssuer(creator)
+	token, err := tokenService.IssueAccessToken(
 		context.Background(),
-		testUserID,
+		id,
 		testClientID,
-		testScope,
-		"",
-		testNonce,
+		types.CombineScopes(types.Scope(testScope)),
+		"", testNonce,
 	)
 
 	assert.NoError(tc.T, err)
@@ -211,23 +223,52 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 	return tc
 }
 
-func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, scopes []string, duration time.Duration) *VigiloTestContext {
+func (tc *VigiloTestContext) WithAdminToken(id string, duration time.Duration) *VigiloTestContext {
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	if len(scopes) == 0 {
-		scopes = append(scopes, constants.OpenIDScope)
-	}
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwtService.NewJWTService()
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	accessToken, err := tokenService.GenerateAccessToken(
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	tokenService := tokenService.NewTokenIssuer(creator)
+	token, err := tokenService.IssueAccessToken(
 		context.Background(),
 		testUserID,
 		testClientID,
-		strings.Join(scopes, " "),
-		"",
-		testNonce,
+		types.CombineScopes(types.Scope(testScope)),
+		constants.AdminRole, testNonce,
+	)
+
+	assert.NoError(tc.T, err)
+	tc.JWTToken = token
+
+	return tc
+}
+
+func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, scopes []types.Scope, duration time.Duration) *VigiloTestContext {
+	if tc.User == nil {
+		tc.WithUser([]string{constants.AdminRole})
+	}
+
+	if len(scopes) == 0 {
+		scopes = append(scopes, types.OpenIDScope)
+	}
+
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwtService.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	tokenService := tokenService.NewTokenIssuer(creator)
+	accessToken, err := tokenService.IssueAccessToken(
+		context.Background(),
+		testUserID,
+		testClientID,
+		types.NewScopeList(scopes...),
+		"", testNonce,
 	)
 	assert.NoError(tc.T, err)
 	tc.JWTToken = accessToken
@@ -235,20 +276,55 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 	return tc
 }
 
-func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateAccessToken(
+func (tc *VigiloTestContext) WithJWTTokenWithClaims(subject, audience string, claims *domain.ClaimsRequest) *VigiloTestContext {
+	if tc.User == nil {
+		tc.WithUser([]string{constants.AdminRole})
+	}
+
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwtService.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	tokenService := tokenService.NewTokenIssuer(creator)
+	accessToken, _, err := tokenService.IssueTokenPair(
 		context.Background(),
 		testUserID,
 		testClientID,
-		testScope,
-		"",
-		testNonce,
+		types.OpenIDScope,
+		"", testNonce,
+		claims,
+	)
+
+	assert.NoError(tc.T, err)
+	tc.JWTToken = accessToken
+
+	return tc
+}
+
+func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext {
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwtService.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	issuer := tokenService.NewTokenIssuer(creator)
+	token, err := issuer.IssueAccessToken(
+		context.Background(),
+		testUserID,
+		testClientID,
+		types.CombineScopes(types.Scope(testScope)),
+		"", testNonce,
 	)
 
 	assert.NoError(tc.T, err)
 	tc.JWTToken = token
-	tokenService.BlacklistToken(context.Background(), token)
+
+	parser := tokenService.NewTokenParser(jwt)
+	validator := tokenService.NewTokenValidator(repo, parser)
+
+	manager := tokenService.NewTokenManager(repo, parser, validator)
+	manager.BlacklistToken(context.Background(), token)
 
 	return tc
 }
@@ -269,8 +345,8 @@ func (tc *VigiloTestContext) GetSessionCookie() *http.Cookie {
 func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 	if tc.OAuthClient == nil {
 		tc.WithClient(
-			client.Confidential,
-			[]string{constants.ClientManageScope},
+			types.ConfidentialClient,
+			[]types.Scope{types.OpenIDScope},
 			[]string{constants.ClientCredentialsGrantType},
 		)
 	}
@@ -278,7 +354,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 	auth := base64.StdEncoding.EncodeToString([]byte(testClientID + ":" + testClientSecret))
 	formData := url.Values{}
 	formData.Add(constants.GrantTypeReqField, constants.ClientCredentialsGrantType)
-	formData.Add(constants.ScopeReqField, constants.ClientManageScope)
+	formData.Add(constants.ScopeReqField, types.OpenIDScope.String())
 
 	headers := map[string]string{
 		"Content-Type":  "application/x-www-form-urlencoded",
@@ -298,23 +374,27 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 
 // WithExpiredToken generates an expired token for testing.
 func (tc *VigiloTestContext) WithExpiredToken() *VigiloTestContext {
-	return tc.WithJWTToken(testEmail, -1*time.Hour)
+	return tc.WithJWTToken(testUserID, -10*time.Hour)
 }
 
 // WithPasswordResetToken generates a password reset token.
 func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (string, *VigiloTestContext) {
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.AdminRole})
 	}
 
-	tokenService := tokenService.NewTokenService(tokenRepo.GetInMemoryTokenRepository())
-	token, err := tokenService.GenerateAccessToken(
+	repo := tokenRepo.GetInMemoryTokenRepository()
+	cryptoService := service.NewCryptographer()
+	jwt := jwtService.NewJWTService()
+
+	creator := tokenService.NewTokenCreator(repo, jwt, cryptoService)
+	issuer := tokenService.NewTokenIssuer(creator)
+	token, err := issuer.IssueAccessToken(
 		context.Background(),
 		testUserID,
 		testClientID,
-		testScope,
-		"",
-		testNonce,
+		types.CombineScopes(types.Scope(testScope)),
+		"", testNonce,
 	)
 
 	assert.NoError(tc.T, err)
@@ -351,8 +431,8 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	requestBody, err := json.Marshal(loginRequest)
 	assert.NoError(tc.T, err)
 
-	// state := tc.GetStateFromSession()
-	// tc.State = state
+	state := tc.GetStateFromSession()
+	tc.State = state
 
 	queryParams := url.Values{}
 	queryParams.Add(constants.ClientIDReqField, testClientID)
@@ -386,7 +466,7 @@ func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Re
 
 func (tc *VigiloTestContext) WithUserSession() {
 	if tc.User == nil {
-		tc.WithUser([]string{constants.UserManageScope}, []string{constants.AdminRole})
+		tc.WithUser([]string{constants.AdminRole})
 	}
 
 	loginRequest := users.NewUserLoginRequest(testUsername, testPassword1)
@@ -454,6 +534,7 @@ func (tc *VigiloTestContext) CreateAuthorizationCodeRequestQueryParams(codeChall
 	queryParams.Add(constants.StateReqField, tc.State)
 	queryParams.Add(constants.ConsentApprovedURLValue, "true")
 	queryParams.Add(constants.NonceReqField, testNonce)
+	queryParams.Add("acr_values", "1 2")
 
 	if codeChallenge != "" {
 		queryParams.Add(constants.CodeChallengeReqField, codeChallenge)
@@ -512,8 +593,8 @@ func (tc *VigiloTestContext) WithAuditEvents() {
 	ctx := context.Background()
 	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserID, testUserID)
 	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIP)
-	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyRequestID, "req-"+crypto.GenerateUUID())
-	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeySessionID, "sess-"+crypto.GenerateUUID())
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyRequestID, "req-"+utils.GenerateUUID())
+	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeySessionID, "sess-"+utils.GenerateUUID())
 	ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyTokenClaims, tc.JWTToken)
 
 	eventCount := 100
@@ -535,7 +616,6 @@ func (tc *VigiloTestContext) GetUserRegistrationRequest() *users.UserRegistratio
 		Gender:      testGender,
 		PhoneNumber: testPhoneNumber,
 		Password:    testPassword1,
-		Scopes:      []string{constants.UserManageScope},
 		Roles:       []string{constants.AdminRole},
 		Address: users.UserAddress{
 			StreetAddress: testStreetAddress,
@@ -552,7 +632,6 @@ func (tc *VigiloTestContext) TearDown() {
 	if tc.TestServer != nil {
 		tc.TestServer.Close()
 	}
-	tc.VigiloServer.Shutdown()
 	config.GetServerConfig().Logger().SetLevel("info")
 	resetInMemoryStores()
 }
@@ -581,12 +660,6 @@ func (tc *VigiloTestContext) addHeaderAuth(req *http.Request, headers map[string
 	// Add all headers
 	for key, value := range headers {
 		req.Header.Set(key, value)
-	}
-
-	if tc.JWTToken != "" && headers["Authorization"] == "" {
-		req.Header.Set("Authorization", "Bearer "+tc.JWTToken)
-	} else if tc.ClientAuthToken != "" && headers["Authorization"] == "" {
-		req.Header.Set("Authorization", "Bearer "+tc.ClientAuthToken)
 	}
 }
 

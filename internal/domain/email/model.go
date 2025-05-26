@@ -3,7 +3,7 @@ package domain
 import (
 	"sync"
 
-	"github.com/vigiloauth/vigilo/v2/internal/crypto"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 type EmailRequest struct {
@@ -22,7 +22,7 @@ func NewEmailRequest(recipient, verificationCode, verificationToken string, emai
 		VerificationCode:  verificationCode,
 		VerificationToken: verificationCode,
 		EmailType:         emailType,
-		ID:                crypto.GenerateUUID(),
+		ID:                utils.GenerateUUID(),
 		Retries:           0,
 	}
 }

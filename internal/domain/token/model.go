@@ -1,35 +1,35 @@
 package domain
 
 import (
-	"time"
-
 	"github.com/golang-jwt/jwt"
+	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 // TokenData represents the data associated with a token.
 type TokenData struct {
-	Token     string    // The token string.
-	ID        string    // The id associated with the token.
-	ExpiresAt time.Time // The token's expiration time.
-	TokenID   string
-	Claims    *TokenClaims
+	Token       string       // The token string.
+	ID          string       // The id associated with the token.
+	ExpiresAt   int64        // The token's expiration time.
+	TokenID     string       // The ID of the token.
+	TokenClaims *TokenClaims // The claims associated with the token.
 }
 
 // TokenResponse represents the structure of an OAuth token response.
 // This is returned to the client after successful authentication.
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type"`
-	IDToken      string `json:"id_token"`
-	ExpiresIn    int    `json:"expires_in"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	Scope        string `json:"scope,omitempty"`
+	AccessToken  string      `json:"access_token"`
+	RefreshToken string      `json:"refresh_token,omitempty"`
+	TokenType    string      `json:"token_type"`
+	IDToken      string      `json:"id_token"`
+	Scope        types.Scope `json:"scope,omitempty"`
+	ExpiresIn    int64       `json:"expires_in"`
 }
 
 type TokenIntrospectionResponse struct {
 	Active          bool   `json:"active"`
-	ExpiresAt       int    `json:"exp,omitempty"`
-	IssuedAt        int    `json:"iat,omitempty"`
+	ExpiresAt       int64  `json:"exp,omitempty"`
+	IssuedAt        int64  `json:"iat,omitempty"`
 	Subject         string `json:"subject,omitempty"`
 	Audience        string `json:"aud,omitempty"`
 	Issuer          string `json:"iss,omitempty"`
@@ -48,10 +48,15 @@ type TokenRequest struct {
 }
 
 type TokenClaims struct {
-	Scopes   string `json:"scopes,omitempty"`
-	Roles    string `json:"roles,omitempty"`
-	Nonce    string `json:"nonce,omitempty"`
-	AuthTime int64  `json:"auth_time,omitempty"`
+	Scopes          types.Scope           `json:"scopes,omitempty"`
+	Roles           string                `json:"roles,omitempty"`
+	Nonce           string                `json:"nonce,omitempty"`
+	AuthTime        int64                 `json:"auth_time,omitempty"`
+	RequestedClaims *domain.ClaimsRequest `json:"claims,omitempty"`
+	ACRValues       string                `json:"acr,omitempty"`
+	ClientID        string                `json:"client_id,omitempty"`
+	RedirectURI     string                `json:"redirect_uri,omitempty"`
+	State           string                `json:"state,omitempty"`
 	*jwt.StandardClaims
 }
 
@@ -59,15 +64,16 @@ const BearerToken string = "bearer"
 
 func NewTokenIntrospectionResponse(claims *TokenClaims) *TokenIntrospectionResponse {
 	response := &TokenIntrospectionResponse{
-		ExpiresAt:       int(claims.ExpiresAt),
-		IssuedAt:        int(claims.IssuedAt),
-		Subject:         claims.Subject,
-		Issuer:          claims.Issuer,
-		TokenIdentifier: claims.Id,
+		ExpiresAt:       claims.StandardClaims.ExpiresAt,
+		IssuedAt:        claims.StandardClaims.IssuedAt,
+		Subject:         claims.StandardClaims.Subject,
+		Issuer:          claims.StandardClaims.Issuer,
+		TokenIdentifier: claims.StandardClaims.Id,
+		Active:          true,
 	}
 
 	if claims.Audience != "" {
-		response.Audience = claims.Audience
+		response.Audience = claims.StandardClaims.Audience
 	}
 
 	return response

@@ -18,21 +18,24 @@ import (
 const email string = "test@example.com"
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {
-	mockTokenService := &mocks.MockTokenService{}
 	tokenString := "validToken"
 
-	mockTokenService.ParseTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
-		return &token.TokenClaims{
-			StandardClaims: &jwt.StandardClaims{
-				Subject: email,
-			},
-		}, nil
+	tokenParser := &mocks.MockTokenParser{
+		ParseTokenFunc: func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+			return &token.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject: email,
+				},
+			}, nil
+		},
 	}
-	mockTokenService.ValidateTokenFunc = func(ctx context.Context, tokenString string) error {
-		return nil
+	tokenValidator := &mocks.MockTokenValidator{
+		ValidateTokenFunc: func(ctx context.Context, tokenStr string) error {
+			return nil
+		},
 	}
 
-	middleware := NewMiddleware(mockTokenService)
+	middleware := NewMiddleware(tokenParser, tokenValidator)
 
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("Authorization", "Bearer "+tokenString)
@@ -48,21 +51,24 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 }
 
 func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
-	mockTokenService := &mocks.MockTokenService{}
 	tokenString := "blacklistedToken"
 
-	mockTokenService.ParseTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
-		return &token.TokenClaims{
-			StandardClaims: &jwt.StandardClaims{
-				Subject: email,
-			},
-		}, nil
+	tokenParser := &mocks.MockTokenParser{
+		ParseTokenFunc: func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+			return &token.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject: email,
+				},
+			}, nil
+		},
 	}
-	mockTokenService.ValidateTokenFunc = func(ctx context.Context, tokenString string) error {
-		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
+	tokenValidator := &mocks.MockTokenValidator{
+		ValidateTokenFunc: func(ctx context.Context, tokenStr string) error {
+			return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
+		},
 	}
 
-	middleware := NewMiddleware(mockTokenService)
+	middleware := NewMiddleware(tokenParser, tokenValidator)
 
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("Authorization", "Bearer "+tokenString)
@@ -78,16 +84,13 @@ func TestAuthMiddleware_BlacklistedToken(t *testing.T) {
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
-	mockTokenService := &mocks.MockTokenService{}
-
-	mockTokenService.ValidateTokenFunc = func(ctx context.Context, tokenString string) error {
-		return errors.New(errors.ErrCodeUnauthorized, "invalid-token")
-	}
-	mockTokenService.ParseTokenFunc = func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
-		return nil, errors.New(errors.ErrCodeInvalidToken, "invalid-token")
+	tokenParser := &mocks.MockTokenParser{
+		ParseTokenFunc: func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+			return nil, errors.New(errors.ErrCodeInvalidToken, "invalid-token")
+		},
 	}
 
-	middleware := NewMiddleware(mockTokenService)
+	middleware := NewMiddleware(tokenParser, nil)
 
 	r := httptest.NewRequest("GET", "/", nil)
 	r.Header.Set("Authorization", "Bearer invalid.token")
@@ -103,8 +106,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 }
 
 func TestRedirectToHTTPS(t *testing.T) {
-	mockTokenService := &mocks.MockTokenService{}
-	middleware := NewMiddleware(mockTokenService)
+	middleware := NewMiddleware(nil, nil)
 
 	r := httptest.NewRequest("GET", "http://example.com", nil)
 	w := httptest.NewRecorder()
@@ -120,8 +122,7 @@ func TestRedirectToHTTPS(t *testing.T) {
 }
 
 func TestRateLimit(t *testing.T) {
-	mockTokenService := &mocks.MockTokenService{}
-	middleware := NewMiddleware(mockTokenService)
+	middleware := NewMiddleware(nil, nil)
 
 	handler := middleware.RateLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -9,6 +9,7 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 )
 
 const clientID string = "clientID"
@@ -111,10 +112,10 @@ func createTestClient() *domain.Client {
 		Name:         "Test Client",
 		ID:           clientID,
 		Secret:       "test-client-secret",
-		Type:         domain.Confidential,
-		RedirectURIS: []string{"http://localhost:8080/callback"},
+		Type:         types.ConfidentialClient,
+		RedirectURIs: []string{"http://localhost:8080/callback"},
 		GrantTypes:   []string{constants.AuthorizationCodeGrantType, constants.RefreshTokenGrantType},
-		Scopes:       []string{constants.ClientReadScope, constants.ClientWriteScope},
+		Scopes:       []types.Scope{types.OpenIDScope},
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

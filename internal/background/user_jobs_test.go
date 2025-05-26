@@ -14,7 +14,7 @@ func TestUserJobs_DeleteUnverifiedUsers(t *testing.T) {
 	var mu sync.Mutex
 	deleteCalls := 0
 
-	userService := &mocks.MockUserService{
+	userService := &mocks.MockUserManager{
 		DeleteUnverifiedUsersFunc: func(ctx context.Context) error {
 			mu.Lock()
 			defer mu.Unlock()
