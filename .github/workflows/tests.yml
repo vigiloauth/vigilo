@@ -32,6 +32,6 @@ jobs:
 
       - name: Run unit tests
         run: go test ./internal/service/... ./internal/repository/...
-      
+
       - name: Run integration tests
         run: go test ./tests/...
