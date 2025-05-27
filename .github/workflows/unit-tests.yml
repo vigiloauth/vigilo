@@ -1,4 +1,4 @@
-name: Run Unit Tests
+name: Run Tests
 
 on:
   pull_request:
@@ -30,5 +30,8 @@ jobs:
       - name: Install necessary dependencies
         run: go mod tidy
 
-      - name: Run tests
-        run: go test ./...
+      - name: Run unit tests
+        run: go test ./internal/service/... ./internal/repository/...
+      
+      - name: Run integration tests
+        run: go test ./tests/...
