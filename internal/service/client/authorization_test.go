@@ -35,17 +35,15 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
-			ClientID:    "valid-client-id",
-			Prompt:      constants.PromptNone,
-			RedirectURI: "http://example.com/callback",
+			ClientID:     "valid-client-id",
+			Prompt:       constants.PromptNone,
+			ResponseType: constants.CodeResponseType,
+			RedirectURI:  "http://example.com/callback",
 		}
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return &client.Client{}, nil
 		}
 		mockValidator.ValidateAuthorizationRequestFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			return nil
-		}
-		mockValidator.ValidateClientRequestURIFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {
@@ -67,48 +65,19 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 		assert.Contains(t, redirectURL, "code")
 	})
 
-	t.Run("should return error if client request URI validation fails", func(t *testing.T) {
-		req := &client.ClientAuthorizationRequest{ClientID: "valid-client-id"}
-
-		mockManagerCall := 0
-		mockValidatorCall := 0
-
-		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
-			mockManagerCall++
-			return &client.Client{}, nil
-		}
-		mockValidator.ValidateAuthorizationRequestFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			mockValidatorCall++
-			return nil
-		}
-		mockValidator.ValidateClientRequestURIFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			mockValidatorCall++
-			return errors.New(errors.ErrCodeInvalidRequest, "invalid request URI")
-		}
-
-		redirectURL, err := sut.Authorize(ctx, req)
-
-		assert.Empty(t, redirectURL)
-		assert.Error(t, err)
-		assert.GreaterOrEqual(t, mockManagerCall, 0)
-		assert.GreaterOrEqual(t, mockValidatorCall, 1)
-	})
-
 	t.Run("should return consent redirect URL if user consent is required", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
 			ClientID:        "valid-client-id",
 			UserID:          "user-id",
 			ConsentApproved: false,
 			RedirectURI:     "http://example.com/callback",
+			ResponseType:    constants.CodeResponseType,
 		}
 
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return &client.Client{}, nil
 		}
 		mockValidator.ValidateAuthorizationRequestFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			return nil
-		}
-		mockValidator.ValidateClientRequestURIFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {
@@ -129,17 +98,15 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 	t.Run("should force login if prompt is set to login", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
-			ClientID:    "valid-client-id",
-			Prompt:      constants.PromptLogin,
-			RedirectURI: "http://example.com/callback",
+			ClientID:     "valid-client-id",
+			Prompt:       constants.PromptLogin,
+			ResponseType: constants.CodeResponseType,
+			RedirectURI:  "http://example.com/callback",
 		}
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return &client.Client{}, nil
 		}
 		mockValidator.ValidateAuthorizationRequestFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			return nil
-		}
-		mockValidator.ValidateClientRequestURIFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
 			return nil
 		}
 
@@ -151,17 +118,15 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 	t.Run("should return login required error if user is not authenticated", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
-			ClientID:    "valid-client-id",
-			Prompt:      constants.PromptNone,
-			RedirectURI: "http://example.com/callback",
+			ClientID:     "valid-client-id",
+			Prompt:       constants.PromptNone,
+			ResponseType: constants.CodeResponseType,
+			RedirectURI:  "http://example.com/callback",
 		}
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return &client.Client{}, nil
 		}
 		mockValidator.ValidateAuthorizationRequestFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			return nil
-		}
-		mockValidator.ValidateClientRequestURIFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {
@@ -176,9 +141,10 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 	t.Run("unauthorized error is returned when authorization request validation fails", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
-			ClientID:    "valid-client-id",
-			Prompt:      constants.PromptNone,
-			RedirectURI: "http://example.com/callback",
+			ClientID:     "valid-client-id",
+			Prompt:       constants.PromptNone,
+			ResponseType: constants.CodeResponseType,
+			RedirectURI:  "http://example.com/callback",
 		}
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return &client.Client{}, nil
@@ -195,9 +161,10 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 	t.Run("unauthorized client error is returned when client doest not exist by ID", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
-			ClientID:    "valid-client-id",
-			Prompt:      constants.PromptNone,
-			RedirectURI: "http://example.com/callback",
+			ClientID:     "valid-client-id",
+			Prompt:       constants.PromptNone,
+			ResponseType: constants.CodeResponseType,
+			RedirectURI:  "http://example.com/callback",
 		}
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return nil, errors.New(errors.ErrCodeClientNotFound, "client not found by ID")
@@ -211,16 +178,14 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 	t.Run("login redirect URL is returned when user is not authenticated", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
-			ClientID:    "valid-client-id",
-			RedirectURI: "http://example.com/callback",
+			ClientID:     "valid-client-id",
+			ResponseType: constants.CodeResponseType,
+			RedirectURI:  "http://example.com/callback",
 		}
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return &client.Client{}, nil
 		}
 		mockValidator.ValidateAuthorizationRequestFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			return nil
-		}
-		mockValidator.ValidateClientRequestURIFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {
@@ -235,17 +200,15 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 	t.Run("consent required error is returned when rejecting missing consent", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
-			ClientID:    "valid-client-id",
-			Prompt:      constants.PromptNone,
-			RedirectURI: "http://example.com/callback",
+			ClientID:     "valid-client-id",
+			Prompt:       constants.PromptNone,
+			ResponseType: constants.CodeResponseType,
+			RedirectURI:  "http://example.com/callback",
 		}
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return &client.Client{}, nil
 		}
 		mockValidator.ValidateAuthorizationRequestFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			return nil
-		}
-		mockValidator.ValidateClientRequestURIFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {
@@ -266,17 +229,15 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 	t.Run("internal server error should be returned when issuing the authorization code fails", func(t *testing.T) {
 		req := &client.ClientAuthorizationRequest{
-			ClientID:    "valid-client-id",
-			Prompt:      constants.PromptNone,
-			RedirectURI: "http://example.com/callback",
+			ClientID:     "valid-client-id",
+			Prompt:       constants.PromptNone,
+			ResponseType: constants.CodeResponseType,
+			RedirectURI:  "http://example.com/callback",
 		}
 		mockManager.GetClientByIDFunc = func(ctx context.Context, clientID string) (*client.Client, error) {
 			return &client.Client{}, nil
 		}
 		mockValidator.ValidateAuthorizationRequestFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
-			return nil
-		}
-		mockValidator.ValidateClientRequestURIFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) error {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {

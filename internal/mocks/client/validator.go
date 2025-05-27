@@ -14,7 +14,6 @@ type MockClientValidator struct {
 	ValidateAuthorizationRequestFunc             func(ctx context.Context, req *domain.ClientAuthorizationRequest) error
 	ValidateRedirectURIFunc                      func(ctx context.Context, redirectURI string, existingClient *domain.Client) error
 	ValidateClientAndRegistrationAccessTokenFunc func(ctx context.Context, clientID string, registrationAccessToken string) error
-	ValidateClientRequestURIFunc                 func(ctx context.Context, req *domain.ClientAuthorizationRequest) error
 }
 
 func (m *MockClientValidator) ValidateRegistrationRequest(ctx context.Context, req *domain.ClientRegistrationRequest) error {
@@ -35,8 +34,4 @@ func (m *MockClientValidator) ValidateRedirectURI(ctx context.Context, redirectU
 
 func (m *MockClientValidator) ValidateClientAndRegistrationAccessToken(ctx context.Context, clientID string, registrationAccessToken string) error {
 	return m.ValidateClientAndRegistrationAccessTokenFunc(ctx, clientID, registrationAccessToken)
-}
-
-func (m *MockClientValidator) ValidateClientRequestURI(ctx context.Context, req *domain.ClientAuthorizationRequest) error {
-	return m.ValidateClientRequestURIFunc(ctx, req)
 }
