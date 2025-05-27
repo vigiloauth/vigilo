@@ -40,6 +40,7 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 
 ### 2.1 Currently Implemented
 - ✅ **User Registration**
+- ✅ **User Email Verification**
 - ✅ **Basic User Authentication**
 - ✅ **OAuth User Authentication**
 - ✅ **Authorization Code Flow**
@@ -59,8 +60,8 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 
 ### 2.2 Planned Features
 
+- 🛠️ **Realm Support**
 - 🛠️ **Phone Number Verification**
-- 🛠️ **User Email Verification**
 - 🛠️ **Password Recovery**
 - 🛠️ **User Profile Management**
 - 🛠️ **Role-Based Access Control (RBAC)**
