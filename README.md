@@ -105,7 +105,7 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 7. **Push Your Changes**: Push your branch to your GitHub fork.
 8. **Open a Pull Request**: Submit a PR to the main repository and clearly describe your changes.
 
-_If you're a first-time contributor, check out our [Good First Issues](#)._
+_If you're a first-time contributor, check out our [Good First Issues](https://github.com/vigiloauth/vigilo/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22)._
 
 ### 4.2 Commit Standards
 
