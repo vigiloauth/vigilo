@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 )
@@ -30,7 +31,15 @@ func TestTokenStore_IsTokenBlacklisted(t *testing.T) {
 	tokenStore := GetInMemoryTokenRepository()
 	expiration := time.Now().Add(-1 * time.Hour)
 
-	tokenStore.SaveToken(ctx, testToken, testID, &domain.TokenData{}, expiration)
+	tokenData := &domain.TokenData{
+		TokenClaims: &domain.TokenClaims{
+			StandardClaims: &jwt.StandardClaims{
+				ExpiresAt: expiration.Unix(),
+			},
+		},
+	}
+
+	tokenStore.SaveToken(ctx, testToken, testID, tokenData, expiration)
 	isBlacklisted, err := tokenStore.IsTokenBlacklisted(ctx, testToken)
 
 	assert.NoError(t, err)
