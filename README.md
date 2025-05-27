@@ -2,6 +2,7 @@
 
 ![Latest Version](https://img.shields.io/github/tag/vigiloauth/vigilo?label=latest%20version)
 ![Github Repo Stars](https://img.shields.io/github/stars/vigiloauth/vigilo?style=flat)
+[![Open Source Helpers badge](https://codetriage.com/vigiloauth/vigilo/badges/users.svg)](https://codetriage.com/vigiloauth/vigilo)
 
 ## Table of Contents
 - [VigiloAuth](#vigiloauth)
