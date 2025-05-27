@@ -30,8 +30,20 @@ jobs:
       - name: Install necessary dependencies
         run: go mod tidy
 
-      - name: Run unit tests
-        run: go test ./internal/service/... ./internal/repository/...
+      - name: Run service folder unit tests with coverage
+        run: go test -coverprofile=service-tests.out ./internal/service/...
 
-      - name: Run integration tests
-        run: go test ./tests/...
+      - name: Run repository folder unit tests with coverage
+        run: go test -coverprofile=repository-tests.out ./internal/repository/...
+
+      - name: Run integration tests with coverage
+        run: go test -coverprofile=integration-tests.out ./tests/...
+
+      - name: Upload all coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            service-tests.out
+            repository-tests.out
+            integration-tests.out
