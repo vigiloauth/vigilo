@@ -23,7 +23,8 @@
 
 ## 1. Introduction
 
->License: MIT This server is free and open source, developed for community use and OIDF certification.
+>License: Apache 
+This server is free and open source, developed for community use and OIDF certification.
 
 >⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
 
