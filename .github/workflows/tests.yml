@@ -33,8 +33,11 @@ jobs:
       - name: Format code
         run: gofmt -s -w .
 
-      - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out ./...
+      - name: Run unit tests with coverage
+        run: go test -coverprofile=unit-tests.out ./internal/...
+
+      - name: Run integration tests with coverage
+        run: go test -coverprofile=integration-tests.out ./tests/integration/...
 
       - name: Update coverage report
         uses: ncruces/go-coverage-report@v0
