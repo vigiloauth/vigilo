@@ -27,17 +27,8 @@ linters:
     - whitespace
     - wrapcheck
 
-linters-settings:
-  iface:
-    enable:
-      - identical
-      - unused
-      - opaque
-
 formatters:
   enable:
     - gofmt
     - goimports
 
-issues:
-  exclude-use-default: false
