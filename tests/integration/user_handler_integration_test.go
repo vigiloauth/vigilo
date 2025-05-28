@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	repository "github.com/vigiloauth/vigilo/v2/internal/repository/user"
@@ -24,7 +25,7 @@ func TestUserHandler_RegisterUser_Success(t *testing.T) {
 	requestBody := testContext.GetUserRegistrationRequest()
 
 	body, err := json.Marshal(requestBody)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	rr := testContext.SendHTTPRequest(
 		http.MethodPost,
@@ -53,7 +54,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		}
 
 		requestBody, err := json.Marshal(loginRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		queryParams := url.Values{}
 		queryParams.Add(constants.ClientIDReqField, testClientID)
@@ -86,7 +87,7 @@ func TestUserHandler_OAuthLogin(t *testing.T) {
 		}
 
 		requestBody, err := json.Marshal(loginRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		queryParams := url.Values{}
 		queryParams.Add(constants.ClientIDReqField, testClientID)
@@ -112,7 +113,7 @@ func TestUserHandler_RegisterUser_DuplicateEmail(t *testing.T) {
 	requestBody.Birthdate = testBirthdate
 
 	body, err := json.Marshal(requestBody)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	rr := testContext.SendHTTPRequest(
 		http.MethodPost,
 		web.UserEndpoints.Registration,
@@ -132,7 +133,7 @@ func TestUserHandler_UserAuthentication(t *testing.T) {
 
 		requestBody := users.NewUserLoginRequest(testUsername, testPassword1)
 		body, err := json.Marshal(requestBody)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPost,
@@ -174,7 +175,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		// assert user account is verified
 		userRepo := repository.GetInMemoryUserRepository()
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, retrievedUser.EmailVerified)
 	})
 
@@ -191,7 +192,7 @@ func TestUserHandler_VerifyAccount(t *testing.T) {
 		userRepo := repository.GetInMemoryUserRepository()
 
 		retrievedUser, err := userRepo.GetUserByEmail(context.Background(), testEmail)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, retrievedUser.EmailVerified)
 	})
 

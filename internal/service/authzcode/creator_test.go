@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	claims "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
@@ -97,7 +98,7 @@ func TestAuthorizationCodeCreator_GenerateAuthorizationCode(t *testing.T) {
 			},
 			repo: &authzCodeMocks.MockAuthorizationCodeRepository{
 				StoreAuthorizationCodeFunc: func(ctx context.Context, code string, data *domain.AuthorizationCodeData, expiresAt time.Time) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -110,11 +111,11 @@ func TestAuthorizationCodeCreator_GenerateAuthorizationCode(t *testing.T) {
 
 			code, err := sut.GenerateAuthorizationCode(ctx, test.request)
 			if test.wantErr {
-				assert.Error(t, err, "Expected error but got none")
+				require.Error(t, err, "Expected error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 				assert.Empty(t, code, "Expected empty code on error")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 				assert.NotEmpty(t, code, "Expected a non-empty code")
 			}
 		})

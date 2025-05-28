@@ -17,6 +17,8 @@ import (
 
 var _ clients.ClientManager = (*clientManager)(nil)
 
+const clientSecretLength int = 32
+
 type clientManager struct {
 	repo          clients.ClientRepository
 	validator     clients.ClientValidator
@@ -80,16 +82,16 @@ func (c *clientManager) RegenerateClientSecret(
 		return nil, errors.Wrap(err, "", "failed to validate client")
 	}
 
-	clientSecret, err := c.cryptographer.GenerateRandomString(32)
+	clientSecret, err := c.cryptographer.GenerateRandomString(clientSecretLength)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[RegenerateClientSecret]: Failed to generate client secret: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.NewInternalServerError(err.Error()) //nolint:wrapcheck
 	}
 
 	client.Secret, err = c.cryptographer.HashString(clientSecret)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[RegenerateClientSecret]: Failed to encrypt client secret: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.NewInternalServerError(err.Error()) //nolint:wrapcheck
 	}
 
 	client.UpdatedAt = time.Now()
@@ -213,7 +215,6 @@ func (c *clientManager) UpdateClientInformation(
 		registrationClientURI,
 		registrationAccessToken,
 	), nil
-
 }
 
 // DeleteClientInformation deletes the client information for a given client ID.

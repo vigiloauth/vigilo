@@ -101,7 +101,7 @@ func (s *emailService) SendEmail(ctx context.Context, request *domain.EmailReque
 // Returns:
 //   - error: An error indicating the failure of the connection test, or nil if successful.
 func (s *emailService) TestConnection() error {
-	backoff := 5 * time.Second
+	backoff := constants.FiveSecondTimeout
 
 	var lastError error
 	for attempt := range maxRetries {
@@ -146,7 +146,7 @@ func (s *emailService) connectToSMTPServer() error {
 
 	if err := closer.Close(); err != nil {
 		s.logger.Error(s.module, "", "[connectToSMTPServer]: Failed to close 'gomail.SendCloser()': %v", err)
-		return errors.NewInternalServerError()
+		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to close sender")
 	}
 
 	return nil
@@ -170,12 +170,16 @@ func (s *emailService) sendEmail(ctx context.Context, request *domain.EmailReque
 	select {
 	case <-ctx.Done():
 		s.logger.Error(s.module, requestID, "Context cancelled before email was sent: %v", ctx.Err())
-		return ctx.Err()
+		if err := ctx.Err(); err != nil {
+			return errors.NewContextError(err) //nolint:wrapcheck
+		}
+
+		return nil
 	case err := <-done:
 		if err != nil {
 			s.logger.Error(s.module, requestID, "Failed to send email. Adding to retry queue: %v", err)
 			s.retryQueue.Add(request)
-			return err
+			return errors.Wrap(err, errors.ErrCodeInternalServerError, err.Error())
 		}
 	}
 

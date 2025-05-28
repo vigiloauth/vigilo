@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -30,7 +31,7 @@ func TestEmailService_SendEmail(t *testing.T) {
 		service := NewEmailService(mailer)
 
 		err := service.SendEmail(ctx, request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Email is added to retry queue when the SMTP server is down", func(t *testing.T) {
@@ -39,7 +40,7 @@ func TestEmailService_SendEmail(t *testing.T) {
 		service := NewEmailService(nil)
 
 		err := service.SendEmail(ctx, request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// assert the queue contains one request
 		retryQueue := service.GetEmailRetryQueue()
@@ -52,7 +53,7 @@ func TestEmailService_SendEmail(t *testing.T) {
 				return gomail.NewMessage()
 			},
 			DialAndSendFunc: func(host string, port int, username, password string, message ...*gomail.Message) error {
-				return errors.NewInternalServerError()
+				return errors.NewInternalServerError("")
 			},
 		}
 
@@ -61,7 +62,7 @@ func TestEmailService_SendEmail(t *testing.T) {
 		service := NewEmailService(mailer)
 
 		err := service.SendEmail(ctx, request)
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		// assert the queue contains one request
 		retryQueue := service.GetEmailRetryQueue()

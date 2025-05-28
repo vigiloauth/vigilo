@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
@@ -65,7 +66,7 @@ func TestTokenHandler_IssueTokens_ClientCredentialsGrant(t *testing.T) {
 
 				var tokenResponse token.TokenResponse
 				err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
 				assert.Equal(t, "bearer", tokenResponse.TokenType)
@@ -246,7 +247,7 @@ func TestTokenHandler_IssueTokens_PasswordGrant(t *testing.T) {
 
 				var tokenResponse token.TokenResponse
 				err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
 				assert.Equal(t, "bearer", tokenResponse.TokenType)
@@ -522,7 +523,7 @@ func TestTokenHandler_RefreshAccessTokenRequest(t *testing.T) {
 
 				var tokenResponse token.TokenResponse
 				err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				assert.NotNil(t, tokenResponse.AccessToken)
 				assert.Equal(t, "bearer", tokenResponse.TokenType)
@@ -778,7 +779,7 @@ func TestTokenHandler_IntrospectToken(t *testing.T) {
 
 		var tokenResponse token.TokenIntrospectionResponse
 		err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.False(t, tokenResponse.Active)
 	})
@@ -944,7 +945,7 @@ func TestTokenHandler_CodeReuseFailsAndRevokesAccessToken(t *testing.T) {
 
 	var tokenResponse token.TokenResponse
 	err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-	assert.NoError(t, err, "Expected no error while decoding token response")
+	require.NoError(t, err, "Expected no error while decoding token response")
 
 	// 3. Call UserInfo with Access token
 	headers = map[string]string{

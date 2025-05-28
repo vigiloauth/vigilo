@@ -154,7 +154,7 @@ func (u *userManager) ResetPassword(
 	encryptedPassword, err := u.cryptographer.HashString(newPassword)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to encrypt password: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to encrypt password")
 	}
 
 	if user.AccountLocked {

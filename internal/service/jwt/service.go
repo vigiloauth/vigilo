@@ -59,5 +59,11 @@ func (s *jwtService) ParseWithClaims(ctx context.Context, tokenString string) (*
 func (s *jwtService) SignToken(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
 	jwtClaims := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	jwtClaims.Header["kid"] = s.keyID
-	return jwtClaims.SignedString(s.privateKey)
+
+	signedStr, err := jwtClaims.SignedString(s.privateKey)
+	if err != nil {
+		return "", errors.Wrap(err, errors.ErrCodeTokenSigning, "failed to sign token with claims")
+	}
+
+	return signedStr, nil
 }

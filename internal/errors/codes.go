@@ -42,6 +42,7 @@ const (
 	ErrCodeTokenEncryption string = "token_encrypt_failed"
 	ErrCodeTokenDecryption string = "token_decrypt_failed"
 	ErrCodeDuplicateToken  string = "duplicate_token"
+	ErrCodeTokenSigning    string = "token_signing"
 
 	// Email errors
 	ErrCodeConnectionFailed    string = "connection_failed"
@@ -173,6 +174,7 @@ var HTTPStatusCodeMap = map[string]int{
 	ErrCodeTokenEncryption:        http.StatusInternalServerError,
 	ErrCodeTokenDecryption:        http.StatusInternalServerError,
 	ErrCodeDuplicateToken:         http.StatusInternalServerError,
+	ErrCodeTokenSigning:           http.StatusInternalServerError,
 	ErrCodeHashingFailed:          http.StatusInternalServerError,
 	ErrCodeRandomGenerationFailed: http.StatusInternalServerError,
 	ErrCodeEncryptionFailed:       http.StatusInternalServerError,
@@ -241,6 +243,7 @@ var SystemErrorCodeMap = map[string]string{
 	ErrCodeTokenEncryption: prefix + tokenError + "0006",
 	ErrCodeTokenDecryption: prefix + tokenError + "0007",
 	ErrCodeDuplicateToken:  prefix + tokenError + "0008",
+	ErrCodeTokenSigning:    prefix + tokenError + "0009",
 
 	// Email Errors
 	ErrCodeConnectionFailed:    prefix + emailError + "0001",

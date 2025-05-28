@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 )
 
@@ -42,7 +43,7 @@ func TestTokenStore_IsTokenBlacklisted(t *testing.T) {
 	_ = tokenStore.SaveToken(ctx, testToken, testID, tokenData, expiration)
 	isBlacklisted, err := tokenStore.IsTokenBlacklisted(ctx, testToken)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, isBlacklisted)
 }
 
@@ -52,16 +53,16 @@ func TestTokenStore_DeleteToken(t *testing.T) {
 	expiration := time.Now().Add(1 * time.Hour)
 
 	err := tokenStore.SaveToken(ctx, testToken, testID, &domain.TokenData{}, expiration)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	token, err := tokenStore.GetToken(ctx, testToken)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, token)
 
 	err = tokenStore.DeleteToken(ctx, testToken)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	retrievedToken, err := tokenStore.GetToken(ctx, testToken)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, retrievedToken)
 }

@@ -9,6 +9,8 @@ import (
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
 )
 
+const maxRetries int = 5
+
 type SMTPJobs struct {
 	healthCheckTickerInterval time.Duration
 	queueTickerInterval       time.Duration
@@ -17,7 +19,11 @@ type SMTPJobs struct {
 	module                    string
 }
 
-func NewSMTPJobs(emailService domain.EmailService, healthCheckTicker, queueTicker time.Duration) *SMTPJobs {
+func NewSMTPJobs(
+	emailService domain.EmailService,
+	healthCheckTicker time.Duration,
+	queueTicker time.Duration,
+) *SMTPJobs {
 	return &SMTPJobs{
 		healthCheckTickerInterval: healthCheckTicker,
 		queueTickerInterval:       queueTicker,
@@ -37,11 +43,13 @@ func (s *SMTPJobs) RunHealthCheck(ctx context.Context) {
 		case <-ticker.C:
 			if err := s.emailService.TestConnection(); err != nil {
 				s.logger.Error(s.module, "", "[RunHealthCheck]: Failed to test SMTP connection: %v", err)
+
 				continue
 			}
 
 		case <-ctx.Done():
 			s.logger.Info(s.module, "", "[RunHealthCheck]: Stopping SMTP health check")
+
 			return
 		}
 	}
@@ -107,8 +115,9 @@ func (h *SMTPJobs) retryWorker(retryQueue *domain.EmailRetryQueue, workerID int,
 		case <-ctx.Done():
 			return
 		default:
-			if request.Retries >= 5 {
+			if request.Retries >= maxRetries {
 				h.logger.Error(h.module, "", "[Worker=%d] Max retries reached for email %s. Dropping.", workerID, request.ID)
+
 				continue
 			}
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -175,11 +176,11 @@ func TestClientManager_RegenerateClientSecret(t *testing.T) {
 			res, err := sut.RegenerateClientSecret(ctx, clientID)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected error but got none")
+				require.Error(t, err, "Expected error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 				assert.Nil(t, res, "Expected nil response on error")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 				assert.NotNil(t, res, "Expected a response but got nil")
 			}
 		})
@@ -226,11 +227,11 @@ func TestClientManager_GetClientByID(t *testing.T) {
 
 			res, err := sut.GetClientByID(ctx, clientID)
 			if test.wantErr {
-				assert.Error(t, err, "Expected error but got none")
+				require.Error(t, err, "Expected error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 				assert.Nil(t, res, "Expected nil response on error")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 				assert.NotNil(t, res, "Expected a response but got nil")
 			}
 		})
@@ -283,11 +284,11 @@ func TestClientManager_GetClientInformation(t *testing.T) {
 			res, err := sut.GetClientInformation(ctx, clientID, "accessToken")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected error but got none")
+				require.Error(t, err, "Expected error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 				assert.Nil(t, res, "Expected nil response on error")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 				assert.NotNil(t, res, "Expected a response but got nil")
 			}
 		})
@@ -419,7 +420,7 @@ func TestClientManager_UpdateClientInformation(t *testing.T) {
 					}, nil
 				},
 				UpdateClientFunc: func(ctx context.Context, client *client.Client) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -432,11 +433,11 @@ func TestClientManager_UpdateClientInformation(t *testing.T) {
 			res, err := sut.UpdateClientInformation(ctx, clientID, "accessToken", test.request)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected error but got none")
+				require.Error(t, err, "Expected error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 				assert.Nil(t, res, "Expected nil response on error")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 				assert.NotNil(t, res, "Expected a response but got nil")
 			}
 		})
@@ -487,7 +488,7 @@ func TestClientManager_DeleteClientInformation(t *testing.T) {
 			},
 			repo: &clientMocks.MockClientRepository{
 				DeleteClientByIDFunc: func(ctx context.Context, clientID string) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -501,10 +502,10 @@ func TestClientManager_DeleteClientInformation(t *testing.T) {
 			err := sut.DeleteClientInformation(ctx, clientID, "accessToken")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected error but got none")
+				require.Error(t, err, "Expected error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 			}
 		})
 	}

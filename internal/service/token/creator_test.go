@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
@@ -14,6 +15,11 @@ import (
 	jwtMocks "github.com/vigiloauth/vigilo/v2/internal/mocks/jwt"
 	mockRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
+)
+
+const (
+	signedTokenStr string = "signed-token"
+	someRandomStr  string = "random-string"
 )
 
 func TestTokenCreator_CreateAccessToken(t *testing.T) {
@@ -36,12 +42,12 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 		},
@@ -53,17 +59,17 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 					return false, nil
 				},
 				SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *tokens.TokenData, expiration time.Time) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 		},
@@ -77,12 +83,12 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 		},
@@ -99,12 +105,12 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 		},
@@ -125,10 +131,10 @@ func TestTokenCreator_CreateAccessToken(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Empty(t, accessToken, "Expected the access token to be empty")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotEmpty(t, accessToken, "Expected the access token to not be empty")
 			}
 		})
@@ -155,12 +161,12 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 		},
@@ -172,17 +178,17 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 					return false, nil
 				},
 				SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *tokens.TokenData, expiration time.Time) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 		},
@@ -196,12 +202,12 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 		},
@@ -218,12 +224,12 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 		},
@@ -244,10 +250,10 @@ func TestTokenCreator_CreateRefreshToken(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Empty(t, refreshToken, "Expected the refresh token to be empty")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotEmpty(t, refreshToken, "Expected the refresh token to not be empty")
 			}
 		})
@@ -274,12 +280,12 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 		},
@@ -291,17 +297,17 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 					return false, nil
 				},
 				SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *tokens.TokenData, expiration time.Time) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 		},
@@ -315,12 +321,12 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 		},
@@ -337,12 +343,12 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -370,10 +376,10 @@ func TestTokenCreator_CreateAccessTokenWithClaims(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Empty(t, accessToken, "Expected the access token to be empty")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotEmpty(t, accessToken, "Expected the access token to not be empty")
 			}
 		})
@@ -400,12 +406,12 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 		},
@@ -417,17 +423,17 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 					return false, nil
 				},
 				SaveTokenFunc: func(ctx context.Context, token, id string, tokenData *tokens.TokenData, expiration time.Time) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 		},
@@ -441,12 +447,12 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "signed-token", nil
+					return signedTokenStr, nil
 				},
 			},
 		},
@@ -463,12 +469,12 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return someRandomStr, nil
 				},
 			},
 			jwt: &jwtMocks.MockJWTService{
 				SignTokenFunc: func(ctx context.Context, claims *tokens.TokenClaims) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -490,10 +496,10 @@ func TestTokenCreator_CreateIDToken(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Empty(t, IDToken, "Expected the ID token to be empty")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotEmpty(t, IDToken, "Expected the ID token to not be empty")
 			}
 		})

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -54,7 +53,7 @@ func NewConsentHandler(
 
 // HandleUserConsent handles user consent decisions for OAuth authorization
 func (h *ConsentHandler) HandleUserConsent(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)

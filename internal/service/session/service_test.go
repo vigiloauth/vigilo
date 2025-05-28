@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -43,7 +44,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.CreateSession(w, r, getTestSessionData())
-		assert.NoError(t, err, "Expected no error when creating a session")
+		require.NoError(t, err, "Expected no error when creating a session")
 	})
 
 	t.Run("Error is returned saving the session", func(t *testing.T) {
@@ -62,7 +63,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.CreateSession(w, r, getTestSessionData())
-		assert.Error(t, err, "Expected an error when creating a session")
+		require.Error(t, err, "Expected an error when creating a session")
 	})
 }
 
@@ -89,7 +90,7 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.InvalidateSession(w, r)
-		assert.NoError(t, err, "Expected no error when invalidating session")
+		require.NoError(t, err, "Expected no error when invalidating session")
 	})
 
 	t.Run("Error is returned retrieving session cookie", func(t *testing.T) {
@@ -104,7 +105,7 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.InvalidateSession(w, r)
-		assert.Error(t, err, "Expected an error when retrieving session cookie")
+		require.Error(t, err, "Expected an error when retrieving session cookie")
 	})
 
 	t.Run("Error is returned deleting session by ID", func(t *testing.T) {
@@ -128,7 +129,7 @@ func TestSessionService_InvalidateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.InvalidateSession(w, r)
-		assert.Error(t, err, "Expected an error when retrieving the session by ID")
+		require.Error(t, err, "Expected an error when retrieving the session by ID")
 	})
 }
 
@@ -149,7 +150,7 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		userID, err := service.GetUserIDFromSession(r)
-		assert.NoError(t, err, "Expected no error when invalidating session")
+		require.NoError(t, err, "Expected no error when invalidating session")
 		assert.Equal(t, testUserID, userID, "Expected user ID's to match")
 	})
 
@@ -164,7 +165,7 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		userID, err := service.GetUserIDFromSession(r)
-		assert.Error(t, err, "Expected an error retrieving session cookie")
+		require.Error(t, err, "Expected an error retrieving session cookie")
 		assert.Empty(t, userID, "Expected user ID to be empty")
 	})
 
@@ -184,7 +185,7 @@ func TestSessionService_GetUserIDFromSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		userID, err := service.GetUserIDFromSession(r)
-		assert.Error(t, err, "Expected an error retrieving session data")
+		require.Error(t, err, "Expected an error retrieving session data")
 		assert.Empty(t, userID, "Expected user ID to be empty")
 	})
 }
@@ -206,7 +207,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.UpdateSession(r, getTestSessionData())
-		assert.NoError(t, err, "Expected no error when updating session")
+		require.NoError(t, err, "Expected no error when updating session")
 	})
 
 	t.Run("Error is returned retrieving session cookie", func(t *testing.T) {
@@ -220,7 +221,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.UpdateSession(r, getTestSessionData())
-		assert.Error(t, err, "Expected an error when retrieving session cookie")
+		require.Error(t, err, "Expected an error when retrieving session cookie")
 	})
 
 	t.Run("Error is returned when cookie value and sessionID do not match", func(t *testing.T) {
@@ -234,7 +235,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.UpdateSession(r, getTestSessionData())
-		assert.Error(t, err, "Expected an error when updating session")
+		require.Error(t, err, "Expected an error when updating session")
 	})
 
 	t.Run("Error is returned updating session", func(t *testing.T) {
@@ -253,7 +254,7 @@ func TestSessionService_UpdateSession(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		err := service.UpdateSession(r, getTestSessionData())
-		assert.Error(t, err, "Expected an error when updating session by ID")
+		require.Error(t, err, "Expected an error when updating session by ID")
 	})
 }
 
@@ -274,7 +275,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		sessionData, err := service.GetSessionData(r)
-		assert.NoError(t, err, "Expected no error when retrieving session by ID")
+		require.NoError(t, err, "Expected no error when retrieving session by ID")
 		assert.NotNil(t, sessionData, "Expected session data to not be nil")
 	})
 
@@ -289,7 +290,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		sessionData, err := service.GetSessionData(r)
-		assert.Error(t, err, "Expected an error when retrieving session cookie")
+		require.Error(t, err, "Expected an error when retrieving session cookie")
 		assert.Nil(t, sessionData, "Expected session data to be nil")
 	})
 
@@ -309,7 +310,7 @@ func TestSessionService_GetSessionData(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 		sessionData, err := service.GetSessionData(r)
-		assert.Error(t, err, "Expected an error when retrieving session by ID")
+		require.Error(t, err, "Expected an error when retrieving session by ID")
 		assert.Nil(t, sessionData, "Expected session data to be nil")
 	})
 }

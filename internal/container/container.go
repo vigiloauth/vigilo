@@ -8,6 +8,8 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
+const thirtySecond time.Duration = 30 * time.Second
+
 type DIContainer struct {
 	serviceRegistry      *ServiceRegistry
 	handlerRegistry      *HandlerRegistry
@@ -23,6 +25,7 @@ type DIContainer struct {
 func NewDIContainer(logger *config.Logger) *DIContainer {
 	module := "DI Container"
 	logger.Info(module, "", "Initializing Dependencies")
+
 	return &DIContainer{
 		logger: logger,
 		module: module,
@@ -36,6 +39,7 @@ func (di *DIContainer) Init() *DIContainer {
 
 	di.exitCh = make(chan struct{})
 	di.serverConfigRegistry = NewServerConfigRegistry(di.serviceRegistry)
+
 	return di
 }
 
@@ -71,7 +75,7 @@ func (di *DIContainer) Shutdown() {
 	select {
 	case <-done:
 		di.logger.Info(di.module, "", "DI Container shut down successfully")
-	case <-time.After(30 * time.Second):
+	case <-time.After(thirtySecond):
 		di.logger.Warn(di.module, "", "Shutdown timeout reached. Forcing application exit.")
 	}
 }
@@ -86,5 +90,6 @@ func (l *LazyInit[T]) Get() T {
 	l.once.Do(func() {
 		l.value = l.initFunc()
 	})
+
 	return l.value
 }

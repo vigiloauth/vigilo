@@ -6,6 +6,8 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 )
 
+const oneDay time.Duration = 24 * time.Hour
+
 type TokenConfigYAML struct {
 	SecretKey            *string `yaml:"secret_key,omitempty"`
 	ExpirationTime       *int64  `yaml:"expiration_time,omitempty"`
@@ -27,7 +29,7 @@ func (tc *TokenConfigYAML) ToOptions() []config.TokenConfigOptions {
 	}
 
 	if tc.RefreshTokenDuration != nil {
-		duration := time.Duration(*tc.RefreshTokenDuration) * (24 * time.Hour)
+		duration := time.Duration(*tc.RefreshTokenDuration) * (oneDay)
 		options = append(options, config.WithRefreshTokenDuration(duration))
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -147,10 +148,10 @@ func TestTokenManager_Revoke(t *testing.T) {
 			err := service.Revoke(ctx, "token")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error codes to be equal")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}
@@ -196,10 +197,10 @@ func TestTokenManager_GetTokenData(t *testing.T) {
 			result, err := service.GetTokenData(ctx, "token")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error codes to be equal")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, result, "Expected result to not be nil")
 				assert.Equal(t, test.expectedTokenData.Token, result.Token, "Expected Token values to be equal")
 				assert.Equal(t, test.expectedTokenData.ID, result.ID, "Expected ID values to be equal")
@@ -229,7 +230,7 @@ func TestTokenManager_BlacklistToken(t *testing.T) {
 			wantErr: true,
 			repo: &mocks.MockTokenRepository{
 				BlacklistTokenFunc: func(ctx context.Context, token string) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -243,9 +244,9 @@ func TestTokenManager_BlacklistToken(t *testing.T) {
 			err := service.BlacklistToken(ctx, "token")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}
@@ -274,7 +275,7 @@ func TestTokenManager_DeleteExpiredTokens(t *testing.T) {
 			wantErr: true,
 			repo: &mocks.MockTokenRepository{
 				GetExpiredTokensFunc: func(ctx context.Context) ([]*token.TokenData, error) {
-					return nil, errors.NewInternalServerError()
+					return nil, errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -288,7 +289,7 @@ func TestTokenManager_DeleteExpiredTokens(t *testing.T) {
 					}, nil
 				},
 				DeleteTokenFunc: func(ctx context.Context, token string) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -302,9 +303,9 @@ func TestTokenManager_DeleteExpiredTokens(t *testing.T) {
 			err := service.DeleteExpiredTokens(ctx)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}
@@ -330,7 +331,7 @@ func TestTokenManager_DeleteToken(t *testing.T) {
 			wantErr: true,
 			repo: &mocks.MockTokenRepository{
 				DeleteTokenFunc: func(ctx context.Context, token string) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -344,9 +345,9 @@ func TestTokenManager_DeleteToken(t *testing.T) {
 			err := service.DeleteToken(ctx, "token")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}

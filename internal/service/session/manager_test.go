@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	mockCookies "github.com/vigiloauth/vigilo/v2/internal/mocks/cookies"
@@ -85,12 +86,12 @@ func TestSessionManager_GetUserAuthenticationTime(t *testing.T) {
 			authTime, err := sut.GetUserAuthenticationTime(ctx, test.request)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error message does not match")
 				assert.Equal(t, int64(0), authTime, "Expected authentication time to be zero on error")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
-				assert.Greater(t, authTime, int64(0), "Expected authentication time to be greater than zero")
+				require.NoError(t, err, "Expected no error but got one")
+				assert.Positive(t, authTime, "Expected authentication time to be greater than zero")
 			}
 		})
 	}

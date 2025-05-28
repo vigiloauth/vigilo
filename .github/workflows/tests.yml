@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
-        
+
       - name: Create .env.test file
         run: |
           echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env.test
@@ -30,20 +30,16 @@ jobs:
       - name: Install necessary dependencies
         run: go mod tidy
 
-      - name: Run service folder unit tests with coverage
-        run: go test -coverprofile=service-tests.out ./internal/service/...
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
 
-      - name: Run repository folder unit tests with coverage
-        run: go test -coverprofile=repository-tests.out ./internal/repository/...
-
-      - name: Run integration tests with coverage
-        run: go test -coverprofile=integration-tests.out ./tests/...
+      - name: Run tests with coverage
+        run: go test -coverprofile=coverage.out ./...
 
       - name: Upload all coverage reports
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
-          path: |
-            service-tests.out
-            repository-tests.out
-            integration-tests.out
+          path: coverage.out

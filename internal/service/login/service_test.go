@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	mLoginRepo "github.com/vigiloauth/vigilo/v2/internal/mocks/login"
@@ -37,19 +38,19 @@ func TestLoginService_SaveLoginAttempt(t *testing.T) {
 		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
 		err := service.SaveLoginAttempt(ctx, attempt)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Error is returned when database error occurs", func(t *testing.T) {
 		attempt := user.NewUserLoginAttempt(testIPAddress, testUserAgent)
 		mockLoginAttemptRepo.SaveLoginAttemptFunc = func(ctx context.Context, attempt *user.UserLoginAttempt) error {
-			return errors.NewInternalServerError()
+			return errors.NewInternalServerError("")
 		}
 
 		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
 		err := service.SaveLoginAttempt(ctx, attempt)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -68,8 +69,8 @@ func TestLoginService_GetLoginAttempts(t *testing.T) {
 		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
 
 		response, err := service.GetLoginAttemptsByUserID(ctx, testUserID)
-		assert.NoError(t, err)
-		assert.Equal(t, 1, len(response))
+		require.NoError(t, err)
+		assert.Len(t, response, 1)
 	})
 
 	t.Run("GetLoginAttempts returns an empty slice", func(t *testing.T) {
@@ -80,7 +81,7 @@ func TestLoginService_GetLoginAttempts(t *testing.T) {
 		service := NewLoginAttemptService(mockUserRepository, mockLoginAttemptRepo)
 
 		response, err := service.GetLoginAttemptsByUserID(ctx, testUserID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Empty(t, response)
 	})
 }
@@ -125,7 +126,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 		attempt.UserID = testUserID
 		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, attemptSaved)
 		assert.True(t, userUpdated)
 		assert.False(t, loginUser.AccountLocked)
@@ -174,7 +175,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 
 		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, userLocked)
 		assert.True(t, loginUser.AccountLocked)
 	})
@@ -200,7 +201,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 
 		mockUserRepo := &mUserRepo.MockUserRepository{
 			UpdateUserFunc: func(ctx context.Context, updatedUser *user.User) error {
-				return errors.NewInternalServerError()
+				return errors.NewInternalServerError("")
 			},
 		}
 
@@ -210,7 +211,7 @@ func TestLoginService_HandleFailedLoginAttempt(t *testing.T) {
 
 		err := service.HandleFailedLoginAttempt(ctx, loginUser, attempt)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to update the user")
 	})
 }

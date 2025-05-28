@@ -41,6 +41,7 @@ func GetInMemoryLoginRepository() *InMemoryLoginAttemptRepository {
 			attempts: make(map[string][]*user.UserLoginAttempt),
 		}
 	})
+
 	return instance
 }
 
@@ -88,6 +89,7 @@ func (s *InMemoryLoginAttemptRepository) GetLoginAttemptsByUserID(ctx context.Co
 	if !found {
 		return nil, errors.New(errors.ErrCodeNotFound, "failed to retrieve user login attempts")
 	}
+
 	return attempts, nil
 }
 

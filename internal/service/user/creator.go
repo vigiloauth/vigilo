@@ -67,14 +67,13 @@ func (u *userCreator) CreateUser(
 			u.audit.StoreEvent(ctx, audit.RegistrationAttempt, false, audit.RegistrationAction, audit.EmailMethod, err)
 		} else {
 			u.audit.StoreEvent(ctx, audit.RegistrationAttempt, true, audit.RegistrationAction, audit.EmailMethod, err)
-
 		}
 	}()
 
 	encryptedPassword, err := u.cryptographer.HashString(user.Password)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[CreateUser]: Failed to encrypt password: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to encrypt password")
 	}
 
 	user.Password = encryptedPassword

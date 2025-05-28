@@ -1,0 +1,43 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - ineffassign
+    - bodyclose
+    - contextcheck
+    - containedctx
+    - errorlint
+    - gocognit
+    - goconst
+    - godox
+    - maintidx
+    - misspell
+    - mnd
+    - nestif
+    - sqlclosecheck
+    - testifylint
+    - unparam
+    - whitespace
+    - wrapcheck
+
+linters-settings:
+  iface:
+    enable:
+      - identical
+      - unused
+      - opaque
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  exclude-use-default: false

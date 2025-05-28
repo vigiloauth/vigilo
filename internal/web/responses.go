@@ -25,7 +25,7 @@ func WriteJSON(w http.ResponseWriter, status int, data any) {
 
 // WriteError writes an error as JSON response with appropriate HTTP status code
 func WriteError(w http.ResponseWriter, err error) {
-	if e, ok := err.(*errors.ErrorCollection); ok {
+	if e, ok := err.(*errors.ErrorCollection); ok { //nolint:errorlint
 		err := errors.VigiloAuthError{
 			ErrorCode:        errors.ErrCodeValidationError,
 			ErrorDescription: "One or more validation errors occurred",

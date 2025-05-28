@@ -16,6 +16,8 @@ import (
 
 var _ domain.AuthorizationCodeCreator = (*authorizationCodeCreator)(nil)
 
+const authorizationCodeLength int = 32
+
 type authorizationCodeCreator struct {
 	repo          domain.AuthorizationCodeRepository
 	cryptographer crypto.Cryptographer
@@ -32,10 +34,9 @@ func NewAuthorizationCodeCreator(
 	return &authorizationCodeCreator{
 		repo:          repo,
 		cryptographer: cryptographer,
-
-		codeLifeTime: config.GetServerConfig().AuthorizationCodeDuration(),
-		logger:       config.GetServerConfig().Logger(),
-		module:       "Authorization Code Creator",
+		codeLifeTime:  config.GetServerConfig().AuthorizationCodeDuration(),
+		logger:        config.GetServerConfig().Logger(),
+		module:        "Authorization Code Creator",
 	}
 }
 
@@ -100,7 +101,7 @@ func (c *authorizationCodeCreator) handlePKCECreation(
 		codeData.CodeChallenge = req.CodeChallenge
 		codeData.CodeChallengeMethod = req.CodeChallengeMethod
 	} else {
-		code, err := c.cryptographer.GenerateRandomString(32)
+		code, err := c.cryptographer.GenerateRandomString(authorizationCodeLength)
 		if err != nil {
 			c.logger.Error(c.module, requestID, "[handlePKCECreation] Error generating random string for authorization code: %v", err)
 			return errors.Wrap(err, "", "Failed to generate authorization code")
@@ -115,7 +116,7 @@ func (c *authorizationCodeCreator) generateAuthorizationCodeForPKCE(
 	requestID string,
 	req *client.ClientAuthorizationRequest,
 ) (string, error) {
-	baseAuthorizationCode, err := c.cryptographer.GenerateRandomString(32)
+	baseAuthorizationCode, err := c.cryptographer.GenerateRandomString(authorizationCodeLength)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[generateAuthorizationCodeForPKCE] Error generating random string for PKCE authorization code: %v", err)
 		return "", errors.Wrap(err, "", "Failed to generate PKCE authorization code")
@@ -123,5 +124,6 @@ func (c *authorizationCodeCreator) generateAuthorizationCodeForPKCE(
 
 	combinedAuthorizationCode := fmt.Sprintf("%s|%s|%s", baseAuthorizationCode, req.CodeChallenge, req.CodeChallengeMethod)
 	encodedAuthorizationCode := base64.RawURLEncoding.EncodeToString([]byte(combinedAuthorizationCode))
+
 	return encodedAuthorizationCode, nil
 }

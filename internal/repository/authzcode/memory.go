@@ -41,6 +41,7 @@ func GetInMemoryAuthorizationCodeRepository() *InMemoryAuthorizationCodeReposito
 			codes: make(map[string]codeEntry),
 		}
 	})
+
 	return instance
 }
 

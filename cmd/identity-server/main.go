@@ -18,7 +18,7 @@ import (
 
 func main() {
 	isDockerENV := os.Getenv(constants.VigiloServerModeENV) == "docker"
-	if isDockerENV {
+	if isDockerENV { //nolint
 		cfg := config.LoadConfigurations()
 
 		baseURL := "/identity"
@@ -48,7 +48,6 @@ func main() {
 			if cfg.LogLevel != nil {
 				logger.SetLevel(*cfg.LogLevel)
 			}
-
 		}
 
 		if !strings.HasPrefix(baseURL, "/") {

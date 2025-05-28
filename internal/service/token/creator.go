@@ -19,6 +19,8 @@ import (
 
 var _ token.TokenCreator = (*tokenCreator)(nil)
 
+const tokenIDLength int = 32
+
 type tokenCreator struct {
 	repo          token.TokenRepository
 	jwtService    jwtService.JWTService
@@ -316,7 +318,7 @@ func (t *tokenCreator) attemptTokenGeneration(
 	signedToken, err := t.jwtService.SignToken(ctx, standardClaims)
 	if err != nil {
 		t.logger.Error(t.module, requestID, "[attemptTokenGeneration]: Failed to sign token: %v", err)
-		return "", err
+		return "", errors.Wrap(err, "", "failed to sign token")
 	}
 
 	hashedToken := utils.EncodeSHA256(signedToken)
@@ -330,7 +332,7 @@ func (t *tokenCreator) attemptTokenGeneration(
 
 	if err := t.repo.SaveToken(ctx, hashedToken, subject, tokenData, time.Now().Add(time.Duration(duration))); err != nil {
 		t.logger.Error(t.module, requestID, "[attemptTokenGeneration]: Failed to save token: %v", err)
-		return "", err
+		return "", errors.Wrap(err, "", "failed to save token")
 	}
 
 	return signedToken, nil
@@ -350,10 +352,10 @@ func (t *tokenCreator) generateStandardClaims(
 ) (*token.TokenClaims, error) {
 	requestID := utils.GetRequestID(ctx)
 
-	tokenID, err := t.cryptographer.GenerateRandomString(32)
+	tokenID, err := t.cryptographer.GenerateRandomString(tokenIDLength)
 	if err != nil {
 		t.logger.Error(t.module, requestID, "[generateStandardClaims]: Failed to generate token ID: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to generate ID token")
 	}
 
 	tokenClaims := &token.TokenClaims{
@@ -369,7 +371,7 @@ func (t *tokenCreator) generateStandardClaims(
 	existsByID, err := t.repo.ExistsByTokenID(ctx, tokenID)
 	if err != nil {
 		t.logger.Error(t.module, requestID, "[generateStandardClaims]: An error occurred retrieving the token: %v", err)
-		return nil, err
+		return nil, errors.Wrap(err, "", "failed to verify if token exists by token ID")
 	} else if existsByID {
 		t.logger.Warn(t.module, requestID, "[generateStandardClaims]: Failed to generate standard claims. Token already exists.")
 		return nil, errors.New(errors.ErrCodeInternalServerError, "token ID already exists")

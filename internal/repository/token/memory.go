@@ -229,8 +229,10 @@ func (b *InMemoryTokenRepository) GetExpiredTokens(ctx context.Context) ([]*doma
 
 // truncateToken truncates a token for safe logging.
 func truncateToken(token string) string {
-	if len(token) > 10 {
-		return token[:10] + "..."
+	const tokenLength int = 10
+	if len(token) > tokenLength {
+		return token[:tokenLength] + "..."
 	}
+
 	return token
 }

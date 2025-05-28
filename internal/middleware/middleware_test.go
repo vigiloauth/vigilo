@@ -142,3 +142,104 @@ func TestRateLimit(t *testing.T) {
 
 	assert.Equal(t, http.StatusTooManyRequests, w.Code)
 }
+func TestAuthMiddleware_TokenInPostBody(t *testing.T) {
+	tokenString := "validToken"
+
+	tokenParser := &mocks.MockTokenParser{
+		ParseTokenFunc: func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+			return &token.TokenClaims{
+				StandardClaims: &jwt.StandardClaims{
+					Subject: email,
+				},
+			}, nil
+		},
+	}
+	tokenValidator := &mocks.MockTokenValidator{
+		ValidateTokenFunc: func(ctx context.Context, tokenStr string) error {
+			return nil
+		},
+	}
+
+	middleware := NewMiddleware(tokenParser, tokenValidator)
+
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("access_token="+tokenString))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusOK, w.Code, "expected status code to be 200 OK")
+}
+
+func TestAuthMiddleware_MissingTokenInPostBody(t *testing.T) {
+	middleware := NewMiddleware(nil, nil)
+
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(""))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "expected status code to be 401 Unauthorized")
+}
+
+func TestAuthMiddleware_InvalidTokenInPostBody(t *testing.T) {
+	tokenParser := &mocks.MockTokenParser{
+		ParseTokenFunc: func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
+			return nil, errors.New(errors.ErrCodeInvalidToken, "invalid-token")
+		},
+	}
+
+	middleware := NewMiddleware(tokenParser, nil)
+
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("access_token=invalid.token"))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "expected status code to be 401 Unauthorized")
+}
+
+func TestAuthMiddleware_MissingAuthorizationHeader(t *testing.T) {
+	middleware := NewMiddleware(nil, nil)
+
+	r := httptest.NewRequest("GET", "/", nil)
+	w := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "expected status code to be 401 Unauthorized")
+}
+
+func TestAuthMiddleware_InvalidAuthorizationHeader(t *testing.T) {
+	middleware := NewMiddleware(nil, nil)
+
+	r := httptest.NewRequest("GET", "/", nil)
+	r.Header.Set("Authorization", "InvalidHeader")
+	w := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	handler.ServeHTTP(w, r)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "expected status code to be 401 Unauthorized")
+}

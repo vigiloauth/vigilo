@@ -173,7 +173,7 @@ func (h *UserHandler) OAuthLogin(w http.ResponseWriter, r *http.Request) {
 // adds the token to the blacklist to prevent further use, and sends an appropriate response.
 // If the Authorization header is missing or the token is invalid, it returns an error.
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -192,7 +192,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 // It decodes the request body into a UserPasswordResetRequest, validates the request,
 // and then calls the passwordResetService to reset the user's password.
 func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -225,7 +225,7 @@ func (h *UserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) VerifyAccount(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)

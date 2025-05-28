@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -14,6 +15,10 @@ import (
 	sessionMocks "github.com/vigiloauth/vigilo/v2/internal/mocks/session"
 	consentMocks "github.com/vigiloauth/vigilo/v2/internal/mocks/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
+)
+
+const (
+	userID string = "userID"
 )
 
 func TestClientAuthorization_Authorize(t *testing.T) {
@@ -47,7 +52,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {
-			return "userID", nil
+			return userID, nil
 		}
 		mockSession.GetUserAuthenticationTimeFunc = func(ctx context.Context, r *http.Request) (int64, error) {
 			return int64(1800), nil
@@ -61,7 +66,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 		redirectURL, err := sut.Authorize(ctx, req)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Contains(t, redirectURL, "code")
 	})
 
@@ -93,7 +98,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 		redirectURL, err := sut.Authorize(ctx, req)
 
 		assert.Contains(t, redirectURL, "consent")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("should force login if prompt is set to login", func(t *testing.T) {
@@ -113,7 +118,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 		redirectURL, err := sut.Authorize(ctx, req)
 
 		assert.Contains(t, redirectURL, "authenticate")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("should return login required error if user is not authenticated", func(t *testing.T) {
@@ -136,7 +141,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 		redirectURL, err := sut.Authorize(ctx, req)
 
 		assert.Contains(t, redirectURL, "authentication+required+to+continue")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("unauthorized error is returned when authorization request validation fails", func(t *testing.T) {
@@ -155,7 +160,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 		_, err := sut.Authorize(ctx, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, errors.SystemErrorCodeMap[errors.ErrCodeUnauthorized], errors.SystemErrorCode(err))
 	})
 
@@ -172,7 +177,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 
 		_, err := sut.Authorize(ctx, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, errors.SystemErrorCodeMap[errors.ErrCodeUnauthorizedClient], errors.SystemErrorCode(err))
 	})
 
@@ -195,7 +200,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 		redirectURL, err := sut.Authorize(ctx, req)
 
 		assert.Contains(t, redirectURL, "authenticate")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("consent required error is returned when rejecting missing consent", func(t *testing.T) {
@@ -212,7 +217,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {
-			return "userID", nil
+			return userID, nil
 		}
 		mockSession.GetUserAuthenticationTimeFunc = func(ctx context.Context, r *http.Request) (int64, error) {
 			return int64(1800), nil
@@ -224,7 +229,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 		redirectURL, err := sut.Authorize(ctx, req)
 
 		assert.Contains(t, redirectURL, "consent")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("internal server error should be returned when issuing the authorization code fails", func(t *testing.T) {
@@ -241,7 +246,7 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 			return nil
 		}
 		mockSession.GetUserIDFromSessionFunc = func(ctx context.Context, r *http.Request) (string, error) {
-			return "userID", nil
+			return userID, nil
 		}
 		mockSession.GetUserAuthenticationTimeFunc = func(ctx context.Context, r *http.Request) (int64, error) {
 			return int64(1800), nil
@@ -250,12 +255,12 @@ func TestClientAuthorization_Authorize(t *testing.T) {
 			return true, nil
 		}
 		mockIssuer.IssueAuthorizationCodeFunc = func(ctx context.Context, req *client.ClientAuthorizationRequest) (string, error) {
-			return "", errors.NewInternalServerError()
+			return "", errors.NewInternalServerError("")
 		}
 
 		_, err := sut.Authorize(ctx, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError], errors.SystemErrorCode(err))
 	})
 }

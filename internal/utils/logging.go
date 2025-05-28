@@ -13,8 +13,9 @@ import (
 //   - string: A truncated version of the string with "[REDACTED]" appended if its length
 //     is greater than 5. Otherwise, returns the original string.
 func TruncateSensitive(data string) string {
-	if len(data) > 5 {
-		return data[:5] + "[REDACTED]"
+	const minDataLength int = 5
+	if len(data) > minDataLength {
+		return data[:minDataLength] + "[REDACTED]"
 	}
 
 	return data

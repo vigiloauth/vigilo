@@ -50,5 +50,4 @@ func (s *VigiloIdentityServer) HTTPServer() *http.Server {
 
 func (s *VigiloIdentityServer) Shutdown() {
 	s.container.Shutdown()
-
 }

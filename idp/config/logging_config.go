@@ -89,7 +89,6 @@ func (l *Logger) SetLevel(level string) {
 			)
 			_, _ = fmt.Fprintln(os.Stdout, logLine)
 		}
-
 	} else {
 		timestamp := time.Now().Format("2006-01-02 15:04:05.000")
 		logLine := fmt.Sprintf("%s[%s] %s%s%s [LOGGER] Invalid log level: %s. Using INFO",
@@ -133,7 +132,7 @@ func (l *Logger) log(level LogLevel, module string, requestID string, format str
 	message := fmt.Sprintf(format, args...)
 
 	var logLine string
-	if colorized {
+	if colorized { //nolint
 		colorCode := colors[level]
 		// Include requestID if provided
 		if requestID != "" {

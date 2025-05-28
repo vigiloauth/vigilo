@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	clients "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 
@@ -27,7 +28,7 @@ func TestClientValidator_ValidateRegistrationRequest(t *testing.T) {
 		client := createClientRegistrationRequest()
 		client.Scopes = []types.Scope{}
 		err := sut.ValidateRegistrationRequest(ctx, client)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Invalid Grant Types", func(t *testing.T) {
@@ -37,7 +38,7 @@ func TestClientValidator_ValidateRegistrationRequest(t *testing.T) {
 		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentialsGrantType)
 
 		err := sut.ValidateRegistrationRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid Redirect URIS", func(t *testing.T) {
@@ -46,7 +47,7 @@ func TestClientValidator_ValidateRegistrationRequest(t *testing.T) {
 		client.RedirectURIs = append(client.RedirectURIs, invalidRedirectURI)
 
 		err := sut.ValidateRegistrationRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid Scopes", func(t *testing.T) {
@@ -55,7 +56,7 @@ func TestClientValidator_ValidateRegistrationRequest(t *testing.T) {
 		client.Scopes = append(client.Scopes, types.Scope(invalidScope))
 
 		err := sut.ValidateRegistrationRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid Response Types", func(t *testing.T) {
@@ -63,7 +64,7 @@ func TestClientValidator_ValidateRegistrationRequest(t *testing.T) {
 		client.ResponseTypes = []string{constants.TokenResponseType}
 
 		err := sut.ValidateRegistrationRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid JWKS URI", func(t *testing.T) {
@@ -71,7 +72,7 @@ func TestClientValidator_ValidateRegistrationRequest(t *testing.T) {
 		client.JwksURI = "http/invalid.org/public_keys.jwks"
 
 		err := sut.ValidateRegistrationRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid Logo URI", func(t *testing.T) {
@@ -79,7 +80,7 @@ func TestClientValidator_ValidateRegistrationRequest(t *testing.T) {
 		client.LogoURI = "http/invalid.org/logo.png"
 
 		err := sut.ValidateRegistrationRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -90,7 +91,7 @@ func TestClientValidator_ValidateUpdateRequest(t *testing.T) {
 	t.Run("Successful Validation", func(t *testing.T) {
 		client := createClientUpdateRequest()
 		err := sut.ValidateUpdateRequest(ctx, client)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Invalid Grant Types", func(t *testing.T) {
@@ -98,7 +99,7 @@ func TestClientValidator_ValidateUpdateRequest(t *testing.T) {
 		client.GrantTypes = append(client.GrantTypes, constants.ClientCredentialsGrantType)
 
 		err := sut.ValidateUpdateRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid Redirect URIS", func(t *testing.T) {
@@ -107,7 +108,7 @@ func TestClientValidator_ValidateUpdateRequest(t *testing.T) {
 		client.RedirectURIs = append(client.RedirectURIs, invalidRedirectURI)
 
 		err := sut.ValidateUpdateRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid Scopes", func(t *testing.T) {
@@ -116,7 +117,7 @@ func TestClientValidator_ValidateUpdateRequest(t *testing.T) {
 		client.Scopes = append(client.Scopes, types.Scope(invalidScope))
 
 		err := sut.ValidateUpdateRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid Response Types", func(t *testing.T) {
@@ -124,7 +125,7 @@ func TestClientValidator_ValidateUpdateRequest(t *testing.T) {
 		client.ResponseTypes = []string{constants.TokenResponseType}
 
 		err := sut.ValidateUpdateRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid JWKS URI", func(t *testing.T) {
@@ -132,7 +133,7 @@ func TestClientValidator_ValidateUpdateRequest(t *testing.T) {
 		client.JwksURI = "http/invalid.org/public_keys.jwks"
 
 		err := sut.ValidateUpdateRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Invalid Logo URI", func(t *testing.T) {
@@ -140,7 +141,7 @@ func TestClientValidator_ValidateUpdateRequest(t *testing.T) {
 		client.LogoURI = "http/invalid.org/logo.png"
 
 		err := sut.ValidateUpdateRequest(ctx, client)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -177,7 +178,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 
 		for _, test := range tests {
 			err := sut.ValidateAuthorizationRequest(ctx, test.request)
-			assert.NoError(t, err, fmt.Sprintf("expected no error for %s", test.name))
+			require.NoError(t, err)
 		}
 	})
 
@@ -210,7 +211,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 
 		for _, test := range tests {
 			err := sut.ValidateAuthorizationRequest(ctx, test.request)
-			assert.Error(t, err, fmt.Sprintf("expected error for %s", test.name))
+			require.Error(t, err)
 			expectedMessage := "invalid characters: only A-Z, a-z, 0-9, '-', and '_' are allowed (Base64 URL encoding)"
 			assert.Contains(t, expectedMessage, err.Error())
 		}
@@ -228,7 +229,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 		err := sut.ValidateAuthorizationRequest(ctx, request)
 		expectedErr := fmt.Sprintf("invalid code challenge length (%d): must be between 43 and 128 characters", len(request.CodeChallenge))
 
-		assert.Error(t, err, "expected an error when code challenge is too short")
+		require.Error(t, err, "expected an error when code challenge is too short")
 		assert.Contains(t, expectedErr, err.Error())
 	})
 
@@ -244,7 +245,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 		err := sut.ValidateAuthorizationRequest(ctx, request)
 		expectedErr := "invalid code challenge method: 'invalid'. Valid methods are 'plain' and 'SHA-256'"
 
-		assert.Error(t, err, "expected an error when code challenge method is not plain or SHA-256")
+		require.Error(t, err, "expected an error when code challenge method is not plain or SHA-256")
 		assert.Contains(t, expectedErr, err.Error())
 	})
 
@@ -257,7 +258,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 		}
 
 		err := sut.ValidateAuthorizationRequest(ctx, request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, types.PlainCodeChallengeMethod, request.CodeChallengeMethod)
 	})
 
@@ -278,7 +279,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 		err := sut.ValidateAuthorizationRequest(ctx, request)
 		expectedError := "code response type is required to receive an authorization code"
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, expectedError, err.Error())
 	})
 
@@ -295,7 +296,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 		}
 
 		err := sut.ValidateAuthorizationRequest(ctx, request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Error is returned when the client does not have authorization code grant", func(t *testing.T) {
@@ -313,7 +314,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 		err := sut.ValidateAuthorizationRequest(ctx, request)
 		expectedErr := "authorization code grant is required for this request"
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, expectedErr, err.Error())
 	})
 
@@ -334,7 +335,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 		err := sut.ValidateAuthorizationRequest(ctx, request)
 		expectedErr := "public clients are required to use PKCE"
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), expectedErr)
 	})
 
@@ -351,7 +352,7 @@ func TestClientValidator_ValidateAuthorizationRequest(t *testing.T) {
 		}
 
 		err := sut.ValidateAuthorizationRequest(ctx, request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -488,10 +489,10 @@ func TestClientValidator_ValidateClientAndRegistrationAccessToken(t *testing.T) 
 			err := sut.ValidateClientAndRegistrationAccessToken(ctx, clientID, "token")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected errors to match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}

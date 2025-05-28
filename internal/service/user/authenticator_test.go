@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -134,11 +135,11 @@ func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
 			resp, err := service.AuthenticateUser(ctx, test.request)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to be equal")
 				assert.Nil(t, resp, "Expected response to be nil but got: %v", resp)
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, resp, "Expected response to not be nil")
 			}
 		})

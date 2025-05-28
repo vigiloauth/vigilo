@@ -37,6 +37,7 @@ func (a *AuditJobs) PurgeLogs(ctx context.Context) {
 			cutoff := time.Now().Add(-a.retentionPeriod)
 			if err := a.auditLogger.DeleteOldEvents(ctx, cutoff); err != nil {
 				a.logger.Error(a.module, "", "[PurgeLogs]: There was an error deleting old audit logs: %v", err)
+
 				continue
 			}
 		case <-ctx.Done():

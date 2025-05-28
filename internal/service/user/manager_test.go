@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -74,7 +75,7 @@ func TestUserManager_GetUserByUsername(t *testing.T) {
 			expectedRes: nil,
 			repo: &userMocks.MockUserRepository{
 				GetUserByUsernameFunc: func(ctx context.Context, username string) (*users.User, error) {
-					return nil, errors.NewInternalServerError()
+					return nil, errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -88,11 +89,11 @@ func TestUserManager_GetUserByUsername(t *testing.T) {
 			res, err := sut.GetUserByUsername(ctx, username)
 
 			if test.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err))
 				assert.Nil(t, res)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, res)
 				assert.Equal(t, test.expectedRes.ID, res.ID)
 				assert.Equal(t, test.expectedRes.PreferredUsername, res.PreferredUsername, "Expected usernames to be equal")
@@ -153,7 +154,7 @@ func TestUserManager_GetUserByID(t *testing.T) {
 			expectedRes: nil,
 			repo: &userMocks.MockUserRepository{
 				GetUserByIDFunc: func(ctx context.Context, username string) (*users.User, error) {
-					return nil, errors.NewInternalServerError()
+					return nil, errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -167,11 +168,11 @@ func TestUserManager_GetUserByID(t *testing.T) {
 			res, err := sut.GetUserByID(ctx, userID)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to match")
 				assert.Nil(t, res, "Expected result to not be nil")
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, res)
 				assert.Equal(t, test.expectedRes.ID, res.ID)
 				assert.Equal(t, test.expectedRes.MiddleName, res.MiddleName, "Expected middle names to be equal")
@@ -208,7 +209,7 @@ func TestUserManager_DeleteUnverifiedUsers(t *testing.T) {
 			expectedErr: errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError],
 			repo: &userMocks.MockUserRepository{
 				FindUnverifiedUsersOlderThanWeekFunc: func(ctx context.Context) ([]*users.User, error) {
-					return nil, errors.NewInternalServerError()
+					return nil, errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -234,10 +235,10 @@ func TestUserManager_DeleteUnverifiedUsers(t *testing.T) {
 		err := sut.DeleteUnverifiedUsers(ctx)
 
 		if test.wantErr {
-			assert.Error(t, err, "Expected an error but got none")
+			require.Error(t, err, "Expected an error but got none")
 			assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to match")
 		} else {
-			assert.NoError(t, err, "Expected no error but got: %v", err)
+			require.NoError(t, err, "Expected no error but got: %v", err)
 		}
 	}
 }
@@ -269,7 +270,7 @@ func TestUserManager_ResetPassword(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			parser: &tokens.MockTokenParser{
@@ -301,7 +302,7 @@ func TestUserManager_ResetPassword(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			parser: &tokens.MockTokenParser{
@@ -329,7 +330,7 @@ func TestUserManager_ResetPassword(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			parser: &tokens.MockTokenParser{
@@ -358,7 +359,7 @@ func TestUserManager_ResetPassword(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			manager: &tokens.MockTokenManager{
@@ -379,12 +380,12 @@ func TestUserManager_ResetPassword(t *testing.T) {
 					}, nil
 				},
 				UpdateUserFunc: func(ctx context.Context, user *users.User) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 			crypto: &mocks.MockCryptographer{
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			parser: &tokens.MockTokenParser{
@@ -412,10 +413,10 @@ func TestUserManager_ResetPassword(t *testing.T) {
 			res, err := sut.ResetPassword(ctx, email, "newPassword", "resetToken")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, res, "Expected result to not be nil")
 			}
 		})

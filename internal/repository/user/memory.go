@@ -60,7 +60,7 @@ func (u *InMemoryUserRepository) AddUser(ctx context.Context, user *user.User) e
 	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[AddUser]: Context already cancelled")
-		return err
+		return errors.NewContextError(err) //nolint:wrapcheck
 	}
 
 	u.mu.RLock()
@@ -95,7 +95,7 @@ func (u *InMemoryUserRepository) GetUserByUsername(ctx context.Context, username
 	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[GetUserByUsername]: Context already cancelled")
-		return nil, err
+		return nil, errors.NewContextError(err) //nolint:wrapcheck
 	}
 
 	u.mu.RLock()
@@ -125,7 +125,7 @@ func (u *InMemoryUserRepository) GetUserByID(ctx context.Context, userID string)
 	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[GetUserByID]: Context already cancelled")
-		return nil, err
+		return nil, errors.NewContextError(err) //nolint:wrapcheck
 	}
 
 	u.mu.RLock()
@@ -153,7 +153,7 @@ func (u *InMemoryUserRepository) GetUserByEmail(ctx context.Context, email strin
 	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[GetUserByEmail]: Context already cancelled")
-		return nil, err
+		return nil, errors.NewContextError(err) //nolint:wrapcheck
 	}
 
 	u.mu.RLock()
@@ -197,7 +197,7 @@ func (u *InMemoryUserRepository) UpdateUser(ctx context.Context, user *user.User
 	requestID := utils.GetRequestID(ctx)
 	if err := ctx.Err(); err != nil {
 		logger.Debug(module, requestID, "[UpdateUser]: Context already cancelled")
-		return err
+		return errors.NewContextError(err) //nolint
 	}
 
 	u.mu.Lock()
@@ -205,10 +205,7 @@ func (u *InMemoryUserRepository) UpdateUser(ctx context.Context, user *user.User
 
 	if _, ok := u.users[user.ID]; !ok {
 		logger.Debug(module, requestID, "[UpdateUser]: User not found with the given ID=[%s]", user.ID)
-		return errors.New(
-			errors.ErrCodeUserNotFound,
-			"user does not exist with the provided ID",
-		)
+		return errors.New(errors.ErrCodeUserNotFound, "user does not exist with the provided ID")
 	}
 
 	u.users[user.ID] = user

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/authorization"
@@ -57,7 +58,7 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 
 				userInfoResponse, err := service.GetUserInfo(context.Background(), accessTokenClaims)
 
-				assert.NoError(t, err, "Expected no error when retrieving user info")
+				require.NoError(t, err, "Expected no error when retrieving user info")
 				assert.NotNil(t, userInfoResponse, "Expected user info response to be non-nil")
 
 				assert.Equal(t, expectedUser.ID, userInfoResponse.Sub, "Expected user ID in response to match expected user ID")
@@ -77,7 +78,7 @@ func TestOIDCService_GetUserInfo(t *testing.T) {
 
 		userInfoResponse, err := service.GetUserInfo(context.Background(), accessTokenClaims)
 
-		assert.Error(t, err, "Expected an error when retrieving user info with invalid scopes")
+		require.Error(t, err, "Expected an error when retrieving user info with invalid scopes")
 		assert.Nil(t, userInfoResponse, "Expected user info response to be nil when an error occurs")
 	})
 }

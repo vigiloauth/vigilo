@@ -84,7 +84,7 @@ func (s *tokenGrantProcessor) IssueClientCredentialsToken(
 	accessToken, refreshToken, err := s.tokenIssuer.IssueTokenPair(ctx, "", clientID, scopes, "", "", nil)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: Failed to issue tokens: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to issue access and refresh tokens")
 	}
 
 	return &tokens.TokenResponse{
@@ -140,7 +140,7 @@ func (s *tokenGrantProcessor) IssueResourceOwnerToken(
 	accessToken, refreshToken, err := s.tokenIssuer.IssueTokenPair(ctx, authenticatedUser.UserID, clientID, scopes, "", "", nil)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to issue tokens: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to issue token pair")
 	}
 
 	return &tokens.TokenResponse{
@@ -150,7 +150,6 @@ func (s *tokenGrantProcessor) IssueResourceOwnerToken(
 		ExpiresIn:    s.tokenDuration,
 		Scope:        scopes,
 	}, nil
-
 }
 
 // RefreshToken issues a new access token using a valid refresh token.

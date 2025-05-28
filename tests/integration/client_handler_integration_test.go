@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -70,7 +71,7 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 			defer testContext.TearDown()
 
 			requestBody, err := json.Marshal(test.requestBody)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			rr := testContext.SendHTTPRequest(
 				http.MethodPost,
@@ -82,7 +83,7 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 			assert.Equal(t, test.expectedStatus, rr.Code)
 			var responseBody client.ClientRegistrationResponse
 			err = json.NewDecoder(rr.Body).Decode(&responseBody)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// For confidential clients, verify client secret was generated
 			if test.isPublicClient {
@@ -95,7 +96,7 @@ func TestClientHandler_RegisterClient(t *testing.T) {
 				assert.NotEmpty(t, responseBody.ID)
 				assert.Equal(t, test.requestBody.Name, responseBody.Name)
 				assert.Equal(t, test.requestBody.Type, responseBody.Type)
-				assert.NotEqual(t, "", responseBody.RegistrationAccessToken)
+				assert.NotEmpty(t, responseBody.RegistrationAccessToken)
 				assert.ElementsMatch(t, test.requestBody.RedirectURIs, responseBody.RedirectURIs)
 			}
 		})
@@ -108,7 +109,7 @@ func TestClientHandler_RegisterClient_InvalidRequestFormat(t *testing.T) {
 	defer testContext.TearDown()
 
 	requestBody, err := json.Marshal(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	rr := testContext.SendHTTPRequest(
 		http.MethodPost,
@@ -128,7 +129,7 @@ func TestClientHandler_RegisterClient_MissingRequiredFields(t *testing.T) {
 	defer testContext.TearDown()
 
 	requestBody, err := json.Marshal(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	rr := testContext.SendHTTPRequest(
 		http.MethodPost,
@@ -149,7 +150,7 @@ func TestClientHandler_RegisterClient_InvalidRedirectURIS(t *testing.T) {
 	defer testContext.TearDown()
 
 	requestBody, err := json.Marshal(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	rr := testContext.SendHTTPRequest(
 		http.MethodPost,
@@ -170,7 +171,7 @@ func TestClientHandler_RegisterClient_InvalidGrantTypes(t *testing.T) {
 	defer testContext.TearDown()
 
 	requestBody, err := json.Marshal(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	rr := testContext.SendHTTPRequest(
 		http.MethodPost,
@@ -190,7 +191,7 @@ func TestClientHandler_RegisterClient_InvalidContentType(t *testing.T) {
 	defer testContext.TearDown()
 
 	requestBody, err := json.Marshal(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	headers := map[string]string{"Content-Type": "text/plain"}
 
@@ -225,7 +226,7 @@ func TestClientHandler_RegenerateClientSecret_Success(t *testing.T) {
 
 	var response client.ClientSecretRegenerationResponse
 	err := json.NewDecoder(rr.Body).Decode(&response)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, testClientID, response.ClientID)
 	assert.NotEmpty(t, response.ClientSecret)
@@ -271,7 +272,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 
 		var clientInformationResponse client.ClientInformationResponse
 		err := json.NewDecoder(rr.Body).Decode(&clientInformationResponse)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, clientInformationResponse)
 		assert.Equal(t, testClientID, clientInformationResponse.ID)
 	})
@@ -297,7 +298,7 @@ func TestClientHandler_GetClient(t *testing.T) {
 
 		var clientInformationResponse client.ClientInformationResponse
 		err := json.NewDecoder(rr.Body).Decode(&clientInformationResponse)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, clientInformationResponse)
 		assert.Equal(t, testClientID, clientInformationResponse.ID)
 		assert.Empty(t, clientInformationResponse.Secret)
@@ -370,7 +371,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		// Update client name
 		request.Name = testClientName2
 		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPut,
@@ -382,15 +383,15 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		// Assert HTTP Response and response body
 		var clientInformationResponse client.ClientInformationResponse
 		err = json.NewDecoder(rr.Body).Decode(&clientInformationResponse)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, rr.Code, "expected status 200 OK")
 		assert.NotNil(t, clientInformationResponse)
 		assert.Equal(t, testClientID, clientInformationResponse.ID)
-		assert.NotEqual(t, "", clientInformationResponse.Secret, "client secret be included in the response for confidential clients")
+		assert.NotEmpty(t, clientInformationResponse.Secret, "client secret be included in the response for confidential clients")
 
 		// Assert Client is updated in the database
 		updatedClient, err := clientRepo.GetInMemoryClientRepository().GetClientByID(context.Background(), testClientID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
 		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
 		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
@@ -416,7 +417,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		// Update client name
 		request.Name = testClientName2
 		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPut,
@@ -428,15 +429,15 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		// Assert HTTP Response and response body
 		var clientInformationResponse client.ClientInformationResponse
 		err = json.NewDecoder(rr.Body).Decode(&clientInformationResponse)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, rr.Code, "expected status 200 OK")
 		assert.NotNil(t, clientInformationResponse)
 		assert.Equal(t, testClientID, clientInformationResponse.ID)
-		assert.Equal(t, "", clientInformationResponse.Secret, "client secret not be included in the response for public clients")
+		assert.Empty(t, clientInformationResponse.Secret, "client secret not be included in the response for public clients")
 
 		// Assert Client is updated in the database
 		updatedClient, err := clientRepo.GetInMemoryClientRepository().GetClientByID(context.Background(), testClientID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, updatedClient, "expected updated client to not be nil")
 		assert.Equal(t, testClientID, updatedClient.ID, "expected client IDs to be the same.")
 		assert.NotEqual(t, testClientName1, updatedClient.Name, "expected client name to be updated")
@@ -486,7 +487,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		// Attempt to update with invalid redirect URIs
 		request.RedirectURIs = append(request.RedirectURIs, "http://test.com/callback", "https://example.com/*")
 		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPut,
@@ -517,7 +518,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		}
 
 		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPut,
@@ -548,7 +549,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		}
 
 		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPut,
@@ -580,7 +581,7 @@ func TestClientHandler_UpdateClient(t *testing.T) {
 		}
 
 		requestBody, err := json.Marshal(request)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		rr := testContext.SendHTTPRequest(
 			http.MethodPut,

@@ -19,7 +19,7 @@ func TestScheduler_RegisterJob(t *testing.T) {
 		// Register Empty job
 	})
 
-	assert.Equal(t, initialJobCount+1, len(scheduler.GetJobs()), "RegisterJob should increase the job count by 1")
+	assert.Len(t, scheduler.GetJobs(), initialJobCount+1, "RegisterJob should increase the job count by 1")
 }
 
 func TestScheduler_StartJobs(t *testing.T) {

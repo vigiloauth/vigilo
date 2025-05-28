@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	mocks "github.com/vigiloauth/vigilo/v2/internal/mocks/authzcode"
@@ -49,7 +50,7 @@ func TestAuthorizationCodeManager_RevokeAuthorizationCode(t *testing.T) {
 					return &domain.AuthorizationCodeData{Used: false}, nil
 				},
 				UpdateAuthorizationCodeFunc: func(ctx context.Context, code string, data *domain.AuthorizationCodeData) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -63,10 +64,10 @@ func TestAuthorizationCodeManager_RevokeAuthorizationCode(t *testing.T) {
 			err := sut.RevokeAuthorizationCode(ctx, "test-code")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 			}
 		})
 	}
@@ -104,7 +105,7 @@ func TestAuthorizationCodeManager_UpdateAuthorizationCode(t *testing.T) {
 			expectedErrCode: errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError],
 			repo: &mocks.MockAuthorizationCodeRepository{
 				UpdateAuthorizationCodeFunc: func(ctx context.Context, code string, data *domain.AuthorizationCodeData) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -118,10 +119,10 @@ func TestAuthorizationCodeManager_UpdateAuthorizationCode(t *testing.T) {
 			err := sut.UpdateAuthorizationCode(ctx, test.authData)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 			}
 		})
 	}
@@ -173,11 +174,11 @@ func TestAuthorizationCodeManager_GetAuthorizationCode(t *testing.T) {
 			data, err := sut.GetAuthorizationCode(ctx, test.code)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 				assert.Nil(t, data, "Expected no data but got some")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 				assert.Equal(t, test.expectedData, data, "Expected data does not match")
 			}
 		})

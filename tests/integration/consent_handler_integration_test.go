@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	consent "github.com/vigiloauth/vigilo/v2/internal/domain/userconsent"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -66,7 +67,7 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		}
 
 		requestBody, err := json.Marshal(userConsentRequest)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		rr := testContext.SendHTTPRequest(http.MethodPost, postEndpoint, bytes.NewReader(requestBody), headers)
 
@@ -135,5 +136,4 @@ func TestConsentHandler_UserConsent(t *testing.T) {
 		rr := testContext.SendHTTPRequest(http.MethodGet, getEndpoint, nil, headers)
 		assert.Equal(t, http.StatusOK, rr.Code)
 	})
-
 }

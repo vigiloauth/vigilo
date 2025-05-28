@@ -34,6 +34,7 @@ func (t *TokenJobs) DeleteExpiredTokens(ctx context.Context) {
 		case <-ticker.C:
 			if err := t.tokenService.DeleteExpiredTokens(ctx); err != nil {
 				t.logger.Error(t.module, "", "[DeleteExpiredTokens]: An error occurred deleting expired tokens: %v", err)
+
 				continue
 			}
 		case <-ctx.Done():

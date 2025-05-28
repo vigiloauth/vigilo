@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -37,7 +38,7 @@ func TestTokenParser_ParseToken(t *testing.T) {
 			expectedClaims:  nil,
 			jwtService: &mocks.MockJWTService{
 				ParseWithClaimsFunc: func(ctx context.Context, tokenString string) (*token.TokenClaims, error) {
-					return nil, errors.NewInternalServerError()
+					return nil, errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -51,11 +52,11 @@ func TestTokenParser_ParseToken(t *testing.T) {
 			claims, err := service.ParseToken(ctx, "token")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error codes to be equal")
 				assert.Nil(t, claims, "Expected claims to be nil")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, claims, "Expected claims to not be nil")
 				assert.Equal(t, test.expectedClaims.Scopes, claims.Scopes, "Expected Scopes to be equal")
 				assert.Equal(t, test.expectedClaims.Nonce, claims.Nonce, "Expected Nonce values to be equal")

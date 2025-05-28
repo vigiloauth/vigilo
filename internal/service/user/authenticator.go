@@ -68,12 +68,7 @@ func (u *userAuthenticator) AuthenticateUser(
 	startTime := time.Now()
 	defer u.applyArtificialDelay(startTime)
 
-	requestMetadata, err := u.extractMetadataFromContext(ctx)
-	if err != nil {
-		u.logger.Error(u.module, requestID, "[AuthenticateUser]: Failed to extract relevant metadata: %v", err)
-		return nil, errors.NewInternalServerError()
-	}
-
+	requestMetadata := u.extractMetadataFromContext(ctx)
 	loginAttempt := &users.UserLoginAttempt{
 		Timestamp: time.Now().UTC(),
 		IPAddress: requestMetadata.IPAddress,
@@ -84,6 +79,7 @@ func (u *userAuthenticator) AuthenticateUser(
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[AuthenticateUser]: Failed to retrieve user by username: %v", err)
 		u.logAuthenticationAttempt(ctx, false, err, "")
+
 		return nil, errors.Wrap(err, errors.ErrCodeInvalidCredentials, "username or password are incorrect")
 	}
 
@@ -112,6 +108,7 @@ func (u *userAuthenticator) AuthenticateUser(
 	if user.AccountLocked {
 		err := errors.New(errors.ErrCodeAccountLocked, "account has been locked due to too many failed attempts")
 		u.logAuthenticationAttempt(ctx, false, err, user.ID)
+
 		return nil, err
 	}
 
@@ -130,10 +127,11 @@ func (u *userAuthenticator) AuthenticateUser(
 
 	if err := u.loginAttemptService.SaveLoginAttempt(ctx, loginAttempt); err != nil {
 		u.logger.Error(u.module, requestID, "[AuthenticateUser]: Failed to save authentication attempt: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to save authentication attempt")
 	}
 
 	u.logAuthenticationAttempt(ctx, true, nil, user.ID)
+
 	return users.NewUserLoginResponse(user), nil
 }
 
@@ -158,7 +156,7 @@ func (u *userAuthenticator) comparePasswords(password string, hashedPassword str
 	return nil
 }
 
-func (u *userAuthenticator) extractMetadataFromContext(ctx context.Context) (RequestMetadata, error) {
+func (u *userAuthenticator) extractMetadataFromContext(ctx context.Context) RequestMetadata {
 	var requestMetadata RequestMetadata
 
 	if IP := utils.GetValueFromContext(ctx, constants.ContextKeyIPAddress); IP != "" {
@@ -169,5 +167,5 @@ func (u *userAuthenticator) extractMetadataFromContext(ctx context.Context) (Req
 		requestMetadata.UserAgent, _ = userAgent.(string)
 	}
 
-	return requestMetadata, nil
+	return requestMetadata
 }

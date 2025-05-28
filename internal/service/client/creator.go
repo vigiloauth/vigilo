@@ -74,7 +74,7 @@ func (c *clientCreator) Register(
 
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[RegisterClient]: Failed to generate registration access token: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to generate the registration access token")
 	}
 
 	client.CreatedAt, client.UpdatedAt, client.IDIssuedAt = time.Now(), time.Now(), time.Now()
@@ -90,7 +90,8 @@ func (c *clientCreator) Register(
 }
 
 func (c *clientCreator) generateClientSecret(requestID string, client *clients.Client) error {
-	plainSecret, err := c.encryption.GenerateRandomString(32)
+	const clientSecretLength int = 32
+	plainSecret, err := c.encryption.GenerateRandomString(clientSecretLength)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[Register]: Failed to generate client secret: %v", err)
 		return errors.New(errors.ErrCodeRandomGenerationFailed, "failed to generate client secret")
