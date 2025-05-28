@@ -3,6 +3,9 @@
 ![Latest Version](https://img.shields.io/github/tag/vigiloauth/vigilo?label=latest%20version)
 ![Github Repo Stars](https://img.shields.io/github/stars/vigiloauth/vigilo?style=flat)
 [![Open Source Helpers badge](https://codetriage.com/vigiloauth/vigilo/badges/users.svg)](https://codetriage.com/vigiloauth/vigilo)
+[![Go Report](https://goreportcard.com/badge/github.com/vigiloauth/vigilo)](https://goreportcard.com/report/github.com/vigiloauth/vigilo)
+[![Go Coverage](https://github.com/vigiloauth/vigilo/wiki/coverage.svg)](https://raw.githack.com/wiki/vigiloauth/vigilo/coverage.html)
+[![golangci-lint](https://github.com/vigiloauth/vigilo/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/vigiloauth/vigilo/actions/workflows/golangci-lint.yml)
 
 ## Table of Contents
 - [VigiloAuth](#vigiloauth)
