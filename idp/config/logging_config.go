@@ -81,12 +81,13 @@ func (l *Logger) SetLevel(level string) {
 		logLine := fmt.Sprintf("%s[%s] %s%s%s [LOGGER] Log level set to %s",
 			colors[INFO], timestamp, colors[INFO], "INFO", colorReset, levelUpper,
 		)
-		fmt.Fprintln(os.Stdout, logLine)
+
+		_, _ = fmt.Fprintln(os.Stdout, logLine)
 		if levelUpper == "DEBUG" {
 			logLine := fmt.Sprintf("%s[%s] %s%s%s [LOGGER] It is highly recommended to disable DEBUG logs in production environments",
 				colors[WARN], timestamp, colors[WARN], "WARN", colorReset,
 			)
-			fmt.Fprintln(os.Stdout, logLine)
+			_, _ = fmt.Fprintln(os.Stdout, logLine)
 		}
 
 	} else {
@@ -94,7 +95,8 @@ func (l *Logger) SetLevel(level string) {
 		logLine := fmt.Sprintf("%s[%s] %s%s%s [LOGGER] Invalid log level: %s. Using INFO",
 			colors[WARN], timestamp, colors[WARN], "WARN", colorReset, level,
 		)
-		fmt.Fprintln(os.Stdout, logLine)
+
+		_, _ = fmt.Fprintln(os.Stdout, logLine)
 	}
 }
 
@@ -150,7 +152,7 @@ func (l *Logger) log(level LogLevel, module string, requestID string, format str
 		}
 	}
 
-	fmt.Fprintln(os.Stdout, logLine)
+	_, _ = fmt.Fprintln(os.Stdout, logLine)
 }
 
 // Debug logs a debug message

@@ -45,7 +45,10 @@ func NewClientCreator(
 	}
 }
 
-func (c *clientCreator) Register(ctx context.Context, req *clients.ClientRegistrationRequest) (*clients.ClientRegistrationResponse, error) {
+func (c *clientCreator) Register(
+	ctx context.Context,
+	req *clients.ClientRegistrationRequest,
+) (*clients.ClientRegistrationResponse, error) {
 	requestID := utils.GetRequestID(ctx)
 
 	if err := c.validator.ValidateRegistrationRequest(ctx, req); err != nil {
@@ -56,7 +59,10 @@ func (c *clientCreator) Register(ctx context.Context, req *clients.ClientRegistr
 	client := clients.NewClientFromRegistrationRequest(req)
 	client.ID = constants.ClientIDPrefix + utils.GenerateUUID()
 	if client.Type == types.ConfidentialClient {
-		c.generateClientSecret(requestID, client)
+		if err := c.generateClientSecret(requestID, client); err != nil {
+			c.logger.Error(c.module, requestID, "[Register]: Failed to generate client secret: %v", err)
+			return nil, errors.Wrap(err, "", "failed to generate secret")
+		}
 	}
 
 	requestedScopes := types.CombineScopes(client.Scopes...)
@@ -87,13 +93,13 @@ func (c *clientCreator) generateClientSecret(requestID string, client *clients.C
 	plainSecret, err := c.encryption.GenerateRandomString(32)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[Register]: Failed to generate client secret: %v", err)
-		return errors.NewInternalServerError()
+		return errors.New(errors.ErrCodeRandomGenerationFailed, "failed to generate client secret")
 	}
 
 	hashedSecret, err := c.encryption.HashString(plainSecret)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[Register]: Failed to encrypt client secret: %v", err)
-		return errors.NewInternalServerError()
+		return errors.New(errors.ErrCodeHashingFailed, "failed to hash client secret")
 	}
 
 	client.Secret = hashedSecret

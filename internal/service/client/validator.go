@@ -213,7 +213,7 @@ func (c *clientValidator) ValidateClientAndRegistrationAccessToken(
 		return errors.Wrap(err, "", "invalid registration access token")
 	}
 
-	if client.ID != tokenClaims.StandardClaims.Subject {
+	if client.ID != tokenClaims.Subject {
 		c.logger.Error(c.module, requestID, "[ValidateClientAndRegistrationAccessToken]: the registration access token subject does not match with the client ID in the request")
 		return errors.New(errors.ErrCodeUnauthorized, "the registration access token subject does not match with the client ID in the request")
 	}
@@ -480,7 +480,11 @@ func (c *clientValidator) validateSectorIdentifierURI(requestID string, redirect
 		c.logger.Warn(c.module, requestID, "Failed to fetch sector identifier URI (%s): %v", sectorIdentifierURI, err)
 		return errors.Wrap(err, errors.ErrCodeInvalidClientMetadata, "failed to fetch sector identifier URI")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.logger.Error(c.module, requestID, "[validateSectorIdentifierURI]: Failed to close io.Closer: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		c.logger.Warn(c.module, requestID, "Sector identifier URI (%s) returned non-200 status: %d", sectorIdentifierURI, resp.StatusCode)
@@ -578,7 +582,7 @@ func (c *clientValidator) validateResponseTypes(requestID string, req clients.Cl
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "token response type is required for the implicit flow grant type")
 	}
 
-	if idToken && !(authCodeOrDeviceCode || implicitFlow) {
+	if idToken && !authCodeOrDeviceCode && !implicitFlow {
 		c.logger.Warn(c.module, requestID, "Incompatible response type: 'id_token' requires 'authorization_code' or 'implicit' grant type")
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "ID token response type is only allowed with the authorization code, device code or implicit flow grant types")
 	}

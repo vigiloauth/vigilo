@@ -62,7 +62,7 @@ func (t *tokenValidator) isTokenExpired(ctx context.Context, tokenStr string) bo
 		return true
 	}
 
-	return time.Now().Unix() > claims.StandardClaims.ExpiresAt
+	return time.Now().Unix() > claims.ExpiresAt
 }
 
 func (t *tokenValidator) isTokenBlacklisted(ctx context.Context, tokenStr string) bool {

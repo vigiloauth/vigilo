@@ -144,7 +144,11 @@ func (s *emailService) connectToSMTPServer() error {
 		return errors.Wrap(err, errors.ErrCodeConnectionFailed, "failed to connect to the SMTP server")
 	}
 
-	closer.Close()
+	if err := closer.Close(); err != nil {
+		s.logger.Error(s.module, "", "[connectToSMTPServer]: Failed to close 'gomail.SendCloser()': %v", err)
+		return errors.NewInternalServerError()
+	}
+
 	return nil
 }
 

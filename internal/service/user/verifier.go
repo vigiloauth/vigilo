@@ -66,7 +66,7 @@ func (u *userVerifier) VerifyEmailAddress(ctx context.Context, verificationCode 
 		return errors.Wrap(err, "", "failed to parse token")
 	}
 
-	user, err := u.repo.GetUserByID(ctx, tokenClaims.StandardClaims.Subject)
+	user, err := u.repo.GetUserByID(ctx, tokenClaims.Subject)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[VerifyEmailAddress]: Failed to retrieve user by ID: %v", err)
 		return errors.Wrap(err, errors.ErrCodeUnauthorized, "failed to retrieve user")

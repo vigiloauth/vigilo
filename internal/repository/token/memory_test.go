@@ -19,7 +19,7 @@ func TestTokenStore_AddToken(t *testing.T) {
 	tokenStore := GetInMemoryTokenRepository()
 	expiration := time.Now().Add(1 * time.Hour)
 
-	tokenStore.SaveToken(context.Background(), testToken, testID, &domain.TokenData{}, expiration)
+	_ = tokenStore.SaveToken(context.Background(), testToken, testID, &domain.TokenData{}, expiration)
 
 	tokenStore.mu.Lock()
 	defer tokenStore.mu.Unlock()
@@ -39,7 +39,7 @@ func TestTokenStore_IsTokenBlacklisted(t *testing.T) {
 		},
 	}
 
-	tokenStore.SaveToken(ctx, testToken, testID, tokenData, expiration)
+	_ = tokenStore.SaveToken(ctx, testToken, testID, tokenData, expiration)
 	isBlacklisted, err := tokenStore.IsTokenBlacklisted(ctx, testToken)
 
 	assert.NoError(t, err)

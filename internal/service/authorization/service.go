@@ -73,7 +73,9 @@ func (s *authorizationService) AuthorizeTokenExchange(
 
 	defer func() {
 		if err != nil || authzCodeData != nil {
-			s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
+			if err := s.markAuthorizationCodeAsUsed(ctx, authzCodeData); err != nil {
+				s.logger.Error(s.module, requestID, "[AuthorizeTokenExchange]: Failed to mark authorization code as used: %v", err)
+			}
 		}
 	}()
 
@@ -123,14 +125,14 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 		return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
 	}
 
-	userID := claims.StandardClaims.Subject
+	userID := claims.Subject
 	retrievedUser, err := s.userManager.GetUserByID(ctx, userID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: An error occurred retrieving the user: %v", err)
 		return nil, err
 	}
 
-	if err := s.validateClientScopes(ctx, claims.StandardClaims.Audience, requestedScopes); err != nil {
+	if err := s.validateClientScopes(ctx, claims.Audience, requestedScopes); err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: An error occurred retrieving and validating the client: %v", err)
 		return nil, err
 	}

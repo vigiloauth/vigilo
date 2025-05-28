@@ -130,20 +130,21 @@ func (c *authorizationCodeValidator) ValidatePKCE(
 ) error {
 	requestID := utils.GetRequestID(ctx)
 
-	if authzCodeData.CodeChallengeMethod == types.SHA256CodeChallengeMethod {
+	switch authzCodeData.CodeChallengeMethod {
+	case types.SHA256CodeChallengeMethod:
 		hashedVerifier := utils.EncodeSHA256(codeVerifier)
 		if hashedVerifier != authzCodeData.CodeChallenge {
 			c.logger.Error(c.module, requestID, "[ValidatePKCE]: The provided code challenge does not match with the code verifier.")
 			return errors.New(errors.ErrCodeInvalidGrant, "invalid code verifier")
 		}
 
-	} else if authzCodeData.CodeChallengeMethod == types.PlainCodeChallengeMethod {
+	case types.PlainCodeChallengeMethod:
 		if codeVerifier != authzCodeData.CodeChallenge {
 			c.logger.Error(c.module, requestID, "[ValidatePKCE]: The provided code challenge does not match with the code verifier.")
 			return errors.New(errors.ErrCodeInvalidGrant, "invalid code verifier")
 		}
 
-	} else {
+	default:
 		return errors.New(errors.ErrCodeUnauthorized, fmt.Sprintf("unsupported code challenge method: %v", authzCodeData.CodeChallengeMethod))
 	}
 

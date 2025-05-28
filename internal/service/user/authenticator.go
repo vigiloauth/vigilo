@@ -101,16 +101,22 @@ func (u *userAuthenticator) AuthenticateUser(
 
 	loginAttempt.UserID = user.ID
 
+	defer func() {
+		if err != nil {
+			if err := u.loginAttemptService.HandleFailedLoginAttempt(ctx, user, loginAttempt); err != nil {
+				u.logger.Error(u.module, requestID, "[AuthenticateUser]: An error occurred while handling the failed auth attempt: %v", err)
+			}
+		}
+	}()
+
 	if user.AccountLocked {
 		err := errors.New(errors.ErrCodeAccountLocked, "account has been locked due to too many failed attempts")
-		u.loginAttemptService.HandleFailedLoginAttempt(ctx, user, loginAttempt)
 		u.logAuthenticationAttempt(ctx, false, err, user.ID)
 		return nil, err
 	}
 
 	if err := u.comparePasswords(request.Password, user.Password); err != nil {
 		u.logger.Error(u.module, requestID, "[AuthenticateUser]: Failed to compare passwords: %v", err)
-		u.loginAttemptService.HandleFailedLoginAttempt(ctx, user, loginAttempt)
 		u.logAuthenticationAttempt(ctx, false, err, user.ID)
 		return nil, errors.Wrap(err, "", "failed to authenticate user")
 	}
@@ -122,9 +128,12 @@ func (u *userAuthenticator) AuthenticateUser(
 		return nil, errors.Wrap(err, "", "failed to update user")
 	}
 
-	u.loginAttemptService.SaveLoginAttempt(ctx, loginAttempt)
-	u.logAuthenticationAttempt(ctx, true, nil, user.ID)
+	if err := u.loginAttemptService.SaveLoginAttempt(ctx, loginAttempt); err != nil {
+		u.logger.Error(u.module, requestID, "[AuthenticateUser]: Failed to save authentication attempt: %v", err)
+		return nil, errors.NewInternalServerError()
+	}
 
+	u.logAuthenticationAttempt(ctx, true, nil, user.ID)
 	return users.NewUserLoginResponse(user), nil
 }
 

@@ -146,7 +146,7 @@ func (u *userManager) ResetPassword(
 		return nil, errors.Wrap(err, "", "invalid reset token")
 	}
 
-	if user.ID != parsedToken.StandardClaims.Subject {
+	if user.ID != parsedToken.Subject {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: User ID does not match the token subject")
 		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid credentials")
 	}

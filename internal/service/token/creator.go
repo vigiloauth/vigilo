@@ -378,7 +378,7 @@ func (t *tokenCreator) generateStandardClaims(
 	}
 
 	if audience != "" {
-		tokenClaims.StandardClaims.Audience = audience
+		tokenClaims.Audience = audience
 	}
 
 	// VigiloAuth only supports password-based auth at the moment.

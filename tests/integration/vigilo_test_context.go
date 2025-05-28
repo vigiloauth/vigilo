@@ -150,14 +150,20 @@ func (tc *VigiloTestContext) WithUser(roles []string) *VigiloTestContext {
 	assert.NoError(tc.T, err)
 
 	user.Password = hashedPassword
-	userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
+	_ = userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
 
 	tc.User = user
 	return tc
 }
 
 func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
-	consentRepo.GetInMemoryUserConsentRepository().SaveConsent(context.Background(), testUserID, testClientID, types.CombineScopes(types.Scope(testScope)))
+	_ = consentRepo.GetInMemoryUserConsentRepository().
+		SaveConsent(
+			context.Background(),
+			testUserID,
+			testClientID,
+			types.CombineScopes(types.Scope(testScope)),
+		)
 	return tc
 }
 
@@ -194,7 +200,7 @@ func (tc *VigiloTestContext) WithClient(clientType types.ClientType, scopes []ty
 		c.TokenEndpointAuthMethod = types.NoTokenAuth
 	}
 
-	clientRepo.GetInMemoryClientRepository().SaveClient(context.Background(), c)
+	_ = clientRepo.GetInMemoryClientRepository().SaveClient(context.Background(), c)
 }
 
 // WithJWTToken creates and adds a user JWT token to the system.
@@ -324,7 +330,7 @@ func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext 
 	validator := tokenService.NewTokenValidator(repo, parser)
 
 	manager := tokenService.NewTokenManager(repo, parser, validator)
-	manager.BlacklistToken(context.Background(), token)
+	_ = manager.BlacklistToken(context.Background(), token)
 
 	return tc
 }
