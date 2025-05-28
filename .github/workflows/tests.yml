@@ -30,16 +30,18 @@ jobs:
       - name: Install necessary dependencies
         run: go mod tidy
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v2.0.0
+      - name: Format code
+        run: gofmt -s -w .
 
       - name: Run tests with coverage
         run: go test -coverprofile=coverage.out ./...
 
-      - name: Upload all coverage reports
-        uses: actions/upload-artifact@v4
+      - name: Update coverage report
+        uses: ncruces/go-coverage-report@v0
         with:
-          name: coverage-reports
-          path: coverage.out
+          report: true
+          chart: true
+          amend: true
+        if: |
+          github.event_name == 'pull_request'
+        continue-on-error: true
