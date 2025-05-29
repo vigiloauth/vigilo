@@ -23,54 +23,39 @@ func TestScheduler_RegisterJob(t *testing.T) {
 }
 
 func TestScheduler_StartJobs(t *testing.T) {
-	t.Run("Start single job", func(t *testing.T) {
-		scheduler := NewScheduler()
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+	jobCount := 5
+	var wg sync.WaitGroup
+	executedJobs := sync.Map{}
 
-		jobExecuted := false
-		var mu sync.Mutex
+	wg.Add(jobCount)
 
+	scheduler := NewScheduler()
+
+	for i := range jobCount {
+		jobID := i
 		scheduler.RegisterJob(jobName, func(ctx context.Context) {
-			mu.Lock()
-			jobExecuted = true
-			mu.Unlock()
+			defer func() {
+				if _, loaded := executedJobs.LoadOrStore(jobID, true); !loaded {
+					wg.Done()
+				}
+			}()
 		})
+	}
 
+	stopCh := make(chan struct{})
+	ctx := context.Background()
+	go func() {
 		scheduler.StartJobs(ctx)
+	}()
 
-		mu.Lock()
-		assert.True(t, jobExecuted, "The registered job should have been executed")
-		mu.Unlock()
-	})
+	wg.Wait() // Wait for all jobs to complete
+	close(stopCh)
 
-	t.Run("Start multiple jobs", func(t *testing.T) {
-		scheduler := NewScheduler()
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		jobCount := 5
-		var executedJobs sync.Map
-		var wg sync.WaitGroup
-		wg.Add(jobCount)
-
-		for i := 0; i < jobCount; i++ {
-			jobID := i
-			scheduler.RegisterJob(jobName, func(ctx context.Context) {
-				defer wg.Done()
-				executedJobs.Store(jobID, true)
-			})
-		}
-
-		go scheduler.StartJobs(ctx)
-		wg.Wait()
-
-		for i := range jobCount {
-			value, exists := executedJobs.Load(i)
-			assert.True(t, exists, "Job %d should have been executed", i)
-			assert.True(t, value.(bool), "Job %d should have been executed successfully", i)
-		}
-	})
+	for i := 0; i < jobCount; i++ {
+		value, exists := executedJobs.Load(i)
+		assert.True(t, exists, "Job %d was not executed", i)
+		assert.True(t, value.(bool), "Job %d did not execute correctly", i)
+	}
 }
 
 func TestScheduler_Wait(t *testing.T) {
@@ -78,7 +63,6 @@ func TestScheduler_Wait(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Create a job that takes some time to complete
 	scheduler.RegisterJob(jobName, func(ctx context.Context) {
 		time.Sleep(100 * time.Millisecond)
 	})
@@ -87,7 +71,7 @@ func TestScheduler_Wait(t *testing.T) {
 
 	waitChan := make(chan struct{})
 	go func() {
-		scheduler.Wait() // This should block until all jobs complete
+		scheduler.Wait()
 		close(waitChan)
 	}()
 
@@ -100,6 +84,7 @@ func TestScheduler_Wait(t *testing.T) {
 
 func TestScheduler_ContextCancellation(t *testing.T) {
 	scheduler := NewScheduler()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	jobStarted := make(chan struct{})
@@ -109,7 +94,6 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 		close(jobStarted)
 		select {
 		case <-ctx.Done():
-			// Job interrupted by context cancellation
 		case <-time.After(5 * time.Second):
 			t.Errorf("Job should have been interrupted by context cancellation")
 		}
@@ -117,12 +101,13 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 	})
 
 	go scheduler.StartJobs(ctx)
+
 	<-jobStarted
+
 	cancel()
 
 	select {
 	case <-jobFinished:
-		// Job finished after context cancellation, as expected
 	case <-time.After(500 * time.Millisecond):
 		t.Fatalf("Job did not respect context cancellation")
 	}

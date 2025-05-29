@@ -1,6 +1,7 @@
 package container
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -8,16 +9,24 @@ import (
 )
 
 func TestSchedulerShutdown(t *testing.T) {
-	exitCh := make(chan struct{})
 	logger := config.GetServerConfig().Logger()
 	services := NewServiceRegistry(NewRepositoryRegistry(logger), logger)
-	schedulerRegistry := NewSchedulerRegistry(services, logger, exitCh)
+	schedulerRegistry := NewSchedulerRegistry(services, logger, make(chan struct{}))
 
 	go func() {
-		time.Sleep(2 * time.Second)
 		schedulerRegistry.Shutdown()
 	}()
 
-	<-exitCh // Wait for exit signal
-	t.Log("Shutdown completed successfully")
+	select {
+	case <-schedulerRegistry.exitCh:
+		t.Log("Shutdown completed successfully")
+	case <-time.After(5 * time.Second):
+		t.Fatalf("Shutdown did not complete within the expected time")
+	}
+
+	numGoroutines := runtime.NumGoroutine()
+	t.Logf("Number of goroutines after shutdown: %d", numGoroutines)
+	if numGoroutines > 2 {
+		t.Errorf("Leaked goroutines detected: %d", numGoroutines)
+	}
 }

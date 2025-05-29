@@ -3,7 +3,6 @@ package background
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 )
@@ -11,10 +10,10 @@ import (
 type JobFunc func(ctx context.Context)
 
 type Scheduler struct {
-	mu   sync.RWMutex
-	jobs []JobFunc
-	wg   sync.WaitGroup
-
+	mu     sync.RWMutex
+	jobs   []JobFunc
+	wg     sync.WaitGroup
+	stopCh chan struct{}
 	logger *config.Logger
 	module string
 }
@@ -23,6 +22,7 @@ func NewScheduler() *Scheduler {
 	return &Scheduler{
 		logger: config.GetServerConfig().Logger(),
 		module: "Scheduler",
+		stopCh: make(chan struct{}),
 	}
 }
 
@@ -42,16 +42,17 @@ func (s *Scheduler) StartJobs(ctx context.Context) {
 		s.wg.Add(1)
 		go func(i int, j JobFunc) {
 			defer s.wg.Done()
-			start := time.Now()
-			s.logger.Info(s.module, "", "[StartJobs]: Starting job #%d at %s", i+1, start)
+			s.logger.Info(s.module, "", "[StartJobs]: Starting job #%d", i+1)
 			j(ctx)
-			end := time.Now()
-			s.logger.Info(s.module, "", "[StartJobs]: Job #%d completed at %s (Duration: %s)", i+1, end, end.Sub(start))
 		}(i, job)
 	}
 
 	s.wg.Wait()
 	s.logger.Info(s.module, "", "[StartJobs]: All background jobs completed.")
+}
+
+func (s *Scheduler) Stop() {
+	close(s.stopCh)
 }
 
 func (s *Scheduler) Wait() {

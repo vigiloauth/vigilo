@@ -43,14 +43,12 @@ func (s *SMTPJobs) RunHealthCheck(ctx context.Context) {
 		case <-ticker.C:
 			if err := s.emailService.TestConnection(); err != nil {
 				s.logger.Error(s.module, "", "[RunHealthCheck]: Failed to test SMTP connection: %v", err)
-
-				continue
+				continue //nolint
 			}
 
 		case <-ctx.Done():
 			s.logger.Info(s.module, "", "[RunHealthCheck]: Stopping SMTP health check")
-
-			return
+			return //nolint
 		}
 	}
 }

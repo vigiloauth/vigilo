@@ -14,6 +14,7 @@ import (
 type SchedulerRegistry struct {
 	services  *ServiceRegistry
 	scheduler *background.Scheduler
+	exitCh    chan struct{}
 	logger    *config.Logger
 	module    string
 }
@@ -26,35 +27,39 @@ func NewSchedulerRegistry(services *ServiceRegistry, logger *config.Logger, exit
 		services:  services,
 		logger:    logger,
 		module:    module,
+		exitCh:    exitCh,
 		scheduler: background.NewScheduler(),
 	}
 
-	sr.initJobs(exitCh)
 	return sr
 }
 
-func (sr *SchedulerRegistry) initJobs(exitCh chan struct{}) {
+func (sr *SchedulerRegistry) Start() {
+	sr.initJobs()
+}
+
+func (sr *SchedulerRegistry) initJobs() {
 	sr.registerSMTPJobs()
 	sr.registerTokenJobs()
 	sr.registerUserJobs()
 	sr.registerAuditLogJobs()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	go sr.scheduler.StartJobs(ctx)
+
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-		go sr.scheduler.StartJobs(context.Background())
+		defer signal.Stop(sigCh)
 
 		select {
 		case <-sigCh:
-			sr.logger.Info(sr.module, "", "Received termination signal, shutting down...")
-			close(exitCh)
-		case <-exitCh:
+			sr.logger.Info(sr.module, "", "Received termination signal")
+			cancel()
+			close(sr.exitCh)
+		case <-sr.exitCh:
+			cancel()
 		}
-
-		signal.Stop(sigCh)
-		sr.scheduler.Wait()
-		sr.logger.Info(sr.module, "", "All jobs completed. Signaling application exit.")
-		close(exitCh)
 	}()
 }
 
@@ -89,6 +94,8 @@ func (c *SchedulerRegistry) registerAuditLogJobs() {
 func (sr *SchedulerRegistry) Shutdown() {
 	sr.logger.Info(sr.module, "", "Shutting down schedulers and worker pool")
 	if sr.scheduler != nil {
+		sr.scheduler.Stop()
 		sr.scheduler.Wait()
 	}
+	close(sr.exitCh)
 }
