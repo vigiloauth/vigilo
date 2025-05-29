@@ -53,7 +53,7 @@ func (rc *RouterConfig) Router() chi.Router {
 	return rc.router
 }
 
-func (rc *RouterConfig) Init() *RouterConfig {
+func (rc *RouterConfig) Init() {
 	rc.logger.Debug(rc.module, "", "Registering global middleware...")
 	rc.applyGlobalMiddleware()
 
@@ -62,8 +62,6 @@ func (rc *RouterConfig) Init() *RouterConfig {
 
 	rc.logger.Debug(rc.module, "", "Registering route groups...")
 	rc.setupRouteGroups()
-
-	return rc
 }
 
 func (rc *RouterConfig) applyGlobalMiddleware() {

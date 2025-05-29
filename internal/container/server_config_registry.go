@@ -19,6 +19,10 @@ func NewServerConfigRegistry(services *ServiceRegistry) *ServerConfigRegistry {
 	return sr
 }
 
+func (sr *ServerConfigRegistry) HTTPServer() *http.Server {
+	return sr.httpServer
+}
+
 func (sr *ServerConfigRegistry) initServerConfigurations() {
 	sr.initTLS()
 	sr.initHTTPServer()

@@ -14,6 +14,8 @@ type VigiloIdentityServer struct {
 	serverConfig *config.ServerConfig
 	container    *container.DIContainer
 	routerConfig *routes.RouterConfig
+	logger       *config.Logger
+	server       *http.Server
 }
 
 // NewVigiloIdentityServer creates and initializes a new instance of the IdentityServer.
@@ -24,19 +26,25 @@ func NewVigiloIdentityServer() *VigiloIdentityServer {
 	logger := serverConfig.Logger()
 	logger.Info(module, "", "Initializing Vigilo Identity Provider")
 
-	container := container.NewDIContainer(logger).Init()
+	container := container.NewDIContainer(logger)
+	container.Init()
+
 	appRouter := routes.NewRouterConfig(
-		chi.NewRouter(), logger,
+		chi.NewRouter(),
+		logger,
 		config.GetServerConfig().ForceHTTPS(),
 		config.GetServerConfig().EnableRequestLogging(),
 		container.ServiceRegistry().Middleware(),
 		container.HandlerRegistry(),
-	).Init()
+	)
+	appRouter.Init()
 
 	return &VigiloIdentityServer{
 		container:    container,
 		serverConfig: serverConfig,
 		routerConfig: appRouter,
+		logger:       logger,
+		server:       container.HTTPServer(),
 	}
 }
 
@@ -46,6 +54,14 @@ func (s *VigiloIdentityServer) Router() chi.Router {
 
 func (s *VigiloIdentityServer) HTTPServer() *http.Server {
 	return s.container.HTTPServer()
+}
+
+func (s *VigiloIdentityServer) SetupSPA(r *chi.Mux) {
+
+}
+
+func (s *VigiloIdentityServer) StartServer(r *chi.Mux) {
+
 }
 
 func (s *VigiloIdentityServer) Shutdown() {

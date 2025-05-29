@@ -2,6 +2,7 @@ package container
 
 import (
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -32,7 +33,7 @@ func NewDIContainer(logger *config.Logger) *DIContainer {
 	}
 }
 
-func (di *DIContainer) Init() *DIContainer {
+func (di *DIContainer) Init() {
 	di.repoRegistry = NewRepositoryRegistry(di.logger)
 	di.serviceRegistry = NewServiceRegistry(di.repoRegistry, di.logger)
 	di.handlerRegistry = NewHandlerRegistry(di.serviceRegistry, di.logger)
@@ -42,7 +43,6 @@ func (di *DIContainer) Init() *DIContainer {
 	di.exitCh = make(chan struct{})
 	di.schedulerRegistry = NewSchedulerRegistry(di.serviceRegistry, di.logger, di.exitCh)
 	di.schedulerRegistry.Start()
-	return di
 }
 
 func (di *DIContainer) ServiceRegistry() *ServiceRegistry {
@@ -62,7 +62,7 @@ func (di *DIContainer) ServerConfigRegistry() *ServerConfigRegistry {
 }
 
 func (di *DIContainer) HTTPServer() *http.Server {
-	return di.ServerConfigRegistry().httpServer
+	return di.ServerConfigRegistry().HTTPServer()
 }
 
 func (di *DIContainer) Shutdown() {
@@ -79,6 +79,7 @@ func (di *DIContainer) Shutdown() {
 		di.logger.Info(di.module, "", "DI Container shut down successfully")
 	case <-time.After(thirtySecond):
 		di.logger.Warn(di.module, "", "Shutdown timeout reached. Forcing application exit.")
+		os.Exit(1)
 	}
 }
 

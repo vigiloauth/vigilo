@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	config "github.com/vigiloauth/vigilo/v2/cmd/config/application"
@@ -18,74 +22,85 @@ import (
 
 func main() {
 	isDockerENV := os.Getenv(constants.VigiloServerModeENV) == "docker"
-	if isDockerENV { //nolint
-		cfg := config.LoadConfigurations()
-
-		baseURL := "/identity"
-		port := ":8080"
-		module := "Vigilo Identity Provider"
-		logger := lib.GetLogger()
-		forceHTTPs := false
-		certFile := ""
-		keyFile := ""
-
-		if cfg != nil && cfg.ServerConfig != nil {
-			if cfg.Port != nil {
-				port = fmt.Sprintf(":%s", *cfg.Port)
-			}
-			if cfg.ServerConfig.ForceHTTPS != nil {
-				forceHTTPs = *cfg.ServerConfig.ForceHTTPS
-			}
-			if cfg.ServerConfig.CertFilePath != nil {
-				certFile = *cfg.ServerConfig.CertFilePath
-			}
-			if cfg.ServerConfig.KeyFilePath != nil {
-				keyFile = *cfg.ServerConfig.KeyFilePath
-			}
-			if cfg.Logger != nil {
-				logger = cfg.Logger
-			}
-			if cfg.LogLevel != nil {
-				logger.SetLevel(*cfg.LogLevel)
-			}
-		}
-
-		if !strings.HasPrefix(baseURL, "/") {
-			baseURL = "/" + baseURL
-		}
-
-		vs := server.NewVigiloIdentityServer()
-		r := chi.NewRouter()
-
-		setupSpaRouting(r)
-		setupServer(logger, vs, port, baseURL, certFile, keyFile, module, forceHTTPs, r)
-
-		select {}
+	if !isDockerENV {
+		return
 	}
-}
 
-func setupServer(logger *lib.Logger, vs *server.VigiloIdentityServer, port, baseURL, certFile, keyFile, module string, forceHTTPs bool, r *chi.Mux) {
+	cfg := config.LoadConfigurations()
+
+	baseURL := "/identity"
+	port := ":8080"
+	module := "Vigilo Identity Provider"
+	logger := lib.GetLogger()
+	forceHTTPs := false
+	certFile := ""
+	keyFile := ""
+
+	if cfg != nil && cfg.ServerConfig != nil {
+		if cfg.Port != nil {
+			port = fmt.Sprintf(":%s", *cfg.Port)
+		}
+		if cfg.ServerConfig.ForceHTTPS != nil {
+			forceHTTPs = *cfg.ServerConfig.ForceHTTPS
+		}
+		if cfg.ServerConfig.CertFilePath != nil {
+			certFile = *cfg.ServerConfig.CertFilePath
+		}
+		if cfg.ServerConfig.KeyFilePath != nil {
+			keyFile = *cfg.ServerConfig.KeyFilePath
+		}
+		if cfg.Logger != nil {
+			logger = cfg.Logger
+		}
+		if cfg.LogLevel != nil {
+			logger.SetLevel(*cfg.LogLevel)
+		}
+	}
+
+	vs := server.NewVigiloIdentityServer()
+	r := chi.NewRouter()
+
+	setupSpaRouting(r)
+
 	httpServer := vs.HTTPServer()
 	r.Route(baseURL, func(subRouter chi.Router) {
 		subRouter.Mount("/", vs.Router())
 	})
-
 	httpServer.Handler = r
-	logger.Info(module, "", "Starting the VigiloAuth Identity Provider on %s with base URL: %s", port, baseURL)
-	if forceHTTPs {
-		if certFile == "" || keyFile == "" {
-			logger.Error(module, "", "HTTPS requested but certificate or key file path is not configured in YAML or loaded correctly. Exiting.")
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		logger.Info(module, "", "Starting the VigiloAuth Identity Provider on %s with base URL: %s", port, baseURL)
+		var err error
+		if forceHTTPs {
+			if certFile == "" || keyFile == "" {
+				logger.Error(module, "", "HTTPS requested but certificate or key file path is not configured. Exiting.")
+				os.Exit(1)
+			}
+			err = httpServer.ListenAndServeTLS(certFile, keyFile)
+		} else {
+			err = httpServer.ListenAndServe()
+		}
+
+		if err != nil && err != http.ErrServerClosed {
+			logger.Error(module, "", "HTTP server error: %v", err)
 			os.Exit(1)
 		}
-		if err := httpServer.ListenAndServeTLS(certFile, keyFile); err != nil {
-			logger.Error(module, "", "Failed to start server on HTTPS: %v", err)
-			os.Exit(1)
-		}
+	}()
+
+	<-stop
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	vs.Shutdown()
+
+	if err := httpServer.Shutdown(ctx); err != nil {
+		logger.Error(module, "", "HTTP server shutdown error: %v", err)
 	} else {
-		if err := httpServer.ListenAndServe(); err != nil {
-			logger.Error(module, "", "Failed to start server: %v", err)
-			os.Exit(1)
-		}
+		logger.Info(module, "", "HTTP server shut down gracefully")
 	}
 }
 

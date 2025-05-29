@@ -97,5 +97,4 @@ func (sr *SchedulerRegistry) Shutdown() {
 		sr.scheduler.Stop()
 		sr.scheduler.Wait()
 	}
-	close(sr.exitCh)
 }
