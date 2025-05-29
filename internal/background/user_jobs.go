@@ -32,10 +32,14 @@ func (u *UserJobs) DeleteUnverifiedUsers(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			u.userService.DeleteUnverifiedUsers(ctx)
+			if err := u.userService.DeleteUnverifiedUsers(ctx); err != nil {
+				u.logger.Error(u.module, "", "[DeleteUnverifiedUsers]: Failed to delete unverified users: %v", err)
+				continue //nolint:nlreturn
+			}
+
 		case <-ctx.Done():
 			u.logger.Info(u.module, "", "[DeleteUnverifiedUsers]: Stopping process of deleting unverified users")
-			return
+			return //nolint:nlreturn
 		}
 	}
 }

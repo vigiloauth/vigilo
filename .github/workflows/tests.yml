@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
-        
+
       - name: Create .env.test file
         run: |
           echo "SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}" >> .env.test
@@ -30,20 +30,18 @@ jobs:
       - name: Install necessary dependencies
         run: go mod tidy
 
-      - name: Run service folder unit tests with coverage
-        run: go test -coverprofile=service-tests.out ./internal/service/...
+      - name: Format code
+        run: gofmt -s -w .
 
-      - name: Run repository folder unit tests with coverage
-        run: go test -coverprofile=repository-tests.out ./internal/repository/...
+      - name: Run tests with coverage
+        run: go test -coverprofile=coverage.out ./internal/... ./tests/integration/...
 
-      - name: Run integration tests with coverage
-        run: go test -coverprofile=integration-tests.out ./tests/...
-
-      - name: Upload all coverage reports
-        uses: actions/upload-artifact@v4
+      - name: Update coverage report
+        uses: ncruces/go-coverage-report@v0
         with:
-          name: coverage-reports
-          path: |
-            service-tests.out
-            repository-tests.out
-            integration-tests.out
+          report: true
+          chart: true
+          amend: true
+        if: |
+          github.event_name == 'pull_request'
+        continue-on-error: true

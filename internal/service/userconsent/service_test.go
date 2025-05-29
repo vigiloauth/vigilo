@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -46,7 +47,7 @@ func TestUserConsentService_CheckUserConsent(t *testing.T) {
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService)
 		hasConsent, err := cs.CheckUserConsent(ctx, testUserID, testClientID, types.OpenIDScope)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, hasConsent)
 	})
 
@@ -61,20 +62,20 @@ func TestUserConsentService_CheckUserConsent(t *testing.T) {
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService)
 		hasConsent, err := cs.CheckUserConsent(ctx, testUserID, testClientID, types.OpenIDScope)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, hasConsent)
 	})
 
 	t.Run("Error is returned when a database error occurs", func(t *testing.T) {
 		mockUserRepo.GetUserByIDFunc = func(ctx context.Context, userID string) (*users.User, error) { return nil, nil }
 		mockConsentRepo.HasConsentFunc = func(ctx context.Context, userID, clientID string, scope types.Scope) (bool, error) {
-			return false, errors.NewInternalServerError()
+			return false, errors.NewInternalServerError("")
 		}
 
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, mockSessionService, mockClientService)
 		hasConsent, err := cs.CheckUserConsent(ctx, testUserID, testClientID, types.OpenIDScope)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.False(t, hasConsent)
 	})
 }
@@ -93,7 +94,7 @@ func TestUserConsentService_SaveUserConsent(t *testing.T) {
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil)
 		err := cs.SaveUserConsent(ctx, testUserID, testClientID, types.OpenIDScope)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Error is returned when a database error occurs", func(t *testing.T) {
@@ -101,13 +102,13 @@ func TestUserConsentService_SaveUserConsent(t *testing.T) {
 			return &users.User{}, nil
 		}
 		mockConsentRepo.SaveConsentFunc = func(ctx context.Context, userID, clientID string, scope types.Scope) error {
-			return errors.NewInternalServerError()
+			return errors.NewInternalServerError("")
 		}
 
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil)
 		err := cs.SaveUserConsent(ctx, testUserID, testClientID, types.OpenIDScope)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Error is returned when the user does not exist", func(t *testing.T) {
@@ -116,7 +117,7 @@ func TestUserConsentService_SaveUserConsent(t *testing.T) {
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil)
 		err := cs.SaveUserConsent(ctx, testUserID, testClientID, types.OpenIDScope)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -134,7 +135,7 @@ func TestUserConsentService_RevokeUserConsent(t *testing.T) {
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil)
 		err := cs.RevokeConsent(ctx, testUserID, testClientID)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("Error is returned when there is an error revoking consent", func(t *testing.T) {
@@ -142,13 +143,13 @@ func TestUserConsentService_RevokeUserConsent(t *testing.T) {
 			return &users.User{}, nil
 		}
 		mockConsentRepo.RevokeConsentFunc = func(ctx context.Context, userID, clientID string) error {
-			return errors.NewInternalServerError()
+			return errors.NewInternalServerError("")
 		}
 
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil)
 		err := cs.RevokeConsent(ctx, testUserID, testClientID)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("Error is returned when the user does not exist", func(t *testing.T) {
@@ -158,7 +159,7 @@ func TestUserConsentService_RevokeUserConsent(t *testing.T) {
 		cs := NewUserConsentService(mockConsentRepo, mockUserRepo, nil, nil)
 		err := cs.RevokeConsent(ctx, testUserID, testClientID)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -193,7 +194,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 		req := &http.Request{}
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, types.OpenIDScope, testResponseType, testNonce, testDisplay, req)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 	})
 
@@ -202,7 +203,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 		req := &http.Request{}
 		response, err := service.GetConsentDetails("", testClientID, testRedirectURI, testState, types.OpenIDScope, testResponseType, testNonce, testDisplay, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 
@@ -214,7 +215,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 		}
 		mockSessionService := &mSessionService.MockSessionService{
 			GetSessionDataFunc: func(r *http.Request) (*session.SessionData, error) {
-				return nil, errors.NewInternalServerError()
+				return nil, errors.NewInternalServerError("")
 			},
 		}
 
@@ -222,7 +223,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 		req := &http.Request{}
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, types.OpenIDScope, testResponseType, testNonce, testDisplay, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 
@@ -237,7 +238,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 				return &session.SessionData{UserID: testUserID}, nil
 			},
 			UpdateSessionFunc: func(r *http.Request, sessionData *session.SessionData) error {
-				return errors.NewInternalServerError()
+				return errors.NewInternalServerError("")
 			},
 		}
 
@@ -245,7 +246,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 		req := &http.Request{}
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, types.OpenIDScope, testResponseType, testNonce, testDisplay, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 
@@ -259,7 +260,7 @@ func TestUserConsentService_GetConsentDetails(t *testing.T) {
 		req := &http.Request{}
 		response, err := service.GetConsentDetails(testUserID, testClientID, testRedirectURI, testState, types.OpenIDScope, testResponseType, testNonce, testDisplay, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -273,7 +274,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		req := &http.Request{}
 		response, err := service.ProcessUserConsent("", testClientID, testRedirectURI, types.OpenIDScope, nil, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 
@@ -282,21 +283,21 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		req := &http.Request{}
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, types.OpenIDScope, &consent.UserConsentRequest{Approved: false}, req)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Equal(t, "access_denied", response.Error)
 	})
 
 	t.Run("Error is returned when saving user consent fails", func(t *testing.T) {
 		mockConsentRepo.SaveConsentFunc = func(ctx context.Context, userID, clientID string, scope types.Scope) error {
-			return errors.NewInternalServerError()
+			return errors.NewInternalServerError("")
 		}
 
 		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, nil)
 		req := &http.Request{}
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, types.OpenIDScope, &consent.UserConsentRequest{Approved: true}, req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 
@@ -313,7 +314,7 @@ func TestUserConsentService_ProcessUserConsent(t *testing.T) {
 		service := NewUserConsentService(mockConsentRepo, nil, mockSessionService, mockClientService)
 		response, err := service.ProcessUserConsent(testUserID, testClientID, testRedirectURI, types.OpenIDScope, &consent.UserConsentRequest{Approved: true}, &http.Request{})
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 	})
 }

@@ -60,18 +60,13 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 			ctx := r.Context()
 			requestID := utils.GetRequestID(ctx)
 
-			var tokenString string
-			var authHeaderErr error
-
-			tokenString, authHeaderErr = web.ExtractBearerToken(r)
-
+			tokenString, authHeaderErr := web.ExtractBearerToken(r)
 			if r.Method == http.MethodPost && r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
 				m.logger.Debug(m.module, requestID, "[AuthMiddleware]: Bearer token not found in header, attempting to check POST body for access_token parameter.")
 				parseErr := r.ParseForm()
 				if parseErr != nil {
 					m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse form body: %v", parseErr)
-					wrappedErr := errors.Wrap(parseErr, errors.ErrCodeInvalidRequest, "failed to parse request body")
-					web.WriteError(w, wrappedErr)
+					web.WriteError(w, errors.Wrap(parseErr, errors.ErrCodeInvalidRequest, "failed to parse request body"))
 					return
 				}
 
@@ -81,37 +76,32 @@ func (m *Middleware) AuthMiddleware() func(http.Handler) http.Handler {
 					tokenString = bodyToken
 				} else {
 					m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Access token not found in header or POST body.")
-					err := errors.New(errors.ErrCodeUnauthorized, "missing or invalid access token")
-					web.WriteError(w, err)
+					web.WriteError(w, errors.New(errors.ErrCodeUnauthorized, "missing or invalid access token"))
 					return
 				}
 			} else if authHeaderErr != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Access token not found in header, and POST body check conditions not met or token not found in body.")
-				wrappedErr := errors.Wrap(authHeaderErr, errors.ErrCodeUnauthorized, "missing or invalid authorization header")
-				web.WriteError(w, wrappedErr)
+				web.WriteError(w, errors.Wrap(authHeaderErr, errors.ErrCodeUnauthorized, "missing or invalid authorization header"))
 				return
 			}
 
 			if tokenString == "" {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: tokenString is empty after all extraction attempts.")
-				wrappedErr := errors.New(errors.ErrCodeUnauthorized, "missing or invalid access token after extraction attempts")
-				web.WriteError(w, wrappedErr)
+				web.WriteError(w, errors.New(errors.ErrCodeUnauthorized, "missing or invalid access token after extraction attempts"))
 				return
 			}
 
 			claims, parseErr := m.tokenParser.ParseToken(ctx, tokenString)
 			if parseErr != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to parse token: %s", parseErr)
-				wrappedErr := errors.Wrap(parseErr, errors.ErrCodeTokenParsing, "failed to parse token")
-				web.WriteError(w, wrappedErr)
+				web.WriteError(w, errors.Wrap(parseErr, errors.ErrCodeTokenParsing, "failed to parse token"))
 				return
 			}
 
 			m.logger.Debug(m.module, requestID, "[AuthMiddleWare]: Attempting to validate token")
 			if validateErr := m.tokenValidator.ValidateToken(ctx, tokenString); validateErr != nil {
 				m.logger.Warn(m.module, requestID, "[AuthMiddleware]: Failed to validate token: %s", validateErr)
-				wrappedErr := errors.Wrap(validateErr, errors.ErrCodeUnauthorized, "an error occurred validating the access token")
-				web.WriteError(w, wrappedErr)
+				web.WriteError(w, errors.Wrap(validateErr, errors.ErrCodeUnauthorized, "an error occurred validating the access token"))
 				return
 			}
 
@@ -167,7 +157,7 @@ func (m *Middleware) WithRole(requiredRole string) func(http.Handler) http.Handl
 				claims, _ = val.(*token.TokenClaims)
 			} else {
 				m.logger.Error(m.module, requestID, "[WithRole]: An error occurred accessing token from context")
-				web.WriteError(w, errors.NewInternalServerError())
+				web.WriteError(w, errors.NewInternalServerError(""))
 				return
 			}
 

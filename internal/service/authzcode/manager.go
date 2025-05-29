@@ -28,7 +28,6 @@ func NewAuthorizationCodeManager(
 		logger:       config.GetServerConfig().Logger(),
 		module:       "Authorization Code Service",
 	}
-
 }
 
 // RevokeAuthorizationCode explicitly invalidates a code.
@@ -45,13 +44,13 @@ func (c *authorizationCodeService) RevokeAuthorizationCode(ctx context.Context, 
 	codeData, err := c.repo.GetAuthorizationCode(ctx, code)
 	if err != nil {
 		c.logger.Error(c.module, requestID, "[RevokeAuthorizationCode]: Failed to retrieve authorization code: %v", err)
-		return err
+		return errors.Wrap(err, "", "failed to revoke the authorization code")
 	}
 
 	codeData.Used = true
 	if err := c.repo.UpdateAuthorizationCode(ctx, code, codeData); err != nil {
 		c.logger.Error(c.module, "", "[ValidateAuthorizationCode]: Failed to update authorization code: %v", err)
-		return errors.NewInternalServerError()
+		return errors.NewInternalServerError(err.Error()) //nolint:wrapcheck
 	}
 
 	return nil
@@ -69,7 +68,7 @@ func (c *authorizationCodeService) UpdateAuthorizationCode(ctx context.Context, 
 	requestID := utils.GetRequestID(ctx)
 	if err := c.repo.UpdateAuthorizationCode(ctx, authData.Code, authData); err != nil {
 		c.logger.Error(c.module, requestID, "[UpdateAuthorizationCode]: Failed to update authorization code: %v", err)
-		return err
+		return errors.Wrap(err, "", "failed to update the authorization code")
 	}
 
 	return nil

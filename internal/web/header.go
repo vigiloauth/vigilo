@@ -23,8 +23,9 @@ func ExtractClientBasicAuth(r *http.Request) (string, string, error) {
 		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid credentials in the authorization header")
 	}
 
-	parts := strings.SplitN(string(credentials), ":", 2)
-	if len(parts) != 2 {
+	const subStrCount int = 2
+	parts := strings.SplitN(string(credentials), ":", subStrCount)
+	if len(parts) != subStrCount {
 		return "", "", errors.New(errors.ErrCodeInvalidClient, "invalid credentials format in the authorization header")
 	}
 

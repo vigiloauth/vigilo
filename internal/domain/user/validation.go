@@ -199,7 +199,7 @@ func containsNumber(password string) bool {
 
 func containsSymbol(password string) bool {
 	return strings.IndexFunc(password, func(r rune) bool {
-		return !(unicode.IsLetter(r) || unicode.IsNumber(r))
+		return !unicode.IsLetter(r) && !unicode.IsNumber(r)
 	}) >= 0
 }
 

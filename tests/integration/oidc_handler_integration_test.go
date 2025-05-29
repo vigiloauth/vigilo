@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	jwk "github.com/vigiloauth/vigilo/v2/internal/domain/jwks"
@@ -147,7 +148,7 @@ func TestOIDCHandler_UserInfo(t *testing.T) {
 
 				var userInfo *users.UserInfoResponse
 				err := json.Unmarshal(rr.Body.Bytes(), &userInfo)
-				assert.NoError(t, err, "Expected no error unmarshalling user info response")
+				require.NoError(t, err, "Expected no error unmarshalling user info response")
 
 				assert.NotNil(t, userInfo, "Expected user info response to be not nil")
 				assert.Equal(t, testUserID, userInfo.Sub, "Expected user ID to match the test user ID")
@@ -214,7 +215,7 @@ func TestOIDCHandler_GetJWKS(t *testing.T) {
 
 	var response *jwk.Jwks
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(t, err, "Failed to unmarshal response")
+	require.NoError(t, err, "Failed to unmarshal response")
 
 	assert.NotEmpty(t, response.Keys, "Expected JWKS keys to not be empty")
 	assert.NotEmpty(t, response.Keys[0].Kty, "Expected Kty to not be empty")
@@ -235,7 +236,7 @@ func TestOIDCHandler_GetOpenIDConfiguration(t *testing.T) {
 
 	var response *oidc.DiscoveryJSON
 	err := json.Unmarshal(rr.Body.Bytes(), &response)
-	assert.NoError(t, err, "Failed to unmarshal response")
+	require.NoError(t, err, "Failed to unmarshal response")
 
 	assert.NotEmpty(t, response.Issuer, "Expected Issuer to not be empty")
 	assert.NotEmpty(t, response.AuthorizationEndpoint, "Expected authorization endpoint to not be empty")

@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -47,7 +46,7 @@ func NewOIDCHandler(oidcService oidc.OIDCService) *OIDCHandler {
 //   - Calls the OIDC service to fetch user information based on token claims.
 //   - Returns the user information as a JSON response or an error if something goes wrong.
 func (h *OIDCHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -63,7 +62,7 @@ func (h *OIDCHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	tokenClaims, ok := claims.(*token.TokenClaims)
 	if !ok {
 		h.logger.Error(h.module, requestID, "[UserInfo]: Invalid token claims type in context")
-		web.WriteError(w, errors.NewInternalServerError())
+		web.WriteError(w, errors.NewInternalServerError(""))
 		return
 	}
 
@@ -88,7 +87,7 @@ func (h *OIDCHandler) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 //   - Calls the OIDC service to retrieve the JWKS.
 //   - Returns the JWKS as a JSON response.
 func (h *OIDCHandler) GetJWKS(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -108,7 +107,7 @@ func (h *OIDCHandler) GetJWKS(w http.ResponseWriter, r *http.Request) {
 //   - Constructs the OpenID Provider Configuration JSON object.
 //   - Returns the configuration as a JSON response.
 func (h *OIDCHandler) GetOpenIDConfiguration(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)

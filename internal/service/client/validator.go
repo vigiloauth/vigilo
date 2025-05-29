@@ -22,6 +22,8 @@ import (
 
 var _ clients.ClientValidator = (*clientValidator)(nil)
 
+const HTTPS string = "https"
+
 type clientValidator struct {
 	repo      clients.ClientRepository
 	manager   tokens.TokenManager
@@ -40,13 +42,12 @@ func NewClientValidator(
 	parser tokens.TokenParser,
 ) clients.ClientValidator {
 	return &clientValidator{
-		repo:                  repo,
-		manager:               manager,
-		validator:             validator,
-		parser:                parser,
-		logger:                config.GetServerConfig().Logger(),
-		module:                "Client Request Validator",
-		sectorURIFetchTimeout: 5 * time.Second,
+		repo:      repo,
+		manager:   manager,
+		validator: validator,
+		parser:    parser,
+		logger:    config.GetServerConfig().Logger(),
+		module:    "Client Request Validator",
 	}
 }
 
@@ -213,7 +214,7 @@ func (c *clientValidator) ValidateClientAndRegistrationAccessToken(
 		return errors.Wrap(err, "", "invalid registration access token")
 	}
 
-	if client.ID != tokenClaims.StandardClaims.Subject {
+	if client.ID != tokenClaims.Subject {
 		c.logger.Error(c.module, requestID, "[ValidateClientAndRegistrationAccessToken]: the registration access token subject does not match with the client ID in the request")
 		return errors.New(errors.ErrCodeUnauthorized, "the registration access token subject does not match with the client ID in the request")
 	}
@@ -283,6 +284,7 @@ func (c *clientValidator) determineClientType(req *clients.ClientRegistrationReq
 	}
 }
 
+// nolint
 func (c *clientValidator) validateGrantAndResponseTypes(requestID string, req *clients.ClientRegistrationRequest) error {
 	if len(req.GrantTypes) == 0 {
 		c.logger.Error(c.module, requestID, "No grant types were requested")
@@ -354,7 +356,7 @@ func (c *clientValidator) validateGrantAndResponseTypes(requestID string, req *c
 	return nil
 }
 
-func (c *clientValidator) validateURIS(requestID string, req clients.ClientRequest) error {
+func (c *clientValidator) validateURIS(requestID string, req clients.ClientRequest) error { //nolint
 	if req.GetType() == types.ConfidentialClient && req.HasGrantType(constants.AuthorizationCodeGrantType) && len(req.GetRedirectURIS()) == 0 {
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "redirect URI(s) are required for confidential clients using the authorization code grant type")
 	}
@@ -368,7 +370,6 @@ func (c *clientValidator) validateURIS(requestID string, req clients.ClientReque
 		if _, err := url.ParseRequestURI(req.GetJwksURI()); err != nil {
 			c.logger.Warn(c.module, requestID, "Invalid jwks_uri provided: %s", req.GetJwksURI())
 			return errors.New(errors.ErrCodeInvalidClientMetadata, "invalid jwks_uri format")
-
 		}
 	}
 
@@ -406,7 +407,7 @@ func (c *clientValidator) validateURIS(requestID string, req clients.ClientReque
 
 		switch req.GetType() {
 		case types.ConfidentialClient:
-			if parsedURI.Scheme != "https" {
+			if parsedURI.Scheme != HTTPS {
 				c.logger.Warn(c.module, requestID, "Confidential client redirect URI is not using HTTPS: %s", uri)
 				return errors.New(errors.ErrCodeInvalidRedirectURI, "confidential clients must use HTTPS")
 			}
@@ -420,13 +421,14 @@ func (c *clientValidator) validateURIS(requestID string, req clients.ClientReque
 			}
 
 		case types.PublicClient:
-			isMobileScheme := mobileSchemePattern.MatchString(uri) && parsedURI.Scheme != "http" && parsedURI.Scheme != "https"
+			isMobileScheme := mobileSchemePattern.MatchString(uri) && parsedURI.Scheme != "http" && parsedURI.Scheme != HTTPS
 			if isMobileScheme {
-				if len(parsedURI.Scheme) < 4 {
+				const uriLength int = 4
+				if len(parsedURI.Scheme) < uriLength {
 					c.logger.Warn(c.module, requestID, "Mobile URI scheme is too short: %s", uri)
 					return errors.New(errors.ErrCodeInvalidRedirectURI, "mobile URI scheme is too short")
 				}
-			} else if parsedURI.Scheme != "https" {
+			} else if parsedURI.Scheme != HTTPS {
 				c.logger.Warn(c.module, requestID, "Public client redirect URI is not using HTTPS: %s", uri)
 				return errors.New(errors.ErrCodeInvalidRedirectURI, "public clients must use HTTPS")
 			}
@@ -468,7 +470,7 @@ func (c *clientValidator) validateSectorIdentifierURI(requestID string, redirect
 		c.logger.Warn(c.module, requestID, "Malformed sector identifier URI: %s", sectorIdentifierURI)
 		return errors.New(errors.ErrCodeInvalidClientMetadata, fmt.Sprintf("malformed sector identifier URI: %s", sectorIdentifierURI))
 	}
-	if parsedURI.Scheme != "https" {
+	if parsedURI.Scheme != HTTPS {
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "sector identifier URI must use HTTPS")
 	}
 
@@ -480,7 +482,7 @@ func (c *clientValidator) validateSectorIdentifierURI(requestID string, redirect
 		c.logger.Warn(c.module, requestID, "Failed to fetch sector identifier URI (%s): %v", sectorIdentifierURI, err)
 		return errors.Wrap(err, errors.ErrCodeInvalidClientMetadata, "failed to fetch sector identifier URI")
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
 		c.logger.Warn(c.module, requestID, "Sector identifier URI (%s) returned non-200 status: %d", sectorIdentifierURI, resp.StatusCode)
@@ -509,6 +511,7 @@ func (c *clientValidator) validateSectorIdentifierURI(requestID string, redirect
 		for _, fetchedURI := range fetchedRedirectURIs {
 			if providedURI == fetchedURI {
 				found = true
+
 				break
 			}
 		}
@@ -578,7 +581,7 @@ func (c *clientValidator) validateResponseTypes(requestID string, req clients.Cl
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "token response type is required for the implicit flow grant type")
 	}
 
-	if idToken && !(authCodeOrDeviceCode || implicitFlow) {
+	if idToken && !authCodeOrDeviceCode && !implicitFlow {
 		c.logger.Warn(c.module, requestID, "Incompatible response type: 'id_token' requires 'authorization_code' or 'implicit' grant type")
 		return errors.New(errors.ErrCodeInvalidClientMetadata, "ID token response type is only allowed with the authorization code, device code or implicit flow grant types")
 	}

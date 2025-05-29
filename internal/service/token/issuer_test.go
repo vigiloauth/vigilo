@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -26,10 +27,10 @@ func TestTokenIssuer_IssueTokenPair(t *testing.T) {
 			expectedErr: "",
 			creator: &mocks.MockTokenCreator{
 				CreateAccessTokenWithClaimsFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *domain.ClaimsRequest) (string, error) {
-					return "token", nil
+					return accessToken, nil
 				},
 				CreateRefreshTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string) (string, error) {
-					return "refreshToken", nil
+					return refreshToken, nil
 				},
 			},
 		},
@@ -39,7 +40,7 @@ func TestTokenIssuer_IssueTokenPair(t *testing.T) {
 			expectedErr: errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError],
 			creator: &mocks.MockTokenCreator{
 				CreateAccessTokenWithClaimsFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *domain.ClaimsRequest) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -49,10 +50,10 @@ func TestTokenIssuer_IssueTokenPair(t *testing.T) {
 			expectedErr: errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError],
 			creator: &mocks.MockTokenCreator{
 				CreateAccessTokenWithClaimsFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *domain.ClaimsRequest) (string, error) {
-					return "token", nil
+					return accessToken, nil
 				},
 				CreateRefreshTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -74,10 +75,10 @@ func TestTokenIssuer_IssueTokenPair(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected errors to be equal")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotEmpty(t, accessToken)
 				assert.NotEmpty(t, refreshToken)
 			}
@@ -108,7 +109,7 @@ func TestTokenIssuer_IssueIDToken(t *testing.T) {
 			expectedErr: errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError],
 			creator: &mocks.MockTokenCreator{
 				CreateIDTokenFunc: func(ctx context.Context, userID, clientID string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -130,10 +131,10 @@ func TestTokenIssuer_IssueIDToken(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected errors to be equal")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotEmpty(t, IDToken)
 			}
 		})
@@ -153,7 +154,7 @@ func TestTokenIssuer_IssueAccessToken(t *testing.T) {
 			expectedErr: "",
 			creator: &mocks.MockTokenCreator{
 				CreateAccessTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string) (string, error) {
-					return "token", nil
+					return accessToken, nil
 				},
 			},
 		},
@@ -163,7 +164,7 @@ func TestTokenIssuer_IssueAccessToken(t *testing.T) {
 			expectedErr: errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError],
 			creator: &mocks.MockTokenCreator{
 				CreateAccessTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -184,10 +185,10 @@ func TestTokenIssuer_IssueAccessToken(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected errors to be equal")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotEmpty(t, IDToken)
 			}
 		})

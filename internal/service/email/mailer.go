@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/email"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"gopkg.in/gomail.v2"
 )
 
@@ -29,7 +30,12 @@ func NewGoMailer() domain.Mailer {
 //   - error: An error if the connection fails, or nil if successful.
 func (m *goMailer) Dial(host string, port int, username string, password string) (gomail.SendCloser, error) {
 	dialer := gomail.NewDialer(host, port, username, password)
-	return dialer.Dial()
+	closer, err := dialer.Dial()
+	if err != nil {
+		return nil, errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to dial to the SMTP server")
+	}
+
+	return closer, nil
 }
 
 // DialAndSend connects to the email server and immediately sends the provided email message(s).
@@ -46,7 +52,11 @@ func (m *goMailer) Dial(host string, port int, username string, password string)
 //   - error: An error indicating the failure to send the email(s), or nil if successful.
 func (m *goMailer) DialAndSend(host string, port int, username string, password string, message ...*gomail.Message) error {
 	dialer := gomail.NewDialer(host, port, username, password)
-	return dialer.DialAndSend(message...)
+	if err := dialer.DialAndSend(message...); err != nil {
+		return errors.Wrap(err, errors.ErrCodeInternalServerError, "failed to dial and send message")
+	}
+
+	return nil
 }
 
 // NewMessage creates a new gomail message using the provided email request, body,

@@ -68,12 +68,14 @@ func (s *authorizationService) AuthorizeTokenExchange(
 	requestID := utils.GetRequestID(ctx)
 	authzCodeData, err := s.authzCodeService.GetAuthorizationCode(ctx, tokenRequest.AuthorizationCode)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "", "failed to retrieve authorization code")
 	}
 
 	defer func() {
 		if err != nil || authzCodeData != nil {
-			s.markAuthorizationCodeAsUsed(ctx, authzCodeData)
+			if err := s.markAuthorizationCodeAsUsed(ctx, authzCodeData); err != nil {
+				s.logger.Error(s.module, requestID, "[AuthorizeTokenExchange]: Failed to mark authorization code as used: %v", err)
+			}
 		}
 	}()
 
@@ -115,7 +117,7 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 
 	if claims == nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: Token claims provided are nil")
-		return nil, errors.NewInternalServerError()
+		return nil, errors.New(errors.ErrCodeEmptyInput, "token claims provided are empty")
 	}
 
 	requestedScopes := types.ParseScopesString(claims.Scopes.String())
@@ -123,16 +125,16 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 		return nil, errors.New(errors.ErrCodeInsufficientScope, "bearer access token has insufficient privileges")
 	}
 
-	userID := claims.StandardClaims.Subject
+	userID := claims.Subject
 	retrievedUser, err := s.userManager.GetUserByID(ctx, userID)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: An error occurred retrieving the user: %v", err)
-		return nil, err
+		return nil, errors.Wrap(err, "", "an error occurred retrieving the specified user")
 	}
 
-	if err := s.validateClientScopes(ctx, claims.StandardClaims.Audience, requestedScopes); err != nil {
+	if err := s.validateClientScopes(ctx, claims.Audience, requestedScopes); err != nil {
 		s.logger.Error(s.module, requestID, "[AuthorizeUserInfoRequest]: An error occurred retrieving and validating the client: %v", err)
-		return nil, err
+		return nil, errors.Wrap(err, "", "an error occurred validating the client's scopes")
 	}
 
 	return retrievedUser, nil
@@ -147,7 +149,12 @@ func (s *authorizationService) AuthorizeUserInfoRequest(ctx context.Context, cla
 // Returns:
 //   - error: An error if the update fails, otherwise nil.
 func (s *authorizationService) UpdateAuthorizationCode(ctx context.Context, authData *authzCode.AuthorizationCodeData) error {
-	return s.authzCodeService.UpdateAuthorizationCode(ctx, authData)
+	if err := s.authzCodeService.UpdateAuthorizationCode(ctx, authData); err != nil {
+		s.logger.Error(s.module, utils.GetRequestID(ctx), "[UpdateAuthorizationCode]: Failed to update code: %v", err)
+		return errors.Wrap(err, "", "failed to update authorization code")
+	}
+
+	return nil
 }
 
 func (s *authorizationService) validateClientScopes(ctx context.Context, clientID string, requestedScopes []types.Scope) error {
@@ -201,7 +208,7 @@ func (s *authorizationService) handlePKCEValidation(authzCodeData *authzCode.Aut
 		return errors.New(errors.ErrCodeInvalidRequest, "missing code verifier for PKCE")
 	} else if err := tokenRequest.ValidateCodeVerifier(); err != nil {
 		s.logger.Error(s.module, "", "Failed to validate code verifier: %v", err)
-		return err
+		return errors.Wrap(err, "", "an error occurred validating the provided code verifier")
 	}
 
 	return nil
@@ -217,7 +224,7 @@ func (s *authorizationService) markAuthorizationCodeAsUsed(ctx context.Context, 
 	authzCodeData.Used = true
 	if err := s.authzCodeService.UpdateAuthorizationCode(ctx, authzCodeData); err != nil {
 		s.logger.Error(s.module, utils.GetRequestID(ctx), "[AuthorizeTokenExchange]: Failed to mark code as used: %v", err)
-		return err
+		return errors.Wrap(err, "", "failed to mark the authorization code as used")
 	}
 
 	return nil

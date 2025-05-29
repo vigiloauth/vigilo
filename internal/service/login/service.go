@@ -54,8 +54,10 @@ func (s *loginAttemptService) SaveLoginAttempt(ctx context.Context, attempt *use
 		s.logger.Error(s.module, requestID, "[SaveLoginAttempt]: Failed to save login attempt for user=[%s]: %v",
 			utils.TruncateSensitive(attempt.UserID), err,
 		)
+
 		return errors.Wrap(err, "", "failed to save login attempt")
 	}
+
 	return nil
 }
 
@@ -128,5 +130,10 @@ func (s *loginAttemptService) shouldLockAccount(ctx context.Context, userID stri
 
 func (s *loginAttemptService) lockAccount(ctx context.Context, retrievedUser *user.User) error {
 	retrievedUser.AccountLocked = true
-	return s.userRepo.UpdateUser(ctx, retrievedUser)
+	if err := s.userRepo.UpdateUser(ctx, retrievedUser); err != nil {
+		s.logger.Error(s.module, utils.GetRequestID(ctx), "[lockAccount]: Failed to update user: %v", err)
+		return errors.Wrap(err, "", "failed to update user")
+	}
+
+	return nil
 }

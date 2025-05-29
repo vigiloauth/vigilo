@@ -22,9 +22,10 @@ func (s *SMTPConfigYAML) ToOptions() []config.SMTPConfigOptions {
 	}
 
 	if s.Port != nil {
-		if *s.Port == TLSPort {
+		switch *s.Port {
+		case TLSPort:
 			options = append(options, config.WithTLS())
-		} else if *s.Port == SSLPort {
+		case SSLPort:
 			options = append(options, config.WithSSL())
 		}
 	}

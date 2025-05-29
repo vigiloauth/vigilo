@@ -149,7 +149,7 @@ func (b *InMemoryTokenRepository) IsTokenBlacklisted(ctx context.Context, token 
 		return false, nil
 	}
 
-	expirationTime := time.Unix(data.TokenClaims.StandardClaims.ExpiresAt, 0)
+	expirationTime := time.Unix(data.TokenClaims.ExpiresAt, 0)
 	if time.Now().After(expirationTime) {
 		logger.Debug(module, requestID, "[IsTokenBlacklisted]: Deleting expired token")
 		delete(b.tokens, token)
@@ -218,7 +218,7 @@ func (b *InMemoryTokenRepository) GetExpiredTokens(ctx context.Context) ([]*doma
 	tokens := []*domain.TokenData{}
 
 	for _, data := range b.tokens {
-		expirationTime := time.Unix(data.TokenClaims.StandardClaims.ExpiresAt, 0)
+		expirationTime := time.Unix(data.TokenClaims.ExpiresAt, 0)
 		if now.After(expirationTime) {
 			tokens = append(tokens, data)
 		}
@@ -229,8 +229,10 @@ func (b *InMemoryTokenRepository) GetExpiredTokens(ctx context.Context) ([]*doma
 
 // truncateToken truncates a token for safe logging.
 func truncateToken(token string) string {
-	if len(token) > 10 {
-		return token[:10] + "..."
+	const tokenLength int = 10
+	if len(token) > tokenLength {
+		return token[:tokenLength] + "..."
 	}
+
 	return token
 }

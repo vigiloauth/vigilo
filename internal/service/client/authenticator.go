@@ -139,7 +139,7 @@ func (c *clientAuthenticator) authenticateWithBearerToken(
 		return errors.Wrap(err, "", "failed to parse bearer token")
 	}
 
-	clientID := claims.StandardClaims.Audience
+	clientID := claims.Audience
 	req := &clients.ClientAuthenticationRequest{
 		ClientID:        clientID,
 		RequestedScopes: requiredScope,

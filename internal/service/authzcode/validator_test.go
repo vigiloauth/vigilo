@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -107,10 +108,10 @@ func TestAuthorizationCodeValidator_ValidateRequest(t *testing.T) {
 
 			err := sut.ValidateRequest(ctx, test.req)
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 			}
 		})
 	}
@@ -217,10 +218,10 @@ func TestAuthorizationCodeValidator_ValidateAuthorizationCode(t *testing.T) {
 			err := sut.ValidateAuthorizationCode(ctx, test.code, test.clientID, test.redirectURI)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 			}
 		})
 	}
@@ -294,10 +295,10 @@ func TestAuthorizationCodeValidator_ValidatePKCE(t *testing.T) {
 			err := sut.ValidatePKCE(ctx, test.authzCodeData, test.codeVerifier)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error code does not match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got one")
+				require.NoError(t, err, "Expected no error but got one")
 			}
 		})
 	}

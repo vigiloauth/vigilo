@@ -8,6 +8,7 @@ import (
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
@@ -115,14 +116,20 @@ func (r *InMemoryAuditEventRepository) DeleteEvent(ctx context.Context, eventID 
 	return nil
 }
 
-func (r *InMemoryAuditEventRepository) getFilteredEvents(ctx context.Context, filters map[string]any, from time.Time, to time.Time) ([]*domain.AuditEvent, error) {
+// nolint
+func (r *InMemoryAuditEventRepository) getFilteredEvents(
+	ctx context.Context,
+	filters map[string]any,
+	from time.Time,
+	to time.Time,
+) ([]*domain.AuditEvent, error) {
 	var auditEvents []*domain.AuditEvent
 
 loop:
 	for _, event := range r.events {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return nil, errors.Wrap(ctx.Err(), errors.ErrCodeRequestTimeout, "the request timed out")
 		default:
 			event.Timestamp = event.Timestamp.UTC().Truncate(time.Second)
 			from = from.UTC().Truncate(time.Second)
@@ -136,31 +143,31 @@ loop:
 				switch key {
 				case "UserID":
 					if v, ok := value.(string); !ok || event.UserID != v {
-						continue loop
+						continue loop //nolint:nlreturn
 					}
 				case "EventType":
 					if v, ok := value.(string); !ok || event.EventType.String() != v {
-						continue loop
+						continue loop //nolint:nlreturn
 					}
 				case "Success":
 					if v, ok := value.(bool); !ok || event.Success != v {
-						continue loop
+						continue loop //nolint:nlreturn
 					}
 				case "IP":
 					if v, ok := value.(string); !ok || event.IP != v {
-						continue loop
+						continue loop //nolint:nlreturn
 					}
 				case "RequestID":
 					if v, ok := value.(string); !ok || event.RequestID != v {
-						continue loop
+						continue loop //nolint:nlreturn
 					}
 				case "SessionID":
 					if v, ok := value.(string); !ok || event.SessionID != v {
-						continue loop
+						continue loop //nolint:nlreturn
 					}
 				default:
 					logger.Warn(module, utils.GetRequestID(ctx), "[GetAuditEvents]: Unknown filter: %s", key)
-					continue loop
+					continue loop //nolint:nlreturn
 				}
 			}
 

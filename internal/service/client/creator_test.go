@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	domain "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -12,6 +13,12 @@ import (
 	encryptionMocks "github.com/vigiloauth/vigilo/v2/internal/mocks/crypto"
 	tokenMocks "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
+)
+
+const (
+	accessToken        string = "access_token"
+	clientSecret       string = "client_secret"
+	hashedClientSecret string = "hashed_client_secret"
 )
 
 func TestClientCreator_Register(t *testing.T) {
@@ -45,7 +52,7 @@ func TestClientCreator_Register(t *testing.T) {
 			},
 			issuer: &tokenMocks.MockTokenIssuer{
 				IssueAccessTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string) (string, error) {
-					return "token", nil
+					return accessToken, nil
 				},
 			},
 		},
@@ -69,15 +76,15 @@ func TestClientCreator_Register(t *testing.T) {
 			},
 			issuer: &tokenMocks.MockTokenIssuer{
 				IssueAccessTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string) (string, error) {
-					return "token", nil
+					return accessToken, nil
 				},
 			},
 			encryptor: &encryptionMocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "secret", nil
+					return clientSecret, nil
 				},
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashedSecret", nil
+					return hashedClientSecret, nil
 				},
 			},
 		},
@@ -96,15 +103,15 @@ func TestClientCreator_Register(t *testing.T) {
 			},
 			issuer: &tokenMocks.MockTokenIssuer{
 				IssueAccessTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 			encryptor: &encryptionMocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "secret", nil
+					return clientSecret, nil
 				},
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashedSecret", nil
+					return hashedClientSecret, nil
 				},
 			},
 		},
@@ -123,20 +130,20 @@ func TestClientCreator_Register(t *testing.T) {
 			},
 			repo: &clientMocks.MockClientRepository{
 				SaveClientFunc: func(ctx context.Context, client *domain.Client) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 			issuer: &tokenMocks.MockTokenIssuer{
 				IssueAccessTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string) (string, error) {
-					return "token", nil
+					return accessToken, nil
 				},
 			},
 			encryptor: &encryptionMocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "secret", nil
+					return clientSecret, nil
 				},
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashedSecret", nil
+					return hashedClientSecret, nil
 				},
 			},
 		},
@@ -150,11 +157,11 @@ func TestClientCreator_Register(t *testing.T) {
 			res, err := sut.Register(ctx, test.client)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to match")
 				assert.Nil(t, res, "Expected result to be nil but got: %v", res)
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, res, "Expected result to not be nil")
 			}
 		})

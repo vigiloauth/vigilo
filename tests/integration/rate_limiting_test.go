@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -22,7 +23,7 @@ func TestRateLimiting(t *testing.T) {
 
 	request := users.UserLoginRequest{Username: testUsername, Password: testPassword1}
 	requestBody, err := json.Marshal(request)
-	assert.NoError(t, err, "failed to marshal request body")
+	require.NoError(t, err, "failed to marshal request body")
 
 	requestsPerMinute := 5
 	testContext.WithCustomConfig(config.WithMaxRequestsPerMinute(requestsPerMinute))

@@ -18,18 +18,16 @@ import (
 
 func main() {
 	isDockerENV := os.Getenv(constants.VigiloServerModeENV) == "docker"
-	if isDockerENV {
+	if isDockerENV { //nolint
 		cfg := config.LoadConfigurations()
 
-		var baseURL string = "/identity"
-		var port string = ":8080"
-		const module string = "Vigilo Identity Provider"
-		var logger *lib.Logger = lib.GetLogger()
-		var forceHTTPs bool = false
-		var certFile string = ""
-		var keyFile string = ""
-
-		logger = lib.GetLogger()
+		baseURL := "/identity"
+		port := ":8080"
+		module := "Vigilo Identity Provider"
+		logger := lib.GetLogger()
+		forceHTTPs := false
+		certFile := ""
+		keyFile := ""
 
 		if cfg != nil && cfg.ServerConfig != nil {
 			if cfg.Port != nil {
@@ -50,7 +48,6 @@ func main() {
 			if cfg.LogLevel != nil {
 				logger.SetLevel(*cfg.LogLevel)
 			}
-
 		}
 
 		if !strings.HasPrefix(baseURL, "/") {

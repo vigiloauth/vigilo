@@ -41,11 +41,12 @@ func New(errCode string, errorDescription string) error {
 }
 
 // NewInternalServerError creates a new error with default fields.
-func NewInternalServerError() error {
+func NewInternalServerError(errDetails string) error {
 	return &VigiloAuthError{
 		SystemCode:       SystemErrorCodeMap[ErrCodeInternalServerError],
 		ErrorCode:        ErrCodeInternalServerError,
 		ErrorDescription: "An unexpected error occurred. Please try again later.",
+		ErrorDetails:     errDetails,
 	}
 }
 
@@ -130,13 +131,14 @@ func Wrap(err error, code string, message string) error {
 	}
 
 	if code == "" {
-		if vigiloErr, ok := err.(*VigiloAuthError); ok {
+		var vigiloErr *VigiloAuthError
+		if errors.As(err, &vigiloErr) {
 			code = vigiloErr.ErrorCode
 		}
 	}
 
 	vigiloError := &VigiloAuthError{}
-	if e, ok := err.(*ErrorCollection); ok {
+	if e, ok := err.(*ErrorCollection); ok { //nolint:errorlint
 		vigiloError.ErrorCode = ErrCodeValidationError
 		vigiloError.ErrorDescription = message
 		vigiloError.Errors = e.Errors()
@@ -165,7 +167,7 @@ func ErrorCode(err error) string {
 		return ""
 	}
 
-	if vigiloErr, ok := err.(*VigiloAuthError); ok {
+	if vigiloErr, ok := err.(*VigiloAuthError); ok { //nolint:errorlint
 		return vigiloErr.ErrorCode
 	}
 
@@ -182,7 +184,7 @@ func SystemErrorCode(err error) string {
 		return ""
 	}
 
-	if vigiloErr, ok := err.(*VigiloAuthError); ok {
+	if vigiloErr, ok := err.(*VigiloAuthError); ok { //nolint:errorlint
 		return vigiloErr.SystemCode
 	}
 

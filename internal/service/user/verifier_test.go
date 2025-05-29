@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	user "github.com/vigiloauth/vigilo/v2/internal/domain/user"
@@ -151,7 +152,7 @@ func TestUserVerifier_VerifyEmailAddress(t *testing.T) {
 					}, nil
 				},
 				UpdateUserFunc: func(ctx context.Context, user *user.User) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 			validator: &tokens.MockTokenValidator{
@@ -184,10 +185,10 @@ func TestUserVerifier_VerifyEmailAddress(t *testing.T) {
 			err := sut.VerifyEmailAddress(ctx, "verificationCode")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to match")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}

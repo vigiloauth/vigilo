@@ -84,7 +84,7 @@ func (s *tokenGrantProcessor) IssueClientCredentialsToken(
 	accessToken, refreshToken, err := s.tokenIssuer.IssueTokenPair(ctx, "", clientID, scopes, "", "", nil)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueClientCredentialsToken]: Failed to issue tokens: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to issue access and refresh tokens")
 	}
 
 	return &tokens.TokenResponse{
@@ -140,7 +140,7 @@ func (s *tokenGrantProcessor) IssueResourceOwnerToken(
 	accessToken, refreshToken, err := s.tokenIssuer.IssueTokenPair(ctx, authenticatedUser.UserID, clientID, scopes, "", "", nil)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[IssueResourceOwnerToken]: Failed to issue tokens: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to issue token pair")
 	}
 
 	return &tokens.TokenResponse{
@@ -150,7 +150,6 @@ func (s *tokenGrantProcessor) IssueResourceOwnerToken(
 		ExpiresIn:    s.tokenDuration,
 		Scope:        scopes,
 	}, nil
-
 }
 
 // RefreshToken issues a new access token using a valid refresh token.
@@ -178,7 +177,9 @@ func (s *tokenGrantProcessor) RefreshToken(
 
 	defer func() {
 		if err != nil || resp != nil {
-			s.tokenManager.BlacklistToken(ctx, refreshToken)
+			if err := s.tokenManager.BlacklistToken(ctx, refreshToken); err != nil {
+				s.logger.Error(s.module, requestID, "[RefreshToken]: Failed to blacklist token: %v", err)
+			}
 		}
 	}()
 
@@ -200,7 +201,7 @@ func (s *tokenGrantProcessor) RefreshToken(
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "invalid token")
 	}
 
-	audience := tokenData.TokenClaims.StandardClaims.Audience
+	audience := tokenData.TokenClaims.Audience
 	if clientID != audience {
 		s.logger.Error(s.module, requestID, "[RefreshToken]: Client ID does not match with associated refresh token")
 		return nil, errors.New(errors.ErrCodeInvalidGrant, "refresh token was issued to a different client")
@@ -216,7 +217,7 @@ func (s *tokenGrantProcessor) RefreshToken(
 		}
 	}
 
-	userID := tokenData.TokenClaims.StandardClaims.Subject
+	userID := tokenData.TokenClaims.Subject
 	newAccessToken, newRefreshToken, err := s.tokenIssuer.IssueTokenPair(ctx, userID, clientID, scopes, "", "", nil)
 	if err != nil {
 		s.logger.Error(s.module, requestID, "[RefreshToken]: Failed to issue new access and refresh tokens: %v", err)

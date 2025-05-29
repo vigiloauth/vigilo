@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
@@ -37,7 +36,7 @@ func NewClientHandler(
 
 // RegisterClient is the HTTP handler for public client registration.
 func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -64,7 +63,7 @@ func (h *ClientHandler) RegisterClient(w http.ResponseWriter, r *http.Request) {
 
 // RegenerateSecret is the HTTP handler for regenerating client secrets.
 func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -82,7 +81,7 @@ func (h *ClientHandler) RegenerateSecret(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *ClientHandler) GetClientByID(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -108,7 +107,7 @@ func (h *ClientHandler) GetClientByID(w http.ResponseWriter, r *http.Request) {
 // It supports GET, PUT, and DELETE methods to retrieve, update, or delete client configurations.
 // The method validates the registration access token and extracts the client ID from the URL.
 func (h *ClientHandler) ManageClientConfiguration(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	var registrationAccessToken string

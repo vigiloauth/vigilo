@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -32,7 +31,7 @@ func NewTokenHandler(grantProcessor token.TokenGrantProcessor) *TokenHandler {
 }
 
 func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -58,7 +57,7 @@ func (h *TokenHandler) IntrospectToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TokenHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)
@@ -82,7 +81,7 @@ func (h *TokenHandler) RevokeToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TokenHandler) IssueTokens(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), constants.ThreeSecondTimeout)
 	defer cancel()
 
 	requestID := utils.GetRequestID(ctx)

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	claims "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
@@ -18,6 +19,11 @@ import (
 	mockToken "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	mockUser "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
+)
+
+const (
+	hashedPassword string = "hashedPassword"
+	randomStr      string = "super-random-string"
 )
 
 func TestUserCreator_CreateUser(t *testing.T) {
@@ -44,10 +50,10 @@ func TestUserCreator_CreateUser(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return randomStr, nil
 				},
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			issuer: &mockToken.MockTokenIssuer{
@@ -78,10 +84,10 @@ func TestUserCreator_CreateUser(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return randomStr, nil
 				},
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			audit: &mockAudit.MockAuditLogger{
@@ -102,15 +108,15 @@ func TestUserCreator_CreateUser(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return randomStr, nil
 				},
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			issuer: &mockToken.MockTokenIssuer{
 				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
-					return "", "", errors.NewInternalServerError()
+					return "", "", errors.NewInternalServerError("")
 				},
 			},
 			audit: &mockAudit.MockAuditLogger{
@@ -131,10 +137,10 @@ func TestUserCreator_CreateUser(t *testing.T) {
 			},
 			crypto: &mocks.MockCryptographer{
 				GenerateRandomStringFunc: func(length int) (string, error) {
-					return "random-string", nil
+					return randomStr, nil
 				},
 				HashStringFunc: func(plainStr string) (string, error) {
-					return "hashed-password", nil
+					return hashedPassword, nil
 				},
 			},
 			issuer: &mockToken.MockTokenIssuer{
@@ -163,11 +169,11 @@ func TestUserCreator_CreateUser(t *testing.T) {
 			res, err := sut.CreateUser(ctx, test.user)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to match")
 				assert.Nil(t, res, "Expected result to not be nil")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, res, "Expected the result to not be nil")
 			}
 		})

@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	clients "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
@@ -71,10 +72,10 @@ func TestClientAuthenticator_AuthenticateRequest(t *testing.T) {
 				err := service.AuthenticateRequest(ctx, req, types.OpenIDScope)
 
 				if test.wantErr {
-					assert.Error(t, err, "Expected an error but got none")
+					require.Error(t, err, "Expected an error but got none")
 					assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error codes to match")
 				} else {
-					assert.NoError(t, err, "Expected no error but got: %v", err)
+					require.NoError(t, err, "Expected no error but got: %v", err)
 				}
 			})
 		}
@@ -182,10 +183,10 @@ func TestClientAuthenticator_AuthenticateRequest(t *testing.T) {
 				err := service.AuthenticateRequest(ctx, req, types.OpenIDScope)
 
 				if test.wantErr {
-					assert.Error(t, err, "Expected an error but got none")
+					require.Error(t, err, "Expected an error but got none")
 					assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error codes to match")
 				} else {
-					assert.NoError(t, err, "Expected no error but got: %v", err)
+					require.NoError(t, err, "Expected no error but got: %v", err)
 				}
 			})
 		}
@@ -312,10 +313,10 @@ func TestClientAuthenticator_AuthenticateClient(t *testing.T) {
 			err := service.AuthenticateClient(ctx, req)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErrCode, errors.SystemErrorCode(err), "Expected error cods to be equal")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}

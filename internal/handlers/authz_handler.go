@@ -47,9 +47,10 @@ func (h *AuthorizationHandler) AuthorizeClient(w http.ResponseWriter, r *http.Re
 	h.logger.Info(h.module, requestID, "[AuthorizeClient]: Processing request")
 
 	var query url.Values
-	if r.Method == http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
 		query = r.URL.Query()
-	} else if r.Method == http.MethodPost {
+	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
 			h.logger.Error(h.module, requestID, "[AuthorizeClient]: Failed to parse form: %v", err)
 			web.WriteError(w, errors.New(errors.ErrCodeInvalidRequest, "invalid form data"))

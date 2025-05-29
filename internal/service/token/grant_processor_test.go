@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	claims "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
@@ -148,7 +149,7 @@ func TestTokenGrantProcessor_IssueClientCredentialsToken(t *testing.T) {
 			},
 			tokenIssuer: &mockToken.MockTokenIssuer{
 				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
-					return "", "", errors.NewInternalServerError()
+					return "", "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -168,11 +169,11 @@ func TestTokenGrantProcessor_IssueClientCredentialsToken(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to be equal")
 				assert.Nil(t, response, "Expected the response to be nil")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, response, "Expected response to not be nil")
 				assert.Equal(t, test.expectedResponse.AccessToken, response.AccessToken)
 				assert.Equal(t, test.expectedResponse.RefreshToken, response.RefreshToken)
@@ -313,7 +314,7 @@ func TestTokenGrantProcessor_IssueResourceOwnerToken(t *testing.T) {
 			},
 			tokenIssuer: &mockToken.MockTokenIssuer{
 				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
-					return "", "", errors.NewInternalServerError()
+					return "", "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -355,11 +356,11 @@ func TestTokenGrantProcessor_IssueResourceOwnerToken(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to be equal")
 				assert.Nil(t, response, "Expected the response to be nil")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, response, "Expected response to not be nil")
 				assert.Equal(t, test.expectedResponse.AccessToken, response.AccessToken)
 				assert.Equal(t, test.expectedResponse.RefreshToken, response.RefreshToken)
@@ -370,7 +371,7 @@ func TestTokenGrantProcessor_IssueResourceOwnerToken(t *testing.T) {
 	}
 }
 
-func TestTokenGrantProcessor_RefreshToken(t *testing.T) {
+func TestTokenGrantProcessor_RefreshToken(t *testing.T) { //nolint
 	tests := []struct {
 		name                string
 		clientID            string
@@ -574,7 +575,7 @@ func TestTokenGrantProcessor_RefreshToken(t *testing.T) {
 			expectedResp: nil,
 			tokenIssuer: &mockToken.MockTokenIssuer{
 				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
-					return "", "", errors.NewInternalServerError()
+					return "", "", errors.NewInternalServerError("")
 				},
 			},
 			tokenManager: &mockToken.MockTokenManager{
@@ -616,11 +617,11 @@ func TestTokenGrantProcessor_RefreshToken(t *testing.T) {
 			)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to be equal")
 				assert.Nil(t, resp, "Expected the response to be nil")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, resp, "Expected response to not be nil")
 				assert.Equal(t, test.expectedResp.AccessToken, resp.AccessToken)
 				assert.Equal(t, test.expectedResp.RefreshToken, resp.RefreshToken)
@@ -735,7 +736,7 @@ func TestTokenGrantProcessor_ExchangeAuthorizationCode(t *testing.T) {
 			},
 			issuer: &mockToken.MockTokenIssuer{
 				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
-					return "", "", errors.NewInternalServerError()
+					return "", "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -773,7 +774,7 @@ func TestTokenGrantProcessor_ExchangeAuthorizationCode(t *testing.T) {
 					return accessToken, redirectURI, nil
 				},
 				IssueIDTokenFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, nonce string, acrValues string, authTime time.Time) (string, error) {
-					return "", errors.NewInternalServerError()
+					return "", errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -805,11 +806,11 @@ func TestTokenGrantProcessor_ExchangeAuthorizationCode(t *testing.T) {
 			res, err := sut.ExchangeAuthorizationCode(ctx, test.request)
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to be equal")
 				assert.Nil(t, res, "Expected the result to be nil")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, res, "Expected the result to not be nil")
 				assert.Equal(t, test.expectedRes.AccessToken, res.AccessToken)
 				assert.Equal(t, test.expectedRes.RefreshToken, res.RefreshToken)
@@ -908,11 +909,11 @@ func TestTokenGrantProcessor_IntrospectToken(t *testing.T) {
 			res, err := sut.IntrospectToken(ctx, r, "token")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to be equal")
 				assert.Nil(t, res, "Expected the result to be nil")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 				assert.NotNil(t, res, "Expected the result to not be nil")
 			}
 		})
@@ -981,7 +982,7 @@ func TestTokenGrantProcessor_RevokeToken(t *testing.T) {
 			},
 			tokenManager: &mockToken.MockTokenManager{
 				RevokeFunc: func(ctx context.Context, tokenStr string) error {
-					return errors.NewInternalServerError()
+					return errors.NewInternalServerError("")
 				},
 			},
 		},
@@ -1016,10 +1017,10 @@ func TestTokenGrantProcessor_RevokeToken(t *testing.T) {
 			err := sut.RevokeToken(ctx, r, "token")
 
 			if test.wantErr {
-				assert.Error(t, err, "Expected an error but got none")
+				require.Error(t, err, "Expected an error but got none")
 				assert.Equal(t, test.expectedErr, errors.SystemErrorCode(err), "Expected error codes to be equal")
 			} else {
-				assert.NoError(t, err, "Expected no error but got: %v", err)
+				require.NoError(t, err, "Expected no error but got: %v", err)
 			}
 		})
 	}

@@ -146,7 +146,7 @@ func (u *userManager) ResetPassword(
 		return nil, errors.Wrap(err, "", "invalid reset token")
 	}
 
-	if user.ID != parsedToken.StandardClaims.Subject {
+	if user.ID != parsedToken.Subject {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: User ID does not match the token subject")
 		return nil, errors.New(errors.ErrCodeUnauthorized, "invalid credentials")
 	}
@@ -154,7 +154,7 @@ func (u *userManager) ResetPassword(
 	encryptedPassword, err := u.cryptographer.HashString(newPassword)
 	if err != nil {
 		u.logger.Error(u.module, requestID, "[ResetPassword]: Failed to encrypt password: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to encrypt password")
 	}
 
 	if user.AccountLocked {

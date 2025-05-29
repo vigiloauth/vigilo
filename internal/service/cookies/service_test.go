@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 )
@@ -60,7 +61,7 @@ func TestHTTPCookieService_ClearSessionCookie(t *testing.T) {
 	if len(cookies) > 0 {
 		cookie := cookies[0]
 		assert.Equal(t, expectedCookieName, cookie.Name, "Cookie name should match configuration")
-		assert.Equal(t, "", cookie.Value, "Cookie value should be empty")
+		assert.Empty(t, cookie.Value, "Cookie value should be empty")
 		assert.True(t, cookie.HttpOnly, "Cookie should be HttpOnly")
 		assert.Equal(t, http.SameSiteStrictMode, cookie.SameSite, "Cookie should use SameSite=Strict")
 		assert.Equal(t, expectedDomain, cookie.Domain, "Cookie domain should match configuration")
@@ -80,13 +81,13 @@ func TestHTTPCookieService_GetSessionCookie(t *testing.T) {
 	})
 
 	cookie, err := service.GetSessionCookie(req)
-	assert.NoError(t, err, "Should not return an error when cookie exists")
+	require.NoError(t, err, "Should not return an error when cookie exists")
 	assert.NotNil(t, cookie, "Should return a cookie")
 	assert.Equal(t, testSessionID, cookie.Value, "Cookie value should what was set")
 
 	reqWithoutCookie := httptest.NewRequest(http.MethodGet, testURL, nil)
 
 	cookie, err = service.GetSessionCookie(reqWithoutCookie)
-	assert.Error(t, err, "Should return an error when cookie doesn't exist")
+	require.Error(t, err, "Should return an error when cookie doesn't exist")
 	assert.Nil(t, cookie, "Should not return a cookie when it doesn't exist")
 }

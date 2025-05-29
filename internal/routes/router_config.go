@@ -14,6 +14,8 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/web"
 )
 
+const maxAge int = 300
+
 type RouterConfig struct {
 	router     chi.Router
 	middleware *middleware.Middleware
@@ -86,7 +88,7 @@ func (rc *RouterConfig) applyGlobalMiddleware() {
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", constants.RequestIDHeader},
 		ExposedHeaders:   []string{"Link", constants.RequestIDHeader},
 		AllowCredentials: true,
-		MaxAge:           300,
+		MaxAge:           maxAge,
 	}))
 }
 
@@ -153,7 +155,6 @@ func (rc *RouterConfig) registerRouteGroup(group RouteGroup) {
 				rc.logger.Debug(rc.module, "", "Registered route: %s %s", method, route.Pattern)
 			}
 		}
-
 	})
 }
 

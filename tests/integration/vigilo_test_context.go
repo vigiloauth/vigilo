@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/idp/server"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
@@ -147,17 +148,23 @@ func (tc *VigiloTestContext) WithUser(roles []string) *VigiloTestContext {
 
 	crypto := service.NewCryptographer()
 	hashedPassword, err := crypto.HashString(user.Password)
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 
 	user.Password = hashedPassword
-	userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
+	_ = userRepo.GetInMemoryUserRepository().AddUser(context.Background(), user)
 
 	tc.User = user
 	return tc
 }
 
 func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
-	consentRepo.GetInMemoryUserConsentRepository().SaveConsent(context.Background(), testUserID, testClientID, types.CombineScopes(types.Scope(testScope)))
+	_ = consentRepo.GetInMemoryUserConsentRepository().
+		SaveConsent(
+			context.Background(),
+			testUserID,
+			testClientID,
+			types.CombineScopes(types.Scope(testScope)),
+		)
 	return tc
 }
 
@@ -194,7 +201,7 @@ func (tc *VigiloTestContext) WithClient(clientType types.ClientType, scopes []ty
 		c.TokenEndpointAuthMethod = types.NoTokenAuth
 	}
 
-	clientRepo.GetInMemoryClientRepository().SaveClient(context.Background(), c)
+	_ = clientRepo.GetInMemoryClientRepository().SaveClient(context.Background(), c)
 }
 
 // WithJWTToken creates and adds a user JWT token to the system.
@@ -217,7 +224,7 @@ func (tc *VigiloTestContext) WithJWTToken(id string, duration time.Duration) *Vi
 		"", testNonce,
 	)
 
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 	tc.JWTToken = token
 
 	return tc
@@ -242,7 +249,7 @@ func (tc *VigiloTestContext) WithAdminToken(id string, duration time.Duration) *
 		constants.AdminRole, testNonce,
 	)
 
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 	tc.JWTToken = token
 
 	return tc
@@ -270,7 +277,7 @@ func (tc *VigiloTestContext) WithJWTTokenWithScopes(subject, audience string, sc
 		types.NewScopeList(scopes...),
 		"", testNonce,
 	)
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 	tc.JWTToken = accessToken
 
 	return tc
@@ -296,7 +303,7 @@ func (tc *VigiloTestContext) WithJWTTokenWithClaims(subject, audience string, cl
 		claims,
 	)
 
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 	tc.JWTToken = accessToken
 
 	return tc
@@ -317,14 +324,14 @@ func (tc *VigiloTestContext) WithBlacklistedToken(id string) *VigiloTestContext 
 		"", testNonce,
 	)
 
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 	tc.JWTToken = token
 
 	parser := tokenService.NewTokenParser(jwt)
 	validator := tokenService.NewTokenValidator(repo, parser)
 
 	manager := tokenService.NewTokenManager(repo, parser, validator)
-	manager.BlacklistToken(context.Background(), token)
+	_ = manager.BlacklistToken(context.Background(), token)
 
 	return tc
 }
@@ -334,6 +341,7 @@ func (tc *VigiloTestContext) GetSessionCookie() *http.Cookie {
 	for _, cookie := range tc.ResponseRecorder.Result().Cookies() {
 		if cookie.Name == config.GetServerConfig().SessionCookieName() {
 			sessionCookie = cookie
+
 			break
 		}
 	}
@@ -365,7 +373,7 @@ func (tc *VigiloTestContext) WithClientCredentialsToken() *VigiloTestContext {
 
 	var tokenResponse token.TokenResponse
 	err := json.NewDecoder(rr.Body).Decode(&tokenResponse)
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 	assert.Equal(tc.T, http.StatusOK, rr.Code)
 
 	tc.ClientAuthToken = tokenResponse.AccessToken
@@ -397,7 +405,7 @@ func (tc *VigiloTestContext) WithPasswordResetToken(duration time.Duration) (str
 		"", testNonce,
 	)
 
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 	return token, tc
 }
 
@@ -429,7 +437,7 @@ func (tc *VigiloTestContext) WithOAuthLogin() {
 	}
 
 	requestBody, err := json.Marshal(loginRequest)
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 
 	state := tc.GetStateFromSession()
 	tc.State = state
@@ -457,11 +465,11 @@ func (tc *VigiloTestContext) SendLiveRequest(method, endpoint string, body io.Re
 
 	url := tc.TestServer.URL + endpoint
 	req, err := http.NewRequest(method, url, body)
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 
 	tc.addHeaderAuth(req, headers)
 
-	return tc.HttpClient.Do(req)
+	return tc.HttpClient.Do(req) //nolint:wrapcheck
 }
 
 func (tc *VigiloTestContext) WithUserSession() {
@@ -471,7 +479,7 @@ func (tc *VigiloTestContext) WithUserSession() {
 
 	loginRequest := users.NewUserLoginRequest(testUsername, testPassword1)
 	body, err := json.Marshal(loginRequest)
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 
 	rr := tc.SendHTTPRequest(
 		http.MethodPost,
@@ -508,7 +516,7 @@ func (tc *VigiloTestContext) GetStateFromSession() string {
 	// Parse the response to extract the state
 	var consentResponse userConsent.UserConsentResponse
 	err := json.Unmarshal(rr.Body.Bytes(), &consentResponse)
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 	state := consentResponse.State
 	assert.NotEmpty(tc.T, state)
 
@@ -601,7 +609,7 @@ func (tc *VigiloTestContext) WithAuditEvents() {
 	for range eventCount {
 		event := audit.NewAuditEvent(ctx, audit.LoginAttempt, false, audit.AuthenticationAction, audit.EmailMethod, errors.ErrCodeAccountLocked)
 		err := auditEventRepo.GetInMemoryAuditEventRepository().StoreAuditEvent(ctx, event)
-		assert.NoError(tc.T, err)
+		require.NoError(tc.T, err)
 	}
 }
 
@@ -647,7 +655,7 @@ func (tc *VigiloTestContext) sendAuthorizationCodeRequest(queryParams url.Values
 	assert.NotEmpty(tc.T, location, "Redirect location should not be empty")
 
 	parsedURL, err := url.Parse(location)
-	assert.NoError(tc.T, err)
+	require.NoError(tc.T, err)
 
 	return parsedURL
 }
@@ -675,7 +683,7 @@ func resetInMemoryStores() {
 func (tc *VigiloTestContext) decodeErrorResponse(rr *httptest.ResponseRecorder) errors.VigiloAuthError {
 	var errResp errors.VigiloAuthError
 	err := json.NewDecoder(rr.Body).Decode(&errResp)
-	assert.NoError(tc.T, err, "Failed to unmarshal response body")
+	require.NoError(tc.T, err, "Failed to unmarshal response body")
 	return errResp
 }
 

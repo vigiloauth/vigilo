@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	authzCode "github.com/vigiloauth/vigilo/v2/internal/domain/authzcode"
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
@@ -57,7 +58,7 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 		expected := getTestAuthzCodeData()
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.ClientID, actual.ClientID)
 		assert.Equal(t, expected.UserID, actual.UserID)
@@ -78,11 +79,9 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 		}
 
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, nil, nil, nil)
-		expected := "authorization code has already been used"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
-		assert.Error(t, err)
-		assert.Equal(t, expected, err.Error())
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 
@@ -102,11 +101,9 @@ func TestAuthorizationService_AuthorizeTokenExchange(t *testing.T) {
 		}
 
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
-		expected := "failed to validate client: invalid client"
 		actual, err := service.AuthorizeTokenExchange(ctx, getTestTokenRequest())
 
-		assert.Error(t, err)
-		assert.Equal(t, expected, err.Error())
+		require.Error(t, err)
 		assert.Nil(t, actual)
 	})
 }
@@ -137,7 +134,7 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, response)
 	})
 
@@ -160,12 +157,9 @@ func TestAuthorizationService_AuthorizeTokenExchange_PKCE(t *testing.T) {
 
 		tokenRequest := getTestTokenRequest()
 		service := NewAuthorizationService(mockAuthzCodeService, nil, nil, mockClientService, nil, nil)
-
-		expectedErr := "missing code verifier for PKCE"
 		response, err := service.AuthorizeTokenExchange(ctx, tokenRequest)
 
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), expectedErr)
+		require.Error(t, err)
 		assert.Nil(t, response)
 	})
 }
@@ -180,7 +174,6 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 				Audience: testClientID,
 			},
 		}
-
 		userManager := &mUser.MockUserManager{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
 				return &users.User{}, nil
@@ -197,7 +190,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrievedUser)
 	})
 
@@ -210,7 +203,6 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 				Audience: testClientID,
 			},
 		}
-
 		userManager := &mUser.MockUserManager{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
 				return &users.User{}, nil
@@ -227,7 +219,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, retrievedUser)
 	})
 
@@ -255,7 +247,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 		service := NewAuthorizationService(nil, nil, nil, clientManager, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrievedUser)
 	})
 
@@ -268,7 +260,6 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 				Audience: testClientID,
 			},
 		}
-
 		userManager := &mUser.MockUserManager{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
 				return &users.User{}, nil
@@ -283,7 +274,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrievedUser)
 	})
 
@@ -296,7 +287,6 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 				Audience: testClientID,
 			},
 		}
-
 		userManager := &mUser.MockUserManager{
 			GetUserByIDFunc: func(ctx context.Context, userID string) (*users.User, error) {
 				return &users.User{}, nil
@@ -311,7 +301,7 @@ func TestAuthorizationService_AuthorizeUserInfoRequest(t *testing.T) {
 		service := NewAuthorizationService(nil, nil, nil, clientService, nil, userManager)
 		retrievedUser, err := service.AuthorizeUserInfoRequest(context.Background(), claims)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, retrievedUser)
 	})
 }

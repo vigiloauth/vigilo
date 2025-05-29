@@ -13,9 +13,8 @@ import (
 
 type SchedulerRegistry struct {
 	services  *ServiceRegistry
-	ctx       context.Context
-	ctxCancel context.CancelFunc
 	scheduler *background.Scheduler
+	exitCh    chan struct{}
 	logger    *config.Logger
 	module    string
 }
@@ -24,43 +23,43 @@ func NewSchedulerRegistry(services *ServiceRegistry, logger *config.Logger, exit
 	module := "Scheduler Registry"
 	logger.Info(module, "", "Initializing schedulers")
 
-	ctx, ctxCancel := context.WithCancel(context.Background())
-
 	sr := &SchedulerRegistry{
 		services:  services,
-		ctx:       ctx,
-		ctxCancel: ctxCancel,
 		logger:    logger,
 		module:    module,
+		exitCh:    exitCh,
 		scheduler: background.NewScheduler(),
 	}
 
-	sr.initJobs(exitCh)
 	return sr
 }
 
-func (sr *SchedulerRegistry) initJobs(exitCh chan struct{}) {
+func (sr *SchedulerRegistry) Start() {
+	sr.initJobs()
+}
+
+func (sr *SchedulerRegistry) initJobs() {
 	sr.registerSMTPJobs()
 	sr.registerTokenJobs()
 	sr.registerUserJobs()
 	sr.registerAuditLogJobs()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	go sr.scheduler.StartJobs(ctx)
+
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-		go sr.scheduler.StartJobs(sr.ctx)
+		defer signal.Stop(sigCh)
 
 		select {
 		case <-sigCh:
-			sr.ctxCancel()
-			sr.logger.Info(sr.module, "", "Received termination signal, shutting down...")
-		case <-sr.ctx.Done():
+			sr.logger.Info(sr.module, "", "Received termination signal")
+			cancel()
+			close(sr.exitCh)
+		case <-sr.exitCh:
+			cancel()
 		}
-
-		signal.Stop(sigCh)
-		sr.scheduler.Wait()
-		sr.logger.Info(sr.module, "", "All jobs completed. Signaling application exit.")
-		close(exitCh)
 	}()
 }
 
@@ -94,11 +93,9 @@ func (c *SchedulerRegistry) registerAuditLogJobs() {
 
 func (sr *SchedulerRegistry) Shutdown() {
 	sr.logger.Info(sr.module, "", "Shutting down schedulers and worker pool")
-	if sr.ctx != nil {
-		sr.ctxCancel()
-	}
-
 	if sr.scheduler != nil {
+		sr.scheduler.Stop()
 		sr.scheduler.Wait()
 	}
+	close(sr.exitCh)
 }

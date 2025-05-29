@@ -36,11 +36,18 @@ func NewAuditLogger(auditRepo audit.AuditRepository) audit.AuditLogger {
 //   - action ActionType: The action that is to be audited.
 //   - method MethodType: The method used (password, email, etc).
 //   - err error: The error if applicable, otherwise nil.
-func (a *auditLogger) StoreEvent(ctx context.Context, eventType audit.EventType, success bool, action audit.ActionType, method audit.MethodType, err error) {
+func (a *auditLogger) StoreEvent(
+	ctx context.Context,
+	eventType audit.EventType,
+	success bool,
+	action audit.ActionType,
+	method audit.MethodType,
+	err error,
+) {
 	requestID := utils.GetRequestID(ctx)
 
 	var errCode string
-	if e, ok := err.(*errors.VigiloAuthError); ok {
+	if e, ok := err.(*errors.VigiloAuthError); ok { //nolint:errorlint
 		errCode = e.ErrorCode
 	}
 
@@ -69,22 +76,20 @@ func (a *auditLogger) GetAuditEvents(ctx context.Context, filters map[string]any
 
 	from, err := time.Parse(time.RFC3339, fromStr)
 	if err != nil {
-		err := errors.New(errors.ErrCodeInvalidInput, "invalid 'from' timestamp - must be in RFC3339 format")
 		a.logger.Error(a.module, requestID, "[GetAuditEvents]: Invalid 'from' timestamp format=[%s]", fromStr)
-		return nil, err
+		return nil, errors.Wrap(err, errors.ErrCodeInvalidInput, "invalid 'from' timestamp - must be in RFC3339 format")
 	}
 
 	to, err := time.Parse(time.RFC3339, toStr)
 	if err != nil {
-		err := errors.New(errors.ErrCodeInvalidInput, "invalid 'to' timestamp - must be in RFC3339 format")
 		a.logger.Error(a.module, requestID, "[GetAuditEvents]: Invalid 'to' timestamp format=[%s]", toStr)
-		return nil, err
+		return nil, errors.Wrap(err, errors.ErrCodeInvalidInput, "invalid 'to' timestamp - must be in RFC3339 format")
 	}
 
 	events, err := a.auditRepo.GetAuditEvents(ctx, filters, from, to, limit, offset)
 	if err != nil {
 		a.logger.Error(a.module, requestID, "[GetAuditEvents]: An error occurred retrieving audit events: %v", err)
-		return nil, errors.NewInternalServerError()
+		return nil, errors.Wrap(err, "", "failed to retrieve audit events")
 	}
 
 	return events, nil
@@ -99,10 +104,13 @@ func (a *auditLogger) GetAuditEvents(ctx context.Context, filters map[string]any
 // Returns:
 //   - error: An error if deletion fails, otherwise nil.
 func (a *auditLogger) DeleteOldEvents(ctx context.Context, olderThan time.Time) error {
-	events, err := a.auditRepo.GetAuditEvents(ctx, map[string]any{}, time.Time{}, olderThan, 1000, 0)
+	const limit int = 1000
+	const offset int = 0
+
+	events, err := a.auditRepo.GetAuditEvents(ctx, map[string]any{}, time.Time{}, olderThan, limit, offset)
 	if err != nil {
 		a.logger.Error(a.module, "", "[DeleteOldEvents]: An error retrieving old audit events: %v", err)
-		return errors.NewInternalServerError()
+		return errors.Wrap(err, "", "failed to retrieve old audit events")
 	}
 
 	if len(events) == 0 {
@@ -113,7 +121,7 @@ func (a *auditLogger) DeleteOldEvents(ctx context.Context, olderThan time.Time) 
 	for _, event := range events {
 		if err := a.auditRepo.DeleteEvent(ctx, event.EventID); err != nil {
 			a.logger.Error(a.module, "", "[DeleteOldEvents]: An error occurred deleting event ID=[%s]: %v", event.EventID, err)
-			return errors.NewInternalServerError()
+			return errors.Wrap(err, "", "failed to delete audit event")
 		}
 	}
 

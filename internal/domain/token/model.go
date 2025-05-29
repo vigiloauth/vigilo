@@ -64,16 +64,16 @@ const BearerToken string = "bearer"
 
 func NewTokenIntrospectionResponse(claims *TokenClaims) *TokenIntrospectionResponse {
 	response := &TokenIntrospectionResponse{
-		ExpiresAt:       claims.StandardClaims.ExpiresAt,
-		IssuedAt:        claims.StandardClaims.IssuedAt,
-		Subject:         claims.StandardClaims.Subject,
-		Issuer:          claims.StandardClaims.Issuer,
-		TokenIdentifier: claims.StandardClaims.Id,
+		ExpiresAt:       claims.ExpiresAt,
+		IssuedAt:        claims.IssuedAt,
+		Subject:         claims.Subject,
+		Issuer:          claims.Issuer,
+		TokenIdentifier: claims.Id,
 		Active:          true,
 	}
 
 	if claims.Audience != "" {
-		response.Audience = claims.StandardClaims.Audience
+		response.Audience = claims.Audience
 	}
 
 	return response

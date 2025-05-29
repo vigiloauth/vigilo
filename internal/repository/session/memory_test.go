@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	session "github.com/vigiloauth/vigilo/v2/internal/domain/session"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 )
@@ -22,10 +23,10 @@ func TestInMemorySessionRepository_SaveSession(t *testing.T) {
 		sessionRepo := NewInMemorySessionRepository()
 
 		err := sessionRepo.SaveSession(ctx, sessionData)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		existingSession, err := sessionRepo.GetSessionByID(ctx, testSessionID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, existingSession)
 		assert.Equal(t, testSessionID, existingSession.ID)
 	})
@@ -36,13 +37,13 @@ func TestInMemorySessionRepository_SaveSession(t *testing.T) {
 
 		// Add entry
 		err := sessionRepo.SaveSession(ctx, sessionData)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Add duplicate entry
 		expected := errors.New(errors.ErrCodeDuplicateSession, "session already exists with the given ID")
 		actual := sessionRepo.SaveSession(ctx, sessionData)
 
-		assert.Error(t, actual)
+		require.Error(t, actual)
 		assert.Equal(t, expected.Error(), actual.Error())
 	})
 }
@@ -55,18 +56,18 @@ func TestInMemorySessionRepository_GetSessionByID(t *testing.T) {
 
 		// Save session
 		err := sessionRepo.SaveSession(ctx, sessionData)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Assert session is present in repository
 		existingSession, err := sessionRepo.GetSessionByID(ctx, testSessionID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, existingSession)
 	})
 
 	t.Run("Returns nil when no session exists", func(t *testing.T) {
 		sessionRepo := NewInMemorySessionRepository()
 		existingSession, err := sessionRepo.GetSessionByID(ctx, testSessionID)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, existingSession)
 	})
 }
@@ -79,17 +80,17 @@ func TestInMemorySessionRepository_UpdateSessionByID(t *testing.T) {
 
 		// Save session
 		err := sessionRepo.SaveSession(ctx, sessionData)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Update sessionData
 		newUserID := "user_id_1"
 		sessionData.UserID = newUserID
 
 		err = sessionRepo.UpdateSessionByID(ctx, testSessionID, sessionData)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		updatedSession, err := sessionRepo.GetSessionByID(ctx, testSessionID)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, newUserID, updatedSession.UserID)
 	})
 
@@ -100,7 +101,7 @@ func TestInMemorySessionRepository_UpdateSessionByID(t *testing.T) {
 		expected := errors.New(errors.ErrCodeSessionNotFound, "session does not exist with the given ID")
 		actual := sessionRepo.UpdateSessionByID(ctx, testSessionID, sessionData)
 
-		assert.Error(t, actual)
+		require.Error(t, actual)
 		assert.Equal(t, expected.Error(), actual.Error())
 	})
 }
@@ -112,14 +113,14 @@ func TestInMemorySessionRepository_DeleteSessionByID(t *testing.T) {
 
 	// Save session
 	err := sessionRepo.SaveSession(ctx, sessionData)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = sessionRepo.DeleteSessionByID(ctx, testSessionID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Assert the session is deleted
 	deletedSession, err := sessionRepo.GetSessionByID(ctx, testSessionID)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, deletedSession)
 }
 

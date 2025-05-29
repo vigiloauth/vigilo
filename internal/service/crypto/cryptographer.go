@@ -15,6 +15,11 @@ import (
 
 var _ domain.Cryptographer = (*cryptographer)(nil)
 
+const (
+	keyLength   int = 32
+	nonceLength int = 12
+)
+
 type cryptographer struct {
 	logger *config.Logger
 	module string
@@ -54,6 +59,7 @@ func (c *cryptographer) EncryptString(plainStr, secretKey string) (string, error
 	nonce, err := c.generateRandomNonce()
 	if err != nil {
 		c.logger.Error(c.module, "", "[EncryptString]: Failed to generate random nonce: %v", err)
+
 		return "", errors.Wrap(err, "", "failed to generate random nonce")
 	}
 
@@ -65,6 +71,7 @@ func (c *cryptographer) EncryptString(plainStr, secretKey string) (string, error
 
 	cipherText := aesGCM.Seal(nil, nonce, []byte(plainStr), nil)
 	result := append(nonce, cipherText...)
+
 	return base64.StdEncoding.EncodeToString(result), nil
 }
 
@@ -176,7 +183,8 @@ func (c *cryptographer) DecryptBytes(encryptedBytes, secretKey string) ([]byte, 
 		return nil, errors.Wrap(err, "", "failed to decode base64 string")
 	}
 
-	if len(decodedData) < 12 {
+	const minLengthOfDecodedData int = 12
+	if len(decodedData) < minLengthOfDecodedData {
 		c.logger.Error(c.module, "", "[DecryptBytes]: Invalid encrypted data length: %d bytes", len(decodedData))
 		return nil, errors.New(errors.ErrCodeInvalidInput, "encrypted data must be at least 12 bytes for nonce")
 	}
@@ -252,7 +260,7 @@ func (c *cryptographer) decodeAndValidateSecretKey(secretKey string) ([]byte, er
 	if err != nil {
 		c.logger.Error(c.module, "", "[decodeAndValidateSecretKey]: Failed to decode secret key: %v", err)
 		return nil, errors.New(errors.ErrCodeInvalidInput, "failed to decode secret key")
-	} else if len(key) != 32 {
+	} else if len(key) != keyLength {
 		c.logger.Error(c.module, "", "[decodeAndValidateSecretKey]: Invalid secret key length: %d bytes", len(key))
 		return nil, errors.New(errors.ErrCodeInvalidInput, "secret key must be 32 bytes for AES-256")
 	}
@@ -281,7 +289,7 @@ func (c *cryptographer) generateGCMCipher(block cipher.Block) (cipher.AEAD, erro
 }
 
 func (c *cryptographer) generateRandomNonce() ([]byte, error) {
-	nonce := make([]byte, 12)
+	nonce := make([]byte, nonceLength)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		c.logger.Error(c.module, "", "[generateRandomNonce]: Failed to generate random nonce: %v", err)
 		return nil, errors.New(errors.ErrCodeRandomGenerationFailed, "failed to generate random nonce")
