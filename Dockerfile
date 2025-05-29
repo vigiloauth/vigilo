@@ -1,6 +1,7 @@
+# Build Backend SPA
 FROM node:20-alpine AS ui-builder
 WORKDIR /app
-COPY ui/ ./
+COPY backend/ui/ ./
 RUN npm install
 RUN npm run build
 
@@ -12,7 +13,8 @@ ENV GOOS=linux
 ENV GOARCH=amd64
 ENV CGO_ENABLED=0
 
-RUN go build -o /app/identity-server ./cmd/identity-server
+# Build Backend
+RUN go build -o /app/identity-server ./backend/cmd/identity-server
 
 FROM alpine:latest
 WORKDIR /app
@@ -20,7 +22,7 @@ COPY --from=builder /app/identity-server .
 COPY --from=builder /app/cmd/config/application/config.yaml ./config.yaml
 COPY --from=ui-builder /app/build ./ui/build
 
-RUN chmod +x ./identity-server
+RUN chmod +x ./backend/identity-server
 EXPOSE 8080
 
 ENV VIGILO_SERVER_MODE=docker

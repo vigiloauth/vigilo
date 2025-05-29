@@ -1,4 +1,4 @@
-name: Run Tests
+name: Run Backend Tests
 
 on:
   pull_request:
@@ -28,12 +28,15 @@ jobs:
           echo "CRYPTO_SECRET_KEY=${{ secrets.CRYPTO_SECRET_KEY }}" >> .env.test
 
       - name: Install necessary dependencies
+        working-directory: ./backend
         run: go mod tidy
 
       - name: Format code
+        working-directory: ./backend
         run: gofmt -s -w .
 
       - name: Run tests with coverage
+        working-directory: ./backend
         run: go test -coverprofile=coverage.out ./internal/... ./tests/integration/...
 
       - name: Update coverage report
