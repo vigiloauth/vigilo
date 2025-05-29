@@ -4,6 +4,22 @@ Thank you for your interest in contributing to **VigiloAuth**, an open-source au
 
 ---
 
+## Table of Contents
+- [Welcome to the VigiloAuth Contribution Guide 👋](#welcome-to-the-vigiloauth-contribution-guide-)
+  - [Table of Contents](#table-of-contents)
+  - [1. How to Contribute](#1-how-to-contribute)
+  - [2 Commit Standards](#2-commit-standards)
+    - [2.1 Commit Types](#21-commit-types)
+    - [2.2 Manual Testing](#22-manual-testing)
+  - [3. Development Environment Setup](#3-development-environment-setup)
+    - [3.1 Node.js Version](#31-nodejs-version)
+      - [Check your Node version:](#check-your-node-version)
+    - [3.2 Installing `nvm` (Node Version Manager)](#32-installing-nvm-node-version-manager)
+    - [3.3 Install \& Use the Correct Node Version](#33-install--use-the-correct-node-version)
+  - [4. License](#4-license)
+
+---
+
 ## 1. How to Contribute
 
 1. **Fork the Repository**: Create your own fork on GitHub.
