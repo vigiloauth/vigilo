@@ -50,7 +50,51 @@ To facilitate the process of manually testing changes, we provide a script to pu
 
 ---
 
-## 3. License
+## 3. Development Environment Setup
+
+If you are working on the frontend, make sure you have the correct version of Node.js.
+
+### 3.1 Node.js Version
+
+This project uses **Vite**, which requires **Node.js v18 or later**.
+
+#### Check your Node version:
+```bash
+node -v
+```
+
+If it is below `v18`, follow the steps below to upgrade using `nvm`.
+
+### 3.2 Installing `nvm` (Node Version Manager)
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+```
+
+Then restart your terminal or run the following command:
+```
+source ~/.zshrc  # or ~/.bashrc, depending on your shell
+```
+
+### 3.3 Install & Use the Correct Node Version
+```bash
+nvm install 20
+nvm use 20
+```
+
+You should now be on a compatible version:
+```bash
+node -v  # should show v20.x.x
+```
+
+Then run the project as usual:
+```bash
+npm install
+npm run dev
+```
+
+---
+
+## 4. License
 
 Copyright 2024 Olivier Pimparé-Charbonneau
 
