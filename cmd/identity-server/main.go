@@ -1,19 +1,13 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	config "github.com/vigiloauth/vigilo/v2/cmd/config/application"
-	lib "github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/idp/server"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -26,82 +20,14 @@ func main() {
 		return
 	}
 
-	cfg := config.LoadConfigurations()
-
-	baseURL := "/identity"
-	port := ":8080"
-	module := "Vigilo Identity Provider"
-	logger := lib.GetLogger()
-	forceHTTPs := false
-	certFile := ""
-	keyFile := ""
-
-	if cfg != nil && cfg.ServerConfig != nil {
-		if cfg.Port != nil {
-			port = fmt.Sprintf(":%s", *cfg.Port)
-		}
-		if cfg.ServerConfig.ForceHTTPS != nil {
-			forceHTTPs = *cfg.ServerConfig.ForceHTTPS
-		}
-		if cfg.ServerConfig.CertFilePath != nil {
-			certFile = *cfg.ServerConfig.CertFilePath
-		}
-		if cfg.ServerConfig.KeyFilePath != nil {
-			keyFile = *cfg.ServerConfig.KeyFilePath
-		}
-		if cfg.Logger != nil {
-			logger = cfg.Logger
-		}
-		if cfg.LogLevel != nil {
-			logger.SetLevel(*cfg.LogLevel)
-		}
-	}
+	config.LoadConfigurations()
 
 	vs := server.NewVigiloIdentityServer()
 	r := chi.NewRouter()
 
 	setupSpaRouting(r)
-
-	httpServer := vs.HTTPServer()
-	r.Route(baseURL, func(subRouter chi.Router) {
-		subRouter.Mount("/", vs.Router())
-	})
-	httpServer.Handler = r
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		logger.Info(module, "", "Starting the VigiloAuth Identity Provider on %s with base URL: %s", port, baseURL)
-		var err error
-		if forceHTTPs {
-			if certFile == "" || keyFile == "" {
-				logger.Error(module, "", "HTTPS requested but certificate or key file path is not configured. Exiting.")
-				os.Exit(1)
-			}
-			err = httpServer.ListenAndServeTLS(certFile, keyFile)
-		} else {
-			err = httpServer.ListenAndServe()
-		}
-
-		if err != nil && err != http.ErrServerClosed {
-			logger.Error(module, "", "HTTP server error: %v", err)
-			os.Exit(1)
-		}
-	}()
-
-	<-stop
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
+	vs.StartServer(r)
 	vs.Shutdown()
-
-	if err := httpServer.Shutdown(ctx); err != nil {
-		logger.Error(module, "", "HTTP server shutdown error: %v", err)
-	} else {
-		logger.Info(module, "", "HTTP server shut down gracefully")
-	}
 }
 
 func setupSpaRouting(r *chi.Mux) {
