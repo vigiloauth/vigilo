@@ -5,24 +5,26 @@ COPY backend/ui/ ./
 RUN npm install
 RUN npm run build
 
+# Build Backend
 FROM golang:latest AS builder
 WORKDIR /app
-COPY . .
+COPY backend/ ./backend/
 
 ENV GOOS=linux
 ENV GOARCH=amd64
 ENV CGO_ENABLED=0
 
-# Build Backend
-RUN go build -o /app/identity-server ./backend/cmd/identity-server
+WORKDIR /app/backend
+RUN go build -o /app/identity-server ./cmd/identity-server
 
+# Final Image
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/identity-server .
-COPY --from=builder /app/cmd/config/application/config.yaml ./config.yaml
+COPY --from=builder /app/backend/cmd/config/application/config.yaml ./config.yaml
 COPY --from=ui-builder /app/build ./ui/build
 
-RUN chmod +x ./backend/identity-server
+RUN chmod +x ./identity-server
 EXPOSE 8080
 
 ENV VIGILO_SERVER_MODE=docker
