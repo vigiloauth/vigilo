@@ -11,6 +11,14 @@ import (
 	"github.com/vigiloauth/vigilo/v2/internal/background"
 )
 
+// SchedulerRegistry is a struct that manages the registration and execution of scheduled tasks.
+// It integrates with a service registry, a background scheduler, and provides logging capabilities.
+// Fields:
+// - services *ServiceRegistry: A reference to the ServiceRegistry, which manages service dependencies.
+// - scheduler *Scheduler: A background scheduler responsible for executing tasks at specified intervals.
+// - exitCh chan struct{}: A channel used to signal termination or shutdown of the scheduler.
+// - logger *Logger: A logger instance for recording events and errors.
+// - module string: A string representing the module name associated with the scheduler.
 type SchedulerRegistry struct {
 	services  *ServiceRegistry
 	scheduler *background.Scheduler
@@ -36,6 +44,14 @@ func NewSchedulerRegistry(services *ServiceRegistry, logger *config.Logger, exit
 
 func (sr *SchedulerRegistry) Start() {
 	sr.initJobs()
+}
+
+func (sr *SchedulerRegistry) Shutdown() {
+	sr.logger.Info(sr.module, "", "Shutting down schedulers and worker pool")
+	if sr.scheduler != nil {
+		sr.scheduler.Stop()
+		sr.scheduler.Wait()
+	}
 }
 
 func (sr *SchedulerRegistry) initJobs() {
@@ -89,13 +105,4 @@ func (c *SchedulerRegistry) registerAuditLogJobs() {
 	const purgeInterval time.Duration = 24 * time.Hour
 	auditLogJobs := background.NewAuditJobs(c.services.AuditLogger(), retentionPeriod, purgeInterval)
 	c.scheduler.RegisterJob("Audit Log Deletion", auditLogJobs.PurgeLogs)
-}
-
-func (sr *SchedulerRegistry) Shutdown() {
-	sr.logger.Info(sr.module, "", "Shutting down schedulers and worker pool")
-	if sr.scheduler != nil {
-		sr.scheduler.Stop()
-		sr.scheduler.Wait()
-	}
-	close(sr.exitCh)
 }

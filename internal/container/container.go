@@ -2,14 +2,27 @@ package container
 
 import (
 	"net/http"
-	"sync"
+	"os"
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
+	"github.com/vigiloauth/vigilo/v2/internal/constants"
 )
 
-const thirtySecond time.Duration = 30 * time.Second
-
+// DIContainer represents a dependency injection container that manages
+// the registration and lifecycle of various application components.
+// It provides registries for services, handlers, repositories, schedulers,
+// and server configurations, enabling modular and organized application design.
+//
+// Fields:
+// - serviceRegistry: Manages the registration and retrieval of service components.
+// - handlerRegistry: Manages the registration and retrieval of handler components.
+// - repoRegistry: Manages the registration and retrieval of repository components.
+// - schedulerRegistry: Manages the registration and retrieval of scheduler components.
+// - serverConfigRegistry: Manages the registration and retrieval of server configuration components.
+// - exitCh: A channel used for signaling application shutdown.
+// - logger: A logger instance for logging application events.
+// - module: Represents the name or identifier of the current module.
 type DIContainer struct {
 	serviceRegistry      *ServiceRegistry
 	handlerRegistry      *HandlerRegistry
@@ -32,7 +45,16 @@ func NewDIContainer(logger *config.Logger) *DIContainer {
 	}
 }
 
-func (di *DIContainer) Init() *DIContainer {
+// Init initializes the DIContainer by setting up various registries and dependencies.
+// It creates and configures the following components:
+// - RepositoryRegistry: Manages repositories and is initialized with a logger.
+// - ServiceRegistry: Manages services and is initialized with the RepositoryRegistry and a logger.
+// - HandlerRegistry: Manages handlers and is initialized with the ServiceRegistry and a logger.
+// - ServerConfigRegistry: Manages server configurations and is initialized with the ServiceRegistry.
+// - SchedulerRegistry: Manages scheduled tasks and is initialized with the ServiceRegistry, a logger, and an exit channel.
+//
+// Additionally, it starts the SchedulerRegistry to begin processing scheduled tasks.
+func (di *DIContainer) Init() {
 	di.repoRegistry = NewRepositoryRegistry(di.logger)
 	di.serviceRegistry = NewServiceRegistry(di.repoRegistry, di.logger)
 	di.handlerRegistry = NewHandlerRegistry(di.serviceRegistry, di.logger)
@@ -42,7 +64,6 @@ func (di *DIContainer) Init() *DIContainer {
 	di.exitCh = make(chan struct{})
 	di.schedulerRegistry = NewSchedulerRegistry(di.serviceRegistry, di.logger, di.exitCh)
 	di.schedulerRegistry.Start()
-	return di
 }
 
 func (di *DIContainer) ServiceRegistry() *ServiceRegistry {
@@ -62,9 +83,13 @@ func (di *DIContainer) ServerConfigRegistry() *ServerConfigRegistry {
 }
 
 func (di *DIContainer) HTTPServer() *http.Server {
-	return di.ServerConfigRegistry().httpServer
+	return di.ServerConfigRegistry().HTTPServer()
 }
 
+// Shutdown gracefully shuts down the DIContainer by stopping its scheduler registry.
+// It waits for the shutdown process to complete or times out after a predefined duration.
+// If the timeout is reached, the application exits forcefully.
+// Logs are generated to indicate the progress and outcome of the shutdown process.
 func (di *DIContainer) Shutdown() {
 	di.logger.Info(di.module, "", "Shutting down DI Container")
 
@@ -77,21 +102,8 @@ func (di *DIContainer) Shutdown() {
 	select {
 	case <-done:
 		di.logger.Info(di.module, "", "DI Container shut down successfully")
-	case <-time.After(thirtySecond):
+	case <-time.After(constants.ThirtySecondTimeout):
 		di.logger.Warn(di.module, "", "Shutdown timeout reached. Forcing application exit.")
+		os.Exit(1)
 	}
-}
-
-type LazyInit[T any] struct {
-	once     sync.Once
-	value    T
-	initFunc func() T
-}
-
-func (l *LazyInit[T]) Get() T {
-	l.once.Do(func() {
-		l.value = l.initFunc()
-	})
-
-	return l.value
 }

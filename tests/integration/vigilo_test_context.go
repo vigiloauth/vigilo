@@ -25,6 +25,8 @@ import (
 	jwtService "github.com/vigiloauth/vigilo/v2/internal/service/jwt"
 	tokenService "github.com/vigiloauth/vigilo/v2/internal/service/token"
 	"github.com/vigiloauth/vigilo/v2/internal/types"
+	"github.com/vigiloauth/vigilo/v2/internal/utils"
+	"github.com/vigiloauth/vigilo/v2/internal/web"
 
 	client "github.com/vigiloauth/vigilo/v2/internal/domain/client"
 	token "github.com/vigiloauth/vigilo/v2/internal/domain/token"
@@ -34,10 +36,6 @@ import (
 	sessionRepo "github.com/vigiloauth/vigilo/v2/internal/repository/session"
 	tokenRepo "github.com/vigiloauth/vigilo/v2/internal/repository/token"
 	consentRepo "github.com/vigiloauth/vigilo/v2/internal/repository/userconsent"
-
-	"github.com/vigiloauth/vigilo/v2/internal/utils"
-
-	"github.com/vigiloauth/vigilo/v2/internal/web"
 
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	clientRepo "github.com/vigiloauth/vigilo/v2/internal/repository/client"
@@ -86,9 +84,9 @@ type VigiloTestContext struct {
 	HttpClient         *http.Client
 	User               *users.User
 	OAuthClient        *client.Client
+	SessionCookie      *http.Cookie
 	JWTToken           string
 	ClientAuthToken    string
-	SessionCookie      *http.Cookie
 	State              string
 	SH256CodeChallenge string
 	PlainCodeChallenge string
@@ -98,13 +96,11 @@ type VigiloTestContext struct {
 // NewVigiloTestContext creates a basic test context with default server configurations.
 func NewVigiloTestContext(t *testing.T) *VigiloTestContext {
 	config.GetServerConfig().Logger().SetLevel("debug")
-	config.GetServerConfig().SetBaseURL("http://localhost")
 
 	return &VigiloTestContext{
 		T:                  t,
 		VigiloServer:       server.NewVigiloIdentityServer(),
 		SH256CodeChallenge: utils.EncodeSHA256(testClientSecret),
-
 		PlainCodeChallenge: testClientSecret,
 	}
 }
@@ -165,10 +161,11 @@ func (tc *VigiloTestContext) WithUserConsent() *VigiloTestContext {
 			testClientID,
 			types.CombineScopes(types.Scope(testScope)),
 		)
+
 	return tc
 }
 
-// WithClient creates and adds a user to the system.
+// WithClient creates and adds a client to the system.
 //
 // Parameters:
 //

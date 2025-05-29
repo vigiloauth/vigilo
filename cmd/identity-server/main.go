@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	config "github.com/vigiloauth/vigilo/v2/cmd/config/application"
-	lib "github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/idp/server"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
@@ -18,75 +16,18 @@ import (
 
 func main() {
 	isDockerENV := os.Getenv(constants.VigiloServerModeENV) == "docker"
-	if isDockerENV { //nolint
-		cfg := config.LoadConfigurations()
-
-		baseURL := "/identity"
-		port := ":8080"
-		module := "Vigilo Identity Provider"
-		logger := lib.GetLogger()
-		forceHTTPs := false
-		certFile := ""
-		keyFile := ""
-
-		if cfg != nil && cfg.ServerConfig != nil {
-			if cfg.Port != nil {
-				port = fmt.Sprintf(":%s", *cfg.Port)
-			}
-			if cfg.ServerConfig.ForceHTTPS != nil {
-				forceHTTPs = *cfg.ServerConfig.ForceHTTPS
-			}
-			if cfg.ServerConfig.CertFilePath != nil {
-				certFile = *cfg.ServerConfig.CertFilePath
-			}
-			if cfg.ServerConfig.KeyFilePath != nil {
-				keyFile = *cfg.ServerConfig.KeyFilePath
-			}
-			if cfg.Logger != nil {
-				logger = cfg.Logger
-			}
-			if cfg.LogLevel != nil {
-				logger.SetLevel(*cfg.LogLevel)
-			}
-		}
-
-		if !strings.HasPrefix(baseURL, "/") {
-			baseURL = "/" + baseURL
-		}
-
-		vs := server.NewVigiloIdentityServer()
-		r := chi.NewRouter()
-
-		setupSpaRouting(r)
-		setupServer(logger, vs, port, baseURL, certFile, keyFile, module, forceHTTPs, r)
-
-		select {}
+	if !isDockerENV {
+		return
 	}
-}
 
-func setupServer(logger *lib.Logger, vs *server.VigiloIdentityServer, port, baseURL, certFile, keyFile, module string, forceHTTPs bool, r *chi.Mux) {
-	httpServer := vs.HTTPServer()
-	r.Route(baseURL, func(subRouter chi.Router) {
-		subRouter.Mount("/", vs.Router())
-	})
+	config.LoadConfigurations()
 
-	httpServer.Handler = r
-	logger.Info(module, "", "Starting the VigiloAuth Identity Provider on %s with base URL: %s", port, baseURL)
-	if forceHTTPs {
-		if certFile == "" || keyFile == "" {
-			logger.Error(module, "", "HTTPS requested but certificate or key file path is not configured in YAML or loaded correctly. Exiting.")
-			os.Exit(1)
-		}
-		if err := httpServer.ListenAndServeTLS(certFile, keyFile); err != nil {
-			logger.Error(module, "", "Failed to start server on HTTPS: %v", err)
-			os.Exit(1)
-		}
-	} else {
-		if err := httpServer.ListenAndServe(); err != nil {
-			logger.Error(module, "", "Failed to start server: %v", err)
-			os.Exit(1)
-		}
-	}
+	vs := server.NewVigiloIdentityServer()
+	r := chi.NewRouter()
+
+	setupSpaRouting(r)
+	vs.StartServer(r)
+	vs.Shutdown()
 }
 
 func setupSpaRouting(r *chi.Mux) {
