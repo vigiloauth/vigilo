@@ -37,6 +37,8 @@ With VigiloAuth, you can quickly set up secure authentication and identity manag
 
 Whether you are building a simple app or a complex enterprise system, **VigiloAuth** provides a solid foundation for handling authentication and identity management with minimal effort.
 
+The Admin UI can be found [here](https://github.com/vigiloauth/vigilo-ui)
+
 ---
 
 ## 2. Features
