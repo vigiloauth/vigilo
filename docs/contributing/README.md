@@ -19,7 +19,7 @@ _If you're a first-time contributor, check out our [Good First Issues](https://g
 
 ___
 
-## 2 Commit Standards
+## 2. Commit Standards
 
 We follow the **_Conventional Commit_** standards to ensure clear and meaningful commit messages. Use the format:
 ```azure
