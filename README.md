@@ -106,7 +106,7 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 
 1. **Fork the Repository**: Create your own fork on GitHub.
 2. **Clone Your Fork**: Clone it to your local development environment.
-3. **Create a Branch**: Create a new branch from `main` (e.g., `feature/my-feature`).
+3. **Create a Branch**: Create a new branch from `master` (e.g., `feature/my-feature`).
 4. **Make Your Changes**: Implement your changes in alignment with project goals.
 5. **Write Tests**: Add or update tests to cover your changes.
 6. **Commit Your Changes**: Use **Conventional Commits** (see below).
