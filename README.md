@@ -1,4 +1,4 @@
-# VigiloAuth: Open-source OAuth 2.0 & OpenID Connect (OIDC) authentication/idp server 
+# VigiloAuth
 
 ![Latest Version](https://img.shields.io/github/tag/vigiloauth/vigilo?label=latest%20version)
 ![Github Repo Stars](https://img.shields.io/github/stars/vigiloauth/vigilo?style=flat)
