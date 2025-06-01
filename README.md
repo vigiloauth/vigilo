@@ -1,4 +1,4 @@
-# VigiloAuth
+# VigiloAuth: Open-source OAuth 2.0 & OpenID Connect (OIDC) authentication/idp server 
 
 ![Latest Version](https://img.shields.io/github/tag/vigiloauth/vigilo?label=latest%20version)
 ![Github Repo Stars](https://img.shields.io/github/stars/vigiloauth/vigilo?style=flat)
@@ -26,7 +26,7 @@
 
 ## 1. Introduction
 
->⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
+>💡 **VigiloAuth is under active development** and already supports core OAuth2 and OIDC flows, with more on the way!
 
 >⚖️ **Apache 2.0 License:**
 This server is free and open source, developed for community use and OIDF certification.
