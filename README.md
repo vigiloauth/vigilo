@@ -26,21 +26,21 @@
 
 ## 1. Introduction
 
+>⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
+
 >⚖️ **Apache 2.0 License:**
 This server is free and open source, developed for community use and OIDF certification.
 
->⚠️ **Note:** VigiloAuth is currently in development and not yet feature-complete. Some functionalities are still being implemented, and APIs may change in future releases.
-
 >💬 **Join the Conversation:**
 We're gathering feedback and ideas in the discussion threads. Come share your thoughts!
+
+> 💻 The Admin UI can be found [here](https://github.com/vigiloauth/vigilo-ui)
 
 VigiloAuth is designed to simplify the implementation of OAuth 2.0 and OpenID Connect (OIDC) authentication servers. Whether you need a full-fledged **authentication server**, an **identity server**, or both, VigiloAuth provides compliant endpoints that you can easily integrate into your application without writing any complex code.
 
 With VigiloAuth, you can quickly set up secure authentication and identity management solutions for your application, allowing users to authenticate and easily manage their identities. VigiloAuth comes pre-configured with common authentication flows and identity management endpoints, saving you time and effort while making sure that your system complies with industry standards.
 
 Whether you are building a simple app or a complex enterprise system, **VigiloAuth** provides a solid foundation for handling authentication and identity management with minimal effort.
-
-The Admin UI can be found [here](https://github.com/vigiloauth/vigilo-ui)
 
 ---
 
