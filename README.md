@@ -7,6 +7,20 @@
 [![Go Coverage](https://github.com/vigiloauth/vigilo/wiki/coverage.svg)](https://raw.githack.com/wiki/vigiloauth/vigilo/coverage.html)
 [![golangci-lint](https://github.com/vigiloauth/vigilo/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/vigiloauth/vigilo/actions/workflows/golangci-lint.yml)
 
+---
+
+>💡 **VigiloAuth is under active development** and already supports core OAuth2 and OIDC flows, with more on the way!
+
+>⚖️ **Apache 2.0 License:**
+This server is free and open source, developed for community use and OIDF certification.
+
+>💬 **Join the Conversation:**
+We're gathering feedback and ideas in the discussion threads. Come share your thoughts!
+
+> 💻 The Admin UI can be found [here](https://github.com/vigiloauth/vigilo-ui)
+
+---
+
 ## Table of Contents
 - [VigiloAuth](#vigiloauth)
 	- [Table of Contents](#table-of-contents)
@@ -25,16 +39,6 @@
 ---
 
 ## 1. Introduction
-
->💡 **VigiloAuth is under active development** and already supports core OAuth2 and OIDC flows, with more on the way!
-
->⚖️ **Apache 2.0 License:**
-This server is free and open source, developed for community use and OIDF certification.
-
->💬 **Join the Conversation:**
-We're gathering feedback and ideas in the discussion threads. Come share your thoughts!
-
-> 💻 The Admin UI can be found [here](https://github.com/vigiloauth/vigilo-ui)
 
 VigiloAuth is designed to simplify the implementation of OAuth 2.0 and OpenID Connect (OIDC) authentication servers. Whether you need a full-fledged **authentication server**, an **identity server**, or both, VigiloAuth provides compliant endpoints that you can easily integrate into your application without writing any complex code.
 
