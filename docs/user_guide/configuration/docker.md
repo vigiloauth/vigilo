@@ -24,7 +24,7 @@ To add **VigiloAuth** to your project, simply create a `yaml` configuration file
 
 ---
 
-## 2. Import the Library
+## 2. Configure the Server
 
 In your `docker-compose.yaml` file, add **VigiloAuth** as a service:
 
@@ -59,13 +59,13 @@ services:
           TOKEN_ISSUER: ${TOKEN_ISSUER}
 ```
 
-## 2.1 Providing Required Secrets and Configuration
+## 2.1. Providing Required Secrets and Configuration
 
 **VigiloAuth** requires configuration to run correctly. For security, sensitive information (secrets) are not included in the Docker image or the main YAML configuration file. These secrets must be provided to the container at runtime via environment variables.
 
 Other non-sensitive configuration (like ports, timeouts, password policies) can be provided through the YAML configuration file mounted into the container.
 
-#### 2.1.1 Required Environment Variables (Secrets):
+#### 2.1.1. Required Environment Variables (Secrets):
 
 You must provide the following environment variables when running the VigiloAuth container. The application uses these for sensitive operations like sending emails and signing tokens.
 
@@ -77,7 +77,7 @@ You must provide the following environment variables when running the VigiloAuth
 - `TOKEN_PUBLIC_KEY`: Your RSA public key used for verifying tokens, encoded in Base64.
 
 
-#### 2.1.2 How to Provide Environment Variables:
+#### 2.1.2. How to Provide Environment Variables:
 
 When using docker-compose, the simplest and recommended way to provide these secrets without putting them directly in the docker-compose.yaml file is to create a .env file in the same directory as your docker-compose.yaml file. Docker Compose will automatically read variables from this file.
 
@@ -118,7 +118,7 @@ docker-compose up
 
 ---
 
-### 3.1 Configuring The Server
+### 3.1. Configuring The Server
 Here is an example on how to configure the server to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 
 ```yaml
@@ -139,7 +139,7 @@ server_config:
 
 ---
 
-### 3.2 Token Configuration
+### 3.2. Token Configuration
 Here is an example on how to configure the token requirements to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 
 ```yaml
@@ -151,7 +151,7 @@ token_config:
 
 ---
 
-### 3.3 Login Configuration
+### 3.3. Login Configuration
 Here is an example on how to configure the login functionality to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 
 ```yaml
@@ -162,7 +162,7 @@ login_config:
 
 ---
 
-### 3.4 Password Configuration
+### 3.4. Password Configuration
 Here is an example on how to configure the password requirements to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 
 ```yaml
@@ -175,7 +175,7 @@ password_config:
 
 ---
 
-### 3.5 Audit Log Configuration
+### 3.5. Audit Log Configuration
 Here is an example on how to configure the Audit Log configuration to suit your needs. To learn more about the configuration options, refer to the [configuration guide](./configuration_guide.md)
 
 ```yaml
