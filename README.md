@@ -26,14 +26,14 @@ We're gathering feedback and ideas in the discussion threads. Come share your th
 	- [Table of Contents](#table-of-contents)
 	- [1. Introduction](#1-introduction)
 	- [2. Features](#2-features)
-		- [2.1 Currently Implemented](#21-currently-implemented)
-		- [2.2 Planned Features](#22-planned-features)
-		- [2.3 Open ID Conformance Tests](#23-open-id-conformance-tests)
+		- [2.1. Currently Implemented](#21-currently-implemented)
+		- [2.2. Planned Features](#22-planned-features)
+		- [2.3. Open ID Conformance Tests](#23-open-id-conformance-tests)
 	- [3. Documentation](#3-documentation)
 	- [4. Contributing](#4-contributing)
 		- [4.1 How to Contribute](#41-how-to-contribute)
-		- [4.2 Commit Standards](#42-commit-standards)
-		- [4.3 Commit Types](#43-commit-types)
+		- [4.2. Commit Standards](#42-commit-standards)
+		- [4.3. Commit Types](#43-commit-types)
 	- [5. License](#5-license)
 
 ---
@@ -50,7 +50,7 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 
 ## 2. Features
 
-### 2.1 Currently Implemented
+### 2.1. Currently Implemented
 - ✅ **User Registration**
 - ✅ **User Email Verification**
 - ✅ **Basic User Authentication**
@@ -70,7 +70,7 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 - ✅ **OIDC JSON Web Key Set Endpoint**
 - ✅ **In Memory Storage**
 
-### 2.2 Planned Features
+### 2.2. Planned Features
 
 - 🛠️ **Realm Support**
 - 🛠️ **Phone Number Verification**
@@ -91,7 +91,7 @@ Whether you are building a simple app or a complex enterprise system, **VigiloAu
 
 ---
 
-### 2.3 Open ID Conformance Tests
+### 2.3. Open ID Conformance Tests
 
 You can find the list of our currently passing conformance tests [here](https://www.certification.openid.net/plan-detail.html?public=true&plan=ZbxeUWhH8Vldh).
 
@@ -122,7 +122,7 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 7. **Push Your Changes**: Push your branch to your GitHub fork.
 8. **Open a Pull Request**: Submit a PR to the main repository and clearly describe your changes.
 
-### 4.2 Commit Standards
+### 4.2. Commit Standards
 
 We follow the **_Conventional Commit_** standards to ensure clear and meaningful commit messages. Use the format:
 ```azure
@@ -131,7 +131,7 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 [optional footer(s)]
 ```
 
-### 4.3 Commit Types
+### 4.3. Commit Types
 
 - `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
 - `feat`: Add a new feature that enhances the functionality of the project.
