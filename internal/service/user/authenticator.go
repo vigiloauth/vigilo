@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
 	audit "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
 	login "github.com/vigiloauth/vigilo/v2/internal/domain/login"
+	tokens "github.com/vigiloauth/vigilo/v2/internal/domain/token"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
@@ -24,6 +26,7 @@ type userAuthenticator struct {
 	repo                users.UserRepository
 	auditLogger         audit.AuditLogger
 	loginAttemptService login.LoginAttemptService
+	tokenIssuer         tokens.TokenIssuer
 
 	artificialDelay                 time.Duration
 	maxFailedAuthenticationAttempts int
@@ -35,11 +38,13 @@ func NewUserAuthenticator(
 	repo users.UserRepository,
 	auditLogger audit.AuditLogger,
 	loginAttemptService login.LoginAttemptService,
+	tokenIssuer tokens.TokenIssuer,
 ) users.UserAuthenticator {
 	return &userAuthenticator{
 		repo:                            repo,
 		auditLogger:                     auditLogger,
 		loginAttemptService:             loginAttemptService,
+		tokenIssuer:                     tokenIssuer,
 		artificialDelay:                 config.GetServerConfig().LoginConfig().Delay(),
 		maxFailedAuthenticationAttempts: config.GetServerConfig().LoginConfig().MaxFailedAttempts(),
 		logger:                          config.GetServerConfig().Logger(),
@@ -130,9 +135,16 @@ func (u *userAuthenticator) AuthenticateUser(
 		return nil, errors.Wrap(err, "", "failed to save authentication attempt")
 	}
 
+	roles := strings.Join(user.Roles, ", ")
+	accessToken, refreshToken, err := u.tokenIssuer.IssueTokenPair(ctx, user.ID, "", "", roles, "", nil)
+	if err != nil {
+		u.logger.Error(u.module, requestID, "[AuthenticateUser]: Failed to generate tokens: %v", err)
+		return nil, errors.Wrap(err, "", "failed to generate tokens")
+	}
+
 	u.logAuthenticationAttempt(ctx, true, nil, user.ID)
 
-	return users.NewUserLoginResponse(user), nil
+	return users.NewUserLoginResponse(user, accessToken, refreshToken), nil
 }
 
 func (u *userAuthenticator) applyArtificialDelay(startTime time.Time) {

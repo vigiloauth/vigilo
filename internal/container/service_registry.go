@@ -34,6 +34,9 @@ import (
 	consentService "github.com/vigiloauth/vigilo/v2/internal/service/userconsent"
 )
 
+// ServiceRegistry is a central registry for initializing and managing various services
+// used throughout the application. It provides lazy initialization for services and
+// ensures dependencies are properly wired together.
 type ServiceRegistry struct {
 	db                   *RepositoryRegistry
 	consentService       LazyInit[consent.UserConsentService]
@@ -183,6 +186,7 @@ func (sr *ServiceRegistry) initUserAuthenticator() {
 				sr.db.UserRepository(),
 				sr.AuditLogger(),
 				sr.LoginAttemptService(),
+				sr.TokenIssuer(),
 			)
 		},
 	}
