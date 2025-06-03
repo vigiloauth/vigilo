@@ -26,8 +26,8 @@ So that I can [...]
 - [ ] 
 
 **Testing Requirements:**
-- [ ] Unit Tests
-- [ ] Integration Tests
+- [ ] Unit Tests: Add testing details if applicable
+- [ ] Integration Tests: Add testing details if applicable
 
 **Additional Notes:**
 Add any other context or details about the implementation here.
