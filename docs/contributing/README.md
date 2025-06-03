@@ -28,7 +28,7 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 [optional footer(s)]
 ```
 
-### 2.1 Commit Types
+### 2.1. Commit Types
 
 - `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
 - `feat`: Add a new feature that enhances the functionality of the project.
@@ -40,8 +40,20 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 - `refactor`: Restructure existing code without changing its external behavior.
 - `test`: Add or modify tests without affecting functionality.
 
+### 2.2. Common Issues
 
-### 2.2 Manual Testing
+Some common issues that might be encountered while contributing include a panic while running unit or integration tests saying the `.env` file was not found. To fix this issue, simply create a `.env.test` file containing the necessary values:
+
+```env
+SMTP_USERNAME=john@mail.com
+SMTP_FROM_ADDRESS=john@mail.com
+SMTP_PASSWORD=my_super_strong_password
+
+TOKEN_PRIVATE_KEY=some_private_key
+TOKEN_PUBLIC_KEY=some_public_key
+```
+
+### 2.3. Manual Testing
 
 To facilitate the process of manually testing changes, we provide a script to push a Docker container for manual testing purposes. To run the script, navigate to the `scripts` directory from your terminal and simply run:
 ```bash
