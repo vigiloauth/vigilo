@@ -305,10 +305,12 @@ func NewUserLoginResponse(
 	refreshToken string,
 ) *UserLoginResponse {
 	return &UserLoginResponse{
-		UserID:   user.ID,
-		Username: user.PreferredUsername,
-		Email:    user.Email,
-		Roles:    user.Roles,
+		UserID:       user.ID,
+		Username:     user.PreferredUsername,
+		Email:        user.Email,
+		Roles:        user.Roles,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 
 		LastFailedLogin: user.LastFailedLogin,
 	}
