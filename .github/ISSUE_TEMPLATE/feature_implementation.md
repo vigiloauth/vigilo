@@ -1,5 +1,5 @@
 ---
-name: Feature Implementation
+name: Feature implementation
 about: Create an implementation task for a planned feature or enhancement
 title: ''
 labels: feature
