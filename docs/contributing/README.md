@@ -49,8 +49,8 @@ SMTP_USERNAME=john@mail.com
 SMTP_FROM_ADDRESS=john@mail.com
 SMTP_PASSWORD=my_super_strong_password
 
-TOKEN_PRIVATE_KEY=some_private_key
-TOKEN_PUBLIC_KEY=some_public_key
+TOKEN_PRIVATE_KEY=some_base_64_private_key
+TOKEN_PUBLIC_KEY=some_base_64_public_key
 ```
 
 ### 2.3. Manual Testing
