@@ -39,7 +39,14 @@ POST /identity/auth/login
 #### Response Body:
 ```json
 {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "username": "john",
+    "email": "john.doe@mail.com",
+    "last_failed_login": "0001-01-01T00:00:00Z",
+    "roles": [
+        "ADMIN"
+    ],
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
 }
 ```
 

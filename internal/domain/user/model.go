@@ -116,7 +116,7 @@ type UserLoginRequest struct {
 
 // UserLoginResponse represents the login response payload.
 type UserLoginResponse struct {
-	UserID           string
+	UserID           string    `json:"-"`
 	Username         string    `json:"username"`
 	Email            string    `json:"email"`
 	AccessToken      string    `json:"access_token,omitempty"`

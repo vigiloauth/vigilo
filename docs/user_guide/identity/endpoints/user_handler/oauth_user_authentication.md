@@ -78,7 +78,7 @@ client_id=abc123
     "email": "john.doe@mail.com",
     "phone_number": "+919367788755",
     "address": "123 Main St\nSpringfield, IL 62704\nUSA",
-    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Im5nV0ZSLThrNnpSSD..."
+    "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Im5nV0ZSLThrNnpSSD..."
 }
 ```
 
