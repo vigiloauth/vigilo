@@ -7,24 +7,29 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vigiloauth/vigilo/v2/internal/constants"
-	domain "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	audits "github.com/vigiloauth/vigilo/v2/internal/domain/audit"
+	claims "github.com/vigiloauth/vigilo/v2/internal/domain/claims"
 	users "github.com/vigiloauth/vigilo/v2/internal/domain/user"
 	"github.com/vigiloauth/vigilo/v2/internal/errors"
 	mockAudit "github.com/vigiloauth/vigilo/v2/internal/mocks/audit"
 	mockLogin "github.com/vigiloauth/vigilo/v2/internal/mocks/login"
+	mockToken "github.com/vigiloauth/vigilo/v2/internal/mocks/token"
 	mockUser "github.com/vigiloauth/vigilo/v2/internal/mocks/user"
 	service "github.com/vigiloauth/vigilo/v2/internal/service/crypto"
+	"github.com/vigiloauth/vigilo/v2/internal/types"
 	"github.com/vigiloauth/vigilo/v2/internal/utils"
 )
 
 const (
-	testRequestID string = "req-1234"
-	testUsername  string = "username"
-	testPassword1 string = "pas$2W_Ord"
-	testEmail     string = "john.doe@mail.com"
-	testUserID    string = "user-1234"
-	testIPAddress string = "127.0.01"
-	testUserAgent string = "user-agent/1.1"
+	testRequestID    string = "req-1234"
+	testUsername     string = "username"
+	testPassword1    string = "pas$2W_Ord"
+	testEmail        string = "john.doe@mail.com"
+	testUserID       string = "user-1234"
+	testIPAddress    string = "127.0.01"
+	testUserAgent    string = "user-agent/1.1"
+	testAccessToken  string = "access_token"
+	testRefreshToken string = "refresh_token"
 )
 
 func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
@@ -36,6 +41,7 @@ func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
 		repo         *mockUser.MockUserRepository
 		loginService *mockLogin.MockLoginAttemptService
 		auditLogger  *mockAudit.MockAuditLogger
+		tokenIssuer  *mockToken.MockTokenIssuer
 	}{
 		{
 			name:        "Success",
@@ -59,7 +65,46 @@ func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
 				SaveLoginAttemptFunc: func(ctx context.Context, attempt *users.UserLoginAttempt) error { return nil },
 			},
 			auditLogger: &mockAudit.MockAuditLogger{
-				StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+				StoreEventFunc: func(ctx context.Context, eventType audits.EventType, success bool, action audits.ActionType, method audits.MethodType, err error) {
+				},
+			},
+			tokenIssuer: &mockToken.MockTokenIssuer{
+				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
+					return testAccessToken, testRefreshToken, nil
+				},
+			},
+		},
+		{
+			name:        "Internal error is returned when issuing tokens",
+			wantErr:     true,
+			expectedErr: errors.SystemErrorCodeMap[errors.ErrCodeInternalServerError],
+			request:     &users.UserLoginRequest{Username: testUsername, Password: testPassword1},
+			repo: &mockUser.MockUserRepository{
+				GetUserByUsernameFunc: func(ctx context.Context, username string) (*users.User, error) {
+					crypto := service.NewCryptographer()
+					hashedPassword, _ := crypto.HashString(testPassword1)
+					return &users.User{
+						AccountLocked:     false,
+						ID:                testUserID,
+						PreferredUsername: testUsername,
+						Password:          hashedPassword,
+					}, nil
+				},
+				UpdateUserFunc: func(ctx context.Context, user *users.User) error { return nil },
+			},
+			loginService: &mockLogin.MockLoginAttemptService{
+				SaveLoginAttemptFunc: func(ctx context.Context, attempt *users.UserLoginAttempt) error { return nil },
+				HandleFailedLoginAttemptFunc: func(ctx context.Context, user *users.User, attempt *users.UserLoginAttempt) error {
+					return nil
+				},
+			},
+			auditLogger: &mockAudit.MockAuditLogger{
+				StoreEventFunc: func(ctx context.Context, eventType audits.EventType, success bool, action audits.ActionType, method audits.MethodType, err error) {
+				},
+			},
+			tokenIssuer: &mockToken.MockTokenIssuer{
+				IssueTokenPairFunc: func(ctx context.Context, subject, audience string, scopes types.Scope, roles, nonce string, claims *claims.ClaimsRequest) (string, string, error) {
+					return "", "", errors.NewInternalServerError("failed to issue tokens")
 				},
 			},
 		},
@@ -79,7 +124,7 @@ func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
 				},
 			},
 			auditLogger: &mockAudit.MockAuditLogger{
-				StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+				StoreEventFunc: func(ctx context.Context, eventType audits.EventType, success bool, action audits.ActionType, method audits.MethodType, err error) {
 				},
 			},
 		},
@@ -94,7 +139,7 @@ func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
 				},
 			},
 			auditLogger: &mockAudit.MockAuditLogger{
-				StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+				StoreEventFunc: func(ctx context.Context, eventType audits.EventType, success bool, action audits.ActionType, method audits.MethodType, err error) {
 				},
 			},
 		},
@@ -119,7 +164,7 @@ func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
 				},
 			},
 			auditLogger: &mockAudit.MockAuditLogger{
-				StoreEventFunc: func(ctx context.Context, eventType domain.EventType, success bool, action domain.ActionType, method domain.MethodType, err error) {
+				StoreEventFunc: func(ctx context.Context, eventType audits.EventType, success bool, action audits.ActionType, method audits.MethodType, err error) {
 				},
 			},
 		},
@@ -131,7 +176,7 @@ func TestUserAuthenticator_AuthenticateUser(t *testing.T) {
 			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyIPAddress, testIPAddress)
 			ctx = utils.AddKeyValueToContext(ctx, constants.ContextKeyUserAgent, testUserAgent)
 
-			service := NewUserAuthenticator(test.repo, test.auditLogger, test.loginService)
+			service := NewUserAuthenticator(test.repo, test.auditLogger, test.loginService, test.tokenIssuer)
 			resp, err := service.AuthenticateUser(ctx, test.request)
 
 			if test.wantErr {
