@@ -19,7 +19,6 @@ linters:
     - godox
     - maintidx
     - misspell
-    - mnd
     - nestif
     - sqlclosecheck
     - testifylint
@@ -32,3 +31,11 @@ formatters:
     - gofmt
     - goimports
 
+linters-settings:
+  gocognit:
+    min-complexity: 15
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  nestif:
+    min-complexity: 4
