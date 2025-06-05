@@ -1,0 +1,25 @@
+name: ClusterFuzzLite PR
+
+on: 
+    pull_request:
+        branches:
+            - master
+
+permissions:
+    contents: read
+
+jobs:
+    fuzzing:
+        name: Run fuzzers
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            
+            - name: Set up Go
+              uses: actions/setup-go@v5
+              with:
+                go-version: stable
+
+            - name: Run fuzzing
+              run : cifuzz run

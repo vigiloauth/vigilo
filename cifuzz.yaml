@@ -1,0 +1,6 @@
+project:
+  type: go
+
+fuzzers:
+  - name: FuzzNewClientAuthorizationRequest
+    target: ./tests/fuzz
