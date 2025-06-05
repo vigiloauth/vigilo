@@ -5,7 +5,6 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
-	"time"
 	"unicode"
 
 	"github.com/vigiloauth/vigilo/v2/idp/config"
@@ -119,36 +118,6 @@ func validatePassword(password string, errorCollection *errors.ErrorCollection) 
 	if passwordConfig.RequireSymbol() && !containsSymbol(password) {
 		err := errors.New(errors.ErrCodeMissingSymbol, "password is missing a required symbol")
 		errorCollection.Add(err)
-	}
-}
-
-// validateBirthdate validates the user's password and ensures it follows the
-// ISO 8601:2004 YYYY-MM-DD format
-//
-// Parameters:
-//   - birthdate: The birthdate to validate.
-//   - errorCollection *errors.ErrorCollection: The ErrorCollection to add errors to.
-func validateBirthdate(birthdate string, errorCollection *errors.ErrorCollection) {
-	if birthdate == "" {
-		err := errors.New(errors.ErrCodeEmptyInput, "birthdate is empty")
-		errorCollection.Add(err)
-		return
-	}
-
-	const pattern string = `^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$`
-	re := regexp.MustCompile(pattern)
-
-	if !re.MatchString(birthdate) {
-		err := errors.New(errors.ErrCodeInvalidFormat, "invalid birthdate format - must follow the ISO 8601:2004 YYYY-MM-DD format")
-		errorCollection.Add(err)
-		return
-	}
-
-	const dateFormat string = "2006-01-02"
-	if _, err := time.Parse(dateFormat, birthdate); err != nil {
-		err := errors.New(errors.ErrCodeInvalidDate, "the birthdate provided is an invalid date")
-		errorCollection.Add(err)
-		return
 	}
 }
 
