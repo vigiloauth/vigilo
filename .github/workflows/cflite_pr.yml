@@ -22,4 +22,6 @@ jobs:
                 go-version: stable
 
             - name: Run fuzzing
-              run : cifuzz run
+              run : |
+                go install github.com/google/clusterfuzzlite/tools/cifuzz@latest
+                cifuzz run
