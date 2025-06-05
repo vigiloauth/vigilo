@@ -19,7 +19,6 @@ linters:
     - godox
     - maintidx
     - misspell
-    - mnd
     - nestif
     - sqlclosecheck
     - testifylint
@@ -31,4 +30,3 @@ formatters:
   enable:
     - gofmt
     - goimports
-

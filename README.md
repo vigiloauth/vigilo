@@ -111,7 +111,11 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 
 >_If you're a first-time contributor, check out our [Good First Issues](https://github.com/vigiloauth/vigilo/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22good%20first%20issue%22)._
 
-### 4.1 How to Contribute
+### 4.1. Reporting Security Vulnerabilities
+
+If you have found security vulnerability, please follow our [instructions](./SECURITY.md) on how to properly report it.
+
+### 4.2. How to Contribute
 
 1. **Fork the Repository**: Create your own fork on GitHub.
 2. **Clone Your Fork**: Clone it to your local development environment.
@@ -122,7 +126,7 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 7. **Push Your Changes**: Push your branch to your GitHub fork.
 8. **Open a Pull Request**: Submit a PR to the main repository and clearly describe your changes.
 
-### 4.2. Commit Standards
+### 4.3. Commit Standards
 
 We follow the **_Conventional Commit_** standards to ensure clear and meaningful commit messages. Use the format:
 ```azure
@@ -131,7 +135,7 @@ We follow the **_Conventional Commit_** standards to ensure clear and meaningful
 [optional footer(s)]
 ```
 
-### 4.3. Commit Types
+### 4.4. Commit Types
 
 - `breaking`: Introduce a breaking change that may require users to modify their code or dependencies.
 - `feat`: Add a new feature that enhances the functionality of the project.

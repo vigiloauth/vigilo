@@ -36,16 +36,26 @@ func setupSpaRouting(r *chi.Mux) {
 
 	r.HandleFunc("/static/*", func(w http.ResponseWriter, r *http.Request) {
 		filePath := strings.TrimPrefix(r.URL.Path, "/static/")
-		fullPath := filepath.Join(buildPath, "static", filePath)
+		if strings.Contains(filePath, "..") || strings.Contains(filePath, "/") || strings.Contains(filePath, "\\") {
+			web.WriteError(w, errors.New(errors.ErrCodeBadRequest, "invalid file path"))
+			return
+		}
 
-		_, err := os.Stat(fullPath)
+		fullPath := filepath.Join(buildPath, "static", filePath)
+		absPath, err := filepath.Abs(fullPath)
+		if err != nil || !strings.HasPrefix(absPath, filepath.Join(buildPath, "static")) {
+			web.WriteError(w, errors.New(errors.ErrCodeBadRequest, "invalid file path"))
+			return
+		}
+
+		_, err = os.Stat(absPath)
 		if os.IsNotExist(err) {
 			web.WriteError(w, errors.New(errors.ErrCodeInternalServerError, "file not found"))
 			return
 		}
 
-		setContentTypeHeader(w, fullPath)
-		http.ServeFile(w, r, fullPath)
+		setContentTypeHeader(w, absPath)
+		http.ServeFile(w, r, absPath)
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
