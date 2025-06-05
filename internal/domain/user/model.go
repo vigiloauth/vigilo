@@ -51,20 +51,20 @@ type UserAddress struct {
 
 // UserRegistrationRequest represents the registration request payload.
 type UserRegistrationRequest struct {
-	Username    string      `json:"username"`
+	Username    string      `json:"username,omitempty"`
 	Nickname    string      `json:"nickname,omitempty"`
 	FirstName   string      `json:"first_name"`
 	MiddleName  string      `json:"middle_name,omitempty"`
 	FamilyName  string      `json:"family_name"`
-	Birthdate   string      `json:"birthdate"`
+	Birthdate   string      `json:"birthdate,omitempty"`
 	Email       string      `json:"email"`
 	Profile     string      `json:"profile,omitempty"` // URL to the user's profile page
 	Picture     string      `json:"picture,omitempty"` // URL to the user's picture/avatar
 	Website     string      `json:"website,omitempty"` // URL to the user's personal website
-	Gender      string      `json:"gender"`
+	Gender      string      `json:"gender,omitempty"`
 	PhoneNumber string      `json:"phone_number,omitempty"`
 	Password    string      `json:"password"`
-	Address     UserAddress `json:"address"`
+	Address     UserAddress `json:"address,omitempty"`
 	Scopes      []string    `json:"scope,omitempty"`
 	Roles       []string    `json:"roles,omitempty"`
 }
