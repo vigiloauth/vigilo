@@ -1,32 +1,39 @@
-name: ClusterFuzzLite PR
+name: ClusterFuzzLite PR fuzzing
 
-on: 
-    pull_request:
-        branches:
-            - master
+on:
+  pull_request:
+    branches: [ '*' ]
 
 permissions:
-    contents: read
-
+  contents: read
+  
 jobs:
-    fuzzing:
-        name: Run fuzzers
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-            
-            - name: Set up Go
-              uses: actions/setup-go@v5
-              with:
-                go-version: stable
+  PR:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.sanitizer }}-${{ github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer:
+        - address
 
-            - name: Install cifuzz CLI
-              run: |
-                  go install github.com/google/cifuzz/cmd/cifuzz@latest
-                  export PATH=$PATH:$HOME/go/bin
-                  cifuzz version
-              
-            - name: Run fuzzing
-              run: cifuzz run
-              
+    steps:
+    - name: Build Fuzzers (${{ matrix.sanitizer }})
+      id: build
+      uses: google/clusterfuzzlite/actions/build_fuzzers@v1
+      with:
+        language: go
+        github-token: ${{ secrets.CFLITE }}
+        sanitizer: ${{ matrix.sanitizer }}
+        
+    - name: Run Fuzzers (${{ matrix.sanitizer }})
+      id: run
+      uses: google/clusterfuzzlite/actions/run_fuzzers@v1
+      with:
+        github-token: ${{ secrets.CFLITE }}
+        fuzz-seconds: 600
+        mode: 'code-change'
+        sanitizer: ${{ matrix.sanitizer }}
+        output-sarif: true
