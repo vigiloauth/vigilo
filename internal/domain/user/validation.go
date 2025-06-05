@@ -20,6 +20,11 @@ import (
 func (req *UserRegistrationRequest) Validate() error {
 	errorCollection := errors.NewErrorCollection()
 
+	if req.Username == "" {
+		err := errors.New(errors.ErrCodeEmptyInput, "'username' is empty")
+		errorCollection.Add(err)
+	}
+
 	validateEmail(req.Email, errorCollection)
 	validatePassword(req.Password, errorCollection)
 	validatePhoneNumber(req.PhoneNumber, errorCollection)
