@@ -17,21 +17,21 @@ POST /identity/auth/signup
 ### Request Body
 | Field            | Type          | Required  | Description                                                              |
 |:-----------------|:--------------|:----------|:-------------------------------------------------------------------------|
-| `username`       | `string`      | Yes       | The user's username.                                                     |
+| `username`       | `string`      | No        | The user's username.                                                     |
 | `first_name`     | `string`      | Yes       | The user's first name.                                                   |
 | `middle_name`    | `string`      | No        | The user's middle name.                                                  |
 | `family_name`    | `string`      | Yes       | The user's family/last name.                                             |
-| `birthdate`      | `string`      | Yes       | The user's birthdate. Must follow the `YYYY-MM-DD` format (ISO 8601). |
+| `birthdate`      | `string`      | No        | The user's birthdate. Must follow the `YYYY-MM-DD` format (ISO 8601). |
 | `email`          | `string`      | Yes       | The user's email address.                                                |
-| `gender`         | `string`      | Yes       | The user's gender.                                                       |
+| `gender`         | `string`      | No        | The user's gender.                                                       |
 | `phone_number`   | `string`      | No        | The user's phone number. Must follow the `E.164` format.                 |
 | `password`       | `string`      | Yes       | The password for the account.                                            |
 | `nickname`       | `string`      | No        | The user's preferred nickname.                                           |
 | `profile`        | `string`      | No        | URL of the user's profile page.                                          |
 | `picture`        | `string`      | No        | URL of the user's profile picture.                                       |
 | `website`        | `string`      | No        | URL of the user's personal website.                                      |
-| `address`        | `UserAddress` | Yes       | The user's address. See the `UserAddress` schema or example request.     |
-| `scopes`         | `[]string`    | Yes       | The user's requested scopes.                                             |
+| `address`        | `UserAddress` | No        | The user's address. See the `UserAddress` schema or example request.     |
+| `scopes`         | `[]string`    | No        | The user's requested scopes.                                             |
 | `roles`          | `[]string`    | No        | The user's requested roles. Defaults to `USER` if left empty.            |
 
 ---
