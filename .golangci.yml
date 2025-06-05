@@ -30,12 +30,3 @@ formatters:
   enable:
     - gofmt
     - goimports
-
-linters-settings:
-  gocognit:
-    min-complexity: 15
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  nestif:
-    min-complexity: 4
