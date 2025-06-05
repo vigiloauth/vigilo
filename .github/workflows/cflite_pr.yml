@@ -21,7 +21,12 @@ jobs:
               with:
                 go-version: stable
 
+            - name: Install cifuzz CLI
+              run: |
+                  go install github.com/google/cifuzz/cmd/cifuzz@latest
+                  export PATH=$PATH:$HOME/go/bin
+                  cifuzz version
+              
             - name: Run fuzzing
-              run : |
-                go install github.com/google/clusterfuzzlite/tools/cifuzz@latest
-                cifuzz run
+              run: cifuzz run
+              
