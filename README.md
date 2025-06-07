@@ -34,7 +34,7 @@ We're gathering feedback and ideas in the discussion threads. Come share your th
 		- [4.1 How to Contribute](#41-how-to-contribute)
 		- [4.2. Commit Standards](#42-commit-standards)
 		- [4.3. Commit Types](#43-commit-types)
-	- [5. License](#5-license)
+	- [6. License](#5-license)
 
 ---
 
@@ -151,7 +151,64 @@ For more information about contributing, please read our [contribution guide](./
 
 ---
 
-## 5. License
+## 5. Quickstart Example
+
+To get started with VigiloAuth, follow this minimal example:
+
+**1. Create a `vigilo.yaml` configuration file**
+```yaml
+log_level: debug
+
+server_config:
+  port: 8080
+  session_cookie_name: vigilo-session
+  domain: auth.example.com
+  force_https: true
+  read_timeout: 30
+  write_timeout: 30
+```
+
+**2. Create a `.env` file for secrets**
+```yaml
+SMTP_USERNAME=your_smtp_user
+SMTP_FROM_ADDRESS=auth@yourdomain.com
+SMTP_PASSWORD=your_smtp_password
+TOKEN_ISSUER=auth.yourdomain.com
+TOKEN_PRIVATE_KEY=base64_encoded_private_key
+TOKEN_PUBLIC_KEY=base64_encoded_public_key
+```
+
+**3. Create a `docker-compose.yaml` file**
+```yaml
+version: '3.9'
+services:
+  vigilo-auth:
+    image: vigiloauth/server:latest
+    container_name: vigilo-auth
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./vigilo.yaml:/app/vigilo.yaml
+    environment:
+      VIGILO_CONFIG_PATH: /app/vigilo.yaml
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      TOKEN_ISSUER: ${TOKEN_ISSUER}
+      TOKEN_PRIVATE_KEY: ${TOKEN_PRIVATE_KEY}
+      TOKEN_PUBLIC_KEY: ${TOKEN_PUBLIC_KEY}
+```
+
+**4. Run the server**
+```bash
+docker-compose up
+```
+
+>For the full configuration guide and how to include the Admin-UI, refer to the [User Guide](./docs/user_guide/configuration/docker.md)
+
+---
+
+## 6. License
 
 Copyright 2024 Olivier Pimparé-Charbonneau
 
