@@ -131,6 +131,7 @@ services:
 
 networks:
   vigilo:
+    driver: bridge
 ```
 
 ### Why this works
