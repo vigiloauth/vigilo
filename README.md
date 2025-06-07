@@ -113,7 +113,7 @@ We welcome contributions to improve VigiloAuth! Follow the steps below to ensure
 
 ### 4.1. Reporting Security Vulnerabilities
 
-If you have found security vulnerability, please follow our [instructions](./SECURITY.md) on how to properly report it.
+If you have found a security vulnerability, please follow our [instructions](./SECURITY.md) on how to properly report it.
 
 ### 4.2. How to Contribute
 
