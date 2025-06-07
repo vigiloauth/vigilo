@@ -91,6 +91,52 @@ TOKEN_PRIVATE_KEY=base64_encoded_private_key_string_here
 TOKEN_PUBLIC_KEY=base64_encoded_public_key_string_here
 ```
 
+## 2.2. Connecting the Frontend (Vigilo-UI) to the Backend
+
+If you would like to use our [admin-UI](https://github.com/vigiloauth/vigilo-ui) to serve our frontend, you need to make sure that it can reach the backend. To allow the frontend to always reach the backend regardless of the container name, you should assign a **network alias** called `vigilo-backend` to your backend container.
+
+```yaml
+services:
+
+  vigilo-ui:
+    image: vigiloauth/ui:latest
+    container_name: vigilo-auth-ui
+    ports:
+      - "9090:80"
+    depends_on:
+      - vigilo-auth
+    networks:
+      vigilo:  # Connect to shared network
+
+  vigilo-auth:
+    image: vigiloauth/server:latest
+    container_name: vigilo-auth
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./vigilo.yaml:/app/vigilo.yaml
+      - ./server.crt:/app/server.crt
+      - ./server.key:/app/server.key
+    environment:
+      - VIGILO_CONFIG_PATH=/app/vigilo.yaml
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_ADDRESS=${SMTP_FROM_ADDRESS}
+      - TOKEN_PRIVATE_KEY=${TOKEN_PRIVATE_KEY}
+      - TOKEN_PUBLIC_KEY=${TOKEN_PUBLIC_KEY}
+    networks:
+      vigilo:
+        aliases:
+          - vigilo-backend  # 👈 Required alias for frontend-to-backend communication
+
+networks:
+  vigilo:
+```
+
+### Why this works
+
+Your Vigilo Admin-UI container proxies API requests (e.g. `/identity/...`) to `http://vigilo-backend:8080`, which is resolved inside Docker's internal network via the `vigilo-backend` alias.
+
 ---
 
 ## 3. Basic Setup Example
