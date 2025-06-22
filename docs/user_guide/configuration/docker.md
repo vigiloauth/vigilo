@@ -30,7 +30,7 @@ To add **VigiloAuth** to your project, simply create a `yaml` configuration file
 > You do **not** need to build or tag the VigiloAuth Docker images locally.  
 > The `docker-compose` configuration uses pre-built images from Docker Hub (e.g., `vigiloauth/server:latest` and `vigiloauth/ui:latest`).  
 > Simply run `docker-compose up` and Docker will automatically pull the required images if they are not present on your system.
-
+> It is recommended to use the latest version rather than the Docker tag `latest` to avoid issues. 
 
 In your `docker-compose.yaml` file, add **VigiloAuth** as a service:
 
