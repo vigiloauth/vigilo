@@ -26,6 +26,12 @@ To add **VigiloAuth** to your project, simply create a `yaml` configuration file
 
 ## 2. Configure the Server
 
+> **Note:**  
+> You do **not** need to build or tag the VigiloAuth Docker images locally.  
+> The `docker-compose` configuration uses pre-built images from Docker Hub (e.g., `vigiloauth/server:latest` and `vigiloauth/ui:latest`).  
+> Simply run `docker-compose up` and Docker will automatically pull the required images if they are not present on your system.
+
+
 In your `docker-compose.yaml` file, add **VigiloAuth** as a service:
 
 ```yaml
@@ -56,7 +62,6 @@ services:
           SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
           TOKEN_PRIVATE_KEY: ${TOKEN_PRIVATE_KEY} # Base64 encoded RSA private key
           TOKEN_PUBLIC_KEY: ${TOKEN_PUBLIC_KEY} # Base64 encoded RSA public key
-          TOKEN_ISSUER: ${TOKEN_ISSUER}
 ```
 
 ## 2.1. Providing Required Secrets and Configuration
@@ -72,7 +77,6 @@ You must provide the following environment variables when running the VigiloAuth
 - `SMTP_USERNAME`: Username for connecting to the SMTP server. (optional)
 - `SMTP_FROM_ADDRESS`: The 'From' email address for outgoing emails. (optional)
 - `SMTP_PASSWORD`: Password for the SMTP server. (optional)
-- `TOKEN_ISSUER`: The issuer identifier for JWT tokens (e.g., your service URL).
 - `TOKEN_PRIVATE_KEY`: Your RSA private key used for signing tokens, encoded in Base64.
 - `TOKEN_PUBLIC_KEY`: Your RSA public key used for verifying tokens, encoded in Base64.
 
@@ -86,7 +90,6 @@ When using docker-compose, the simplest and recommended way to provide these sec
 SMTP_USERNAME=your_smtp_user
 SMTP_FROM_ADDRESS=auth@yourdomain.com
 SMTP_PASSWORD=your_smtp_password_here
-TOKEN_ISSUER=auth.yourdomain.com
 TOKEN_PRIVATE_KEY=base64_encoded_private_key_string_here
 TOKEN_PUBLIC_KEY=base64_encoded_public_key_string_here
 ```
@@ -115,8 +118,8 @@ services:
       - "8080:8080"
     volumes:
       - ./vigilo.yaml:/app/vigilo.yaml
-      - ./server.crt:/app/server.crt
-      - ./server.key:/app/server.key
+      - ./server.crt:/app/server.crt # Required if using HTTPS
+      - ./server.key:/app/server.key # Required if using HTTPS
     environment:
       - VIGILO_CONFIG_PATH=/app/vigilo.yaml
       - SMTP_USERNAME=${SMTP_USERNAME}
@@ -172,7 +175,6 @@ Here is an example on how to configure the server to suit your needs. To learn m
 log_level: debug
 
 server_config:
-  port: 8080
   session_cookie_name: test-session-cookie
   domain: auth.example.com
   force_https: true
@@ -180,9 +182,32 @@ server_config:
   write_timeout: 30
   authorization_code_duration: 30
   enable_request_logging: true
-  cert_file_path: /app/path/to/cert
-  key_file_path: /app/path/to/key
+  cert_file_path: /app/path/to/cert # Path to the certificate file (.crt or .pem) used for HTTPS
+  key_file_path: /app/path/to/key # Path to the private key file (.key or .pem) that corresponds to the certificate
 ```
+
+#### 3.1.1 How to get the certification and private key file:
+
+##### 1. Use a Certificate Authority (CA)
+
+For production environments, get a valid certificate from a trusted CA such as: 
+- [Let's Encrypt](https://letsencrypt.org/) *(free)*
+- DigiCert, GlobalSign, etc. *(paid)*
+
+##### 2. Self-Signed Certificates *(for testing/dev only)*:
+
+For local development or testing:
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout server.key -out server.crt \
+  -subj "/CN=auth.example.com"
+```
+
+This generates:
+- `server.crt` - certificate
+- `server.key` - private key
+
+⚠️ Browsers will warn about self-signed certs. Don’t use them in production.
 
 ---
 
