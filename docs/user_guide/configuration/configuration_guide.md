@@ -50,6 +50,38 @@ The `VigiloIdentityServer` can be configured using various options to suit your 
 | **Expiration Time**               | Token expiration time in hours.                          | `24 hours`                      |
 | **Access Token Duration**         | Access token duration in minutes.                        | `30 minutes`                    |
 | **Refresh Token Duration**        | Refresh token duration in minutes.                       | `1440==minutes`                 |
+| **Token Private Key**             | Private key used to sign tokens (JWTs).                  | N/A                             |
+| **Token Public Key**              | Public key used to verify tokens (JWTs).                 | N/A                             |
+
+**What are the Token Private and Public Keys?**  
+The **Token Private Key** is used by the VigiloAuth server to cryptographically sign tokens (such as JWTs) that it issues. The **Token Public Key** is used by clients and other services to verify the authenticity of those tokens. This ensures that tokens cannot be tampered with and can be trusted by other systems.
+
+**How do I generate these keys?**  
+You can generate an RSA private and public key pair using the `openssl` command-line tool:
+```bash
+# Generate a 2048-bit private key
+openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
+
+# Extract the public key from the private key
+openssl rsa -pubout -in private_key.pem -out public_key.pem
+```
+
+- Use the contents of `private_key.pem` as your **Token Private Key**.
+- Use the contents of `public_key.pem` as your **Token Public Key**.
+
+**How do I use these keys with VigiloAuth?**  
+Set the keys as environment variables in your `.env` file and reference them in your Docker Compose configuration:
+
+**Example `.env` file:**
+```env
+TOKEN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0B...\n-----END PRIVATE KEY-----"
+TOKEN_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0B...\n-----END PUBLIC KEY-----"
+```
+
+Refer to the Docker configuration [guide](../configuration/docker.md) on how to properly use the values.
+
+**Note:**
+At the moment, the token public and private key are not configurable through the Admin UI, but will be in the near future.
 
 ___
 
@@ -74,14 +106,28 @@ ___
 ## 6. SMTP Configuration
 | **Configuration Option**          | **Description**                                       | **Default Value**      |
 |-----------------------------------|-------------------------------------------------------|------------------------|
-| **SMTP Host**                     | The SMTP host to use.                                 | `smtp.gmail.com`       |
-| **Use SSL**                       | Whether or not the config should use SSL.             | `false`                |
-| **Use TLS**                       | Whether or not the config should use TLS.             | `true`                 |
-| **Credentials**                   | The username and password to use to authenticate.     | N/A                    |
+| **SMTP Username**                 | Your SMTP username.                                   | N/A                    |
+| **SMTP Password**                 | Your SMTP password.                                   | N/A                    |
 | **From Address**                  | The address to use to send emails from.               | N/A                    |
-| **Encryption**                    | The type of encryption to use.                        | `tls`                  |
 
->**Note:** If no configuration is provided, email functionality will not be available.
+**Note:** 
+If no configuration is provided, email functionality will not be available.
+The SMTP credentials (**SMTP_USERNAME**, **SMTP_PASSWORD**, and **SMTP_FROM_ADDRESS**) can be created using any SMTP server you prefer (e.g., Gmail, Outlook, your own email server, etc.).
+These values are passed to the VigiloAuth server via environment variables, typically set in your `.env` file and referenced in your Docker Compose configuration.
+
+**Example `.env` file:**
+```env
+SMTP_USERNAME=your-smtp-username
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM_ADDRESS=your@email.com
+```
+
+Refer to the Docker configuration [guide](../configuration/docker.md) on how to properly use the values.
+
+**Tip:**
+For help setting up SMTP with popular providers, see:
+- [Gmail SMTP settings](https://support.google.com/mail/answer/7126229?hl=en)  
+- [Outlook/Office365 SMTP settings](https://support.microsoft.com/en-us/office/pop-imap-and-smtp-settings-for-outlook-com-d088b986-291d-42b8-9564-9c414e2aa040)
 
 ---
 
